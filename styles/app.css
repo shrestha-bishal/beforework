@@ -213,21 +213,27 @@
   .calendarEvent .gcalLink{font-size:10px;color:var(--accent-strong);text-decoration:none;flex:none;}
   .calendarEmpty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);}
   .calendarSyncStatus{font-size:11.5px;color:var(--muted);white-space:nowrap;}
-  .integrationWrap{padding:28px 32px;overflow:auto;flex:1;width:100%;max-width:980px;}
-  .integrationHeader{display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;}
+  .integrationWrap{padding:clamp(24px,4vw,40px);overflow:auto;flex:1;width:100%;max-width:1080px;}
+  .integrationHeader{display:flex;align-items:flex-start;gap:14px;margin-bottom:28px;max-width:760px;}
   .integrationHeader iconify-icon{font-size:34px;color:#4285f4;flex:none;}
   .integrationHeader h3{margin:0 0 4px;font-size:20px;}
   .integrationHeader p{margin:0;color:var(--muted);font-size:13px;}
-  .integrationCard{border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-lift);padding:20px;max-width:680px;}
-  .integrationCardHead{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .integrationCard{border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-lift);padding:24px;max-width:760px;width:100%;}
+  .integrationCardHead{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
   .integrationCardHead iconify-icon{font-size:27px;color:#ea4335;}
   .integrationCardHead strong{font-size:15px;flex:1;}
   .integrationStatus{font-size:11.5px;color:var(--muted);}
+  .integrationActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .integrationActions .integrationStatus{margin-left:auto;}
   .linkedCalendarList{display:flex;flex-direction:column;gap:8px;margin:14px 0 18px;}
   .linkedCalendarRow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);}
   .linkedCalendarRow iconify-icon{font-size:18px;color:#34a853;}
   .linkedCalendarRow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;}
   .integrationEmpty{padding:12px 0;color:var(--faint);font-size:13px;}
+  @media (max-width:560px){
+    .integrationCard{padding:18px;}
+    .integrationActions .integrationStatus{width:100%;margin-left:0;}
+  }
   .typeTabs{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;align-self:flex-start;}
   .typeTabs button{padding:5px 13px;border:none;border-right:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:12.5px;font-weight:500;}
   .typeTabs button:last-child{border-right:none;}

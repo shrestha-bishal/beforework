@@ -434,7 +434,7 @@
         <div class="integrationCardHead"><iconify-icon icon="logos:google-calendar"></iconify-icon><strong>Google Calendar</strong><span class="integrationStatus">${connectionLabel}</span></div>
         <p class="dialogMessage">Sync standalone calendar items and scheduled project items to one or more Google calendars.</p>
         <div class="linkedCalendarList">${linkedHtml}</div>
-        <div class="d-flex flex-items-center gap-2"><button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>${googleAccessToken?"":`<button class="btn btn-sm" data-integration-connect>Connect Google</button>`}<span class="integrationStatus">${escapeHtml(lastSync)}</span></div>
+        <div class="integrationActions"><button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>${googleAccessToken?"":`<button class="btn btn-sm" data-integration-connect>Connect Google</button>`}<span class="integrationStatus">${escapeHtml(lastSync)}</span></div>
       </div>
     </div>`;
     board.querySelector("[data-integration-link]").onclick = manageGoogleCalendars;
