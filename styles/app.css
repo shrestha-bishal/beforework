@@ -41,7 +41,7 @@
 
   /* Sidebar */
   #sidebar{width:264px;flex:none;background:var(--bg-soft);border-right:1px solid var(--border);
-    display:flex;flex-direction:column;padding:18px 14px 12px;gap:16px;overflow-y:auto;z-index:60;
+    display:flex;flex-direction:column;padding:18px 14px 12px;gap:12px;overflow-y:auto;z-index:60;
     transition:width .18s ease,padding .18s ease,border-color .18s ease;}
   #sidebar.collapsed{width:0;padding:0;border-right-color:transparent;overflow:hidden;}
   #app{position:relative;}
@@ -61,32 +61,34 @@
   #globalSearch{width:100%;padding-left:30px;}
 
   #overviewNav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;
-    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
   #calendarNav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;
-    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
   #overviewNav:hover{background:var(--bg-soft2);color:var(--text);}
   #calendarNav:hover{background:var(--bg-soft2);color:var(--text);}
   #overviewNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #calendarNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
-    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #integrationsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #settingsNav{display:flex;align-items:center;padding:8px 10px;border-radius:8px;
-    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin:0;padding-top:8px;font-weight:500;}
   #settingsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #settingsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
+  .sidebarBottomNav{margin-top:auto;border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:2px;}
+  #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;border:0;box-shadow:none;}
   #projectList .SideNav-item{display:flex;align-items:center;justify-content:space-between;
-    padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--muted);
-    background:transparent;border:none;width:100%;text-align:left;}
+    padding:7px 10px;border:0;border-radius:6px;cursor:pointer;font-size:13.5px;color:var(--muted);
+    background:transparent;width:100%;text-align:left;box-shadow:none;}
   #projectList .SideNav-item:hover{background:var(--bg-soft2);color:var(--text);}
-  #projectList .SideNav-item.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #projectList .SideNav-item.active{background:transparent;color:var(--accent-strong);font-weight:600;}
   #projectList .SideNav-item .cnt{font-size:11.5px;color:var(--faint);font-weight:400;}
   #projectList .SideNav-item.active .cnt{color:var(--accent);}
   #projectList .SideNav-item span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   .sideSection{border-top:1px solid var(--border);padding-top:16px;}
+  .sidebarSectionLabel{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
 
   [data-tagfilter]{cursor:pointer;}
   .Label.selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
@@ -254,16 +256,14 @@
 
   /* Settings */
   .settingsWrap{padding:clamp(24px,4vw,40px);overflow:auto;flex:1;width:100%;max-width:980px;}
-  .settingsIntro{margin-bottom:28px;}
-  .settingsIntro h3{font-size:21px;margin:0 0 5px;}
-  .settingsIntro p{margin:0;color:var(--muted);font-size:13px;}
+  .settingsIntro{margin-bottom:24px;}
+  .settingsIntro p{margin:4px 0 0;font-size:13px;}
   .settingsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:860px;}
-  .settingsSection{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);}
-  .settingsSectionHead{padding:16px 18px 13px;border-bottom:1px solid var(--border);}
+  .settingsSection{overflow:hidden;}
+  .settingsSectionHead{padding:16px 18px 13px;}
   .settingsSectionHead h4{margin:0 0 3px;font-size:13.5px;}
   .settingsSectionHead span{font-size:11.5px;color:var(--muted);}
-  .settingsRow{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 18px;border-bottom:1px solid var(--border);}
-  .settingsRow:last-child{border-bottom:none;}
+  .settingsRow{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 18px;}
   .settingsRow strong{font-size:13px;font-weight:600;}
   .settingsRow p{margin:3px 0 0;color:var(--muted);font-size:11.5px;line-height:1.45;}
   .settingsRow .btn{flex:none;}

@@ -961,18 +961,18 @@
     const timeFormat = getTimeFormat();
     const sidebarCollapsed = document.getElementById("sidebar").classList.contains("collapsed");
     board.innerHTML = `<div class="settingsWrap">
-      <div class="settingsIntro"><div><h3>Settings</h3><p>Personalise how Beforework looks and behaves on this device.</p></div></div>
+      <div class="Subhead settingsIntro"><div><h3 class="Subhead-heading">Settings</h3><p class="color-fg-muted">Personalise how Beforework looks and behaves on this device.</p></div></div>
       <div class="settingsGrid">
-        <section class="settingsSection">
-          <div class="settingsSectionHead"><h4>Appearance</h4><span>Visual preferences</span></div>
-          <div class="settingsRow"><div><strong>Colour mode</strong><p>Use a light or dark workspace.</p></div><button class="btn btn-sm" id="settingsThemeToggle">${theme} mode</button></div>
-          <div class="settingsRow"><div><strong>Time format</strong><p>Choose how times appear throughout the app.</p></div><select class="form-control settingsSelect" id="settingsTimeFormat" aria-label="Time format"><option value="12" ${timeFormat==="12"?"selected":""}>12-hour</option><option value="24" ${timeFormat==="24"?"selected":""}>24-hour</option></select></div>
-          <div class="settingsRow"><div><strong>Sidebar</strong><p>Keep the project navigation visible.</p></div><button class="btn btn-sm" id="settingsSidebarToggle">${sidebarCollapsed ? "Expand" : "Collapse"} sidebar</button></div>
+        <section class="Box settingsSection">
+          <div class="Box-header settingsSectionHead"><h4>Appearance</h4><span>Visual preferences</span></div>
+          <div class="Box-row settingsRow"><div><strong>Colour mode</strong><p>Use a light or dark workspace.</p></div><button class="btn btn-sm" id="settingsThemeToggle">${theme} mode</button></div>
+          <div class="Box-row settingsRow"><div><strong>Time format</strong><p>Choose how times appear throughout the app.</p></div><select class="form-control settingsSelect" id="settingsTimeFormat" aria-label="Time format"><option value="12" ${timeFormat==="12"?"selected":""}>12-hour</option><option value="24" ${timeFormat==="24"?"selected":""}>24-hour</option></select></div>
+          <div class="Box-row settingsRow"><div><strong>Sidebar</strong><p>Keep the project navigation visible.</p></div><button class="btn btn-sm" id="settingsSidebarToggle">${sidebarCollapsed ? "Expand" : "Collapse"} sidebar</button></div>
         </section>
-        <section class="settingsSection">
-          <div class="settingsSectionHead"><h4>Focus</h4><span>Stay on task</span></div>
-          <div class="settingsRow"><div><strong>Focus timer</strong><p>Open the timer and choose a session length.</p></div><button class="btn btn-sm" id="settingsFocusTimer">Open timer</button></div>
-          <div class="settingsRow"><div><strong>Keyboard shortcuts</strong><p>View the shortcuts available throughout the app.</p></div><button class="btn btn-sm" id="settingsShortcuts">View shortcuts</button></div>
+        <section class="Box settingsSection">
+          <div class="Box-header settingsSectionHead"><h4>Focus</h4><span>Stay on task</span></div>
+          <div class="Box-row settingsRow"><div><strong>Focus timer</strong><p>Open the timer and choose a session length.</p></div><button class="btn btn-sm" id="settingsFocusTimer">Open timer</button></div>
+          <div class="Box-row settingsRow"><div><strong>Keyboard shortcuts</strong><p>View the shortcuts available throughout the app.</p></div><button class="btn btn-sm" id="settingsShortcuts">View shortcuts</button></div>
         </section>
       </div>
     </div>`;

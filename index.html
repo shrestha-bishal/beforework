@@ -67,21 +67,23 @@
 
     <div id="overviewNav"><span>Overview</span></div>
     <div id="calendarNav"><span>Calendar</span></div>
-    <div id="integrationsNav"><span>Integrations</span></div>
-    <div id="settingsNav"><span>Settings</span></div>
 
     <div>
-      <div class="d-flex flex-justify-between flex-items-center mb-2"><span class="Label color-fg-muted">Projects</span></div>
+      <div class="d-flex flex-justify-between flex-items-center mb-2"><span class="sidebarSectionLabel">Projects</span></div>
       <ul class="SideNav" id="projectList"></ul>
       <button class="btn btn-sm btn-invisible" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
     </div>
 
     <div class="sideSection" id="tagsSection">
       <div class="d-flex flex-justify-between flex-items-center mb-2">
-        <span class="Label color-fg-muted" id="tagsSectionLabel">Tags</span>
+        <span class="sidebarSectionLabel" id="tagsSectionLabel">Tags</span>
         <button class="btn btn-sm btn-invisible" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
       </div>
       <div id="sideTagsList"></div>
+    </div>
+    <div class="sidebarBottomNav">
+      <div id="integrationsNav"><span>Integrations</span></div>
+      <div id="settingsNav"><span>Settings</span></div>
     </div>
   </div>
 
