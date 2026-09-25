@@ -1715,18 +1715,24 @@
     }
 
     wrap.innerHTML = `
-      <div class="statGrid">
-        <div class="Box p-3"><div class="h2">${state.projects.length}</div><div class="color-fg-muted text-small">Projects</div></div>
-        <div class="Box p-3"><div class="h2">${openItems.length}</div><div class="color-fg-muted text-small">Open items</div></div>
-        <div class="Box p-3"><div class="h2">${overdue.length}</div><div class="color-fg-muted text-small">Overdue</div></div>
-        <div class="Box p-3"><div class="h2">${soon.length}</div><div class="color-fg-muted text-small">Due in 7 days</div></div>
-        <div class="Box p-3"><div class="h2">${archivedCount}</div><div class="color-fg-muted text-small">Archived</div></div>
+      <div class="overviewStats">
+        <div class="overviewStat"><div class="h2">${state.projects.length}</div><div class="color-fg-muted text-small">Projects</div></div>
+        <div class="overviewStat"><div class="h2">${openItems.length}</div><div class="color-fg-muted text-small">Open items</div></div>
+        <div class="overviewStat"><div class="h2">${overdue.length}</div><div class="color-fg-muted text-small">Overdue</div></div>
+        <div class="overviewStat"><div class="h2">${soon.length}</div><div class="color-fg-muted text-small">Due in 7 days</div></div>
+        <div class="overviewStat"><div class="h2">${archivedCount}</div><div class="color-fg-muted text-small">Archived</div></div>
       </div>
-      ${section("Overdue", overdue, true, "Nothing overdue.")}
-      ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
-      ${priorityBreakdownHtml()}
-      ${projectBreakdownHtml()}
-      ${section("Recently updated", recent, false, "Nothing yet - add a project to get started.")}
+      <div class="overviewColumns">
+        <div class="overviewMain">
+          ${section("Overdue", overdue, true, "Nothing overdue.")}
+          ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
+          ${section("Recently updated", recent, false, "Nothing yet - add a project to get started.")}
+        </div>
+        <aside class="overviewAside">
+          ${priorityBreakdownHtml()}
+          ${projectBreakdownHtml()}
+        </aside>
+      </div>
     `;
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
       el.onclick = () => {
