@@ -55,9 +55,13 @@
     lastSavedState = serialized;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(writeToFile, 400);
-    if (googleAccessToken && state && linkedGoogleCalendarIds().length && !googleSyncInFlight && !googleImportInFlight){
-      clearTimeout(googleAutoSyncTimer);
-      googleAutoSyncTimer = setTimeout(()=>syncGoogleCalendar(null), 1200);
+    if (googleAccessToken && state && linkedGoogleCalendarIds().length && !googleSyncApplying){
+      if (googleSyncInFlight || googleImportInFlight){
+        googleSyncQueued = true;
+      } else {
+        clearTimeout(googleAutoSyncTimer);
+        googleAutoSyncTimer = setTimeout(()=>syncGoogleCalendar(null), 1200);
+      }
     }
   }
 
@@ -76,6 +80,13 @@
       }
     }).catch(()=>{});
     return fileWriteQueue;
+  }
+
+  async function flushSave(){
+    if (!fileHandle) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    await writeToFile();
   }
 
   async function loadFromHandle(handle){

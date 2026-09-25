@@ -69,10 +69,13 @@
   let googleTokenClient = null;
   let googleSyncInFlight = false;
   let googleImportInFlight = false;
+  let googleSyncQueued = false;
+  let googleSyncApplying = false;
   let googlePollTimer = null;
   let googleAutoSyncTimer = null;
   let googleSyncScopeProject = null;
   let googleTokenPurpose = "sync";
+  let googleSilentAuth = false;
 
   /* ---------- Theme ---------- */
   function applyTheme(theme){
@@ -2394,6 +2397,7 @@
     if (reconnected){
       restoreActiveLocation();
       renderAll();
+      resumeGoogleCalendarSync();
       await maybeShowMigrationNotice();
     } else {
       showConnectGate();

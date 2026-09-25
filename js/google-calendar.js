@@ -16,11 +16,15 @@
       callback:response=>{
         if (response.error){
           handleGoogleAuthFailure();
-          if (googleTokenPurpose==="sync") showNotice("Google Calendar", "Google authentication was not completed.");
+          if (googleTokenPurpose==="sync" && !googleSilentAuth) showNotice("Google Calendar", "Google authentication was not completed.");
+          googleSilentAuth = false;
           return;
         }
+        const resumedSilently = googleSilentAuth;
+        googleSilentAuth = false;
         googleAccessToken = response.access_token;
         updateGoogleCalendarButtons();
+        if (resumedSilently) renderMain();
         if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject).then(startGoogleCalendarPolling);
         if (googleTokenPurpose==="manage") { openGoogleCalendarManager(); startGoogleCalendarPolling(); }
       }
@@ -63,6 +67,10 @@
     if (!Array.isArray(state.googleCalendarLinks)) state.googleCalendarLinks = [];
     return state.googleCalendarLinks;
   }
+  function saveGoogleState(){
+    googleSyncApplying = true;
+    try{ scheduleSave(); }finally{ googleSyncApplying = false; }
+  }
   let googleDeleteInFlight = false;
   function queueGoogleEventDeletes(item){
     if (!item?.googleEventIds) return;
@@ -91,7 +99,7 @@
         }
       }
       state.googleDeletedEventIds = remaining;
-      scheduleSave();
+      saveGoogleState();
     }finally{
       googleDeleteInFlight = false;
     }
@@ -133,7 +141,7 @@
           state.googleCalendarLinks = [...overlay.querySelectorAll("input[type=checkbox]:checked")].map(input=>input.value);
           shouldSync = state.googleCalendarLinks.length > 0;
           scheduleSave();
-          if (fileHandle){ clearTimeout(saveTimer); saveTimer = null; await writeToFile(); }
+          await flushSave();
           renderMain();
         }
         overlay.remove();
@@ -270,17 +278,33 @@
           imported = true;
         }
       }
-      if (imported){ scheduleSave(); renderAll(); }
+      if (imported){ saveGoogleState(); await flushSave(); renderAll(); }
     }catch(error){
       if (error.status===401) handleGoogleAuthFailure();
     }finally{
       googleImportInFlight = false;
+      if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length && !googleSyncInFlight){
+        googleSyncQueued = false;
+        clearTimeout(googleAutoSyncTimer);
+        googleAutoSyncTimer = setTimeout(()=>syncGoogleCalendar(null), 0);
+      }
     }
   }
   function startGoogleCalendarPolling(){
     if (googlePollTimer) return;
-    googlePollTimer = setInterval(importGoogleCalendarEvents, 60000);
+    googlePollTimer = setInterval(importGoogleCalendarEvents, 30000);
     importGoogleCalendarEvents();
+  }
+  function resumeGoogleCalendarSync(){
+    if (!state || !linkedGoogleCalendarIds().length || googleAccessToken) return;
+    if (!googleTokenClient && !initGoogleCalendarAuth()){
+      window.addEventListener("load", resumeGoogleCalendarSync, {once:true});
+      return;
+    }
+    googleTokenPurpose = "sync";
+    googleSyncScopeProject = null;
+    googleSilentAuth = true;
+    try{ googleTokenClient.requestAccessToken({prompt:"none"}); }catch(error){ googleSilentAuth = false; }
   }
   async function syncGoogleCalendar(scopeProject){
     if (!googleAccessToken || googleSyncInFlight) return;
@@ -348,7 +372,8 @@
       }
       await processGoogleDeletions();
       state.googleLastSyncAt = Date.now();
-      scheduleSave();
+      saveGoogleState();
+      await flushSave();
       const syncLabel = `Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`;
       if (button) button.textContent = "Sync now";
       updateGoogleCalendarStatus(syncLabel);
@@ -365,6 +390,11 @@
     }finally{
       googleSyncInFlight = false;
       if (button) button.disabled = false;
+      if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length){
+        googleSyncQueued = false;
+        clearTimeout(googleAutoSyncTimer);
+        googleAutoSyncTimer = setTimeout(()=>syncGoogleCalendar(null), 0);
+      }
     }
   }
   function connectGoogleCalendar(scopeProject){
@@ -434,10 +464,12 @@
         <div class="integrationCardHead"><iconify-icon icon="logos:google-calendar"></iconify-icon><strong>Google Calendar</strong><span class="integrationStatus">${connectionLabel}</span></div>
         <p class="dialogMessage">Sync standalone calendar items and scheduled project items to one or more Google calendars.</p>
         <div class="linkedCalendarList">${linkedHtml}</div>
-        <div class="integrationActions"><button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>${googleAccessToken?"":`<button class="btn btn-sm" data-integration-connect>Connect Google</button>`}<span class="integrationStatus">${escapeHtml(lastSync)}</span></div>
+        <div class="integrationActions"><button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>${googleAccessToken?`<button class="btn btn-sm" data-integration-sync>Sync now</button>`:`<button class="btn btn-sm" data-integration-connect>Connect Google</button>`}<span class="integrationStatus">${escapeHtml(lastSync)}</span></div>
       </div>
     </div>`;
     board.querySelector("[data-integration-link]").onclick = manageGoogleCalendars;
+    const syncButton = board.querySelector("[data-integration-sync]");
+    if (syncButton) syncButton.onclick = () => syncGoogleCalendar(null);
     const connectButton = board.querySelector("[data-integration-connect]");
     if (connectButton) connectButton.onclick = () => connectGoogleCalendar(null);
     board.querySelectorAll("[data-unlink-calendar]").forEach(button=>{
