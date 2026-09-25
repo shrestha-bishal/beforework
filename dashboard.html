@@ -63,7 +63,16 @@
 
   /* Sidebar */
   #sidebar{width:264px;flex:none;background:var(--bg-soft);border-right:1px solid var(--border);
-    display:flex;flex-direction:column;padding:20px 16px;gap:18px;overflow-y:auto;z-index:60;}
+    display:flex;flex-direction:column;padding:20px 16px;gap:18px;overflow-y:auto;z-index:60;
+    transition:width .18s ease,padding .18s ease,border-color .18s ease;}
+  #sidebar.collapsed{width:0;padding:0;border-right-color:transparent;overflow:hidden;}
+  #app{position:relative;}
+  #sidebarCollapseHandle{position:absolute;top:20px;left:252px;z-index:65;width:22px;height:22px;
+    border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;
+    align-items:center;justify-content:center;font-size:11px;color:var(--muted);cursor:pointer;
+    box-shadow:var(--shadow-lift);transition:left .18s ease,color .12s,border-color .12s;padding:0;}
+  #sidebarCollapseHandle:hover{color:var(--text);border-color:var(--border-strong);}
+  #sidebar.collapsed + #sidebarCollapseHandle{left:8px;}
   #sidebar h1{font-size:15px;font-weight:700;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;letter-spacing:-.01em;}
   #sidebar h1 .mark{width:20px;height:20px;border-radius:6px;background:var(--accent);
     display:inline-block;position:relative;flex:none;}
@@ -354,7 +363,7 @@
 
   @media print{
     #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewTabs,
-    #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate{display:none!important;}
+    #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate,#sidebarCollapseHandle{display:none!important;}
     #app{height:auto;display:block;}
     #main{overflow:visible;}
     #board{overflow:visible;padding:0;flex-wrap:wrap;}
@@ -370,6 +379,7 @@
     #sidebar.open{left:0;}
     #sidebarScrim.show{display:block;position:fixed;inset:0;background:rgba(20,21,26,.32);z-index:55;}
     .iconBtn{display:inline-flex;}
+    #sidebarCollapseHandle{display:none;}
     #topbar{padding:14px 16px 12px 16px;}
     #boardFilterBar{padding:0 16px 12px 16px;}
     #boardFilterBar{padding-top:10px;}
@@ -441,6 +451,8 @@
       <div id="sideTagsList"></div>
     </div>
   </div>
+
+  <button id="sidebarCollapseHandle" title="Collapse sidebar" aria-label="Collapse sidebar">‹</button>
 
   <div id="main">
     <div id="topbar">
@@ -533,6 +545,7 @@
   ];
   const FIELD_TYPES = ["priority","select","date","text"];
   const THEME_KEY = "personal_dashboard_theme_v1";
+  const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
 
   let state = null;                 // { projects:[] }
   let showArchived = false;
@@ -593,6 +606,26 @@
     applyTheme(saved || (prefersDark ? "dark" : "light"));
   }
 
+  /* ---------- Sidebar collapse (desktop) ---------- */
+  function applySidebarCollapsed(collapsed){
+    const sidebar = document.getElementById("sidebar");
+    const handle = document.getElementById("sidebarCollapseHandle");
+    sidebar.classList.toggle("collapsed", collapsed);
+    handle.textContent = collapsed ? "›" : "‹";
+    handle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    handle.setAttribute("aria-label", handle.title);
+    try{ localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0"); }catch(err){/* ignore */}
+  }
+  function toggleSidebarCollapsed(){
+    const sidebar = document.getElementById("sidebar");
+    applySidebarCollapsed(!sidebar.classList.contains("collapsed"));
+  }
+  function initSidebarCollapse(){
+    let saved = null;
+    try{ saved = localStorage.getItem(SIDEBAR_KEY); }catch(err){/* ignore */}
+    applySidebarCollapsed(saved === "1");
+  }
+
   /* ---------- Focus timer ---------- */
   function renderFocusTimer(){
     const disp = document.getElementById("focusTimerDisplay");
@@ -636,6 +669,7 @@
       ["/", "Focus the global search"],
       ["n", "Quick-add an item to the open project"],
       ["d", "Toggle dark / light mode"],
+      ["[", "Collapse / expand the sidebar"],
       ["t", "Open or close the focus timer"],
       ["Ctrl/⌘ + Z", "Undo the last change"],
       ["Esc", "Close the open item or dialog"],
@@ -778,10 +812,15 @@
   };
   const SCHEMA_VERSION = Math.max(...Object.keys(MIGRATIONS).map(Number));
   const MIGRATION_BACKUP_KEY = "personal_dashboard_pre_migration_backup_v1";
+  // Set by migrateState() whenever it actually upgrades something, so the
+  // caller can surface a one-time notice instead of leaving the upgrade
+  // silent. Cleared by maybeShowMigrationNotice() once shown.
+  let lastMigrationInfo = null;
 
   function migrateState(raw){
     if (!raw || !Array.isArray(raw.projects)) return defaultState();
     let version = Number.isInteger(raw.schemaVersion) ? raw.schemaVersion : 0;
+    const fromVersion = version;
     if (version < SCHEMA_VERSION){
       // One safety-net backup per load, taken before any step runs, so a
       // bad migration can always be undone from the sync menu.
@@ -795,7 +834,16 @@
       s = step(s);
     }
     s.schemaVersion = SCHEMA_VERSION;
+    if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};
     return s;
+  }
+  async function maybeShowMigrationNotice(){
+    if (!lastMigrationInfo) return;
+    const info = lastMigrationInfo;
+    lastMigrationInfo = null;
+    await showNotice("Dashboard data upgraded",
+      `This file was saved by an older version of the dashboard (format v${info.fromVersion}) and has been upgraded to the current format (v${info.toVersion}). `+
+      `A copy of the pre-upgrade data was saved automatically — use "Restore pre-upgrade backup" in the storage menu (⋮ at the bottom) if anything looks off.`);
   }
 
   function hasMigrationBackup(){
@@ -923,6 +971,7 @@
       setSyncStatus("ok", "Saved to " + fileHandle.name);
       hideConnectGate();
       renderAll();
+      await maybeShowMigrationNotice();
     }catch(err){ showNotice("Couldn't reconnect", err.message); }
   }
 
@@ -959,6 +1008,7 @@
       lastSavedState = JSON.stringify(state);
       hideConnectGate();
       renderAll();
+      await maybeShowMigrationNotice();
     }catch(err){ /* user cancelled the picker */ }
   }
 
@@ -995,6 +1045,7 @@
       localStorage.removeItem(LEGACY_LS_KEY);
       hideConnectGate();
       renderAll();
+      await maybeShowMigrationNotice();
     }catch(err){ /* user cancelled the picker */ }
   }
 
@@ -1038,7 +1089,7 @@
   function importJSON(file){
     if (!fileHandle){ showNotice("Connect a file first", "Import replaces the data in your connected file — connect or create one first."); return; }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try{
         const parsed = JSON.parse(reader.result);
         if (!parsed.projects) throw new Error("not a dashboard file");
@@ -1051,6 +1102,7 @@
         activeProjectId = OVERVIEW;
         scheduleSave();
         renderAll();
+        await maybeShowMigrationNotice();
       }catch(err){ showNotice("Import failed", "Could not read that file: " + err.message); }
     };
     reader.readAsText(file);
@@ -2697,6 +2749,7 @@
     };
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
+    document.getElementById("sidebarCollapseHandle").onclick = toggleSidebarCollapsed;
     document.getElementById("undoBtn").onclick = undoLastChange;
     document.getElementById("switchFileBtn").onclick = switchFile;
     document.getElementById("newFileBtn").onclick = startNewFileFromMenu;
@@ -2731,6 +2784,7 @@
       if (editable) return;
       if (e.key==="n"){ e.preventDefault(); quickAddViaShortcut(); return; }
       if (e.key==="d"){ e.preventDefault(); toggleTheme(); return; }
+      if (e.key==="["){ e.preventDefault(); toggleSidebarCollapsed(); return; }
       if (e.key==="t"){ e.preventDefault(); document.getElementById("focusTimerPanel").classList.toggle("open"); return; }
       if (e.key==="?"){ e.preventDefault(); showShortcutsModal(); return; }
     });
@@ -2745,12 +2799,14 @@
      file. */
   async function boot(){
     initTheme();
+    initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
     const reconnected = await tryReconnectFile();
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     if (reconnected){
       renderAll();
+      await maybeShowMigrationNotice();
     } else {
       showConnectGate();
     }
