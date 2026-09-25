@@ -630,6 +630,7 @@
   let googleTokenClient = null;
   let googleSyncInFlight = false;
   let googleSyncScopeProject = null;
+  let googleTokenPurpose = "restore";
 
   /* ---------- Theme ---------- */
   function applyTheme(theme){
@@ -2209,12 +2210,29 @@
       client_id:GOOGLE_CLIENT_ID,
       scope:GOOGLE_CALENDAR_SCOPE,
       callback:response=>{
-        if (response.error){ showNotice("Google Calendar", "Google authentication was not completed."); return; }
+        if (response.error){
+          googleAccessToken = null;
+          updateGoogleCalendarButtons();
+          if (googleTokenPurpose==="sync") showNotice("Google Calendar", "Google authentication was not completed.");
+          return;
+        }
         googleAccessToken = response.access_token;
-        syncGoogleCalendar(googleSyncScopeProject);
+        updateGoogleCalendarButtons();
+        if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject);
       }
     });
     return true;
+  }
+  function updateGoogleCalendarButtons(){
+    document.querySelectorAll('[data-calendar-action="google"]').forEach(button=>{
+      if (!googleSyncInFlight) button.textContent = googleAccessToken ? "Sync Google Calendar" : "Connect Google Calendar";
+    });
+  }
+  function restoreGoogleCalendarSession(){
+    if (googleAccessToken) return;
+    if (!googleTokenClient && !initGoogleCalendarAuth()) return;
+    googleTokenPurpose = "restore";
+    googleTokenClient.requestAccessToken({prompt:"none"});
   }
   async function googleCalendarRequest(path, options={}){
     const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
@@ -2250,6 +2268,11 @@
     if (button){ button.disabled = true; button.textContent = "Syncing..."; }
     try{
       const entries = calendarEntries(scopeProject);
+      if (!entries.length){
+        if (button) button.textContent = "No dated items";
+        await showNotice("Nothing to sync", "Add a date to an item first. Google Calendar sync uses the project's date field; an item's schedule time alone is not enough to create a calendar event.");
+        return;
+      }
       for (const entry of entries){
         entry.item.googleEventIds = entry.item.googleEventIds || {};
         const key = `${entry.project.id}:${entry.field.id}`;
@@ -2284,6 +2307,7 @@
       return;
     }
     if (googleAccessToken){ syncGoogleCalendar(scopeProject); return; }
+    googleTokenPurpose = "sync";
     googleTokenClient.requestAccessToken({prompt:"consent"});
   }
   function calendarDateKey(date){
@@ -2375,6 +2399,7 @@
       <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
       <button class="btn btn-sm btn-invisible" data-calendar-action="google">Connect Google Calendar</button>
     </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
+    updateGoogleCalendarButtons();
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
@@ -3069,6 +3094,7 @@
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
+    window.addEventListener("load", restoreGoogleCalendarSession, {once:true});
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     const reconnected = await tryReconnectFile();
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
