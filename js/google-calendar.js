@@ -127,13 +127,13 @@
         <div class="modalFooter"><button class="btn btn-invisible" data-google-cancel>Cancel</button><button class="btn btn-primary btn-sm" data-google-save>Save links</button></div>
       </div>`;
       document.body.appendChild(overlay);
-      const finish = save => {
+      const finish = async save => {
         let shouldSync = false;
         if (save){
           state.googleCalendarLinks = [...overlay.querySelectorAll("input[type=checkbox]:checked")].map(input=>input.value);
           shouldSync = state.googleCalendarLinks.length > 0;
           scheduleSave();
-          if (fileHandle){ clearTimeout(saveTimer); saveTimer = null; writeToFile(); }
+          if (fileHandle){ clearTimeout(saveTimer); saveTimer = null; await writeToFile(); }
           renderMain();
         }
         overlay.remove();

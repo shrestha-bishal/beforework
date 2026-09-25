@@ -6,6 +6,7 @@
   const FILTER_KEY = "personal_dashboard_filters_v1";
   const DB_NAME = "dashboard_meta", DB_STORE = "kv";
   let pendingReconnectHandle = null; // a previously-used handle waiting on a user gesture to re-grant permission
+  let fileWriteQueue = Promise.resolve();
 
   function idbOpen(){
     return new Promise((resolve,reject)=>{
@@ -60,16 +61,21 @@
     }
   }
 
-  async function writeToFile(){
-    if (!fileHandle) return;
-    try{
-      const writable = await fileHandle.createWritable();
-      await writable.write(JSON.stringify(state, null, 2));
-      await writable.close();
-      setSyncStatus("ok", "Saved to " + fileHandle.name);
-    }catch(err){
-      setSyncStatus("err", "Couldn't save to file (" + err.message + ") - your changes are still in memory, try reconnecting the file");
-    }
+  function writeToFile(){
+    if (!fileHandle) return Promise.resolve();
+    fileWriteQueue = fileWriteQueue.then(async()=>{
+      const handle = fileHandle;
+      if (!handle) return;
+      try{
+        const writable = await handle.createWritable();
+        await writable.write(JSON.stringify(state, null, 2));
+        await writable.close();
+        setSyncStatus("ok", "Saved to " + handle.name);
+      }catch(err){
+        setSyncStatus("err", "Couldn't save to file (" + err.message + ") - your changes are still in memory, try reconnecting the file");
+      }
+    }).catch(()=>{});
+    return fileWriteQueue;
   }
 
   async function loadFromHandle(handle){
