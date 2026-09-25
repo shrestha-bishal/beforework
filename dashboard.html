@@ -208,10 +208,16 @@
   .calendarEvent{display:flex;align-items:center;gap:5px;width:100%;margin-bottom:5px;padding:4px 6px;border-radius:5px;background:var(--bg-soft);color:var(--text);font-size:11px;text-align:left;cursor:pointer;}
   .calendarEvent:hover{background:var(--accent-soft);}
   .calendarEvent .eventDot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;}
+  .calendarEvent.event{background:#eef4fb;}
+  .calendarEvent.event .eventDot{background:#2f6fed;}
   .calendarEvent .eventTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
   .calendarEvent .eventProject{font-size:10px;color:var(--muted);}
   .calendarEvent .gcalLink{font-size:10px;color:var(--accent-strong);text-decoration:none;flex:none;}
   .calendarEmpty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);}
+  .typeTabs{display:flex;border-bottom:1px solid var(--border);}
+  .typeTabs button{flex:1;padding:7px 10px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;}
+  .typeTabs button:hover{color:var(--text);background:var(--bg-soft);}
+  .typeTabs button.active{color:var(--accent-strong);border-bottom-color:var(--accent);background:var(--accent-soft);}
 
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
@@ -407,6 +413,7 @@
         {id:uid(), name:"To do", items:[
           {id:uid(), title:"This is a card — click to open it",
            description:"Add notes here. Search everything from the sidebar, drag cards between groups, switch between List and Board, and add columns that fit this project from the Columns button above.",
+           calendarType:"task", startTime:"", endTime:"", location:"", endDate:"",
            tagIds:[t1.id], values:{[pr.id]:"medium",[due.id]:todayStr(2)},
            subitems:[{id:uid(),title:"Try checking this off",done:false}], createdAt:Date.now(), updatedAt:Date.now()},
         ]},
@@ -432,7 +439,6 @@
   function migrateState(s){
     if (!s || !Array.isArray(s.projects)) return defaultState();
     const alreadyNew = s.projects.every(p=>Array.isArray(p.fields) && Array.isArray(p.tags));
-    if (alreadyNew) return s;
     const globalTags = s.tags || [];
     s.projects.forEach(p=>{
       if (!Array.isArray(p.tags)) p.tags = globalTags.map(t=>({id:t.id, name:t.name, color:t.color}));
@@ -447,6 +453,16 @@
           delete it.priority; delete it.dueDate;
         }));
       }
+      p.groups.forEach(g=>g.items.forEach(it=>{
+        it.values = it.values || {};
+        it.subitems = Array.isArray(it.subitems) ? it.subitems : [];
+        it.tagIds = Array.isArray(it.tagIds) ? it.tagIds : [];
+        it.calendarType = it.calendarType === "event" ? "event" : "task";
+        it.startTime = it.startTime || "";
+        it.endTime = it.endTime || "";
+        it.location = it.location || "";
+        it.endDate = it.endDate || "";
+      }));
     });
     delete s.tags;
     return s;
@@ -665,7 +681,7 @@
     scheduleSave(); renderMain();
   }
   function addItem(pid, gid, title){
-    const it = {id:uid(), title, description:"", tagIds:[], values:{}, subitems:[],
+    const it = {id:uid(), title, description:"", calendarType:"task", startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[],
       createdAt:Date.now(), updatedAt:Date.now()};
     getGroup(pid,gid).items.push(it);
     scheduleSave(); renderMain();
@@ -1267,7 +1283,7 @@
     projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
       dateFields(project).forEach(field=>{
         const date = item.values[field.id];
-        if (date) entries.push({project, group, item, field, date});
+        if (date) entries.push({project, group, item, field, date, endDate:item.endDate && item.endDate>=date ? item.endDate : date});
       });
     })));
     return entries;
@@ -1280,7 +1296,10 @@
   function googleCalendarUrl(entry){
     const title = entry.item.title;
     const details = [entry.item.description, `Project: ${entry.project.name}`, `Group: ${entry.group.name}`].filter(Boolean).join("\n");
-    const params = new URLSearchParams({action:"TEMPLATE",text:title,dates:`${calendarDateCode(entry.date)}/${calendarDateCode(entry.date,1)}`,details});
+    const dates = entry.item.startTime && entry.item.endTime
+      ? `${calendarDateCode(entry.date)}T${entry.item.startTime.replace(":","")}00/${calendarDateCode(entry.endDate)}T${entry.item.endTime.replace(":","")}00`
+      : `${calendarDateCode(entry.date)}/${calendarDateCode(entry.endDate,1)}`;
+    const params = new URLSearchParams({action:"TEMPLATE",text:title,dates,details,location:entry.item.location||""});
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
   function calendarDateKey(date){
@@ -1296,8 +1315,13 @@
       lines.push("BEGIN:VEVENT");
       lines.push(`UID:${entry.item.id}-${entry.field.id}@projectify.local`);
       lines.push(`DTSTAMP:${calendarDateCode(todayStr(0))}T000000Z`);
-      lines.push(`DTSTART;VALUE=DATE:${calendarDateCode(entry.date)}`);
-      lines.push(`DTEND;VALUE=DATE:${calendarDateCode(entry.date,1)}`);
+      if (entry.item.startTime && entry.item.endTime){
+        lines.push(`DTSTART:${calendarDateCode(entry.date)}T${entry.item.startTime.replace(":","")}00`);
+        lines.push(`DTEND:${calendarDateCode(entry.endDate)}T${entry.item.endTime.replace(":","")}00`);
+      } else {
+        lines.push(`DTSTART;VALUE=DATE:${calendarDateCode(entry.date)}`);
+        lines.push(`DTEND;VALUE=DATE:${calendarDateCode(entry.endDate,1)}`);
+      }
       lines.push(`SUMMARY:${icsEscape(entry.item.title)}`);
       lines.push(`DESCRIPTION:${icsEscape([entry.item.description,`Project: ${entry.project.name}`,`Group: ${entry.group.name}`].filter(Boolean).join("\n"))}`);
       lines.push("END:VEVENT");
@@ -1313,24 +1337,23 @@
   async function showGoogleCalendarInfo(){
     await showNotice("Google Calendar sync", "This local file cannot silently sync with Google Calendar because Google requires OAuth credentials and a server-side token flow. Use the GCal link on an event for one-click creation, or export an .ics file and import it into Google Calendar.");
   }
-  async function createCalendarItem(scopeProject, date){
-    const projects = scopeProject ? [scopeProject] : state.projects;
-    const fields = [{label:"Item title", placeholder:"What is scheduled?"}];
-    if (!scopeProject) fields.push({label:"Project", type:"select", options:projects.map(project=>({value:project.id,label:project.name})), value:projects[0]?.id});
-    if (scopeProject) fields.push({label:"Group", type:"select", options:scopeProject.groups.map(group=>({value:group.id,label:group.name})), value:scopeProject.groups[0]?.id});
-    const result = await showDialog({title:"New calendar item", message:`Scheduled for ${fmtDate(date)}.`, fields, confirmLabel:"Create item"});
-    if (!result) return;
-    const values = Array.isArray(result) ? result : [result];
-    const title = values[0]?.trim();
-    if (!title) return;
-    const project = scopeProject || getProject(values[1]);
-    const groupId = scopeProject ? values[1] : project.groups[0]?.id;
-    const group = getGroup(project.id, groupId) || project.groups[0];
+  async function openNewCalendarItemModal(scopeProject, date){
+    const project = scopeProject || state.projects[0];
+    if (!project) return;
     const dateField = dateFields(project)[0];
     if (!dateField){ await showNotice("Date column required", `Add a date column to ${project.name} before creating calendar items.`); return; }
-    const item = {id:uid(), title, description:"", tagIds:[], values:{[dateField.id]:date}, subitems:[], createdAt:Date.now(), updatedAt:Date.now()};
-    group.items.push(item);
-    scheduleSave(); renderAll();
+    const group = project.groups[0];
+    openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:!scopeProject, draft:{
+      id:uid(), title:"", description:"", calendarType:"event", startTime:"09:00", endTime:"10:00", location:"", endDate:date,
+      tagIds:[], values:{[dateField.id]:date}, subitems:[], createdAt:Date.now(), updatedAt:Date.now()
+    }};
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "itemOverlay";
+    overlay.innerHTML = `<div class="modal modalWrap" id="itemModal"></div>`;
+    overlay.addEventListener("click", event=>{ if (event.target===overlay) closeItemModal(); });
+    document.body.appendChild(overlay);
+    renderItemModal();
   }
   function renderCalendar(board, scopeProject){
     const wrap = document.createElement("div");
@@ -1349,10 +1372,10 @@
       const dateNumber = cell.getDate();
       const cellDate = calendarDateKey(cell);
       const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
-      const dayEntries = entries.filter(entry=>entry.date===cellDate && itemMatchesFilter(entry.project, entry.item));
+      const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item));
       const eventHtml = dayEntries.map((entry,index)=>`
-        <div class="calendarEvent" draggable="true" data-pid="${entry.project.id}" data-gid="${entry.group.id}" data-iid="${entry.item.id}" data-fid="${entry.field.id}">
-          <span class="eventDot"></span><span class="eventTitle">${escapeHtml(entry.item.title)}</span>
+        <div class="calendarEvent ${entry.item.calendarType==="event"?"event":"task"}" draggable="true" data-pid="${entry.project.id}" data-gid="${entry.group.id}" data-iid="${entry.item.id}" data-fid="${entry.field.id}" data-start="${entry.date}" data-end="${entry.endDate}">
+          <span class="eventDot"></span><span class="eventTitle">${entry.item.startTime ? escapeHtml(entry.item.startTime+" ") : ""}${escapeHtml(entry.item.title)}</span>
           ${scopeProject ? "" : `<span class="eventProject">${escapeHtml(entry.project.name)}</span>`}
           <a class="gcalLink" href="${escapeHtml(googleCalendarUrl(entry))}" target="_blank" rel="noopener" title="Add to Google Calendar">GCal</a>
         </div>`).join("");
@@ -1371,13 +1394,13 @@
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
-    wrap.querySelector('[data-calendar-action="new"]').onclick = () => createCalendarItem(scopeProject, todayStr(0));
+    wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
     wrap.querySelector('[data-calendar-action="google"]').onclick = showGoogleCalendarInfo;
     wrap.querySelectorAll(".calendarDay").forEach(day=>{
       day.addEventListener("click", event=>{
         if (event.target.closest(".calendarEvent")) return;
-        if (!day.classList.contains("muted")) createCalendarItem(scopeProject, day.dataset.date);
+        if (!day.classList.contains("muted")) openNewCalendarItemModal(scopeProject, day.dataset.date);
       });
       day.addEventListener("dragover", event=>{ event.preventDefault(); day.classList.add("dragover"); });
       day.addEventListener("dragleave", ()=>day.classList.remove("dragover"));
@@ -1387,13 +1410,17 @@
         const item = getItem(data.pid,data.gid,data.iid);
         if (!item) return;
         item.values[data.fid] = day.dataset.date;
+        const start = new Date(`${data.start}T00:00:00`);
+        const end = new Date(`${data.end}T00:00:00`);
+        const duration = Math.max(0, Math.round((end-start)/86400000));
+        item.endDate = calendarDateKey(new Date(new Date(`${day.dataset.date}T00:00:00`).getTime() + duration*86400000));
         item.updatedAt = Date.now();
         scheduleSave(); renderMain();
       });
     });
     wrap.querySelectorAll(".calendarEvent").forEach(event=>{
       event.addEventListener("dragstart", dragEvent=>{
-        dragEvent.dataTransfer.setData("text/plain", JSON.stringify({pid:event.dataset.pid,gid:event.dataset.gid,iid:event.dataset.iid,fid:event.dataset.fid}));
+        dragEvent.dataTransfer.setData("text/plain", JSON.stringify({pid:event.dataset.pid,gid:event.dataset.gid,iid:event.dataset.iid,fid:event.dataset.fid,start:event.dataset.start,end:event.dataset.end}));
       });
       event.onclick = click => {
         if (click.target.closest("a")) return;
@@ -1534,11 +1561,13 @@
   function renderItemModal(){
     if (!openItemRef) return;
     const {projectId,groupId,itemId} = openItemRef;
+    const isNew = !!openItemRef.isNew;
     const project = getProject(projectId);
-    const item = getItem(projectId, groupId, itemId);
+    const item = isNew ? openItemRef.draft : getItem(projectId, groupId, itemId);
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
 
+    const projectOptions = isNew && openItemRef.globalNew ? `<div class="modalRow"><label>Project</label><select id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
 
@@ -1557,9 +1586,35 @@
       <div class="modalRow">
         <input type="text" id="itemTitleInput" value="${escapeHtml(item.title)}">
       </div>
+      ${projectOptions}
       <div class="modalRow">
         <label>Group</label>
         <select id="itemGroupSelect">${groupOptions}</select>
+      </div>
+      <div class="modalGrid">
+        <div class="modalRow">
+          <label>Calendar type</label>
+          <div class="typeTabs" id="itemCalendarType">
+            <button type="button" data-calendar-type="task" class="${item.calendarType!=="event"?"active":""}">Task</button>
+            <button type="button" data-calendar-type="event" class="${item.calendarType==="event"?"active":""}">Event</button>
+          </div>
+        </div>
+        <div class="modalRow">
+          <label>Location</label>
+          <input type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or meeting link">
+        </div>
+        <div class="modalRow">
+          <label>Start time</label>
+          <input type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}">
+        </div>
+        <div class="modalRow">
+          <label>End time</label>
+          <input type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}">
+        </div>
+        <div class="modalRow">
+          <label>End date</label>
+          <input type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}">
+        </div>
       </div>
       <div class="modalGrid">${fieldsHtml}</div>
       <div class="modalRow">
@@ -1579,31 +1634,66 @@
         <button class="btn ghost small" data-action="addSub" style="margin-top:4px;padding-left:2px;">+ Add subitem</button>
       </div>
       <div class="modalFooter">
-        <button class="btn danger small" data-action="deleteItem">Delete item</button>
+        ${isNew ? `<button class="btn primary small" data-action="saveItem">Create item</button>` : `<button class="btn danger small" data-action="deleteItem">Delete item</button>`}
         <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
       </div>
     `;
 
     modal.querySelector('[data-action="close"]').onclick = closeItemModal;
+    if (isNew && openItemRef.globalNew){
+      modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
+        const nextProject = getProject(e.target.value);
+        const nextGroup = nextProject.groups[0];
+        const nextDateField = dateFields(nextProject)[0];
+        if (!nextDateField){ showNotice("Date column required", `Add a date column to ${nextProject.name} before creating calendar items.`); return; }
+        openItemRef.projectId = nextProject.id;
+        openItemRef.groupId = nextGroup.id;
+        openItemRef.draft.values = {[nextDateField.id]:openItemRef.draft.values[Object.keys(openItemRef.draft.values)[0]] || todayStr(0)};
+        renderItemModal();
+      });
+    }
     modal.querySelector("#itemTitleInput").addEventListener("change", e=>{
       item.title = e.target.value.trim() || item.title;
+      if (isNew) return;
       item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
     });
     modal.querySelector("#itemGroupSelect").addEventListener("change", e=>{
       const newGid = e.target.value;
+      if (isNew){ openItemRef.groupId = newGid; return; }
       if (newGid !== groupId){
         moveItem(projectId, groupId, newGid, itemId, null);
         openItemRef.groupId = newGid;
       }
     });
+    modal.querySelectorAll("[data-calendar-type]").forEach(button=>{
+      button.onclick = () => {
+        item.calendarType = button.dataset.calendarType;
+        modal.querySelectorAll("[data-calendar-type]").forEach(tab=>tab.classList.toggle("active", tab===button));
+        if (isNew) return;
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      };
+    });
+    ["itemLocationInput","itemStartTimeInput","itemEndTimeInput","itemEndDateInput"].forEach(id=>{
+      modal.querySelector("#"+id).addEventListener("change", e=>{
+        if (id==="itemCalendarType") item.calendarType = e.target.value;
+        if (id==="itemLocationInput") item.location = e.target.value.trim();
+        if (id==="itemStartTimeInput") item.startTime = e.target.value;
+        if (id==="itemEndTimeInput") item.endTime = e.target.value;
+        if (id==="itemEndDateInput") item.endDate = e.target.value;
+        if (isNew){ renderItemModal(); return; }
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      });
+    });
     modal.querySelectorAll(".fieldInput").forEach(el=>{
       el.addEventListener("change", e=>{
         item.values[el.dataset.fieldid] = e.target.value;
+        if (isNew){ renderItemModal(); return; }
         item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
       });
     });
     modal.querySelector("#itemDescInput").addEventListener("change", e=>{
       item.description = e.target.value;
+      if (isNew) return;
       item.updatedAt = Date.now(); scheduleSave(); renderMain();
     });
     modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
@@ -1645,12 +1735,27 @@
         item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
       };
     });
-    modal.querySelector('[data-action="deleteItem"]').onclick = async () => {
-      if (await showConfirm(`Delete ${item.title}`, "This item and its subitems will be deleted.", true)){
-        deleteItem(projectId, groupId, itemId);
+    if (isNew){
+      modal.querySelector('[data-action="saveItem"]').onclick = () => {
+        const title = item.title.trim();
+        const targetProject = getProject(openItemRef.projectId);
+        const targetGroup = getGroup(openItemRef.projectId, openItemRef.groupId) || targetProject.groups[0];
+        if (!title || !targetProject || !targetGroup) return;
+        item.title = title;
+        item.updatedAt = Date.now();
+        targetGroup.items.push(item);
+        scheduleSave();
         closeItemModal();
-      }
-    };
+        renderAll();
+      };
+    } else {
+      modal.querySelector('[data-action="deleteItem"]').onclick = async () => {
+        if (await showConfirm(`Delete ${item.title}`, "This item and its subitems will be deleted.", true)){
+          deleteItem(projectId, groupId, itemId);
+          closeItemModal();
+        }
+      };
+    }
   }
 
   /* ---------- Global search ---------- */
