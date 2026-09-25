@@ -50,41 +50,6 @@
     transition:background .15s ease,color .15s ease;}
   button{font-family:inherit;cursor:pointer;}
 
-  /* ---------- Base form controls (Primer's form-control tokens) ---------- */
-  input, textarea, select {
-    font-family: inherit;
-    font-size: 13.5px;
-    line-height: 1.5;
-    background: var(--color-canvas-default);
-    color: var(--text);
-    border: 1px solid var(--color-border-default);
-    border-radius: 6px;
-    padding: 9px 12px;
-    min-height: 38px;
-    transition: border-color .12s ease, background .12s ease, box-shadow .12s ease;
-  }
-  textarea {
-    min-height: 84px;
-    padding: 10px 12px;
-    line-height: 1.55;
-  }
-  input, select { background: var(--bg-soft); }
-  input:hover, select:hover, textarea:hover { border-color: var(--color-border-muted); }
-  input:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: var(--color-accent-emphasis);
-    background: var(--color-canvas-default);
-    box-shadow: 0 0 0 3px var(--color-accent-subtle);
-  }
-  select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding-right: 32px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6c76' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-  }
   input[type="checkbox"], input[type="radio"] {
     min-height: 0;
     width: 16px;
@@ -97,7 +62,6 @@
      .btn / .btn-primary / .btn-danger / .btn-invisible / .btn-sm are
      Primer's real component classes, loaded from the CDN above - nothing
      to define here. Only the app's own icon button is custom. */
-  .btn{white-space:nowrap;}
   .iconBtn{display:none;background:transparent;border:1px solid var(--border);border-radius:7px;
     width:32px;height:32px;align-items:center;justify-content:center;flex:none;color:var(--text);}
 
@@ -143,15 +107,9 @@
   #projectList li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   .sideSection{border-top:1px solid var(--border);padding-top:16px;}
-  .sideLabelRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .sideLabel{font-size:12px;font-weight:600;color:var(--muted);}
 
-  .tagDot{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 9px 4px 7px;
-    border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;
-    transition:border-color .12s,background .12s;}
-  .tagDot:hover{border-color:var(--border-strong);}
-  .tagDot .dot{width:7px;height:7px;border-radius:50%;flex:none;}
-  .tagDot.selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
+  [data-tagfilter]{cursor:pointer;}
+  .Label.selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
   #sideTagsList,#boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
 
   /* Main */
@@ -162,11 +120,9 @@
   .projectMenuWrap{position:relative;display:none;flex:none;}
   .projectMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;font-size:18px;line-height:1;}
   .projectMenuBtn.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
-  .projectMenu{display:none;position:absolute;top:39px;right:0;z-index:30;min-width:170px;padding:5px;background:var(--bg);
+  .projectMenu{display:none;flex-direction:column;position:absolute;top:39px;right:0;z-index:30;min-width:170px;padding:5px;background:var(--bg);
     border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
-  .projectMenu.open{display:block;}
-  #projectMenu .btn{display:block!important;width:100%;text-align:left;border:none;border-radius:6px;}
-  #projectMenu .btn-danger{color:var(--color-danger-fg);}
+  .projectMenu.open{display:flex;}
   #boardFilterBar{display:block;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
   #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);}
@@ -209,7 +165,6 @@
     flex:1;padding:3px 6px;color:var(--text);border-radius:6px;min-height:0;}
   .groupHead input.groupTitle:hover{background:var(--bg-soft);}
   .groupHead input.groupTitle:focus{background:var(--bg-soft);box-shadow:none;}
-  .groupCount{font-size:11.5px;color:var(--faint);background:var(--bg-soft);padding:2px 7px;border-radius:999px;}
   .groupBody{padding:2px 10px 8px 10px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;}
   .addItemBtn{margin:0 10px 12px 10px;text-align:left;color:var(--muted);border:1px dashed var(--border);
     background:transparent;}
@@ -221,15 +176,11 @@
   .card.dragging{opacity:.4;}
   .card .cardTitle{font-weight:500;margin-bottom:6px;line-height:1.35;display:flex;align-items:center;}
   .card .cardMeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
-  .card .subCount{font-size:11px;color:var(--muted);background:var(--bg-soft);border-radius:5px;padding:2px 6px;}
-  .miniTag{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:2px 8px 2px 6px;
-    border-radius:999px;background:var(--bg-soft);color:var(--text);}
-  .miniTag .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+  .Label .dot{width:6px;height:6px;border-radius:50%;flex:none;margin-right:4px;}
 
   .priorityDot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block;margin-right:7px;}
-  .duePill{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-soft);color:var(--muted);white-space:nowrap;}
-  .duePill.due-overdue{background:var(--danger-soft);color:var(--danger);}
-  .duePill.due-soon{background:var(--warn-soft);color:var(--warn);}
+  .Label.due-overdue{background:var(--danger-soft);color:var(--danger);}
+  .Label.due-soon{background:var(--warn-soft);color:var(--warn);}
 
   #emptyState{margin:auto;text-align:center;color:var(--muted);max-width:420px;}
   #emptyState h2{color:var(--text);font-size:17px;margin-bottom:6px;}
@@ -261,9 +212,6 @@
   /* Overview */
   .overviewWrap{padding:22px 24px;overflow:auto;flex:1;width:100%;}
   .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:12px;margin-bottom:26px;}
-  .statCard{border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;background:var(--bg);}
-  .statCard .num{font-size:24px;font-weight:700;letter-spacing:-.01em;}
-  .statCard .lbl{font-size:12px;color:var(--muted);margin-top:3px;}
   .ovSection{margin-bottom:24px;}
   .ovSectionTitle{font-size:13px;font-weight:600;margin-bottom:9px;}
   .ovRow{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border:1px solid var(--border);
@@ -278,7 +226,6 @@
   .calendarWrap{padding:20px 24px;overflow:auto;flex:1;width:100%;}
   .calendarToolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
   .calendarToolbar h3{font-size:16px;margin:0 auto 0 8px;}
-  .calendarToolbar .btn{min-width:34px;}
   .calendarGrid{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;min-width:840px;}
   .calendarWeekday{padding:9px 10px;background:var(--bg-soft);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
   .calendarDay{min-height:128px;padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg);}
@@ -304,13 +251,10 @@
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
     align-items:center;justify-content:center;z-index:50;padding:16px;}
-  .modal{background:var(--color-canvas-overlay);border:1px solid var(--color-border-default);border-radius:12px;width:540px;box-shadow:var(--shadow-modal);
+  [data-modal]{background:var(--color-canvas-overlay);border:1px solid var(--color-border-default);border-radius:12px;width:540px;box-shadow:var(--shadow-modal);
     max-width:100%;max-height:90vh;overflow-y:auto;padding:26px 28px;}
-  .modal h3{margin:0 0 10px 0;}
+  [data-modal] h3{margin:0 0 10px 0;}
   .modalRow{margin-bottom:18px;}
-  .modalRow label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:.01em;}
-  .modalRow input[type=text], .modalRow input[type=date], .modalRow textarea, .modalRow select{width:100%;}
-  .modalRow textarea{min-height:72px;resize:vertical;}
   .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
   #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;min-height:0;}
   .subitemRow{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13.5px;border-radius:6px;}
@@ -321,7 +265,6 @@
   .modalFooter{display:flex;justify-content:space-between;align-items:center;margin-top:22px;
     border-top:1px solid var(--border);padding-top:16px;gap:12px;flex-wrap:wrap;}
   .closeX{position:absolute;top:16px;right:18px;}
-  .modalWrap{position:relative;}
 
   /* Search results */
   #searchResults{position:absolute;top:44px;left:0;right:0;background:var(--bg);
@@ -341,10 +284,9 @@
   .syncMenuWrap{position:relative;margin-left:auto;}
   .syncMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;font-size:18px;line-height:1;}
   .syncMenuBtn.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
-  .syncMenu{display:none;position:absolute;right:0;bottom:37px;z-index:30;min-width:190px;padding:5px;background:var(--bg);
+  .syncMenu{display:none;flex-direction:column;position:absolute;right:0;bottom:37px;z-index:30;min-width:190px;padding:5px;background:var(--bg);
     border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
-  .syncMenu.open{display:block;}
-  #syncMenu .btn{display:block!important;width:100%;text-align:left;border:none;border-radius:6px;}
+  .syncMenu.open{display:flex;}
   #fileImportInput{display:none;}
   #sidebarScrim{display:none;}
 
@@ -352,7 +294,6 @@
   #themeToggle{margin-left:auto;padding:4px 7px;font-size:13px;line-height:1;flex:none;min-height:0;}
 
   /* Archive */
-  .archivedBadge{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-soft2);color:var(--muted);}
   .card.archived,tr.archived{opacity:.58;}
   .filterToggle.checkboxToggle{gap:6px;}
   .filterToggle.checkboxToggle input{accent-color:var(--accent);}
@@ -374,7 +315,6 @@
   .focusTimerDisplay{font-size:34px;font-weight:700;text-align:center;margin:6px 0 10px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
   .focusTimerModeRow{display:flex;justify-content:center;gap:6px;margin-bottom:10px;}
   .focusTimerBtnRow{display:flex;gap:6px;}
-  .focusTimerBtnRow .btn{flex:1;}
 
   /* Analytics bars (Overview) */
   .barRow{display:flex;align-items:center;gap:9px;margin-bottom:8px;font-size:12.5px;}
@@ -394,7 +334,7 @@
   #connectGate{display:none;position:fixed;inset:0;background:rgba(20,21,26,.5);backdrop-filter:blur(3px);
     z-index:100;align-items:center;justify-content:center;padding:16px;}
   #connectGate.open{display:flex;}
-  #connectGate .modal{width:460px;}
+  #connectGate [data-modal]{width:460px;}
   #connectGate p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 14px 0;}
   #gateReconnectRow{margin-bottom:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
   #gateReconnectRow div{font-size:13px;margin-bottom:8px;}
@@ -446,7 +386,7 @@
 </head>
 <body>
 <div id="connectGate">
-  <div class="modal modalWrap">
+  <div class="Box position-relative" data-modal>
     <h3>Connect your Beforework file</h3>
     <p>Beforework is a local-first, privacy-first project workspace. Your data is never transmitted to a server or third party - projects are saved directly to a JSON file on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
     <p>Changes are written to the file immediately, with no intermediate save step and no data held outside the file itself. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
@@ -478,7 +418,7 @@
       <h1><span class="mark"></span>Beforework<button class="btn btn-invisible btn-sm" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button></h1>
       <div class="searchWrap">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="globalSearch" type="text" placeholder="Search everything">
+        <input class="form-control" id="globalSearch" type="text" placeholder="Search everything">
       </div>
       <div id="searchResults" style="display:none;"></div>
     </div>
@@ -487,14 +427,14 @@
     <div id="calendarNav">Calendar</div>
 
     <div>
-      <div class="sideLabelRow"><span class="sideLabel">Projects</span></div>
+      <div class="d-flex flex-justify-between flex-items-center mb-2"><span class="Label color-fg-muted">Projects</span></div>
       <ul id="projectList"></ul>
       <button class="btn btn-sm btn-invisible" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
     </div>
 
     <div class="sideSection" id="tagsSection">
-      <div class="sideLabelRow">
-        <span class="sideLabel" id="tagsSectionLabel">Tags</span>
+      <div class="d-flex flex-justify-between flex-items-center mb-2">
+        <span class="Label color-fg-muted" id="tagsSectionLabel">Tags</span>
         <button class="btn btn-sm btn-invisible" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
       </div>
       <div id="sideTagsList"></div>
@@ -524,7 +464,7 @@
     </div>
     <div id="boardFilterBar" style="display:none;">
       <div class="filterMainRow">
-        <input id="boardSearch" type="text" placeholder="Search items">
+        <input class="form-control" id="boardSearch" type="text" placeholder="Search items">
         <span class="filterSummary" id="filterSummary">All items</span>
         <button class="btn btn-sm filterToggle" id="toggleFilters" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"/></svg>
@@ -563,10 +503,10 @@
       <button class="btn btn-sm btn-invisible" id="restoreBackupBtn" style="display:none;" title="Restore the snapshot saved automatically before the last data upgrade">Restore pre-upgrade backup</button>
     </div>
   </div>
-  <input type="file" id="fileImportInput" accept="application/json">
+  <input class="form-control" type="file" id="fileImportInput" accept="application/json">
 </div>
 
-<div class="focusTimerPanel" id="focusTimerPanel">
+<div class="focusTimerPanel Box" id="focusTimerPanel">
   <h4>Focus timer</h4>
   <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
   <div class="focusTimerModeRow">
@@ -814,7 +754,7 @@
       ["Esc", "Close the open item or dialog"],
       ["?", "Show this shortcuts list"],
     ];
-    overlay.innerHTML = `<div class="modal modalWrap" role="dialog" aria-modal="true">
+    overlay.innerHTML = `<div class="Box position-relative" data-modal role="dialog" aria-modal="true">
       <button class="btn btn-invisible closeX" data-close>✕</button>
       <h3>Keyboard shortcuts</h3>
       <div>${rows.map(([key,desc])=>`<div class="shortcutRow"><span>${escapeHtml(desc)}</span><kbd>${escapeHtml(key)}</kbd></div>`).join("")}</div>
@@ -1492,10 +1432,10 @@
   }
   function duePillHtml(dateStr){
     if (!dateStr) return "";
-    return `<span class="duePill ${dueClass(dateStr)}">${fmtDate(dateStr)}</span>`;
+    return `<span class="Label Label--secondary ${dueClass(dateStr)}">${fmtDate(dateStr)}</span>`;
   }
   function tagDotHtml(t, selected){
-    return `<span class="tagDot${selected?" selected":""}" data-tagfilter="${t.id}">
+    return `<span class="Label Label--secondary${selected?" selected":""}" data-tagfilter="${t.id}">
       <span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
   }
   function fieldChipHtml(field, value){
@@ -1507,9 +1447,9 @@
     if (field.type==="date") return duePillHtml(value);
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value); if (!opt) return "";
-      return `<span class="miniTag"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>`;
+      return `<span class="Label Label--secondary"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>`;
     }
-    return `<span class="miniTag">${escapeHtml(String(value))}</span>`;
+    return `<span class="Label Label--secondary">${escapeHtml(String(value))}</span>`;
   }
   function fieldCellHtml(field, value){
     if (field.type==="priority"){
@@ -1716,10 +1656,10 @@
     const wrap = document.getElementById("boardTagFilters");
     const availableTags = project.tags.filter(tag=>!boardFilterTags.has(tag.id));
     const activeTags = project.tags.filter(tag=>boardFilterTags.has(tag.id));
-    wrap.innerHTML = `<select id="tagFilterPicker" aria-label="Add tag filter">
+    wrap.innerHTML = `<select class="form-control" id="tagFilterPicker" aria-label="Add tag filter">
       <option value="">Add tag filter...</option>
       ${availableTags.map(tag=>`<option value="${tag.id}">${escapeHtml(tag.name)}</option>`).join("")}
-    </select>${activeTags.map(tag=>`<span class="tagFilterGroup"><span class="miniTag"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span><button class="btn btn-invisible removeFieldFilter" data-remove-tag-filter="${tag.id}" title="Remove ${escapeHtml(tag.name)} filter">✕</button></span>`).join("")}`;
+    </select>${activeTags.map(tag=>`<span class="tagFilterGroup"><span class="Label Label--secondary"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span><button class="btn btn-invisible removeFieldFilter" data-remove-tag-filter="${tag.id}" title="Remove ${escapeHtml(tag.name)} filter">✕</button></span>`).join("")}`;
     wrap.querySelector("#tagFilterPicker").addEventListener("change", event=>{
       if (!event.target.value) return;
       boardFilterTags.add(event.target.value);
@@ -1738,7 +1678,7 @@
     const filterable = project.fields;
     const activeFields = filterable.filter(field=>boardFilterFields.has(field.id));
     const availableFields = filterable.filter(field=>!activeFields.includes(field));
-    const picker = `<select id="fieldFilterPicker" aria-label="Add a filter">
+    const picker = `<select class="form-control" id="fieldFilterPicker" aria-label="Add a filter">
       <option value="">Add filter...</option>
       ${availableFields.map(field=>`<option value="${field.id}">${escapeHtml(field.label)}</option>`).join("")}
     </select>`;
@@ -1747,17 +1687,17 @@
       const current = boardFilterFields.get(f.id) || "__all__";
       let control;
       if (f.type==="date"){
-        control = `<input type="date" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" title="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+        control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" title="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
       } else if (f.type==="text"){
-        control = `<input type="text" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" placeholder="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+        control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" placeholder="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
       } else {
-        control = `<select data-fieldfilter="${f.id}" aria-label="Filter ${escapeHtml(f.label)}">
+        control = `<select class="form-control" data-fieldfilter="${f.id}" aria-label="Filter ${escapeHtml(f.label)}">
           <option value="__all__" ${current==="__all__"?"selected":""}>All ${escapeHtml(f.label)}</option>
           ${opts.map(o=>`<option value="${o.id}" ${current===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}
           <option value="__none__" ${current==="__none__"?"selected":""}>No ${escapeHtml(f.label)}</option>
         </select>`;
       }
-      return `<span class="fieldFilterGroup"><span class="sideLabel">${escapeHtml(f.label)}</span>${control}<button class="btn btn-invisible removeFieldFilter" data-remove-field-filter="${f.id}" title="Remove ${escapeHtml(f.label)} filter">✕</button></span>`;
+      return `<span class="fieldFilterGroup"><span class="Label color-fg-muted">${escapeHtml(f.label)}</span>${control}<button class="btn btn-invisible removeFieldFilter" data-remove-field-filter="${f.id}" title="Remove ${escapeHtml(f.label)} filter">✕</button></span>`;
     }).join("");
     wrap.innerHTML = picker + activeControls;
     wrap.querySelector("#fieldFilterPicker").addEventListener("change", event=>{
@@ -1790,15 +1730,15 @@
   function renderKanban(project, board){
     project.groups.forEach(group=>{
       const col = document.createElement("div");
-      col.className = "group";
+      col.className = "group Box";
       col.dataset.groupId = group.id;
 
       const visibleItems = group.items.filter(it=>itemMatchesFilter(project, it));
 
       col.innerHTML = `
         <div class="groupHead">
-          <input class="groupTitle" value="${escapeHtml(group.name)}">
-          <span class="groupCount">${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}</span>
+          <input class="form-control groupTitle" value="${escapeHtml(group.name)}">
+          <span class="Counter Counter--secondary">${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}</span>
           <button class="btn btn-invisible btn-sm" data-action="delGroup" title="Delete group">✕</button>
         </div>
         <div class="groupBody"></div>
@@ -1834,7 +1774,7 @@
 
   function renderCard(project, gid, item){
     const card = document.createElement("div");
-    card.className = "card" + (item.archived ? " archived" : "");
+    card.className = "card Box" + (item.archived ? " archived" : "");
     card.draggable = true;
     const doneSub = item.subitems.filter(s=>s.done).length;
     const pf = priorityField(project);
@@ -1843,14 +1783,14 @@
     const dueChips = dfs.map(f=>fieldChipHtml(f, item.values[f.id])).join("");
     const tagsHtml = item.tagIds.map(tid=>{
       const t = tagById(project, tid); if (!t) return "";
-      return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+      return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
     }).join("");
     card.innerHTML = `
       <div class="cardTitle">${titlePrefix}${escapeHtml(item.title)}</div>
       <div class="cardMeta">
-        ${item.archived ? `<span class="archivedBadge">Archived</span>` : ""}
-        ${item.subitems.length? `<span class="subCount">${doneSub}/${item.subitems.length}</span>`:""}
-        ${item.comments && item.comments.length ? `<span class="subCount" title="Comments">💬 ${item.comments.length}</span>` : ""}
+        ${item.archived ? `<span class="Label Label--secondary">Archived</span>` : ""}
+        ${item.subitems.length? `<span class="Counter Counter--secondary">${doneSub}/${item.subitems.length}</span>`:""}
+        ${item.comments && item.comments.length ? `<span class="Counter Counter--secondary" title="Comments">💬 ${item.comments.length}</span>` : ""}
         ${dueChips}
         ${tagsHtml}
       </div>`;
@@ -1872,8 +1812,8 @@
     const fieldHeaders = project.fields.map(f=>`<th data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
-        <select id="quickAddGroup">${groupOptionsHtml}</select>
-        <input type="text" id="quickAddTitle" placeholder="New item title - press Enter to add">
+        <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
+        <input class="form-control" type="text" id="quickAddTitle" placeholder="New item title - press Enter to add">
         <button class="btn btn-sm btn-primary" id="quickAddBtn">+ Add</button>
       </div>
       <div class="bulkBar">
@@ -1975,12 +1915,12 @@
       const doneSub = item.subitems.filter(s=>s.done).length;
       const tagsHtml = item.tagIds.map(tid=>{
         const t = tagById(project, tid); if (!t) return "";
-        return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+        return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
       }).join("");
       const fieldCells = project.fields.map(f=>`<td>${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
       return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td>${item.archived?`<span class="archivedBadge" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
+        <td>${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
         <td>${escapeHtml(group.name)}</td>
         ${fieldCells}
         <td><div class="rowTags">${tagsHtml||"-"}</div></td>
@@ -2011,8 +1951,8 @@
     const fieldHeaders = project.fields.map(f=>`<th data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
-        <select id="quickAddGroup">${groupOptionsHtml}</select>
-        <input type="text" id="quickAddTitle" placeholder="New row title - press Enter to add">
+        <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
+        <input class="form-control" type="text" id="quickAddTitle" placeholder="New row title - press Enter to add">
         <button class="btn btn-sm btn-primary" id="quickAddBtn">+ Add row</button>
       </div>
       <div class="bulkBar">
@@ -2111,26 +2051,26 @@
     tbody.innerHTML = rows.map(({item,group})=>{
       const tagsHtml = item.tagIds.map(tid=>{
         const t = tagById(project, tid); if (!t) return "";
-        return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+        return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
       }).join("");
       const fieldCells = project.fields.map(f=>{
         const val = item.values[f.id] || "";
         if (f.type==="priority"){
           const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-          return `<td><select class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="select"){
           const opts = [{id:"",label:"None"}, ...(f.options||[])].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-          return `<td><select class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="date"){
-          return `<td><input type="date" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+          return `<td><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
         }
-        return `<td><input type="text" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+        return `<td><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
       }).join("");
       return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td><input type="text" class="tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
+        <td><input type="text" class="form-control tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
         <td>${escapeHtml(group.name)}</td>
         ${fieldCells}
         <td><div class="rowTags">${tagsHtml||"-"}</div></td>
@@ -2237,7 +2177,7 @@
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="modal modalWrap" id="itemModal"></div>`;
+    overlay.innerHTML = `<div class="Box position-relative" data-modal id="itemModal"></div>`;
     overlay.addEventListener("click", event=>{ if (event.target===overlay) closeItemModal(); });
     document.body.appendChild(overlay);
     renderItemModal();
@@ -2382,11 +2322,11 @@
 
     wrap.innerHTML = `
       <div class="statGrid">
-        <div class="statCard"><div class="num">${state.projects.length}</div><div class="lbl">Projects</div></div>
-        <div class="statCard"><div class="num">${openItems.length}</div><div class="lbl">Open items</div></div>
-        <div class="statCard"><div class="num">${overdue.length}</div><div class="lbl">Overdue</div></div>
-        <div class="statCard"><div class="num">${soon.length}</div><div class="lbl">Due in 7 days</div></div>
-        <div class="statCard"><div class="num">${archivedCount}</div><div class="lbl">Archived</div></div>
+        <div class="Box p-3"><div class="h2">${state.projects.length}</div><div class="color-fg-muted text-small">Projects</div></div>
+        <div class="Box p-3"><div class="h2">${openItems.length}</div><div class="color-fg-muted text-small">Open items</div></div>
+        <div class="Box p-3"><div class="h2">${overdue.length}</div><div class="color-fg-muted text-small">Overdue</div></div>
+        <div class="Box p-3"><div class="h2">${soon.length}</div><div class="color-fg-muted text-small">Due in 7 days</div></div>
+        <div class="Box p-3"><div class="h2">${archivedCount}</div><div class="color-fg-muted text-small">Archived</div></div>
       </div>
       ${section("Overdue", overdue, true, "Nothing overdue.")}
       ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
@@ -2410,7 +2350,7 @@
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="modal modalWrap" id="itemModal"></div>`;
+    overlay.innerHTML = `<div class="Box position-relative" data-modal id="itemModal"></div>`;
     overlay.addEventListener("click", (e)=>{ if (e.target===overlay) closeItemModal(); });
     document.body.appendChild(overlay);
     renderItemModal();
@@ -2431,15 +2371,15 @@
         if (field.type === "select"){
           const options = (field.options||[]).map(option=>
             `<option value="${escapeHtml(option.value)}" ${option.value===field.value?"selected":""}>${escapeHtml(option.label)}</option>`).join("");
-          return `<div class="modalRow">${label}<select id="${id}">${options}</select></div>`;
+          return `<div class="modalRow">${label}<select class="form-control" id="${id}">${options}</select></div>`;
         }
         const type = field.type === "textarea" ? "textarea" : "input";
         const control = type === "textarea"
-          ? `<textarea id="${id}" placeholder="${escapeHtml(field.placeholder||"")}">${escapeHtml(field.value||"")}</textarea>`
-          : `<input id="${id}" type="text" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
+          ? `<textarea class="form-control" id="${id}" placeholder="${escapeHtml(field.placeholder||"")}">${escapeHtml(field.value||"")}</textarea>`
+          : `<input class="form-control" id="${id}" type="text" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
         return `<div class="modalRow">${label}${control}</div>`;
       }).join("");
-      overlay.innerHTML = `<div class="modal modalWrap" role="dialog" aria-modal="true">
+      overlay.innerHTML = `<div class="Box position-relative" data-modal role="dialog" aria-modal="true">
         <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
         <h3>${escapeHtml(title)}</h3>
         ${message ? `<p class="dialogMessage">${escapeHtml(message)}</p>` : ""}
@@ -2475,17 +2415,17 @@
     if (field.type==="priority"){
       const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
         `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-      return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><select class="fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
+      return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
     }
     if (field.type==="select"){
       const opts = [{id:"",label:"None"}, ...(field.options||[])].map(o=>
         `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-      return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><select class="fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
+      return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
     }
     if (field.type==="date"){
-      return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><input type="date" class="fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
+      return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
     }
-    return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><input type="text" class="fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
+    return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
   }
   function renderItemModal(){
     if (!openItemRef) return;
@@ -2496,7 +2436,7 @@
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
 
-    const projectOptions = isNew && openItemRef.globalNew ? `<div class="modalRow"><label>Project</label><select id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
+    const projectOptions = isNew && openItemRef.globalNew ? `<div class="modalRow"><label class="Label">Project</label><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
 
@@ -2524,12 +2464,12 @@
     modal.innerHTML = `
       <button class="btn btn-invisible closeX" data-action="close">✕</button>
       <div class="modalRow">
-        <input type="text" id="itemTitleInput" value="${escapeHtml(item.title)}">
+        <input class="form-control" type="text" id="itemTitleInput" value="${escapeHtml(item.title)}">
       </div>
       ${projectOptions}
       <div class="modalRow">
         <label>Group</label>
-        <select id="itemGroupSelect">${groupOptions}</select>
+        <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
       </div>
       <div class="modalGrid">
         <div class="modalRow">
@@ -2541,25 +2481,25 @@
         </div>
         <div class="modalRow">
           <label>Location</label>
-          <input type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or meeting link">
+          <input class="form-control" type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or meeting link">
         </div>
         <div class="modalRow">
           <label>Start time</label>
-          <input type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}">
+          <input class="form-control" type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}">
         </div>
         <div class="modalRow">
           <label>End time</label>
-          <input type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}">
+          <input class="form-control" type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}">
         </div>
         <div class="modalRow">
           <label>End date</label>
-          <input type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}">
+          <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}">
         </div>
       </div>
       <div class="modalGrid">${fieldsHtml}</div>
       <div class="modalRow">
         <label>Description</label>
-        <textarea id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
+        <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
       </div>
       <div class="modalRow">
         <label>Tags</label>
@@ -2578,7 +2518,7 @@
         <label>Comments</label>
         <div id="commentsList">${commentsHtml}</div>
         <div style="display:flex;gap:6px;">
-          <input type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
+          <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
           <button class="btn btn-sm" data-action="addComment">Add</button>
         </div>
       </div>` : ""}
