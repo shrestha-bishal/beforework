@@ -72,9 +72,6 @@
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #integrationsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #overviewNav,#calendarNav{gap:9px;}
-  .navIcon{font-size:17px;flex:none;color:var(--accent-strong);}
-
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
   #projectList .SideNav-item{display:flex;align-items:center;justify-content:space-between;
     padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--muted);
