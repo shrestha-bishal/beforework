@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --bg-soft:#f7f7f8; --bg-soft2:#eef0f1;
+    --border:#e4e4e8; --border-strong:#d2d2d8;
+    --text:#14151a; --muted:#6b6c76; --faint:#9d9ea8;
+    --accent:#1f6f54; --accent-strong:#175943; --accent-soft:#e8f3ee;
+    --danger:#b3261e; --danger-soft:#fbeceb;
+    --warn:#a16207; --warn-soft:#fff4e0;
+    --radius:9px; --radius-lg:14px;
+    --shadow-lift:0 2px 6px rgba(15,17,21,.06), 0 1px 2px rgba(15,17,21,.04);
+    --shadow-modal:0 20px 48px rgba(15,17,21,.16), 0 4px 12px rgba(15,17,21,.08);
+    --shadow-side:2px 0 10px rgba(15,17,21,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;font-size:13.5px;background:var(--bg);color:var(--text);
+    border:1px solid transparent;border-radius:7px;padding:7px 9px;}
+  input,select{background:var(--bg-soft);}
+  input:hover,select:hover,textarea:hover{border-color:var(--border);}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);background:var(--bg);
+    box-shadow:0 0 0 3px var(--accent-soft);}
+  textarea{background:var(--bg-soft);border-color:transparent;}
+
+  .btn{background:var(--bg);color:var(--text);border:1px solid var(--border);
+    border-radius:7px;padding:6px 12px;font-size:13px;font-weight:500;transition:border-color .12s,background .12s;white-space:nowrap;}
+  .btn:hover{border-color:var(--border-strong);background:var(--bg-soft);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong);}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--muted);}
+  .btn.ghost:hover{color:var(--text);background:var(--bg-soft);}
+  .btn.small{padding:4px 9px;font-size:12.5px;}
+  .btn.danger{color:var(--danger);}
+  .btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft);}
+  .iconBtn{display:none;background:transparent;border:1px solid var(--border);border-radius:7px;
+    width:32px;height:32px;align-items:center;justify-content:center;flex:none;color:var(--text);}
+
+  #app{display:flex;height:100vh;overflow:hidden;}
+
+  /* Sidebar */
+  #sidebar{width:264px;flex:none;background:var(--bg-soft);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;padding:20px 16px;gap:18px;overflow-y:auto;z-index:60;}
+  #sidebar h1{font-size:15px;font-weight:700;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;letter-spacing:-.01em;}
+  #sidebar h1 .mark{width:20px;height:20px;border-radius:6px;background:var(--accent);
+    display:inline-block;position:relative;flex:none;}
+  #sidebar h1 .mark::after{content:"";position:absolute;inset:5px;border-radius:2px;background:#fff;opacity:.85;}
+
+  .searchWrap{position:relative;}
+  .searchWrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);}
+  #globalSearch{width:100%;padding-left:30px;}
+
+  #overviewNav{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border-radius:7px;
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:8px;font-weight:500;}
+  #overviewNav:hover{background:var(--bg-soft2);color:var(--text);}
+  #overviewNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+
+  #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
+  #projectList li{display:flex;align-items:center;justify-content:space-between;
+    padding:7px 9px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--muted);}
+  #projectList li:hover{background:var(--bg-soft2);color:var(--text);}
+  #projectList li.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #projectList li .cnt{font-size:11.5px;color:var(--faint);font-weight:400;}
+  #projectList li.active .cnt{color:var(--accent);}
+  #projectList li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  .sideSection{border-top:1px solid var(--border);padding-top:16px;}
+  .sideLabelRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .sideLabel{font-size:12px;font-weight:600;color:var(--muted);}
+
+  .tagDot{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 9px 4px 7px;
+    border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;
+    transition:border-color .12s,background .12s;}
+  .tagDot:hover{border-color:var(--border-strong);}
+  .tagDot .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .tagDot.selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
+  #sideTagsList,#boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
+
+  /* Main */
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  #topbar{display:flex;align-items:center;gap:8px;padding:16px 24px 14px 24px;border-bottom:1px solid transparent;}
+  #topbar h2{font-size:18px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
+  #boardFilterBar{display:flex;align-items:center;gap:10px;padding:0 24px 14px 24px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border);}
+  #boardSearch{width:200px;}
+  #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:16px;padding:20px 24px;align-items:flex-start;}
+
+  .viewToggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:none;}
+  .viewToggle button{border:none;background:var(--bg);padding:6px 13px;font-size:12.5px;font-weight:500;color:var(--muted);}
+  .viewToggle button:not(:last-child){border-right:1px solid var(--border);}
+  .viewToggle button.active{background:var(--accent-soft);color:var(--accent-strong);}
+
+  .group{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);
+    width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;}
+  .group.dragover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .groupHead{display:flex;align-items:center;gap:6px;padding:12px 10px 8px 12px;}
+  .groupHead input.groupTitle{background:transparent;border:1px solid transparent;font-weight:600;font-size:13.5px;
+    flex:1;padding:3px 6px;color:var(--text);border-radius:6px;}
+  .groupHead input.groupTitle:hover{background:var(--bg-soft);}
+  .groupHead input.groupTitle:focus{background:var(--bg-soft);box-shadow:none;}
+  .groupCount{font-size:11.5px;color:var(--faint);background:var(--bg-soft);padding:2px 7px;border-radius:999px;}
+  .groupBody{padding:2px 10px 8px 10px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;}
+  .addItemBtn{margin:0 10px 12px 10px;text-align:left;color:var(--muted);border:1px dashed var(--border);
+    background:transparent;}
+  .addItemBtn:hover{border-color:var(--border-strong);background:var(--bg-soft);color:var(--text);}
+
+  .card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 11px;cursor:grab;font-size:13.5px;transition:border-color .12s,box-shadow .12s;}
+  .card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-lift);}
+  .card.dragging{opacity:.4;}
+  .card .cardTitle{font-weight:500;margin-bottom:6px;line-height:1.35;display:flex;align-items:center;}
+  .card .cardMeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .card .subCount{font-size:11px;color:var(--muted);background:var(--bg-soft);border-radius:5px;padding:2px 6px;}
+  .miniTag{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:2px 8px 2px 6px;
+    border-radius:999px;background:var(--bg-soft);color:var(--text);}
+  .miniTag .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+
+  .priorityDot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block;margin-right:7px;}
+  .duePill{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-soft);color:var(--muted);white-space:nowrap;}
+  .duePill.due-overdue{background:var(--danger-soft);color:var(--danger);}
+  .duePill.due-soon{background:var(--warn-soft);color:var(--warn);}
+
+  #emptyState{margin:auto;text-align:center;color:var(--muted);max-width:420px;}
+  #emptyState h2{color:var(--text);font-size:17px;margin-bottom:6px;}
+
+  /* List view */
+  .listWrap{padding:18px 24px;overflow:auto;flex:1;width:100%;}
+  .listAddRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  .listAddRow select{width:auto;}
+  .listAddRow input[type=text]{flex:1;min-width:160px;max-width:360px;}
+  .tableScroll{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);}
+  table.listTable{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.listTable th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:9px 12px;
+    border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;background:var(--bg-soft);}
+  table.listTable th:hover{color:var(--text);}
+  table.listTable th .arrow{margin-left:4px;color:var(--faint);}
+  table.listTable td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap;}
+  table.listTable tr:last-child td{border-bottom:none;}
+  table.listTable tr.rowClickable:hover{background:var(--bg-soft);cursor:pointer;}
+  .rowTags{display:flex;gap:4px;flex-wrap:wrap;}
+  .bulkBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;
+    border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
+  .bulkBar strong{font-size:12px;margin-right:auto;}
+  .listTable .selectCell{width:34px;text-align:center;padding-left:8px;padding-right:4px;}
+
+  /* Overview */
+  .overviewWrap{padding:22px 24px;overflow:auto;flex:1;width:100%;}
+  .statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px;}
+  .statCard{border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;background:var(--bg);}
+  .statCard .num{font-size:24px;font-weight:700;letter-spacing:-.01em;}
+  .statCard .lbl{font-size:12px;color:var(--muted);margin-top:3px;}
+  .ovSection{margin-bottom:24px;}
+  .ovSectionTitle{font-size:13px;font-weight:600;margin-bottom:9px;}
+  .ovRow{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border:1px solid var(--border);
+    border-radius:9px;margin-bottom:6px;cursor:pointer;font-size:13px;gap:10px;}
+  .ovRow:hover{background:var(--bg-soft);}
+  .ovRow .rowLeft{display:flex;align-items:center;min-width:0;}
+  .ovRow .rowLeft span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ovRow .path{color:var(--faint);font-size:11.5px;flex:none;}
+  .ovEmpty{color:var(--faint);font-size:13px;padding:2px 2px 4px 2px;}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
+    align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .modal{background:var(--bg);border-radius:16px;width:540px;box-shadow:var(--shadow-modal);
+    max-width:100%;max-height:90vh;overflow-y:auto;padding:22px 24px;}
+  .modal h3{margin:0 0 10px 0;}
+  .modalRow{margin-bottom:16px;}
+  .modalRow label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .modalRow input[type=text], .modalRow input[type=date], .modalRow textarea, .modalRow select{width:100%;}
+  .modalRow textarea{min-height:72px;resize:vertical;}
+  .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;}
+  .subitemRow{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13.5px;border-radius:6px;}
+  .subitemRow:hover{background:var(--bg-soft);}
+  .subitemRow input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;}
+  .subitemRow input[type=text]{flex:1;border:none;background:transparent;padding:2px;}
+  .subitemRow.done .subitemTitle{text-decoration:line-through;color:var(--faint);}
+  .modalFooter{display:flex;justify-content:space-between;align-items:center;margin-top:18px;
+    border-top:1px solid var(--border);padding-top:14px;gap:10px;flex-wrap:wrap;}
+  .closeX{position:absolute;top:16px;right:18px;}
+  .modalWrap{position:relative;}
+
+  /* Search results */
+  #searchResults{position:absolute;top:44px;left:0;right:0;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius-lg);max-height:60vh;overflow-y:auto;z-index:40;
+    box-shadow:var(--shadow-modal);}
+  #searchResults .res{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer;}
+  #searchResults .res:last-child{border-bottom:none;}
+  #searchResults .res:hover{background:var(--bg-soft);}
+  #searchResults .res .path{color:var(--faint);font-size:11.5px;margin-top:2px;}
+  #sidebarWrap{position:relative;}
+
+  #syncBar{display:flex;align-items:center;gap:10px;padding:9px 24px;border-top:1px solid var(--border);
+    font-size:12px;color:var(--muted);flex-wrap:wrap;background:var(--bg-soft);}
+  #syncBar .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none;}
+  #syncBar .dot.ok{background:var(--accent);}
+  #syncBar .dot.err{background:var(--danger);}
+  #fileImportInput{display:none;}
+  #sidebarScrim{display:none;}
+
+  /* Responsive */
+  @media (max-width:860px){
+    #sidebar{position:fixed;top:0;bottom:0;left:-280px;width:264px;box-shadow:var(--shadow-side);transition:left .18s ease;}
+    #sidebar.open{left:0;}
+    #sidebarScrim.show{display:block;position:fixed;inset:0;background:rgba(20,21,26,.32);z-index:55;}
+    .iconBtn{display:inline-flex;}
+    #topbar{padding:14px 16px 12px 16px;}
+    #boardFilterBar{padding:0 16px 12px 16px;}
+    #board{padding:14px 16px;}
+    .listWrap,.overviewWrap{padding:16px;}
+    .statGrid{grid-template-columns:repeat(2,1fr);}
+    #boardSearch{width:100%;order:1;}
+    #syncBar{padding:9px 16px;}
+    .modalGrid{grid-template-columns:1fr;}
+  }
+  @media (max-width:480px){
+    .statGrid{grid-template-columns:1fr;}
+    .group{width:82vw;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebarScrim"></div>
+  <div id="sidebar">
+    <div id="sidebarWrap">
+      <h1><span class="mark"></span>Dashboard</h1>
+      <div class="searchWrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="globalSearch" type="text" placeholder="Search everything">
+      </div>
+      <div id="searchResults" style="display:none;"></div>
+    </div>
+
+    <div id="overviewNav">Overview</div>
+
+    <div>
+      <div class="sideLabelRow"><span class="sideLabel">Projects</span></div>
+      <ul id="projectList"></ul>
+      <button class="btn small ghost" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
+    </div>
+
+    <div class="sideSection" id="tagsSection">
+      <div class="sideLabelRow">
+        <span class="sideLabel" id="tagsSectionLabel">Tags</span>
+        <button class="btn small ghost" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
+      </div>
+      <div id="sideTagsList"></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <button class="iconBtn" id="sidebarToggle" title="Menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h2 id="projectTitleLabel">Overview</h2>
+      <div class="viewToggle" id="viewToggle" style="display:none;">
+        <button data-view="list" class="active">List</button>
+        <button data-view="kanban">Board</button>
+      </div>
+      <button class="btn small ghost" id="manageFieldsBtn" style="display:none;">Columns</button>
+      <button class="btn small ghost" id="addGroupBtn" style="display:none;">+ Group</button>
+      <button class="btn small ghost" id="undoBtn" title="Undo last change">Undo</button>
+      <button class="btn small ghost" id="renameProjectBtn" style="display:none;">Rename</button>
+      <button class="btn small danger" id="deleteProjectBtn" style="display:none;">Delete</button>
+    </div>
+    <div id="boardFilterBar" style="display:none;">
+      <input id="boardSearch" type="text" placeholder="Filter items in this project">
+      <div id="boardTagFilters"></div>
+      <div id="fieldFilters" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <button class="btn small ghost" id="clearBoardFilters">Clear filters</button>
+    </div>
+    <div id="board"></div>
+  </div>
+</div>
+
+<div id="syncBar">
+  <span class="dot" id="syncDot"></span>
+  <span id="syncLabel">Storage: browser only</span>
+  <button class="btn small" id="connectFileBtn">Connect file for autosave</button>
+  <button class="btn small ghost" id="exportBtn">Export JSON</button>
+  <button class="btn small ghost" id="importBtn">Import JSON</button>
+  <input type="file" id="fileImportInput" accept="application/json">
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Constants ---------- */
+  const uid = () => crypto.randomUUID();
+  const TAG_COLORS = ["#2f6fed","#c2410c","#7c3aed","#0891b2","#be185d","#a16207","#15803d","#4b5563"];
+  const OVERVIEW = "__overview__";
+  const PRIORITY_OPTIONS = [
+    {id:"high",label:"High",color:"#b3261e",rank:3},
+    {id:"medium",label:"Medium",color:"#a16207",rank:2},
+    {id:"low",label:"Low",color:"#4b5563",rank:1},
+  ];
+  const FIELD_TYPES = ["priority","select","date","text"];
+
+  let state = null;                 // { projects:[] }
+  let activeProjectId = OVERVIEW;
+  let currentView = "list";         // 'list' | 'kanban' (list is the default)
+  let boardFilterText = "";
+  let boardFilterTags = new Set();
+  let boardFilterFields = new Map(); // fieldId -> "__all__" | "__none__" | optionId
+  let listSort = {field:"updated", dir:"desc"};
+  let openItemRef = null;
+  let fileHandle = null;
+  let saveTimer = null;
+  let lastSavedState = null;
+  const undoStack = [];
+  const selectedItemIds = new Set();
+
+  function todayStr(offsetDays){
+    const d = new Date();
+    d.setDate(d.getDate() + (offsetDays||0));
+    return d.toISOString().slice(0,10);
+  }
+
+  function defaultState(){
+    const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
+    const due = {id:uid(), label:"Due date", type:"date", options:[]};
+    const t1 = {id:uid(), name:"feature", color:TAG_COLORS[0]};
+    const t2 = {id:uid(), name:"urgent", color:TAG_COLORS[1]};
+    const proj1 = {
+      id:uid(), name:"Product roadmap", createdAt:Date.now(),
+      tags:[t1,t2], fields:[pr,due],
+      groups:[
+        {id:uid(), name:"To do", items:[
+          {id:uid(), title:"This is a card — click to open it",
+           description:"Add notes here. Search everything from the sidebar, drag cards between groups, switch between List and Board, and add columns that fit this project from the Columns button above.",
+           tagIds:[t1.id], values:{[pr.id]:"medium",[due.id]:todayStr(2)},
+           subitems:[{id:uid(),title:"Try checking this off",done:false}], createdAt:Date.now(), updatedAt:Date.now()},
+        ]},
+        {id:uid(), name:"Doing", items:[]},
+        {id:uid(), name:"Done", items:[]}
+      ]
+    };
+    const status = {id:uid(), label:"Status", type:"select", options:[
+      {id:uid(), label:"To read", color:TAG_COLORS[2]},
+      {id:uid(), label:"Reading", color:TAG_COLORS[3]},
+      {id:uid(), label:"Finished", color:TAG_COLORS[6]},
+    ]};
+    const proj2 = {
+      id:uid(), name:"Reading list", createdAt:Date.now(),
+      tags:[], fields:[status],
+      groups:[{id:uid(), name:"Books", items:[]}]
+    };
+    return {projects:[proj1, proj2]};
+  }
+
+  // Upgrades data saved by the older single-column version of this app
+  // (global tags + fixed priority/dueDate) into the per-project shape.
+  function migrateState(s){
+    if (!s || !Array.isArray(s.projects)) return defaultState();
+    const alreadyNew = s.projects.every(p=>Array.isArray(p.fields) && Array.isArray(p.tags));
+    if (alreadyNew) return s;
+    const globalTags = s.tags || [];
+    s.projects.forEach(p=>{
+      if (!Array.isArray(p.tags)) p.tags = globalTags.map(t=>({id:t.id, name:t.name, color:t.color}));
+      if (!Array.isArray(p.fields)){
+        const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
+        const due = {id:uid(), label:"Due date", type:"date", options:[]};
+        p.fields = [pr, due];
+        p.groups.forEach(g=>g.items.forEach(it=>{
+          it.values = it.values || {};
+          if (it.priority) it.values[pr.id] = it.priority;
+          if (it.dueDate) it.values[due.id] = it.dueDate;
+          delete it.priority; delete it.dueDate;
+        }));
+      }
+    });
+    delete s.tags;
+    return s;
+  }
+
+  /* ---------- Persistence ---------- */
+  const LS_KEY = "personal_dashboard_state_v2";
+  const DB_NAME = "dashboard_meta", DB_STORE = "kv";
+
+  function idbOpen(){
+    return new Promise((resolve,reject)=>{
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbGet(key){
+    const db = await idbOpen();
+    return new Promise((resolve,reject)=>{
+      const tx = db.transaction(DB_STORE,"readonly");
+      const r = tx.objectStore(DB_STORE).get(key);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  async function idbSet(key,val){
+    const db = await idbOpen();
+    return new Promise((resolve,reject)=>{
+      const tx = db.transaction(DB_STORE,"readwrite");
+      tx.objectStore(DB_STORE).put(val,key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  function setSyncStatus(kind, text){
+    const dot = document.getElementById("syncDot");
+    dot.className = "dot" + (kind==="ok" ? " ok" : kind==="err" ? " err" : "");
+    document.getElementById("syncLabel").textContent = text;
+  }
+
+  function scheduleSave(){
+    const serialized = JSON.stringify(state);
+    if (lastSavedState && lastSavedState !== serialized){
+      undoStack.push(lastSavedState);
+      if (undoStack.length > 30) undoStack.shift();
+    }
+    lastSavedState = serialized;
+    localStorage.setItem(LS_KEY, serialized);
+    if (!fileHandle) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(writeToFile, 400);
+  }
+
+  async function writeToFile(){
+    try{
+      const writable = await fileHandle.createWritable();
+      await writable.write(JSON.stringify(state, null, 2));
+      await writable.close();
+      setSyncStatus("ok", "Autosaving to " + fileHandle.name);
+    }catch(err){
+      setSyncStatus("err", "Couldn't save to file (" + err.message + ")");
+    }
+  }
+
+  async function tryReconnectFile(){
+    if (!("showSaveFilePicker" in window)) return false;
+    try{
+      const handle = await idbGet("fileHandle");
+      if (!handle) return false;
+      const perm = await handle.queryPermission({mode:"readwrite"});
+      if (perm === "granted"){
+        fileHandle = handle;
+        const file = await handle.getFile();
+        const text = await file.text();
+        if (text.trim()){ state = migrateState(JSON.parse(text)); }
+        setSyncStatus("ok", "Autosaving to " + handle.name);
+        return true;
+      } else {
+        setSyncStatus("", "Previously connected to " + handle.name + " — click Reconnect to grant access again");
+        document.getElementById("connectFileBtn").textContent = "Reconnect file";
+        return false;
+      }
+    }catch(err){ return false; }
+  }
+
+  async function connectFile(){
+    if (!("showSaveFilePicker" in window)){
+      showNotice("File access unavailable", "Your browser does not support direct file access. Use Export and Import instead, or open this file in Chrome or Edge.");
+      return;
+    }
+    try{
+      // If we already have a handle from a previous visit, just re-request permission on it
+      // instead of asking the person to pick the file again.
+      const existing = await idbGet("fileHandle");
+      if (existing){
+        const perm = await existing.requestPermission({mode:"readwrite"});
+        if (perm === "granted"){
+          fileHandle = existing;
+          const file = await fileHandle.getFile();
+          const text = await file.text();
+          if (text.trim()) state = migrateState(JSON.parse(text));
+          await writeToFile();
+          document.getElementById("connectFileBtn").textContent = "Connect file for autosave";
+          renderAll();
+          return;
+        }
+      }
+      const opts = {types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}], suggestedName:"dashboard-data.json"};
+      const handle = await window.showSaveFilePicker(opts);
+      const perm = await handle.requestPermission({mode:"readwrite"});
+      if (perm !== "granted") return;
+      fileHandle = handle;
+      await idbSet("fileHandle", handle);
+      await writeToFile();
+      document.getElementById("connectFileBtn").textContent = "Connect file for autosave";
+      setSyncStatus("ok", "Autosaving to " + handle.name + " — place this file in a synced folder (OneDrive/Google Drive) to share it across devices");
+    }catch(err){ /* user cancelled */ }
+  }
+
+  function exportJSON(){
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "dashboard-data.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importJSON(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        if (!parsed.projects) throw new Error("not a dashboard file");
+        state = migrateState(parsed);
+        lastSavedState = null;
+        undoStack.length = 0;
+        selectedItemIds.clear();
+        activeProjectId = OVERVIEW;
+        scheduleSave();
+        renderAll();
+      }catch(err){ showNotice("Import failed", "Could not read that file: " + err.message); }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------- Model helpers ---------- */
+  function getProject(pid){ return state.projects.find(p=>p.id===pid); }
+  function getGroup(pid,gid){ return getProject(pid)?.groups.find(g=>g.id===gid); }
+  function getItem(pid,gid,iid){ return getGroup(pid,gid)?.items.find(i=>i.id===iid); }
+  function tagById(project,tid){ return project.tags.find(t=>t.id===tid); }
+  function priorityField(project){ return project.fields.find(f=>f.type==="priority"); }
+  function dateFields(project){ return project.fields.filter(f=>f.type==="date"); }
+
+  function allItemsFlat(){
+    const out = [];
+    state.projects.forEach(p=> p.groups.forEach(g=> g.items.forEach(it=>
+      out.push({project:p, group:g, item:it}))));
+    return out;
+  }
+
+  function addProject(name){
+    const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
+    const due = {id:uid(), label:"Due date", type:"date", options:[]};
+    const p = {id:uid(), name, createdAt:Date.now(), tags:[], fields:[pr,due], groups:[
+      {id:uid(), name:"To do", items:[]},
+      {id:uid(), name:"Doing", items:[]},
+      {id:uid(), name:"Done", items:[]},
+    ]};
+    state.projects.push(p);
+    activeProjectId = p.id;
+    scheduleSave(); renderAll();
+  }
+  function deleteProject(pid){
+    state.projects = state.projects.filter(p=>p.id!==pid);
+    if (activeProjectId===pid) activeProjectId = state.projects[0]?.id || OVERVIEW;
+    scheduleSave(); renderAll();
+  }
+  function addGroup(pid, name){
+    const project = getProject(pid);
+    if (!project) return;
+    project.groups.push({id:uid(), name, items:[]});
+    scheduleSave(); renderMain();
+  }
+  function deleteGroup(pid, gid){
+    const p = getProject(pid);
+    if (!p || p.groups.length <= 1){
+      showNotice("Group required", "A project needs at least one group.");
+      return;
+    }
+    p.groups = p.groups.filter(g=>g.id!==gid);
+    scheduleSave(); renderMain();
+  }
+  function addItem(pid, gid, title){
+    const it = {id:uid(), title, description:"", tagIds:[], values:{}, subitems:[],
+      createdAt:Date.now(), updatedAt:Date.now()};
+    getGroup(pid,gid).items.push(it);
+    scheduleSave(); renderMain();
+    return it;
+  }
+  function deleteItem(pid,gid,iid){
+    const g = getGroup(pid,gid);
+    g.items = g.items.filter(i=>i.id!==iid);
+    scheduleSave(); renderMain();
+  }
+  function undoLastChange(){
+    const previous = undoStack.pop();
+    if (!previous){ showNotice("Nothing to undo", "There are no changes to undo yet."); return; }
+    try{
+      state = migrateState(JSON.parse(previous));
+      lastSavedState = JSON.stringify(state);
+      selectedItemIds.clear();
+      scheduleSave(); renderAll();
+    }catch(err){ showNotice("Undo failed", "Could not undo that change: " + err.message); }
+  }
+  async function bulkDelete(project){
+    if (!selectedItemIds.size) return;
+    if (!await showConfirm("Delete selected items", `Delete ${selectedItemIds.size} selected item(s)?`, true)) return;
+    project.groups.forEach(g=>{ g.items = g.items.filter(item=>!selectedItemIds.has(item.id)); });
+    selectedItemIds.clear(); scheduleSave(); renderMain(); renderProjectList();
+  }
+  async function bulkMove(project){
+    if (!selectedItemIds.size) return;
+    const choice = await showDialog({title:"Move selected items", message:"Choose a destination group.", fields:[{label:"Destination", type:"select", options:project.groups.map(group=>({value:group.id,label:group.name})), value:project.groups[0]?.id}], confirmLabel:"Move"});
+    const target = project.groups.find(group=>group.id===choice);
+    if (!target) return;
+    const now = Date.now();
+    project.groups.forEach(g=>{
+      const moving = g.items.filter(item=>selectedItemIds.has(item.id));
+      g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
+      moving.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
+    });
+    selectedItemIds.clear(); scheduleSave(); renderMain();
+  }
+  async function bulkTag(project){
+    if (!selectedItemIds.size) return;
+    const name = await showDialog({title:"Tag selected items", message:`Add a tag to ${selectedItemIds.size} selected item(s).`, fields:[{label:"Tag name", value:project.tags[0]?.name || "", placeholder:"e.g. urgent"}], confirmLabel:"Apply tag"});
+    if (!name || !name.trim()) return;
+    let tag = project.tags.find(t=>t.name.toLowerCase()===name.trim().toLowerCase());
+    if (!tag) tag = createTag(project, name.trim());
+    project.groups.forEach(g=>g.items.forEach(item=>{
+      if (selectedItemIds.has(item.id) && !item.tagIds.includes(tag.id)){
+        item.tagIds.push(tag.id); item.updatedAt = Date.now();
+      }
+    }));
+    selectedItemIds.clear(); scheduleSave(); renderAll();
+  }
+  function moveItem(pid, fromGid, toGid, iid, toIndex){
+    const from = getGroup(pid, fromGid);
+    const idx = from.items.findIndex(i=>i.id===iid);
+    if (idx<0) return;
+    const [item] = from.items.splice(idx,1);
+    const to = getGroup(pid, toGid);
+    if (toIndex==null || toIndex>to.items.length) to.items.push(item);
+    else to.items.splice(toIndex,0,item);
+    item.updatedAt = Date.now();
+    scheduleSave(); renderMain();
+  }
+  function createTag(project, name, color){
+    const t = {id:uid(), name, color: color || TAG_COLORS[project.tags.length % TAG_COLORS.length]};
+    project.tags.push(t);
+    scheduleSave();
+    return t;
+  }
+  function deleteTag(project, tid){
+    project.tags = project.tags.filter(t=>t.id!==tid);
+    project.groups.forEach(g=>g.items.forEach(it=> it.tagIds = it.tagIds.filter(id=>id!==tid)));
+    boardFilterTags.delete(tid);
+    scheduleSave(); renderAll();
+  }
+  async function addField(project, label, type){
+    const field = {id:uid(), label, type, options:[]};
+    if (type==="select"){
+      const opts = await showDialog({title:"Column options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create column"});
+      if (opts === null) return;
+      field.options = (opts||"").split(",").map(s=>s.trim()).filter(Boolean)
+        .map((l,i)=>({id:uid(), label:l, color:TAG_COLORS[i % TAG_COLORS.length]}));
+    }
+    project.fields.push(field);
+    scheduleSave(); renderAll();
+  }
+  function deleteField(project, fid){
+    project.fields = project.fields.filter(f=>f.id!==fid);
+    project.groups.forEach(g=>g.items.forEach(it=>{ delete it.values[fid]; }));
+    boardFilterFields.delete(fid);
+    if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
+    scheduleSave(); renderAll();
+  }
+  async function manageFieldsFlow(project){
+    const names = project.fields.map(f=>`${f.label} (${f.type})`).join(", ") || "(none yet)";
+    const action = await showDialog({title:`Columns for ${project.name}`, message:`Current columns: ${names}`, fields:[{label:"What do you want to do?", type:"select", options:[{value:"add",label:"Add a column"},{value:"delete",label:"Delete a column"}], value:"add"}], confirmLabel:"Continue"});
+    if (!action) return;
+    if (action === "add"){
+      const details = await showDialog({title:"New column", fields:[
+        {label:"Column name", placeholder:"e.g. Status, Type, Effort"},
+        {label:"Column type", type:"select", options:FIELD_TYPES.map(value=>({value,label:value})), value:"select"}
+      ], confirmLabel:"Create column"});
+      if (!details) return;
+      const [label,type] = details;
+      if (!label || !label.trim()) return;
+      addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
+      return;
+    }
+    const fid = await showDialog({title:"Delete column", fields:[{label:"Column", type:"select", options:project.fields.map(field=>({value:field.id,label:`${field.label} (${field.type})`})), value:project.fields[0]?.id}], confirmLabel:"Choose column"});
+    const f = project.fields.find(field=>field.id===fid);
+    if (!f) return;
+    if (await showConfirm(`Delete column ${f.label}`, "This removes its values from every item in this project.", true)) deleteField(project, f.id);
+  }
+
+  /* ---------- Shared helpers ---------- */
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function fmtDate(dateStr){
+    if (!dateStr) return "";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+  }
+  function dueClass(dateStr){
+    if (!dateStr) return "";
+    if (dateStr < todayStr(0)) return "due-overdue";
+    if (dateStr <= todayStr(3)) return "due-soon";
+    return "";
+  }
+  function duePillHtml(dateStr){
+    if (!dateStr) return "";
+    return `<span class="duePill ${dueClass(dateStr)}">${fmtDate(dateStr)}</span>`;
+  }
+  function tagDotHtml(t, selected){
+    return `<span class="tagDot${selected?" selected":""}" data-tagfilter="${t.id}">
+      <span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+  }
+  function fieldChipHtml(field, value){
+    if (!value) return "";
+    if (field.type==="priority"){
+      const opt = PRIORITY_OPTIONS.find(o=>o.id===value); if (!opt) return "";
+      return `<span class="priorityDot" style="background:${opt.color}" title="${opt.label} ${escapeHtml(field.label)}"></span>`;
+    }
+    if (field.type==="date") return duePillHtml(value);
+    if (field.type==="select"){
+      const opt = (field.options||[]).find(o=>o.id===value); if (!opt) return "";
+      return `<span class="miniTag"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>`;
+    }
+    return `<span class="miniTag">${escapeHtml(String(value))}</span>`;
+  }
+  function fieldCellHtml(field, value){
+    if (field.type==="priority"){
+      const opt = PRIORITY_OPTIONS.find(o=>o.id===value);
+      return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "—";
+    }
+    if (field.type==="date") return value ? duePillHtml(value) : "—";
+    if (field.type==="select"){
+      const opt = (field.options||[]).find(o=>o.id===value);
+      return opt ? fieldChipHtml(field,value) : "—";
+    }
+    return value ? escapeHtml(value) : "—";
+  }
+
+  function itemMatchesFilter(project, item){
+    if (boardFilterTags.size && ![...boardFilterTags].every(tid=>item.tagIds.includes(tid))) return false;
+    for (const [fid, mode] of boardFilterFields){
+      if (mode==="__all__") continue;
+      const val = item.values[fid] || "";
+      if (mode==="__none__"){ if (val) return false; }
+      else {
+        const field = project.fields.find(candidate=>candidate.id===fid);
+        if (field?.type==="text"){
+          if (!val.toLowerCase().includes(mode.toLowerCase())) return false;
+        } else if (val !== mode) return false;
+      }
+    }
+    if (boardFilterText){
+      const q = boardFilterText.toLowerCase();
+      const hay = [item.title, item.description, ...item.subitems.map(s=>s.title), ...Object.values(item.values)].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+  function rowsForSelection(project){
+    const rows = [];
+    project.groups.forEach(group=> group.items
+      .filter(item=>itemMatchesFilter(project, item))
+      .forEach(item=>rows.push({item, group})));
+    return rows;
+  }
+
+  /* ---------- Rendering: shell ---------- */
+  function renderAll(){
+    renderProjectList();
+    renderSidebarTags();
+    renderMain();
+  }
+
+  function renderProjectList(){
+    document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
+    const ul = document.getElementById("projectList");
+    ul.innerHTML = "";
+    state.projects.forEach(p=>{
+      const count = p.groups.reduce((n,g)=>n+g.items.length,0);
+      const li = document.createElement("li");
+      li.className = p.id===activeProjectId ? "active" : "";
+      li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="cnt">${count}</span>`;
+      li.onclick = () => { selectProject(p.id); };
+      ul.appendChild(li);
+    });
+  }
+
+  function selectProject(pid){
+    activeProjectId = pid;
+    boardFilterText=""; boardFilterTags.clear(); boardFilterFields.clear();
+    selectedItemIds.clear();
+    renderAll();
+    closeSidebarOnMobile();
+  }
+
+  function renderSidebarTags(){
+    const section = document.getElementById("tagsSection");
+    const wrap = document.getElementById("sideTagsList");
+    const label = document.getElementById("tagsSectionLabel");
+    const project = getProject(activeProjectId);
+    if (activeProjectId===OVERVIEW || !project){ section.style.display = "none"; return; }
+    section.style.display = "block";
+    label.textContent = "Tags in " + project.name;
+    wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("")
+      || `<div style="font-size:12px;color:var(--faint);">No tags yet</div>`;
+    wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
+      el.onclick = () => {
+        const tid = el.dataset.tagfilter;
+        if (boardFilterTags.has(tid)) boardFilterTags.delete(tid); else boardFilterTags.add(tid);
+        renderMain(); renderSidebarTags();
+      };
+    });
+  }
+
+  function renderMain(){
+    const filterBar = document.getElementById("boardFilterBar");
+    const renameBtn = document.getElementById("renameProjectBtn");
+    const deleteBtn = document.getElementById("deleteProjectBtn");
+    const fieldsBtn = document.getElementById("manageFieldsBtn");
+    const addGroupBtn = document.getElementById("addGroupBtn");
+    const viewToggle = document.getElementById("viewToggle");
+    const topLabel = document.getElementById("projectTitleLabel");
+    const board = document.getElementById("board");
+    board.innerHTML = "";
+
+    if (activeProjectId === OVERVIEW){
+      topLabel.textContent = "Overview";
+      filterBar.style.display = "none";
+      renameBtn.style.display = "none";
+      deleteBtn.style.display = "none";
+      fieldsBtn.style.display = "none";
+      addGroupBtn.style.display = "none";
+      viewToggle.style.display = "none";
+      renderOverview(board);
+      return;
+    }
+
+    const project = getProject(activeProjectId);
+    if (!project){
+      activeProjectId = OVERVIEW;
+      renderProjectList();
+      renderMain();
+      return;
+    }
+
+    topLabel.textContent = project.name;
+    filterBar.style.display = "flex";
+    renameBtn.style.display = "inline-block";
+    deleteBtn.style.display = "inline-block";
+    fieldsBtn.style.display = "inline-block";
+    addGroupBtn.style.display = "inline-block";
+    viewToggle.style.display = "inline-flex";
+    viewToggle.querySelectorAll("button").forEach(b=> b.classList.toggle("active", b.dataset.view===currentView));
+
+    document.getElementById("boardSearch").value = boardFilterText;
+    renderBoardTagFilters(project);
+    renderFieldFilters(project);
+
+    fieldsBtn.onclick = () => manageFieldsFlow(project);
+    addGroupBtn.onclick = async () => {
+      const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
+      if (name && name.trim()) addGroup(project.id, name.trim());
+    };
+    renameBtn.onclick = async () => {
+      const name = await showDialog({title:"Rename project", fields:[{label:"Project name", value:project.name}], confirmLabel:"Rename"});
+      if (name && name.trim()){ project.name = name.trim(); scheduleSave(); renderAll(); }
+    };
+    deleteBtn.onclick = async () => {
+      if (await showConfirm(`Delete project ${project.name}`, "This will delete everything in the project.", true)) deleteProject(project.id);
+    };
+
+    if (currentView === "list") renderListView(project, board);
+    else renderKanban(project, board);
+  }
+
+  function renderBoardTagFilters(project){
+    const wrap = document.getElementById("boardTagFilters");
+    wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("");
+    wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
+      el.onclick = () => {
+        const tid = el.dataset.tagfilter;
+        if (boardFilterTags.has(tid)) boardFilterTags.delete(tid); else boardFilterTags.add(tid);
+        renderMain();
+      };
+    });
+  }
+
+  function renderFieldFilters(project){
+    const wrap = document.getElementById("fieldFilters");
+    const filterable = project.fields;
+    wrap.innerHTML = filterable.map(f=>{
+      const opts = f.type==="priority" ? PRIORITY_OPTIONS : (f.options||[]);
+      const current = boardFilterFields.get(f.id) || "__all__";
+      if (f.type==="date"){
+        return `<input type="date" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" title="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      }
+      if (f.type==="text"){
+        return `<input type="text" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" placeholder="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      }
+      return `<select data-fieldfilter="${f.id}">
+        <option value="__all__" ${current==="__all__"?"selected":""}>All ${escapeHtml(f.label)}</option>
+        ${opts.map(o=>`<option value="${o.id}" ${current===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}
+        <option value="__none__" ${current==="__none__"?"selected":""}>No ${escapeHtml(f.label)}</option>
+      </select>`;
+    }).join("");
+    wrap.querySelectorAll("[data-fieldfilter]").forEach(control=>{
+      control.addEventListener("change", e=>{
+        boardFilterFields.set(control.dataset.fieldfilter, e.target.value || "__all__");
+        renderMain();
+      });
+    });
+  }
+
+  /* ---------- Kanban ---------- */
+  function renderKanban(project, board){
+    project.groups.forEach(group=>{
+      const col = document.createElement("div");
+      col.className = "group";
+      col.dataset.groupId = group.id;
+
+      const visibleItems = group.items.filter(it=>itemMatchesFilter(project, it));
+
+      col.innerHTML = `
+        <div class="groupHead">
+          <input class="groupTitle" value="${escapeHtml(group.name)}">
+          <span class="groupCount">${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}</span>
+          <button class="btn ghost small" data-action="delGroup" title="Delete group">✕</button>
+        </div>
+        <div class="groupBody"></div>
+        <button class="btn addItemBtn" data-action="addItem">+ Add item</button>
+      `;
+
+      col.querySelector(".groupTitle").addEventListener("change", (e)=>{
+        group.name = e.target.value.trim() || group.name;
+        scheduleSave(); renderProjectList();
+      });
+      col.querySelector('[data-action="delGroup"]').onclick = async () => {
+        if (await showConfirm(`Delete group ${group.name}`, `This will delete the group and its ${group.items.length} item(s).`, true)) deleteGroup(project.id, group.id);
+      };
+      col.querySelector('[data-action="addItem"]').onclick = async () => {
+        const title = await showDialog({title:"New item", fields:[{label:"Item title", placeholder:"What needs to be done?"}], confirmLabel:"Add item"});
+        if (title && title.trim()) addItem(project.id, group.id, title.trim());
+      };
+
+      const body = col.querySelector(".groupBody");
+      visibleItems.forEach(item=> body.appendChild(renderCard(project, group.id, item)));
+
+      col.addEventListener("dragover", (e)=>{ e.preventDefault(); col.classList.add("dragover"); });
+      col.addEventListener("dragleave", ()=> col.classList.remove("dragover"));
+      col.addEventListener("drop", (e)=>{
+        e.preventDefault(); col.classList.remove("dragover");
+        const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+        moveItem(project.id, data.groupId, group.id, data.itemId, null);
+      });
+
+      board.appendChild(col);
+    });
+  }
+
+  function renderCard(project, gid, item){
+    const card = document.createElement("div");
+    card.className = "card";
+    card.draggable = true;
+    const doneSub = item.subitems.filter(s=>s.done).length;
+    const pf = priorityField(project);
+    const dfs = dateFields(project);
+    const titlePrefix = pf ? fieldChipHtml(pf, item.values[pf.id]) : "";
+    const dueChips = dfs.map(f=>fieldChipHtml(f, item.values[f.id])).join("");
+    const tagsHtml = item.tagIds.map(tid=>{
+      const t = tagById(project, tid); if (!t) return "";
+      return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+    }).join("");
+    card.innerHTML = `
+      <div class="cardTitle">${titlePrefix}${escapeHtml(item.title)}</div>
+      <div class="cardMeta">
+        ${item.subitems.length? `<span class="subCount">${doneSub}/${item.subitems.length}</span>`:""}
+        ${dueChips}
+        ${tagsHtml}
+      </div>`;
+    card.onclick = () => openItemModal(project.id, gid, item.id);
+    card.addEventListener("dragstart", (e)=>{
+      card.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", JSON.stringify({groupId:gid, itemId:item.id}));
+    });
+    card.addEventListener("dragend", ()=> card.classList.remove("dragging"));
+    return card;
+  }
+
+  /* ---------- List view ---------- */
+  function renderListView(project, board){
+    const wrap = document.createElement("div");
+    wrap.className = "listWrap";
+
+    const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
+    const fieldHeaders = project.fields.map(f=>`<th data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
+    wrap.innerHTML = `
+      <div class="listAddRow">
+        <select id="quickAddGroup">${groupOptionsHtml}</select>
+        <input type="text" id="quickAddTitle" placeholder="New item title — press Enter to add">
+        <button class="btn small primary" id="quickAddBtn">+ Add</button>
+      </div>
+      <div class="bulkBar">
+        <strong><span id="selectedCount">0</span> selected</strong>
+        <button class="btn small" id="bulkSelectAll">Select all</button>
+        <button class="btn small" id="bulkMove">Move</button>
+        <button class="btn small" id="bulkTag">Tag</button>
+        <button class="btn small danger" id="bulkDelete">Delete</button>
+      </div>
+      <div class="tableScroll">
+      <table class="listTable">
+        <thead><tr>
+          <th class="selectCell"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
+          <th data-field="title">Title</th>
+          <th data-field="group">Group</th>
+          ${fieldHeaders}
+          <th>Tags</th>
+          <th>Progress</th>
+          <th data-field="updated">Updated</th>
+        </tr></thead>
+        <tbody id="listTbody"></tbody>
+      </table>
+      </div>
+    `;
+    board.appendChild(wrap);
+
+    const doQuickAdd = () => {
+      const titleInput = document.getElementById("quickAddTitle");
+      const gid = document.getElementById("quickAddGroup").value;
+      const title = titleInput.value.trim();
+      if (!title) return;
+      addItem(project.id, gid, title);
+    };
+    document.getElementById("quickAddBtn").onclick = doQuickAdd;
+    document.getElementById("quickAddTitle").addEventListener("keydown", e=>{
+      if (e.key==="Enter") doQuickAdd();
+    });
+    const updateSelection = () => {
+      document.getElementById("selectedCount").textContent = selectedItemIds.size;
+      wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
+        input.checked = selectedItemIds.has(input.dataset.itemSelect);
+      });
+    };
+    document.getElementById("bulkSelectAll").onclick = () => {
+      rowsForSelection(project).forEach(row=>selectedItemIds.add(row.item.id));
+      updateSelection();
+    };
+    document.getElementById("selectAllItems").onchange = e => {
+      rowsForSelection(project).forEach(row=>{
+        if (e.target.checked) selectedItemIds.add(row.item.id);
+        else selectedItemIds.delete(row.item.id);
+      });
+      updateSelection();
+    };
+    document.getElementById("bulkMove").onclick = () => bulkMove(project);
+    document.getElementById("bulkTag").onclick = () => bulkTag(project);
+    document.getElementById("bulkDelete").onclick = () => bulkDelete(project);
+
+    wrap.querySelectorAll("th[data-field]").forEach(th=>{
+      const field = th.dataset.field;
+      const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
+      th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+      th.onclick = () => {
+        if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
+        else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
+        renderMain();
+      };
+    });
+
+    let rows = [];
+    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it)).forEach(it=> rows.push({item:it, group:g})));
+
+    rows.sort((a,b)=>{
+      let va, vb;
+      const f = project.fields.find(x=>x.id===listSort.field);
+      if (listSort.field==="title"){ va=a.item.title.toLowerCase(); vb=b.item.title.toLowerCase(); }
+      else if (listSort.field==="group"){ va=a.group.name.toLowerCase(); vb=b.group.name.toLowerCase(); }
+      else if (listSort.field==="updated"){ va=a.item.updatedAt; vb=b.item.updatedAt; }
+      else if (f && f.type==="priority"){
+        va=(PRIORITY_OPTIONS.find(o=>o.id===a.item.values[f.id])||{rank:0}).rank;
+        vb=(PRIORITY_OPTIONS.find(o=>o.id===b.item.values[f.id])||{rank:0}).rank;
+      } else if (f && f.type==="date"){
+        va=a.item.values[f.id]||"9999-99-99"; vb=b.item.values[f.id]||"9999-99-99";
+      } else if (f){
+        va=(a.item.values[f.id]||"").toLowerCase(); vb=(b.item.values[f.id]||"").toLowerCase();
+      } else { va=a.item.updatedAt; vb=b.item.updatedAt; }
+      if (va<vb) return listSort.dir==="asc" ? -1 : 1;
+      if (va>vb) return listSort.dir==="asc" ? 1 : -1;
+      return 0;
+    });
+
+    const tbody = document.getElementById("listTbody");
+    const colCount = 6 + project.fields.length;
+    if (!rows.length){
+      tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No items match the current filters.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(({item,group})=>{
+      const doneSub = item.subitems.filter(s=>s.done).length;
+      const tagsHtml = item.tagIds.map(tid=>{
+        const t = tagById(project, tid); if (!t) return "";
+        return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+      }).join("");
+      const fieldCells = project.fields.map(f=>`<td>${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
+      return `<tr class="rowClickable" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
+        <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
+        <td>${escapeHtml(item.title)}</td>
+        <td>${escapeHtml(group.name)}</td>
+        ${fieldCells}
+        <td><div class="rowTags">${tagsHtml||"—"}</div></td>
+        <td>${item.subitems.length? doneSub+"/"+item.subitems.length : "—"}</td>
+        <td>${new Date(item.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</td>
+      </tr>`;
+    }).join("");
+    tbody.querySelectorAll("tr[data-iid]").forEach(tr=>{
+      tr.onclick = e => {
+        if (e.target.matches("input[data-item-select]")){
+          if (e.target.checked) selectedItemIds.add(e.target.dataset.itemSelect);
+          else selectedItemIds.delete(e.target.dataset.itemSelect);
+          updateSelection();
+          return;
+        }
+        openItemModal(tr.dataset.pid, tr.dataset.gid, tr.dataset.iid);
+      };
+    });
+    updateSelection();
+  }
+
+  /* ---------- Overview ---------- */
+  function renderOverview(board){
+    const wrap = document.createElement("div");
+    wrap.className = "overviewWrap";
+    const flat = allItemsFlat();
+    const isDoneGroup = g => g.name.trim().toLowerCase()==="done";
+    const openItems = flat.filter(r=>!isDoneGroup(r.group));
+    function dueOf(r){ const f = dateFields(r.project)[0]; return f ? (r.item.values[f.id]||"") : ""; }
+    function priorityOf(r){ const f = priorityField(r.project); return f ? (r.item.values[f.id]||"") : ""; }
+    const overdue = openItems.filter(r=> dueOf(r) && dueOf(r) < todayStr(0)).sort((a,b)=> dueOf(a) < dueOf(b) ? -1 : 1);
+    const soon = openItems.filter(r=> dueOf(r) && dueOf(r) >= todayStr(0) && dueOf(r) <= todayStr(7)).sort((a,b)=> dueOf(a) < dueOf(b) ? -1 : 1);
+    const recent = [...flat].sort((a,b)=> b.item.updatedAt - a.item.updatedAt).slice(0,6);
+
+    function rowHtml(r, showDue){
+      const pf = priorityField(r.project);
+      const dot = pf ? fieldChipHtml(pf, priorityOf(r)) : "";
+      return `<div class="ovRow" data-pid="${r.project.id}" data-gid="${r.group.id}" data-iid="${r.item.id}">
+        <div class="rowLeft">${dot}<span class="t">${escapeHtml(r.item.title)}</span></div>
+        <span class="path">${showDue && dueOf(r) ? fmtDate(dueOf(r))+" · " : ""}${escapeHtml(r.project.name)} / ${escapeHtml(r.group.name)}</span>
+      </div>`;
+    }
+    function section(title, rows, showDue, emptyMsg){
+      const body = rows.length ? rows.map(r=>rowHtml(r,showDue)).join("") : `<div class="ovEmpty">${emptyMsg}</div>`;
+      return `<div class="ovSection"><div class="ovSectionTitle">${title}</div>${body}</div>`;
+    }
+
+    wrap.innerHTML = `
+      <div class="statGrid">
+        <div class="statCard"><div class="num">${state.projects.length}</div><div class="lbl">Projects</div></div>
+        <div class="statCard"><div class="num">${openItems.length}</div><div class="lbl">Open items</div></div>
+        <div class="statCard"><div class="num">${overdue.length}</div><div class="lbl">Overdue</div></div>
+        <div class="statCard"><div class="num">${soon.length}</div><div class="lbl">Due in 7 days</div></div>
+      </div>
+      ${section("Overdue", overdue, true, "Nothing overdue.")}
+      ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
+      ${section("Recently updated", recent, false, "Nothing yet — add a project to get started.")}
+    `;
+    wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
+      el.onclick = () => {
+        activeProjectId = el.dataset.pid;
+        currentView = "list";
+        renderAll();
+        openItemModal(el.dataset.pid, el.dataset.gid, el.dataset.iid);
+      };
+    });
+    board.appendChild(wrap);
+  }
+
+  /* ---------- Item modal ---------- */
+  function openItemModal(pid, gid, iid){
+    openItemRef = {projectId:pid, groupId:gid, itemId:iid};
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "itemOverlay";
+    overlay.innerHTML = `<div class="modal modalWrap" id="itemModal"></div>`;
+    overlay.addEventListener("click", (e)=>{ if (e.target===overlay) closeItemModal(); });
+    document.body.appendChild(overlay);
+    renderItemModal();
+  }
+  function closeItemModal(){
+    const el = document.getElementById("itemOverlay");
+    if (el) el.remove();
+    openItemRef = null;
+  }
+  function showDialog({title, message="", fields=[], confirmLabel="Continue", danger=false, cancelLabel="Cancel"}){
+    return new Promise(resolve=>{
+      const overlay = document.createElement("div");
+      overlay.className = "overlay";
+      overlay.id = "dialogOverlay";
+      const fieldsHtml = fields.map((field,index)=>{
+        const id = `dialogField${index}`;
+        const label = field.label ? `<label for="${id}">${escapeHtml(field.label)}</label>` : "";
+        if (field.type === "select"){
+          const options = (field.options||[]).map(option=>
+            `<option value="${escapeHtml(option.value)}" ${option.value===field.value?"selected":""}>${escapeHtml(option.label)}</option>`).join("");
+          return `<div class="modalRow">${label}<select id="${id}">${options}</select></div>`;
+        }
+        const type = field.type === "textarea" ? "textarea" : "input";
+        const control = type === "textarea"
+          ? `<textarea id="${id}" placeholder="${escapeHtml(field.placeholder||"")}">${escapeHtml(field.value||"")}</textarea>`
+          : `<input id="${id}" type="text" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
+        return `<div class="modalRow">${label}${control}</div>`;
+      }).join("");
+      overlay.innerHTML = `<div class="modal modalWrap" role="dialog" aria-modal="true">
+        <button class="btn ghost closeX" data-dialog-cancel aria-label="Close">✕</button>
+        <h3>${escapeHtml(title)}</h3>
+        ${message ? `<p class="dialogMessage">${escapeHtml(message)}</p>` : ""}
+        ${fieldsHtml}
+        <div class="modalFooter">
+          <button class="btn ghost" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
+          <button class="btn ${danger?"danger":"primary"}" data-dialog-confirm>${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>`;
+      document.body.appendChild(overlay);
+      const finish = value => { overlay.remove(); resolve(value); };
+      overlay.querySelectorAll("[data-dialog-cancel]").forEach(button=>button.onclick=()=>finish(null));
+      overlay.querySelector("[data-dialog-confirm]").onclick = () => {
+        const values = fields.map((field,index)=>overlay.querySelector(`#dialogField${index}`).value);
+        finish(values.length===1 ? values[0] : values);
+      };
+      overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(null); });
+      const first = overlay.querySelector("input, textarea, select");
+      if (first) first.focus();
+    });
+  }
+  function showNotice(title, message){
+    return showDialog({title, message, confirmLabel:"OK", cancelLabel:"Close", fields:[]});
+  }
+  function showConfirm(title, message, danger=false){
+    return showDialog({title, message, confirmLabel:danger?"Delete":"Continue", danger});
+  }
+  function fieldInputHtml(field, item){
+    const val = item.values[field.id] || "";
+    if (field.type==="priority"){
+      const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
+        `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
+      return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><select class="fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
+    }
+    if (field.type==="select"){
+      const opts = [{id:"",label:"None"}, ...(field.options||[])].map(o=>
+        `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
+      return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><select class="fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
+    }
+    if (field.type==="date"){
+      return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><input type="date" class="fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
+    }
+    return `<div class="modalRow"><label>${escapeHtml(field.label)}</label><input type="text" class="fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
+  }
+  function renderItemModal(){
+    if (!openItemRef) return;
+    const {projectId,groupId,itemId} = openItemRef;
+    const project = getProject(projectId);
+    const item = getItem(projectId, groupId, itemId);
+    const modal = document.getElementById("itemModal");
+    if (!item || !modal) { closeItemModal(); return; }
+
+    const groupOptions = project.groups.map(g=>
+      `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
+
+    const subitemsHtml = item.subitems.map(s=>`
+      <div class="subitemRow ${s.done?"done":""}" data-sid="${s.id}">
+        <input type="checkbox" ${s.done?"checked":""} data-action="toggleSub">
+        <span class="subitemTitle" contenteditable="true" data-action="editSub">${escapeHtml(s.title)}</span>
+        <button class="btn ghost small" data-action="delSub">✕</button>
+      </div>`).join("");
+
+    const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
+    const fieldsHtml = project.fields.map(f=>fieldInputHtml(f, item)).join("");
+
+    modal.innerHTML = `
+      <button class="btn ghost closeX" data-action="close">✕</button>
+      <div class="modalRow">
+        <input type="text" id="itemTitleInput" value="${escapeHtml(item.title)}">
+      </div>
+      <div class="modalRow">
+        <label>Group</label>
+        <select id="itemGroupSelect">${groupOptions}</select>
+      </div>
+      <div class="modalGrid">${fieldsHtml}</div>
+      <div class="modalRow">
+        <label>Description</label>
+        <textarea id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
+      </div>
+      <div class="modalRow">
+        <label>Tags</label>
+        <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${tagChips}
+          <button class="btn ghost small" data-action="newTagFromItem">+ New tag</button>
+        </div>
+      </div>
+      <div class="modalRow">
+        <label>Subitems</label>
+        <div id="subitemsList">${subitemsHtml}</div>
+        <button class="btn ghost small" data-action="addSub" style="margin-top:4px;padding-left:2px;">+ Add subitem</button>
+      </div>
+      <div class="modalFooter">
+        <button class="btn danger small" data-action="deleteItem">Delete item</button>
+        <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
+      </div>
+    `;
+
+    modal.querySelector('[data-action="close"]').onclick = closeItemModal;
+    modal.querySelector("#itemTitleInput").addEventListener("change", e=>{
+      item.title = e.target.value.trim() || item.title;
+      item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+    });
+    modal.querySelector("#itemGroupSelect").addEventListener("change", e=>{
+      const newGid = e.target.value;
+      if (newGid !== groupId){
+        moveItem(projectId, groupId, newGid, itemId, null);
+        openItemRef.groupId = newGid;
+      }
+    });
+    modal.querySelectorAll(".fieldInput").forEach(el=>{
+      el.addEventListener("change", e=>{
+        item.values[el.dataset.fieldid] = e.target.value;
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      });
+    });
+    modal.querySelector("#itemDescInput").addEventListener("change", e=>{
+      item.description = e.target.value;
+      item.updatedAt = Date.now(); scheduleSave(); renderMain();
+    });
+    modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
+      chip.onclick = () => {
+        const tid = chip.dataset.tagfilter;
+        if (item.tagIds.includes(tid)) item.tagIds = item.tagIds.filter(id=>id!==tid);
+        else item.tagIds.push(tid);
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      };
+    });
+    modal.querySelector('[data-action="newTagFromItem"]').onclick = async () => {
+      const name = await showDialog({title:"New tag", fields:[{label:"Tag name", placeholder:"e.g. urgent"}], confirmLabel:"Create tag"});
+      if (name && name.trim()){
+        const t = createTag(project, name.trim());
+        item.tagIds.push(t.id);
+        scheduleSave(); renderSidebarTags(); renderMain(); renderItemModal();
+      }
+    };
+    modal.querySelector('[data-action="addSub"]').onclick = async () => {
+      const title = await showDialog({title:"New subitem", fields:[{label:"Subitem", placeholder:"Break this item into a step"}], confirmLabel:"Add subitem"});
+      if (title && title.trim()){
+        item.subitems.push({id:uid(), title:title.trim(), done:false});
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      }
+    };
+    modal.querySelectorAll(".subitemRow").forEach(row=>{
+      const sid = row.dataset.sid;
+      const sub = item.subitems.find(s=>s.id===sid);
+      row.querySelector('[data-action="toggleSub"]').addEventListener("change", e=>{
+        sub.done = e.target.checked;
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      });
+      row.querySelector('[data-action="editSub"]').addEventListener("blur", e=>{
+        sub.title = e.target.textContent.trim() || sub.title;
+        item.updatedAt = Date.now(); scheduleSave(); renderMain();
+      });
+      row.querySelector('[data-action="delSub"]').onclick = () => {
+        item.subitems = item.subitems.filter(s=>s.id!==sid);
+        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      };
+    });
+    modal.querySelector('[data-action="deleteItem"]').onclick = async () => {
+      if (await showConfirm(`Delete ${item.title}`, "This item and its subitems will be deleted.", true)){
+        deleteItem(projectId, groupId, itemId);
+        closeItemModal();
+      }
+    };
+  }
+
+  /* ---------- Global search ---------- */
+  function runGlobalSearch(q){
+    const box = document.getElementById("searchResults");
+    if (!q){ box.style.display="none"; box.innerHTML=""; return; }
+    const query = q.toLowerCase();
+    const results = [];
+    state.projects.forEach(p=>{
+      if (p.name.toLowerCase().includes(query)) results.push({type:"Project", label:p.name, path:p.name, pid:p.id});
+      p.groups.forEach(g=>{
+        if (g.name.toLowerCase().includes(query)) results.push({type:"Group", label:g.name, path:p.name, pid:p.id});
+        g.items.forEach(it=>{
+          const tagNames = it.tagIds.map(tid=>tagById(p,tid)?.name||"").join(" ");
+          const hay = [it.title, it.description, tagNames, ...it.subitems.map(s=>s.title), ...Object.values(it.values)].join(" ").toLowerCase();
+          if (hay.includes(query)) results.push({type:"Item", label:it.title, path:`${p.name} / ${g.name}`, pid:p.id, gid:g.id, iid:it.id});
+        });
+      });
+    });
+    if (!results.length){ box.style.display="block"; box.innerHTML = `<div class="res">No matches</div>`; return; }
+    box.style.display = "block";
+    box.innerHTML = results.slice(0,40).map((r,idx)=>
+      `<div class="res" data-idx="${idx}"><div>${escapeHtml(r.label)}</div><div class="path">${escapeHtml(r.path)}</div></div>`
+    ).join("");
+    [...box.querySelectorAll(".res")].forEach((el,idx)=>{
+      el.onclick = () => {
+        const r = results[idx];
+        if (!r.pid) return;
+        selectProject(r.pid);
+        box.style.display = "none";
+        document.getElementById("globalSearch").value = "";
+        if (r.type==="Item") openItemModal(r.pid, r.gid, r.iid);
+      };
+    });
+  }
+
+  /* ---------- Mobile sidebar ---------- */
+  function toggleSidebar(){
+    document.getElementById("sidebar").classList.toggle("open");
+    document.getElementById("sidebarScrim").classList.toggle("show");
+  }
+  function closeSidebarOnMobile(){
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebarScrim").classList.remove("show");
+  }
+
+  /* ---------- Wiring ---------- */
+  function wireStaticControls(){
+    document.getElementById("overviewNav").onclick = () => {
+      activeProjectId = OVERVIEW; renderAll(); closeSidebarOnMobile();
+    };
+    document.getElementById("addProjectBtn").onclick = async () => {
+      const name = await showDialog({title:"New project", fields:[{label:"Project name", placeholder:"e.g. Marketing launch"}], confirmLabel:"Create project"});
+      if (name && name.trim()) addProject(name.trim());
+    };
+    document.getElementById("manageTagsBtn").onclick = async () => {
+      const project = getProject(activeProjectId);
+      if (!project) return;
+      const list = project.tags.map(t=>t.name).join(", ") || "(none yet)";
+      const action = await showDialog({title:`Manage tags in ${project.name}`, message:`Current tags: ${list}`, fields:[{label:"Tag to delete", placeholder:"Enter an exact tag name"}], confirmLabel:"Continue"});
+      if (action && action.trim()){
+        const t = project.tags.find(t=>t.name.toLowerCase()===action.trim().toLowerCase());
+        if (t && await showConfirm(`Delete tag ${t.name}`, "This removes the tag from all items in this project.", true)) deleteTag(project, t.id);
+        else if (!t) showNotice("Tag not found", "No tag with that name exists in this project.");
+      }
+    };
+    document.getElementById("globalSearch").addEventListener("input", e=> runGlobalSearch(e.target.value.trim()));
+    document.addEventListener("click", (e)=>{
+      if (!e.target.closest("#sidebarWrap")) document.getElementById("searchResults").style.display="none";
+    });
+    document.getElementById("boardSearch").addEventListener("input", e=>{
+      boardFilterText = e.target.value.trim(); renderMain();
+    });
+    document.getElementById("clearBoardFilters").onclick = () => {
+      boardFilterText=""; boardFilterTags.clear(); boardFilterFields.clear();
+      renderMain();
+    };
+    document.getElementById("viewToggle").addEventListener("click", e=>{
+      const btn = e.target.closest("button[data-view]");
+      if (!btn) return;
+      currentView = btn.dataset.view;
+      renderMain();
+    });
+    document.getElementById("sidebarToggle").onclick = toggleSidebar;
+    document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
+    document.getElementById("undoBtn").onclick = undoLastChange;
+    document.getElementById("connectFileBtn").onclick = connectFile;
+    document.getElementById("exportBtn").onclick = exportJSON;
+    document.getElementById("importBtn").onclick = () => document.getElementById("fileImportInput").click();
+    document.getElementById("fileImportInput").addEventListener("change", e=>{
+      if (e.target.files[0]) importJSON(e.target.files[0]);
+      e.target.value = "";
+    });
+    document.addEventListener("keydown", e=>{
+      if (e.key==="Escape"){ closeItemModal(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="z"){
+        e.preventDefault(); undoLastChange(); return;
+      }
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (e.key==="/" && tag!=="INPUT" && tag!=="TEXTAREA"){
+        e.preventDefault();
+        document.getElementById("globalSearch").focus();
+      }
+    });
+  }
+
+  /* ---------- Boot ---------- */
+  async function boot(){
+    wireStaticControls();
+    const reconnected = await tryReconnectFile();
+    if (!reconnected){
+      const ls = localStorage.getItem(LS_KEY);
+      if (ls){
+        try{ state = migrateState(JSON.parse(ls)); }catch(e){ state = defaultState(); }
+      } else {
+        state = defaultState();
+      }
+      if (!("showSaveFilePicker" in window)){
+        setSyncStatus("", "Storage: this browser only (use Export/Import to move data)");
+      } else if (!document.getElementById("syncLabel").textContent.includes("Previously connected")){
+        setSyncStatus("", "Storage: browser only — click Connect file to enable cross-device sync");
+      }
+    }
+    lastSavedState = JSON.stringify(state);
+    renderAll();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
