@@ -152,6 +152,8 @@
     border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
   .bulkBar strong{font-size:12px;margin-right:auto;}
   .listTable .selectCell{width:34px;text-align:center;padding-left:8px;padding-right:4px;}
+  .fieldFilterGroup{display:inline-flex;align-items:center;gap:5px;}
+  .fieldFilterGroup .removeFieldFilter{padding:2px 5px;font-size:11px;}
 
   /* Overview */
   .overviewWrap{padding:22px 24px;overflow:auto;flex:1;width:100%;}
@@ -894,26 +896,46 @@
   function renderFieldFilters(project){
     const wrap = document.getElementById("fieldFilters");
     const filterable = project.fields;
-    wrap.innerHTML = filterable.map(f=>{
+    const activeFields = filterable.filter(field=>boardFilterFields.has(field.id));
+    const availableFields = filterable.filter(field=>!activeFields.includes(field));
+    const picker = `<select id="fieldFilterPicker" aria-label="Add a filter">
+      <option value="">Add filter...</option>
+      ${availableFields.map(field=>`<option value="${field.id}">${escapeHtml(field.label)}</option>`).join("")}
+    </select>`;
+    const activeControls = activeFields.map(f=>{
       const opts = f.type==="priority" ? PRIORITY_OPTIONS : (f.options||[]);
       const current = boardFilterFields.get(f.id) || "__all__";
+      let control;
       if (f.type==="date"){
-        return `<input type="date" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" title="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+        control = `<input type="date" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" title="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      } else if (f.type==="text"){
+        control = `<input type="text" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" placeholder="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      } else {
+        control = `<select data-fieldfilter="${f.id}" aria-label="Filter ${escapeHtml(f.label)}">
+          <option value="__all__" ${current==="__all__"?"selected":""}>All ${escapeHtml(f.label)}</option>
+          ${opts.map(o=>`<option value="${o.id}" ${current===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}
+          <option value="__none__" ${current==="__none__"?"selected":""}>No ${escapeHtml(f.label)}</option>
+        </select>`;
       }
-      if (f.type==="text"){
-        return `<input type="text" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" placeholder="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      }
-      return `<select data-fieldfilter="${f.id}">
-        <option value="__all__" ${current==="__all__"?"selected":""}>All ${escapeHtml(f.label)}</option>
-        ${opts.map(o=>`<option value="${o.id}" ${current===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}
-        <option value="__none__" ${current==="__none__"?"selected":""}>No ${escapeHtml(f.label)}</option>
-      </select>`;
+      return `<span class="fieldFilterGroup"><span class="sideLabel">${escapeHtml(f.label)}</span>${control}<button class="btn ghost removeFieldFilter" data-remove-field-filter="${f.id}" title="Remove ${escapeHtml(f.label)} filter">✕</button></span>`;
     }).join("");
+    wrap.innerHTML = picker + activeControls;
+    wrap.querySelector("#fieldFilterPicker").addEventListener("change", event=>{
+      if (!event.target.value) return;
+      boardFilterFields.set(event.target.value, "__all__");
+      renderMain();
+    });
     wrap.querySelectorAll("[data-fieldfilter]").forEach(control=>{
       control.addEventListener("change", e=>{
         boardFilterFields.set(control.dataset.fieldfilter, e.target.value || "__all__");
         renderMain();
       });
+    });
+    wrap.querySelectorAll("[data-remove-field-filter]").forEach(button=>{
+      button.onclick = () => {
+        boardFilterFields.delete(button.dataset.removeFieldFilter);
+        renderMain();
+      };
     });
   }
 
