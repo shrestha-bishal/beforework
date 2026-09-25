@@ -2291,12 +2291,15 @@
       </div>`;
       document.body.appendChild(overlay);
       const finish = save => {
+        let shouldSync = false;
         if (save){
           state.googleCalendarLinks = [...overlay.querySelectorAll("input[type=checkbox]:checked")].map(input=>input.value);
+          shouldSync = state.googleCalendarLinks.length > 0;
           scheduleSave();
           renderMain();
         }
         overlay.remove();
+        if (shouldSync) syncGoogleCalendar(null);
       };
       overlay.querySelectorAll("[data-google-cancel]").forEach(button=>button.onclick=()=>finish(false));
       overlay.querySelector("[data-google-save]").onclick = () => finish(true);
