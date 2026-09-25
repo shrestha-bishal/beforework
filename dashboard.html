@@ -61,8 +61,12 @@
 
   #overviewNav{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border-radius:7px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:8px;font-weight:500;}
+  #calendarNav{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border-radius:7px;
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:8px;font-weight:500;}
   #overviewNav:hover{background:var(--bg-soft2);color:var(--text);}
+  #calendarNav:hover{background:var(--bg-soft2);color:var(--text);}
   #overviewNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #calendarNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
 
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
   #projectList li{display:flex;align-items:center;justify-content:space-between;
@@ -98,10 +102,9 @@
   .filterSummary strong{color:var(--text);font-weight:600;}
   .filterToggle{display:inline-flex;align-items:center;gap:6px;}
   .filterToggle.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
-  .filterPanel{display:none;margin-top:10px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);
-    background:var(--bg-soft);}
+  .filterPanel{display:none;margin-top:9px;padding:9px 0 2px;border-top:1px solid var(--border);}
   .filterPanel.open{display:block;}
-  .filterPanelHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;font-size:12px;font-weight:600;}
+  .filterPanelHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:11.5px;font-weight:600;color:var(--muted);}
   .filterPanelHint{font-size:11.5px;color:var(--muted);font-weight:400;}
   .filterControls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
   #boardFilterBar select,#boardFilterBar input{border-color:var(--border);background:var(--bg);}
@@ -168,9 +171,10 @@
     border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
   .bulkBar strong{font-size:12px;margin-right:auto;}
   .listTable .selectCell{width:34px;text-align:center;padding-left:8px;padding-right:4px;}
-  .fieldFilterGroup,.tagFilterGroup{display:inline-flex;align-items:center;gap:5px;padding:3px 4px 3px 8px;
-    border:1px solid var(--border);border-radius:8px;background:var(--bg);box-shadow:0 1px 1px rgba(15,17,21,.03);}
+  .fieldFilterGroup,.tagFilterGroup{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 9px;
+    border-radius:7px;background:var(--accent-soft);color:var(--accent-strong);}
   .fieldFilterGroup .removeFieldFilter,.tagFilterGroup .removeFieldFilter{padding:2px 5px;font-size:11px;}
+  .fieldFilterGroup .removeFieldFilter:hover,.tagFilterGroup .removeFieldFilter:hover{background:rgba(31,111,84,.12);color:var(--accent-strong);}
 
   /* Overview */
   .overviewWrap{padding:22px 24px;overflow:auto;flex:1;width:100%;}
@@ -187,6 +191,27 @@
   .ovRow .rowLeft span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ovRow .path{color:var(--faint);font-size:11.5px;flex:none;}
   .ovEmpty{color:var(--faint);font-size:13px;padding:2px 2px 4px 2px;}
+
+  /* Calendar */
+  .calendarWrap{padding:20px 24px;overflow:auto;flex:1;width:100%;}
+  .calendarToolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .calendarToolbar h3{font-size:16px;margin:0 auto 0 8px;}
+  .calendarToolbar .btn{min-width:34px;}
+  .calendarGrid{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;min-width:840px;}
+  .calendarWeekday{padding:9px 10px;background:var(--bg-soft);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .calendarDay{min-height:128px;padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg);}
+  .calendarDay:nth-child(7n){border-right:none;}
+  .calendarDay.muted{background:var(--bg-soft);color:var(--faint);}
+  .calendarDay.today{background:var(--accent-soft);}
+  .calendarDay.dragover{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent);}
+  .calendarDayNumber{font-size:12px;font-weight:600;margin-bottom:7px;}
+  .calendarEvent{display:flex;align-items:center;gap:5px;width:100%;margin-bottom:5px;padding:4px 6px;border-radius:5px;background:var(--bg-soft);color:var(--text);font-size:11px;text-align:left;cursor:pointer;}
+  .calendarEvent:hover{background:var(--accent-soft);}
+  .calendarEvent .eventDot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;}
+  .calendarEvent .eventTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .calendarEvent .eventProject{font-size:10px;color:var(--muted);}
+  .calendarEvent .gcalLink{font-size:10px;color:var(--accent-strong);text-decoration:none;flex:none;}
+  .calendarEmpty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);}
 
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
@@ -267,6 +292,7 @@
     </div>
 
     <div id="overviewNav">Overview</div>
+    <div id="calendarNav">Calendar</div>
 
     <div>
       <div class="sideLabelRow"><span class="sideLabel">Projects</span></div>
@@ -292,6 +318,7 @@
       <div class="viewToggle" id="viewToggle" style="display:none;">
         <button data-view="list" class="active">List</button>
         <button data-view="kanban">Board</button>
+        <button data-view="calendar">Calendar</button>
       </div>
       <button class="btn small ghost" id="manageFieldsBtn" style="display:none;">Columns</button>
       <button class="btn small ghost" id="addGroupBtn" style="display:none;">+ Group</button>
@@ -338,6 +365,7 @@
   const uid = () => crypto.randomUUID();
   const TAG_COLORS = ["#2f6fed","#c2410c","#7c3aed","#0891b2","#be185d","#a16207","#15803d","#4b5563"];
   const OVERVIEW = "__overview__";
+  const CALENDAR = "__calendar__";
   const PRIORITY_OPTIONS = [
     {id:"high",label:"High",color:"#b3261e",rank:3},
     {id:"medium",label:"Medium",color:"#a16207",rank:2},
@@ -348,6 +376,7 @@
   let state = null;                 // { projects:[] }
   let activeProjectId = OVERVIEW;
   let currentView = "list";         // 'list' | 'kanban' (list is the default)
+  let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let boardFilterText = "";
   let boardFilterTags = new Set();
   let boardFilterFields = new Map(); // fieldId -> "__all__" | "__none__" | optionId
@@ -837,6 +866,7 @@
 
   function renderProjectList(){
     document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
+    document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
     state.projects.forEach(p=>{
@@ -862,7 +892,7 @@
     const wrap = document.getElementById("sideTagsList");
     const label = document.getElementById("tagsSectionLabel");
     const project = getProject(activeProjectId);
-    if (activeProjectId===OVERVIEW || !project){ section.style.display = "none"; return; }
+    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || !project){ section.style.display = "none"; return; }
     section.style.display = "block";
     label.textContent = "Tags in " + project.name;
     wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("")
@@ -887,15 +917,17 @@
     const board = document.getElementById("board");
     board.innerHTML = "";
 
-    if (activeProjectId === OVERVIEW){
+    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR){
       topLabel.textContent = "Overview";
+      if (activeProjectId===CALENDAR) topLabel.textContent = "Calendar";
       filterBar.style.display = "none";
       renameBtn.style.display = "none";
       deleteBtn.style.display = "none";
       fieldsBtn.style.display = "none";
       addGroupBtn.style.display = "none";
       viewToggle.style.display = "none";
-      renderOverview(board);
+      if (activeProjectId===CALENDAR) renderCalendar(board, null);
+      else renderOverview(board);
       return;
     }
 
@@ -937,6 +969,7 @@
     };
 
     if (currentView === "list") renderListView(project, board);
+    else if (currentView === "calendar") renderCalendar(board, project);
     else renderKanban(project, board);
   }
 
@@ -1226,6 +1259,148 @@
       };
     });
     updateSelection();
+  }
+
+  function calendarEntries(scopeProject){
+    const entries = [];
+    const projects = scopeProject ? [scopeProject] : state.projects;
+    projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
+      dateFields(project).forEach(field=>{
+        const date = item.values[field.id];
+        if (date) entries.push({project, group, item, field, date});
+      });
+    })));
+    return entries;
+  }
+  function calendarDateCode(date, addDays){
+    const parts = date.split("-").map(Number);
+    const value = new Date(parts[0], parts[1]-1, parts[2] + (addDays||0));
+    return value.getFullYear()+String(value.getMonth()+1).padStart(2,"0")+String(value.getDate()).padStart(2,"0");
+  }
+  function googleCalendarUrl(entry){
+    const title = entry.item.title;
+    const details = [entry.item.description, `Project: ${entry.project.name}`, `Group: ${entry.group.name}`].filter(Boolean).join("\n");
+    const params = new URLSearchParams({action:"TEMPLATE",text:title,dates:`${calendarDateCode(entry.date)}/${calendarDateCode(entry.date,1)}`,details});
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+  function calendarDateKey(date){
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+  }
+  function icsEscape(value){
+    return String(value||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+  }
+  function exportCalendarIcs(scopeProject){
+    const events = calendarEntries(scopeProject);
+    const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Projectify//Calendar//EN"];
+    events.forEach(entry=>{
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:${entry.item.id}-${entry.field.id}@projectify.local`);
+      lines.push(`DTSTAMP:${calendarDateCode(todayStr(0))}T000000Z`);
+      lines.push(`DTSTART;VALUE=DATE:${calendarDateCode(entry.date)}`);
+      lines.push(`DTEND;VALUE=DATE:${calendarDateCode(entry.date,1)}`);
+      lines.push(`SUMMARY:${icsEscape(entry.item.title)}`);
+      lines.push(`DESCRIPTION:${icsEscape([entry.item.description,`Project: ${entry.project.name}`,`Group: ${entry.group.name}`].filter(Boolean).join("\n"))}`);
+      lines.push("END:VEVENT");
+    });
+    lines.push("END:VCALENDAR");
+    const blob = new Blob([lines.join("\r\n")], {type:"text/calendar;charset=utf-8"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${scopeProject ? scopeProject.name : "all-projects"}-calendar.ics`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+  async function showGoogleCalendarInfo(){
+    await showNotice("Google Calendar sync", "This local file cannot silently sync with Google Calendar because Google requires OAuth credentials and a server-side token flow. Use the GCal link on an event for one-click creation, or export an .ics file and import it into Google Calendar.");
+  }
+  async function createCalendarItem(scopeProject, date){
+    const projects = scopeProject ? [scopeProject] : state.projects;
+    const fields = [{label:"Item title", placeholder:"What is scheduled?"}];
+    if (!scopeProject) fields.push({label:"Project", type:"select", options:projects.map(project=>({value:project.id,label:project.name})), value:projects[0]?.id});
+    if (scopeProject) fields.push({label:"Group", type:"select", options:scopeProject.groups.map(group=>({value:group.id,label:group.name})), value:scopeProject.groups[0]?.id});
+    const result = await showDialog({title:"New calendar item", message:`Scheduled for ${fmtDate(date)}.`, fields, confirmLabel:"Create item"});
+    if (!result) return;
+    const values = Array.isArray(result) ? result : [result];
+    const title = values[0]?.trim();
+    if (!title) return;
+    const project = scopeProject || getProject(values[1]);
+    const groupId = scopeProject ? values[1] : project.groups[0]?.id;
+    const group = getGroup(project.id, groupId) || project.groups[0];
+    const dateField = dateFields(project)[0];
+    if (!dateField){ await showNotice("Date column required", `Add a date column to ${project.name} before creating calendar items.`); return; }
+    const item = {id:uid(), title, description:"", tagIds:[], values:{[dateField.id]:date}, subitems:[], createdAt:Date.now(), updatedAt:Date.now()};
+    group.items.push(item);
+    scheduleSave(); renderAll();
+  }
+  function renderCalendar(board, scopeProject){
+    const wrap = document.createElement("div");
+    wrap.className = "calendarWrap";
+    const entries = calendarEntries(scopeProject);
+    const year = calendarCursor.getFullYear();
+    const month = calendarCursor.getMonth();
+    const monthLabel = calendarCursor.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const today = todayStr(0);
+    const cells = [];
+    for (let index=0; index<42; index++){
+      const dayOffset = index - firstDay;
+      const cell = new Date(year, month, dayOffset + 1);
+      const dateNumber = cell.getDate();
+      const cellDate = calendarDateKey(cell);
+      const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
+      const dayEntries = entries.filter(entry=>entry.date===cellDate && itemMatchesFilter(entry.project, entry.item));
+      const eventHtml = dayEntries.map((entry,index)=>`
+        <div class="calendarEvent" draggable="true" data-pid="${entry.project.id}" data-gid="${entry.group.id}" data-iid="${entry.item.id}" data-fid="${entry.field.id}">
+          <span class="eventDot"></span><span class="eventTitle">${escapeHtml(entry.item.title)}</span>
+          ${scopeProject ? "" : `<span class="eventProject">${escapeHtml(entry.project.name)}</span>`}
+          <a class="gcalLink" href="${escapeHtml(googleCalendarUrl(entry))}" target="_blank" rel="noopener" title="Add to Google Calendar">GCal</a>
+        </div>`).join("");
+      cells.push(`<div class="calendarDay${inMonth?"":" muted"}${cellDate===today?" today":""}" data-date="${cellDate}"><div class="calendarDayNumber">${dateNumber}</div>${eventHtml}</div>`);
+    }
+    wrap.innerHTML = `<div class="calendarToolbar">
+      <button class="btn small" data-calendar-action="prev" aria-label="Previous month">‹</button>
+      <button class="btn small" data-calendar-action="today">Today</button>
+      <button class="btn small" data-calendar-action="next" aria-label="Next month">›</button>
+      <h3>${monthLabel}</h3>
+      <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
+      <button class="btn small" data-calendar-action="new">+ New</button>
+      <button class="btn small" data-calendar-action="ics">Export .ics</button>
+      <button class="btn small ghost" data-calendar-action="google">Google Calendar</button>
+    </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
+    wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
+    wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
+    wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
+    wrap.querySelector('[data-calendar-action="new"]').onclick = () => createCalendarItem(scopeProject, todayStr(0));
+    wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
+    wrap.querySelector('[data-calendar-action="google"]').onclick = showGoogleCalendarInfo;
+    wrap.querySelectorAll(".calendarDay").forEach(day=>{
+      day.addEventListener("click", event=>{
+        if (event.target.closest(".calendarEvent")) return;
+        if (!day.classList.contains("muted")) createCalendarItem(scopeProject, day.dataset.date);
+      });
+      day.addEventListener("dragover", event=>{ event.preventDefault(); day.classList.add("dragover"); });
+      day.addEventListener("dragleave", ()=>day.classList.remove("dragover"));
+      day.addEventListener("drop", event=>{
+        event.preventDefault(); day.classList.remove("dragover");
+        const data = JSON.parse(event.dataTransfer.getData("text/plain"));
+        const item = getItem(data.pid,data.gid,data.iid);
+        if (!item) return;
+        item.values[data.fid] = day.dataset.date;
+        item.updatedAt = Date.now();
+        scheduleSave(); renderMain();
+      });
+    });
+    wrap.querySelectorAll(".calendarEvent").forEach(event=>{
+      event.addEventListener("dragstart", dragEvent=>{
+        dragEvent.dataTransfer.setData("text/plain", JSON.stringify({pid:event.dataset.pid,gid:event.dataset.gid,iid:event.dataset.iid,fid:event.dataset.fid}));
+      });
+      event.onclick = click => {
+        if (click.target.closest("a")) return;
+        openItemModal(event.dataset.pid,event.dataset.gid,event.dataset.iid);
+      };
+    });
+    board.appendChild(wrap);
   }
 
   /* ---------- Overview ---------- */
@@ -1526,6 +1701,9 @@
   function wireStaticControls(){
     document.getElementById("overviewNav").onclick = () => {
       activeProjectId = OVERVIEW; renderAll(); closeSidebarOnMobile();
+    };
+    document.getElementById("calendarNav").onclick = () => {
+      activeProjectId = CALENDAR; renderAll(); closeSidebarOnMobile();
     };
     document.getElementById("addProjectBtn").onclick = async () => {
       const name = await showDialog({title:"New project", fields:[{label:"Project name", placeholder:"e.g. Marketing launch"}], confirmLabel:"Create project"});
