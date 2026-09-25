@@ -577,6 +577,7 @@
   const FIELD_TYPES = ["priority","select","date","text"];
   const THEME_KEY = "personal_dashboard_theme_v1";
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
+  const LOCATION_KEY = "personal_dashboard_location_v1";
 
   let state = null;                 // { projects:[] }
   let showArchived = false;
@@ -1220,6 +1221,7 @@
         filterPrefs = {};
         saveFilterPrefs();
         activeProjectId = OVERVIEW;
+        persistActiveLocation();
         scheduleSave();
         renderAll();
         await maybeShowMigrationNotice();
@@ -1275,6 +1277,7 @@
     };
     state.projects.push(p);
     activeProjectId = p.id;
+    persistActiveLocation();
     scheduleSave(); renderAll();
   }
   function addView(project, type){
@@ -1291,7 +1294,10 @@
   }
   function deleteProject(pid){
     state.projects = state.projects.filter(p=>p.id!==pid);
-    if (activeProjectId===pid) activeProjectId = state.projects[0]?.id || OVERVIEW;
+    if (activeProjectId===pid){
+      activeProjectId = state.projects[0]?.id || OVERVIEW;
+      persistActiveLocation();
+    }
     scheduleSave(); renderAll();
   }
   function addGroup(pid, name){
@@ -1558,10 +1564,23 @@
 
   function selectProject(pid){
     activeProjectId = pid;
+    persistActiveLocation();
     restoreProjectFilters(pid);
     selectedItemIds.clear();
     renderAll();
     closeSidebarOnMobile();
+  }
+
+  function persistActiveLocation(){
+    try{ localStorage.setItem(LOCATION_KEY, activeProjectId); }catch(err){/* ignore */}
+  }
+
+  function restoreActiveLocation(){
+    let saved = null;
+    try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
+    if (saved===OVERVIEW || saved===CALENDAR || getProject(saved)) activeProjectId = saved;
+    else activeProjectId = OVERVIEW;
+    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR) restoreProjectFilters(activeProjectId);
   }
 
   function renderSidebarTags(){
@@ -2378,6 +2397,7 @@
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
       el.onclick = () => {
         activeProjectId = el.dataset.pid;
+        persistActiveLocation();
         renderAll();
         openItemModal(el.dataset.pid, el.dataset.gid, el.dataset.iid);
       };
@@ -2776,10 +2796,10 @@
   }
   function wireStaticControls(){
     document.getElementById("overviewNav").onclick = () => {
-      activeProjectId = OVERVIEW; renderAll(); closeSidebarOnMobile();
+      activeProjectId = OVERVIEW; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
     };
     document.getElementById("calendarNav").onclick = () => {
-      activeProjectId = CALENDAR; renderAll(); closeSidebarOnMobile();
+      activeProjectId = CALENDAR; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
     };
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
@@ -2939,6 +2959,7 @@
     const reconnected = await tryReconnectFile();
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     if (reconnected){
+      restoreActiveLocation();
       renderAll();
       await maybeShowMigrationNotice();
     } else {
