@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-color-mode="light" data-light-theme="light" data-dark-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Beforework - a project dashboard that saves straight to a JSON file you control. No account, no server, your data stays on your device.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
 <title>Beforework</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6f54'/%3E%3Crect x='27' y='27' width='46' height='46' rx='9' fill='white' fill-opacity='.9'/%3E%3C/svg%3E">
-<!-- Tailwind CDN (utility classes available alongside the app's existing CSS-variable design system) -->
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- Primer CSS (GitHub's design system) - provides the .btn/.form-control/.Box/.Label
+     component classes and the --color-* design tokens the app's own styles map onto below. -->
+<link rel="stylesheet" href="https://unpkg.com/@primer/css@21.0.7/dist/primer.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,28 +23,24 @@
 -->
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js" crossorigin="anonymous"></script>
 <style>
+  /* These are just local aliases - every value points straight at a real
+     Primer CSS custom property, so Primer's own [data-color-mode] rules
+     (toggled in JS - see applyTheme) are what actually drives light/dark,
+     not a second copy of the palette maintained here. */
   :root{
-    --bg:#ffffff; --bg-soft:#f7f7f8; --bg-soft2:#eef0f1;
-    --border:#e4e4e8; --border-strong:#d2d2d8;
-    --text:#14151a; --muted:#6b6c76; --faint:#9d9ea8;
-    --accent:#1f6f54; --accent-strong:#175943; --accent-soft:#e8f3ee;
-    --danger:#b3261e; --danger-soft:#fbeceb;
-    --warn:#a16207; --warn-soft:#fff4e0;
-    --radius:9px; --radius-lg:14px;
-    --shadow-lift:0 2px 6px rgba(15,17,21,.06), 0 1px 2px rgba(15,17,21,.04);
-    --shadow-modal:0 20px 48px rgba(15,17,21,.16), 0 4px 12px rgba(15,17,21,.08);
-    --shadow-side:2px 0 10px rgba(15,17,21,.05);
+    --bg:var(--color-canvas-default); --bg-soft:var(--color-canvas-subtle); --bg-soft2:var(--color-neutral-muted);
+    --border:var(--color-border-default); --border-strong:var(--color-border-muted);
+    --text:var(--color-fg-default); --muted:var(--color-fg-muted); --faint:var(--color-fg-subtle);
+    --accent:var(--color-accent-emphasis); --accent-strong:var(--color-accent-fg); --accent-soft:var(--color-accent-subtle);
+    --danger:var(--color-danger-fg); --danger-soft:var(--color-danger-subtle);
+    --warn:var(--color-attention-fg); --warn-soft:var(--color-attention-subtle);
+    --radius:6px; --radius-lg:12px;
+    --shadow-lift:var(--color-shadow-small);
+    --shadow-modal:var(--color-shadow-large);
+    --shadow-side:2px 0 10px rgba(27,31,36,.08);
   }
   :root[data-theme="dark"]{
-    --bg:#15161b; --bg-soft:#1b1c22; --bg-soft2:#24252d;
-    --border:#2b2c35; --border-strong:#393a46;
-    --text:#eceef2; --muted:#989aa6; --faint:#656674;
-    --accent:#3fae86; --accent-strong:#57d6a3; --accent-soft:#173229;
-    --danger:#e5766e; --danger-soft:#3a1e1c;
-    --warn:#e3b25a; --warn-soft:#3a2c10;
-    --shadow-lift:0 2px 6px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.25);
-    --shadow-modal:0 20px 48px rgba(0,0,0,.5), 0 4px 12px rgba(0,0,0,.35);
-    --shadow-side:2px 0 10px rgba(0,0,0,.4);
+    --shadow-side:2px 0 10px rgba(1,4,9,.5);
   }
   *{box-sizing:border-box;}
   html{color-scheme:light;}
@@ -52,24 +49,55 @@
     background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;
     transition:background .15s ease,color .15s ease;}
   button{font-family:inherit;cursor:pointer;}
-  input,textarea,select{font-family:inherit;font-size:13.5px;background:var(--bg);color:var(--text);
-    border:1px solid transparent;border-radius:7px;padding:7px 9px;}
-  input,select{background:var(--bg-soft);}
-  input:hover,select:hover,textarea:hover{border-color:var(--border);}
-  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);background:var(--bg);
-    box-shadow:0 0 0 3px var(--accent-soft);}
-  textarea{background:var(--bg-soft);border-color:transparent;}
 
-  .btn{background:var(--bg);color:var(--text);border:1px solid var(--border);
-    border-radius:7px;padding:6px 12px;font-size:13px;font-weight:500;transition:border-color .12s,background .12s;white-space:nowrap;}
-  .btn:hover{border-color:var(--border-strong);background:var(--bg-soft);}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-  .btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong);}
-  .btn.ghost{background:transparent;border-color:transparent;color:var(--muted);}
-  .btn.ghost:hover{color:var(--text);background:var(--bg-soft);}
-  .btn.small{padding:4px 9px;font-size:12.5px;}
-  .btn.danger{color:var(--danger);}
-  .btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft);}
+  /* ---------- Base form controls (Primer's form-control tokens) ---------- */
+  input, textarea, select {
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.5;
+    background: var(--color-canvas-default);
+    color: var(--text);
+    border: 1px solid var(--color-border-default);
+    border-radius: 6px;
+    padding: 9px 12px;
+    min-height: 38px;
+    transition: border-color .12s ease, background .12s ease, box-shadow .12s ease;
+  }
+  textarea {
+    min-height: 84px;
+    padding: 10px 12px;
+    line-height: 1.55;
+  }
+  input, select { background: var(--bg-soft); }
+  input:hover, select:hover, textarea:hover { border-color: var(--color-border-muted); }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--color-accent-emphasis);
+    background: var(--color-canvas-default);
+    box-shadow: 0 0 0 3px var(--color-accent-subtle);
+  }
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6c76' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  input[type="checkbox"], input[type="radio"] {
+    min-height: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    accent-color: var(--color-accent-emphasis);
+  }
+
+  /* ---------- Buttons ----------
+     .btn / .btn-primary / .btn-danger / .btn-invisible / .btn-sm are
+     Primer's real component classes, loaded from the CDN above - nothing
+     to define here. Only the app's own icon button is custom. */
+  .btn{white-space:nowrap;}
   .iconBtn{display:none;background:transparent;border:1px solid var(--border);border-radius:7px;
     width:32px;height:32px;align-items:center;justify-content:center;flex:none;color:var(--text);}
 
@@ -138,7 +166,7 @@
     border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
   .projectMenu.open{display:block;}
   #projectMenu .btn{display:block!important;width:100%;text-align:left;border:none;border-radius:6px;}
-  #projectMenu .btn.danger{color:var(--danger);}
+  #projectMenu .btn-danger{color:var(--color-danger-fg);}
   #boardFilterBar{display:block;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
   #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);}
@@ -151,8 +179,8 @@
   .filterPanel.open{display:block;}
   .filterPanelHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:11.5px;font-weight:600;color:var(--muted);}
   .filterPanelHint{font-size:11.5px;color:var(--muted);font-weight:400;}
-  .filterControls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-  #boardFilterBar select,#boardFilterBar input{border-color:var(--border);background:var(--bg);}
+  .filterControls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  #boardFilterBar select,#boardFilterBar input{border-color:var(--border);background:var(--bg);padding:7px 12px;min-height:34px;}
   #boardFilterBar select{max-width:190px;}
   #boardFilterBar #tagFilterPicker,#boardFilterBar #fieldFilterPicker{color:var(--muted);}
   #boardFilterBar #boardTagFilters,#boardFilterBar #fieldFilters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
@@ -168,7 +196,7 @@
   .viewTabs .tab .tabClose:hover{color:var(--danger);background:var(--danger-soft);}
   .viewTabs .addViewBtn{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;
     border-radius:8px;font-size:15px;}
-  .tableCell{width:100%;min-width:110px;}
+  .tableCell{width:100%;min-width:110px;min-height:0;padding:6px 8px;border-radius:6px;}
   td .tableCell{background:transparent;border:1px solid transparent;}
   td .tableCell:hover{border-color:var(--border);background:var(--bg-soft);}
   td .tableCell:focus{background:var(--bg);border-color:var(--accent);}
@@ -178,7 +206,7 @@
   .group.dragover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   .groupHead{display:flex;align-items:center;gap:6px;padding:12px 12px 8px 12px;}
   .groupHead input.groupTitle{background:transparent;border:1px solid transparent;font-weight:600;font-size:13.5px;
-    flex:1;padding:3px 6px;color:var(--text);border-radius:6px;}
+    flex:1;padding:3px 6px;color:var(--text);border-radius:6px;min-height:0;}
   .groupHead input.groupTitle:hover{background:var(--bg-soft);}
   .groupHead input.groupTitle:focus{background:var(--bg-soft);box-shadow:none;}
   .groupCount{font-size:11.5px;color:var(--faint);background:var(--bg-soft);padding:2px 7px;border-radius:999px;}
@@ -209,7 +237,7 @@
   /* List view */
   .listWrap{padding:18px 24px;overflow:auto;flex:1;width:100%;}
   .listAddRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
-  .listAddRow select{width:auto;}
+  .listAddRow select{width:auto;min-width:150px;}
   .listAddRow input[type=text]{flex:1;min-width:160px;max-width:360px;}
   .tableScroll{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);}
   table.listTable{width:100%;border-collapse:collapse;font-size:13.5px;}
@@ -276,22 +304,22 @@
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
     align-items:center;justify-content:center;z-index:50;padding:16px;}
-  .modal{background:var(--bg);border-radius:16px;width:540px;box-shadow:var(--shadow-modal);
-    max-width:100%;max-height:90vh;overflow-y:auto;padding:22px 24px;}
+  .modal{background:var(--color-canvas-overlay);border:1px solid var(--color-border-default);border-radius:12px;width:540px;box-shadow:var(--shadow-modal);
+    max-width:100%;max-height:90vh;overflow-y:auto;padding:26px 28px;}
   .modal h3{margin:0 0 10px 0;}
-  .modalRow{margin-bottom:16px;}
-  .modalRow label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .modalRow{margin-bottom:18px;}
+  .modalRow label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:.01em;}
   .modalRow input[type=text], .modalRow input[type=date], .modalRow textarea, .modalRow select{width:100%;}
   .modalRow textarea{min-height:72px;resize:vertical;}
-  .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
-  #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;}
+  .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;min-height:0;}
   .subitemRow{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13.5px;border-radius:6px;}
   .subitemRow:hover{background:var(--bg-soft);}
   .subitemRow input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;}
-  .subitemRow input[type=text]{flex:1;border:none;background:transparent;padding:2px;}
+  .subitemRow input[type=text]{flex:1;border:none;background:transparent;padding:2px;min-height:0;}
   .subitemRow.done .subitemTitle{text-decoration:line-through;color:var(--faint);}
-  .modalFooter{display:flex;justify-content:space-between;align-items:center;margin-top:18px;
-    border-top:1px solid var(--border);padding-top:14px;gap:10px;flex-wrap:wrap;}
+  .modalFooter{display:flex;justify-content:space-between;align-items:center;margin-top:22px;
+    border-top:1px solid var(--border);padding-top:16px;gap:12px;flex-wrap:wrap;}
   .closeX{position:absolute;top:16px;right:18px;}
   .modalWrap{position:relative;}
 
@@ -321,7 +349,7 @@
   #sidebarScrim{display:none;}
 
   /* Theme toggle */
-  #themeToggle{margin-left:auto;padding:4px 7px;font-size:13px;line-height:1;flex:none;}
+  #themeToggle{margin-left:auto;padding:4px 7px;font-size:13px;line-height:1;flex:none;min-height:0;}
 
   /* Archive */
   .archivedBadge{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-soft2);color:var(--muted);}
@@ -427,10 +455,10 @@
     <p>Choose an existing file or create a new one to get started.</p>
     <div id="gateReconnectRow" style="display:none;">
       <div>Reconnect to <strong id="gateFileName"></strong>?</div>
-      <button class="btn small primary" id="gateReconnectBtn">Reconnect</button>
+      <button class="btn btn-sm btn-primary" id="gateReconnectBtn">Reconnect</button>
     </div>
     <div id="gateSupportedActions">
-      <button class="btn primary" id="gateNewBtn">Create new file</button>
+      <button class="btn btn-primary" id="gateNewBtn">Create new file</button>
       <button class="btn" id="gateOpenBtn">Open existing file</button>
     </div>
     <div id="gateUnsupported" style="display:none;">
@@ -438,7 +466,7 @@
     </div>
     <div id="gateLegacyRow" style="display:none;">
       <div>Found data saved in this browser from an earlier version. Move it into a file?</div>
-      <button class="btn small" id="gateLegacyBtn">Migrate into a new file</button>
+      <button class="btn btn-sm" id="gateLegacyBtn">Migrate into a new file</button>
     </div>
   </div>
 </div>
@@ -447,7 +475,7 @@
   <div id="sidebarScrim"></div>
   <div id="sidebar">
     <div id="sidebarWrap">
-      <h1><span class="mark"></span>Beforework<button class="btn ghost small" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button></h1>
+      <h1><span class="mark"></span>Beforework<button class="btn btn-invisible btn-sm" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button></h1>
       <div class="searchWrap">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="globalSearch" type="text" placeholder="Search everything">
@@ -461,13 +489,13 @@
     <div>
       <div class="sideLabelRow"><span class="sideLabel">Projects</span></div>
       <ul id="projectList"></ul>
-      <button class="btn small ghost" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
+      <button class="btn btn-sm btn-invisible" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
     </div>
 
     <div class="sideSection" id="tagsSection">
       <div class="sideLabelRow">
         <span class="sideLabel" id="tagsSectionLabel">Tags</span>
-        <button class="btn small ghost" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
+        <button class="btn btn-sm btn-invisible" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
       </div>
       <div id="sideTagsList"></div>
     </div>
@@ -483,14 +511,14 @@
       <h2 id="projectTitleLabel">Overview</h2>
       <div class="viewTabs" id="viewTabs" style="display:none;"></div>
       <div class="projectMenuWrap" id="projectMenuWrap">
-        <button class="btn small ghost projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
+        <button class="btn btn-sm btn-invisible projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
         <div class="projectMenu" id="projectMenu">
-          <button class="btn small ghost" id="manageFieldsBtn">Columns</button>
-          <button class="btn small ghost" id="addGroupBtn">+ Group</button>
-          <button class="btn small ghost" id="undoBtn" title="Undo last change">Undo</button>
-          <button class="btn small ghost" id="printViewBtn">Print / PDF</button>
-          <button class="btn small ghost" id="renameProjectBtn">Rename</button>
-          <button class="btn small danger" id="deleteProjectBtn">Delete</button>
+          <button class="btn btn-sm btn-invisible" id="manageFieldsBtn">Columns</button>
+          <button class="btn btn-sm btn-invisible" id="addGroupBtn">+ Group</button>
+          <button class="btn btn-sm btn-invisible" id="undoBtn" title="Undo last change">Undo</button>
+          <button class="btn btn-sm btn-invisible" id="printViewBtn">Print / PDF</button>
+          <button class="btn btn-sm btn-invisible" id="renameProjectBtn">Rename</button>
+          <button class="btn btn-sm btn-danger" id="deleteProjectBtn">Delete</button>
         </div>
       </div>
     </div>
@@ -498,12 +526,12 @@
       <div class="filterMainRow">
         <input id="boardSearch" type="text" placeholder="Search items">
         <span class="filterSummary" id="filterSummary">All items</span>
-        <button class="btn small filterToggle" id="toggleFilters" type="button">
+        <button class="btn btn-sm filterToggle" id="toggleFilters" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"/></svg>
           Filters
         </button>
-        <button class="btn small ghost" id="clearBoardFilters">Clear</button>
-        <label class="btn small ghost filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
+        <button class="btn btn-sm btn-invisible" id="clearBoardFilters">Clear</button>
+        <label class="btn btn-sm btn-invisible filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
           <input type="checkbox" id="showArchivedToggle"> Archived
         </label>
       </div>
@@ -522,17 +550,17 @@
 <div id="syncBar">
   <span class="dot" id="syncDot"></span>
   <span id="syncLabel">Storage: browser only</span>
-  <button class="btn small ghost" id="focusTimerBtn" title="Focus timer">⏱ Focus</button>
-  <button class="btn small ghost" id="shortcutsBtn" title="Keyboard shortcuts">⌨ Shortcuts</button>
+  <button class="btn btn-sm btn-invisible" id="focusTimerBtn" title="Focus timer">⏱ Focus</button>
+  <button class="btn btn-sm btn-invisible" id="shortcutsBtn" title="Keyboard shortcuts">⌨ Shortcuts</button>
   <span id="authBar"></span>
   <div class="syncMenuWrap">
-    <button class="btn small ghost syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
+    <button class="btn btn-sm btn-invisible syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
     <div class="syncMenu" id="syncMenu">
-      <button class="btn small" id="switchFileBtn">Open a different file</button>
-      <button class="btn small ghost" id="newFileBtn">Start a new file</button>
-      <button class="btn small ghost" id="exportBtn">Export JSON</button>
-      <button class="btn small ghost" id="importBtn">Import JSON</button>
-      <button class="btn small ghost" id="restoreBackupBtn" style="display:none;" title="Restore the snapshot saved automatically before the last data upgrade">Restore pre-upgrade backup</button>
+      <button class="btn btn-sm" id="switchFileBtn">Open a different file</button>
+      <button class="btn btn-sm btn-invisible" id="newFileBtn">Start a new file</button>
+      <button class="btn btn-sm btn-invisible" id="exportBtn">Export JSON</button>
+      <button class="btn btn-sm btn-invisible" id="importBtn">Import JSON</button>
+      <button class="btn btn-sm btn-invisible" id="restoreBackupBtn" style="display:none;" title="Restore the snapshot saved automatically before the last data upgrade">Restore pre-upgrade backup</button>
     </div>
   </div>
   <input type="file" id="fileImportInput" accept="application/json">
@@ -542,12 +570,12 @@
   <h4>Focus timer</h4>
   <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
   <div class="focusTimerModeRow">
-    <button class="btn small" data-focus-preset="25">Focus 25</button>
-    <button class="btn small ghost" data-focus-preset="5">Break 5</button>
+    <button class="btn btn-sm" data-focus-preset="25">Focus 25</button>
+    <button class="btn btn-sm btn-invisible" data-focus-preset="5">Break 5</button>
   </div>
   <div class="focusTimerBtnRow">
-    <button class="btn small primary" id="focusStartBtn">Start</button>
-    <button class="btn small ghost" id="focusResetBtn">Reset</button>
+    <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
+    <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
   </div>
 </div>
 
@@ -613,6 +641,9 @@
   /* ---------- Theme ---------- */
   function applyTheme(theme){
     document.documentElement.setAttribute("data-theme", theme);
+    // Primer's own color tokens switch off this attribute (set alongside
+    // data-light-theme/data-dark-theme on <html> - see the head).
+    document.documentElement.setAttribute("data-color-mode", theme==="dark" ? "dark" : "light");
     const btn = document.getElementById("themeToggle");
     if (btn) btn.textContent = theme==="dark" ? "☀️" : "🌙";
     try{ localStorage.setItem(THEME_KEY, theme); }catch(err){/* ignore */}
@@ -711,10 +742,10 @@
     if (!bar || !activeAuthProvider) return;
     bar.style.display = "flex";
     if (currentAuthUser){
-      bar.innerHTML = `<span class="authUser" title="${escapeHtml(activeAuthProvider.label(currentAuthUser))}">${escapeHtml(activeAuthProvider.label(currentAuthUser))}</span><button class="btn small ghost" id="authLogoutBtn">Log out</button>`;
+      bar.innerHTML = `<span class="authUser" title="${escapeHtml(activeAuthProvider.label(currentAuthUser))}">${escapeHtml(activeAuthProvider.label(currentAuthUser))}</span><button class="btn btn-sm btn-invisible" id="authLogoutBtn">Log out</button>`;
       document.getElementById("authLogoutBtn").onclick = () => activeAuthProvider.logout();
     } else {
-      bar.innerHTML = `<button class="btn small ghost" id="authLoginBtn">Log in</button>`;
+      bar.innerHTML = `<button class="btn btn-sm btn-invisible" id="authLoginBtn">Log in</button>`;
       document.getElementById("authLoginBtn").onclick = () => activeAuthProvider.login();
     }
   }
@@ -784,10 +815,10 @@
       ["?", "Show this shortcuts list"],
     ];
     overlay.innerHTML = `<div class="modal modalWrap" role="dialog" aria-modal="true">
-      <button class="btn ghost closeX" data-close>✕</button>
+      <button class="btn btn-invisible closeX" data-close>✕</button>
       <h3>Keyboard shortcuts</h3>
       <div>${rows.map(([key,desc])=>`<div class="shortcutRow"><span>${escapeHtml(desc)}</span><kbd>${escapeHtml(key)}</kbd></div>`).join("")}</div>
-      <div class="modalFooter"><button class="btn primary small" data-close>Got it</button></div>
+      <div class="modalFooter"><button class="btn btn-primary btn-sm" data-close>Got it</button></div>
     </div>`;
     document.body.appendChild(overlay);
     overlay.querySelectorAll("[data-close]").forEach(btn=>btn.onclick = ()=>overlay.remove());
@@ -1658,7 +1689,7 @@
         ${escapeHtml(viewLabel(v.type))}${project.views.length>1 ? `<span class="tabClose" data-remove-view="${v.id}" title="Remove this view">✕</span>` : ""}
       </span>`).join("");
     const missing = VIEW_DEFS.filter(d=>!project.views.some(v=>v.type===d.type));
-    const addBtn = missing.length ? `<button class="btn ghost small addViewBtn" id="addViewBtn" title="Add a view">+</button>` : "";
+    const addBtn = missing.length ? `<button class="btn btn-invisible btn-sm addViewBtn" id="addViewBtn" title="Add a view">+</button>` : "";
     wrap.innerHTML = tabsHtml + addBtn;
     wrap.querySelectorAll(".tab").forEach(tab=>{
       tab.addEventListener("click", e=>{
@@ -1688,7 +1719,7 @@
     wrap.innerHTML = `<select id="tagFilterPicker" aria-label="Add tag filter">
       <option value="">Add tag filter...</option>
       ${availableTags.map(tag=>`<option value="${tag.id}">${escapeHtml(tag.name)}</option>`).join("")}
-    </select>${activeTags.map(tag=>`<span class="tagFilterGroup"><span class="miniTag"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span><button class="btn ghost removeFieldFilter" data-remove-tag-filter="${tag.id}" title="Remove ${escapeHtml(tag.name)} filter">✕</button></span>`).join("")}`;
+    </select>${activeTags.map(tag=>`<span class="tagFilterGroup"><span class="miniTag"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span><button class="btn btn-invisible removeFieldFilter" data-remove-tag-filter="${tag.id}" title="Remove ${escapeHtml(tag.name)} filter">✕</button></span>`).join("")}`;
     wrap.querySelector("#tagFilterPicker").addEventListener("change", event=>{
       if (!event.target.value) return;
       boardFilterTags.add(event.target.value);
@@ -1726,7 +1757,7 @@
           <option value="__none__" ${current==="__none__"?"selected":""}>No ${escapeHtml(f.label)}</option>
         </select>`;
       }
-      return `<span class="fieldFilterGroup"><span class="sideLabel">${escapeHtml(f.label)}</span>${control}<button class="btn ghost removeFieldFilter" data-remove-field-filter="${f.id}" title="Remove ${escapeHtml(f.label)} filter">✕</button></span>`;
+      return `<span class="fieldFilterGroup"><span class="sideLabel">${escapeHtml(f.label)}</span>${control}<button class="btn btn-invisible removeFieldFilter" data-remove-field-filter="${f.id}" title="Remove ${escapeHtml(f.label)} filter">✕</button></span>`;
     }).join("");
     wrap.innerHTML = picker + activeControls;
     wrap.querySelector("#fieldFilterPicker").addEventListener("change", event=>{
@@ -1768,7 +1799,7 @@
         <div class="groupHead">
           <input class="groupTitle" value="${escapeHtml(group.name)}">
           <span class="groupCount">${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}</span>
-          <button class="btn ghost small" data-action="delGroup" title="Delete group">✕</button>
+          <button class="btn btn-invisible btn-sm" data-action="delGroup" title="Delete group">✕</button>
         </div>
         <div class="groupBody"></div>
         <button class="btn addItemBtn" data-action="addItem">+ Add item</button>
@@ -1843,14 +1874,14 @@
       <div class="listAddRow">
         <select id="quickAddGroup">${groupOptionsHtml}</select>
         <input type="text" id="quickAddTitle" placeholder="New item title - press Enter to add">
-        <button class="btn small primary" id="quickAddBtn">+ Add</button>
+        <button class="btn btn-sm btn-primary" id="quickAddBtn">+ Add</button>
       </div>
       <div class="bulkBar">
         <strong><span id="selectedCount">0</span> selected</strong>
-        <button class="btn small" id="bulkSelectAll">Select all</button>
-        <button class="btn small" id="bulkMove">Move</button>
-        <button class="btn small" id="bulkTag">Tag</button>
-        <button class="btn small danger" id="bulkDelete">Delete</button>
+        <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
+        <button class="btn btn-sm" id="bulkMove">Move</button>
+        <button class="btn btn-sm" id="bulkTag">Tag</button>
+        <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
       </div>
       <div class="tableScroll">
       <table class="listTable">
@@ -1982,14 +2013,14 @@
       <div class="listAddRow">
         <select id="quickAddGroup">${groupOptionsHtml}</select>
         <input type="text" id="quickAddTitle" placeholder="New row title - press Enter to add">
-        <button class="btn small primary" id="quickAddBtn">+ Add row</button>
+        <button class="btn btn-sm btn-primary" id="quickAddBtn">+ Add row</button>
       </div>
       <div class="bulkBar">
         <strong><span id="selectedCount">0</span> selected</strong>
-        <button class="btn small" id="bulkSelectAll">Select all</button>
-        <button class="btn small" id="bulkMove">Move</button>
-        <button class="btn small" id="bulkTag">Tag</button>
-        <button class="btn small danger" id="bulkDelete">Delete</button>
+        <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
+        <button class="btn btn-sm" id="bulkMove">Move</button>
+        <button class="btn btn-sm" id="bulkTag">Tag</button>
+        <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
       </div>
       <div class="tableScroll">
       <table class="listTable">
@@ -2238,14 +2269,14 @@
       cells.push(`<div class="calendarDay${inMonth?"":" muted"}${cellDate===today?" today":""}" data-date="${cellDate}"><div class="calendarDayNumber">${dateNumber}</div>${eventHtml}</div>`);
     }
     wrap.innerHTML = `<div class="calendarToolbar">
-      <button class="btn small" data-calendar-action="prev" aria-label="Previous month">‹</button>
-      <button class="btn small" data-calendar-action="today">Today</button>
-      <button class="btn small" data-calendar-action="next" aria-label="Next month">›</button>
+      <button class="btn btn-sm" data-calendar-action="prev" aria-label="Previous month">‹</button>
+      <button class="btn btn-sm" data-calendar-action="today">Today</button>
+      <button class="btn btn-sm" data-calendar-action="next" aria-label="Next month">›</button>
       <h3>${monthLabel}</h3>
       <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
-      <button class="btn small" data-calendar-action="new">+ New</button>
-      <button class="btn small" data-calendar-action="ics">Export .ics</button>
-      <button class="btn small ghost" data-calendar-action="google">Google Calendar</button>
+      <button class="btn btn-sm" data-calendar-action="new">+ New</button>
+      <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
+      <button class="btn btn-sm btn-invisible" data-calendar-action="google">Google Calendar</button>
     </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
@@ -2409,14 +2440,14 @@
         return `<div class="modalRow">${label}${control}</div>`;
       }).join("");
       overlay.innerHTML = `<div class="modal modalWrap" role="dialog" aria-modal="true">
-        <button class="btn ghost closeX" data-dialog-cancel aria-label="Close">✕</button>
+        <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
         <h3>${escapeHtml(title)}</h3>
         ${message ? `<p class="dialogMessage">${escapeHtml(message)}</p>` : ""}
         ${fieldsHtml}
         <div class="modalFooter">
-          <button class="btn ghost" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
+          <button class="btn btn-invisible" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
           ${secondaryLabel ? `<button class="btn" data-dialog-secondary>${escapeHtml(secondaryLabel)}</button>` : ""}
-          <button class="btn ${danger?"danger":"primary"}" data-dialog-confirm>${escapeHtml(confirmLabel)}</button>
+          <button class="btn ${danger?"btn-danger":"btn-primary"} btn-sm" data-dialog-confirm>${escapeHtml(confirmLabel)}</button>
         </div>
       </div>`;
       document.body.appendChild(overlay);
@@ -2473,7 +2504,7 @@
       <div class="subitemRow ${s.done?"done":""}" data-sid="${s.id}">
         <input type="checkbox" ${s.done?"checked":""} data-action="toggleSub">
         <span class="subitemTitle" contenteditable="true" data-action="editSub">${escapeHtml(s.title)}</span>
-        <button class="btn ghost small" data-action="delSub">✕</button>
+        <button class="btn btn-invisible btn-sm" data-action="delSub">✕</button>
       </div>`).join("");
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
@@ -2486,12 +2517,12 @@
             <div class="commentMeta">${new Date(c.createdAt).toLocaleString()}</div>
             <div class="commentText">${escapeHtml(c.text)}</div>
           </div>
-          <button class="btn ghost small" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
+          <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
         </div>`).join("")
       : `<div class="commentEmpty">No comments yet.</div>`;
 
     modal.innerHTML = `
-      <button class="btn ghost closeX" data-action="close">✕</button>
+      <button class="btn btn-invisible closeX" data-action="close">✕</button>
       <div class="modalRow">
         <input type="text" id="itemTitleInput" value="${escapeHtml(item.title)}">
       </div>
@@ -2534,13 +2565,13 @@
         <label>Tags</label>
         <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           ${tagChips}
-          <button class="btn ghost small" data-action="newTagFromItem">+ New tag</button>
+          <button class="btn btn-invisible btn-sm" data-action="newTagFromItem">+ New tag</button>
         </div>
       </div>
       <div class="modalRow">
         <label>Subitems</label>
         <div id="subitemsList">${subitemsHtml}</div>
-        <button class="btn ghost small" data-action="addSub" style="margin-top:4px;padding-left:2px;">+ Add subitem</button>
+        <button class="btn btn-invisible btn-sm" data-action="addSub" style="margin-top:4px;padding-left:2px;">+ Add subitem</button>
       </div>
       ${!isNew ? `
       <div class="modalRow">
@@ -2548,14 +2579,14 @@
         <div id="commentsList">${commentsHtml}</div>
         <div style="display:flex;gap:6px;">
           <input type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
-          <button class="btn small" data-action="addComment">Add</button>
+          <button class="btn btn-sm" data-action="addComment">Add</button>
         </div>
       </div>` : ""}
       <div class="modalFooter">
         <div style="display:flex;gap:8px;">
-          ${isNew ? `<button class="btn primary small" data-action="saveItem">Create item</button>` : `
-            <button class="btn danger small" data-action="deleteItem">Delete item</button>
-            <button class="btn ghost small" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>`}
+          ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Create item</button>` : `
+            <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>
+            <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>`}
         </div>
         <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
       </div>
