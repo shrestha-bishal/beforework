@@ -2283,14 +2283,14 @@
       <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
       <button class="btn btn-sm" data-calendar-action="new">+ New</button>
       <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
-      <button class="btn btn-sm btn-invisible" data-calendar-action="google">Google Calendar</button>
+      <button class="btn btn-sm btn-invisible" data-calendar-action="google">Google Calendar (.ics)</button>
     </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
-    wrap.querySelector('[data-calendar-action="google"]').onclick = showGoogleCalendarInfo;
+    wrap.querySelector('[data-calendar-action="google"]').onclick = () => exportCalendarIcs(scopeProject);
     wrap.querySelectorAll(".calendarDay").forEach(day=>{
       day.addEventListener("click", event=>{
         if (event.target.closest(".calendarEvent")) return;
