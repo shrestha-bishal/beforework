@@ -260,10 +260,17 @@
   #sidebarWrap{position:relative;}
 
   #syncBar{display:flex;align-items:center;gap:10px;padding:9px 24px;border-top:1px solid var(--border);
-    font-size:12px;color:var(--muted);flex-wrap:wrap;background:var(--bg-soft);}
+    font-size:12px;color:var(--muted);flex-wrap:wrap;background:var(--bg-soft);position:relative;}
   #syncBar .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none;}
   #syncBar .dot.ok{background:var(--accent);}
   #syncBar .dot.err{background:var(--danger);}
+  .syncMenuWrap{position:relative;margin-left:auto;}
+  .syncMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;font-size:18px;line-height:1;}
+  .syncMenuBtn.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
+  .syncMenu{display:none;position:absolute;right:0;bottom:37px;z-index:30;min-width:190px;padding:5px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
+  .syncMenu.open{display:block;}
+  #syncMenu .btn{display:block!important;width:100%;text-align:left;border:none;border-radius:6px;}
   #fileImportInput{display:none;}
   #sidebarScrim{display:none;}
 
@@ -370,9 +377,14 @@
 <div id="syncBar">
   <span class="dot" id="syncDot"></span>
   <span id="syncLabel">Storage: browser only</span>
-  <button class="btn small" id="connectFileBtn">Connect file for autosave</button>
-  <button class="btn small ghost" id="exportBtn">Export JSON</button>
-  <button class="btn small ghost" id="importBtn">Import JSON</button>
+  <div class="syncMenuWrap">
+    <button class="btn small ghost syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
+    <div class="syncMenu" id="syncMenu">
+      <button class="btn small" id="connectFileBtn">Connect file for autosave</button>
+      <button class="btn small ghost" id="exportBtn">Export JSON</button>
+      <button class="btn small ghost" id="importBtn">Import JSON</button>
+    </div>
+  </div>
   <input type="file" id="fileImportInput" accept="application/json">
 </div>
 
@@ -1840,10 +1852,26 @@
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
     });
+    document.getElementById("syncMenuBtn").onclick = event => {
+      event.stopPropagation();
+      const menu = document.getElementById("syncMenu");
+      const open = menu.classList.toggle("open");
+      event.currentTarget.classList.toggle("active", open);
+    };
+    document.getElementById("syncMenu").addEventListener("click", event=>{
+      if (event.target.closest("button")){
+        document.getElementById("syncMenu").classList.remove("open");
+        document.getElementById("syncMenuBtn").classList.remove("active");
+      }
+    });
     document.addEventListener("click", event=>{
       if (!event.target.closest("#projectMenuWrap")){
         document.getElementById("projectMenu").classList.remove("open");
         document.getElementById("projectMenuBtn").classList.remove("active");
+      }
+      if (!event.target.closest(".syncMenuWrap")){
+        document.getElementById("syncMenu").classList.remove("open");
+        document.getElementById("syncMenuBtn").classList.remove("active");
       }
     });
     document.getElementById("addProjectBtn").onclick = async () => {
