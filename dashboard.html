@@ -20,9 +20,23 @@
     --shadow-modal:0 20px 48px rgba(15,17,21,.16), 0 4px 12px rgba(15,17,21,.08);
     --shadow-side:2px 0 10px rgba(15,17,21,.05);
   }
+  :root[data-theme="dark"]{
+    --bg:#15161b; --bg-soft:#1b1c22; --bg-soft2:#24252d;
+    --border:#2b2c35; --border-strong:#393a46;
+    --text:#eceef2; --muted:#989aa6; --faint:#656674;
+    --accent:#3fae86; --accent-strong:#57d6a3; --accent-soft:#173229;
+    --danger:#e5766e; --danger-soft:#3a1e1c;
+    --warn:#e3b25a; --warn-soft:#3a2c10;
+    --shadow-lift:0 2px 6px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.25);
+    --shadow-modal:0 20px 48px rgba(0,0,0,.5), 0 4px 12px rgba(0,0,0,.35);
+    --shadow-side:2px 0 10px rgba(0,0,0,.4);
+  }
   *{box-sizing:border-box;}
+  html{color-scheme:light;}
+  html[data-theme="dark"]{color-scheme:dark;}
   body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;}
+    background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;
+    transition:background .15s ease,color .15s ease;}
   button{font-family:inherit;cursor:pointer;}
   input,textarea,select{font-family:inherit;font-size:13.5px;background:var(--bg);color:var(--text);
     border:1px solid transparent;border-radius:7px;padding:7px 9px;}
@@ -186,7 +200,7 @@
 
   /* Overview */
   .overviewWrap{padding:22px 24px;overflow:auto;flex:1;width:100%;}
-  .statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px;}
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:12px;margin-bottom:26px;}
   .statCard{border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;background:var(--bg);}
   .statCard .num{font-size:24px;font-weight:700;letter-spacing:-.01em;}
   .statCard .lbl{font-size:12px;color:var(--muted);margin-top:3px;}
@@ -216,7 +230,7 @@
   .calendarEvent{display:flex;align-items:center;gap:5px;width:100%;margin-bottom:5px;padding:4px 6px;border-radius:5px;background:var(--bg-soft);color:var(--text);font-size:11px;text-align:left;cursor:pointer;}
   .calendarEvent:hover{background:var(--accent-soft);}
   .calendarEvent .eventDot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;}
-  .calendarEvent.event{background:#eef4fb;}
+  .calendarEvent.event{background:var(--accent-soft);}
   .calendarEvent.event .eventDot{background:#2f6fed;}
   .calendarEvent .eventTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
   .calendarEvent .eventProject{font-size:10px;color:var(--muted);}
@@ -274,6 +288,60 @@
   #fileImportInput{display:none;}
   #sidebarScrim{display:none;}
 
+  /* Theme toggle */
+  #themeToggle{margin-left:auto;padding:4px 7px;font-size:13px;line-height:1;flex:none;}
+
+  /* Archive */
+  .archivedBadge{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-soft2);color:var(--muted);}
+  .card.archived,tr.archived{opacity:.58;}
+  .filterToggle.checkboxToggle{gap:6px;}
+  .filterToggle.checkboxToggle input{accent-color:var(--accent);}
+
+  /* Comments */
+  #commentsList{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
+  .commentRow{display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:8px;background:var(--bg-soft);font-size:12.5px;}
+  .commentRow .commentBody{flex:1;min-width:0;}
+  .commentRow .commentMeta{font-size:10.5px;color:var(--faint);margin-bottom:2px;}
+  .commentRow .commentText{color:var(--text);white-space:pre-wrap;word-break:break-word;}
+  .commentEmpty{font-size:12px;color:var(--faint);padding:2px 2px 4px 2px;}
+
+  /* Focus timer */
+  .focusTimerPanel{position:fixed;bottom:56px;right:18px;z-index:70;width:216px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-modal);
+    padding:14px 16px 16px;display:none;}
+  .focusTimerPanel.open{display:block;}
+  .focusTimerPanel h4{margin:0 0 2px 0;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .focusTimerDisplay{font-size:34px;font-weight:700;text-align:center;margin:6px 0 10px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+  .focusTimerModeRow{display:flex;justify-content:center;gap:6px;margin-bottom:10px;}
+  .focusTimerBtnRow{display:flex;gap:6px;}
+  .focusTimerBtnRow .btn{flex:1;}
+
+  /* Analytics bars (Overview) */
+  .barRow{display:flex;align-items:center;gap:9px;margin-bottom:8px;font-size:12.5px;}
+  .barLabel{width:78px;flex:none;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .barTrack{flex:1;height:8px;border-radius:5px;background:var(--bg-soft2);overflow:hidden;}
+  .barFill{height:100%;border-radius:5px;transition:width .25s ease;}
+  .barCount{width:24px;text-align:right;flex:none;color:var(--faint);}
+
+  /* Shortcuts modal */
+  .shortcutRow{display:flex;align-items:center;justify-content:space-between;padding:7px 2px;
+    border-bottom:1px solid var(--border);font-size:13px;}
+  .shortcutRow:last-child{border-bottom:none;}
+  kbd{background:var(--bg-soft);border:1px solid var(--border);border-radius:5px;padding:2px 7px;
+    font-family:inherit;font-size:11.5px;color:var(--text);}
+
+  @media print{
+    #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewToggle,
+    #boardFilterBar,.overlay,.iconBtn,#themeToggle{display:none!important;}
+    #app{height:auto;display:block;}
+    #main{overflow:visible;}
+    #board{overflow:visible;padding:0;flex-wrap:wrap;}
+    body{background:#fff;color:#000;}
+    .group{max-height:none;box-shadow:none;break-inside:avoid;}
+    .groupBody{overflow:visible;}
+    .listWrap,.overviewWrap,.calendarWrap{overflow:visible;padding:0;}
+  }
+
   /* Responsive */
   @media (max-width:860px){
     #sidebar{position:fixed;top:0;bottom:0;left:-280px;width:264px;box-shadow:var(--shadow-side);transition:left .18s ease;}
@@ -304,7 +372,7 @@
   <div id="sidebarScrim"></div>
   <div id="sidebar">
     <div id="sidebarWrap">
-      <h1><span class="mark"></span>Dashboard</h1>
+      <h1><span class="mark"></span>Dashboard<button class="btn ghost small" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button></h1>
       <div class="searchWrap">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="globalSearch" type="text" placeholder="Search everything">
@@ -347,6 +415,7 @@
           <button class="btn small ghost" id="manageFieldsBtn">Columns</button>
           <button class="btn small ghost" id="addGroupBtn">+ Group</button>
           <button class="btn small ghost" id="undoBtn" title="Undo last change">Undo</button>
+          <button class="btn small ghost" id="printViewBtn">Print / PDF</button>
           <button class="btn small ghost" id="renameProjectBtn">Rename</button>
           <button class="btn small danger" id="deleteProjectBtn">Delete</button>
         </div>
@@ -361,6 +430,9 @@
           Filters
         </button>
         <button class="btn small ghost" id="clearBoardFilters">Clear</button>
+        <label class="btn small ghost filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
+          <input type="checkbox" id="showArchivedToggle"> Archived
+        </label>
       </div>
       <div class="filterPanel" id="filterPanel">
         <div class="filterPanelHeader"><span>Refine this project</span><span class="filterPanelHint">Choose tags or columns</span></div>
@@ -377,15 +449,31 @@
 <div id="syncBar">
   <span class="dot" id="syncDot"></span>
   <span id="syncLabel">Storage: browser only</span>
+  <button class="btn small ghost" id="focusTimerBtn" title="Focus timer">⏱ Focus</button>
+  <button class="btn small ghost" id="shortcutsBtn" title="Keyboard shortcuts">⌨ Shortcuts</button>
   <div class="syncMenuWrap">
     <button class="btn small ghost syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
     <div class="syncMenu" id="syncMenu">
       <button class="btn small" id="connectFileBtn">Connect file for autosave</button>
       <button class="btn small ghost" id="exportBtn">Export JSON</button>
       <button class="btn small ghost" id="importBtn">Import JSON</button>
+      <button class="btn small ghost" id="restoreBackupBtn" style="display:none;" title="Restore the snapshot saved automatically before the last data upgrade">Restore pre-upgrade backup</button>
     </div>
   </div>
   <input type="file" id="fileImportInput" accept="application/json">
+</div>
+
+<div class="focusTimerPanel" id="focusTimerPanel">
+  <h4>Focus timer</h4>
+  <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
+  <div class="focusTimerModeRow">
+    <button class="btn small" data-focus-preset="25">Focus 25</button>
+    <button class="btn small ghost" data-focus-preset="5">Break 5</button>
+  </div>
+  <div class="focusTimerBtnRow">
+    <button class="btn small primary" id="focusStartBtn">Start</button>
+    <button class="btn small ghost" id="focusResetBtn">Reset</button>
+  </div>
 </div>
 
 <script>
@@ -403,8 +491,13 @@
     {id:"low",label:"Low",color:"#4b5563",rank:1},
   ];
   const FIELD_TYPES = ["priority","select","date","text"];
+  const THEME_KEY = "personal_dashboard_theme_v1";
 
   let state = null;                 // { projects:[] }
+  let showArchived = false;
+  let focusInterval = null;
+  let focusSeconds = 25*60;
+  let focusTotal = 25*60;
   let activeProjectId = OVERVIEW;
   let currentView = "list";         // 'list' | 'kanban' (list is the default)
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -419,6 +512,83 @@
   const undoStack = [];
   const selectedItemIds = new Set();
   let filterPrefs = {};
+
+  /* ---------- Theme ---------- */
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    const btn = document.getElementById("themeToggle");
+    if (btn) btn.textContent = theme==="dark" ? "☀️" : "🌙";
+    try{ localStorage.setItem(THEME_KEY, theme); }catch(err){/* ignore */}
+  }
+  function toggleTheme(){
+    const current = document.documentElement.getAttribute("data-theme")==="dark" ? "dark" : "light";
+    applyTheme(current==="dark" ? "light" : "dark");
+  }
+  function initTheme(){
+    let saved = null;
+    try{ saved = localStorage.getItem(THEME_KEY); }catch(err){/* ignore */}
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(saved || (prefersDark ? "dark" : "light"));
+  }
+
+  /* ---------- Focus timer ---------- */
+  function renderFocusTimer(){
+    const disp = document.getElementById("focusTimerDisplay");
+    if (!disp) return;
+    const m = Math.floor(focusSeconds/60), s = focusSeconds%60;
+    disp.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    document.title = focusInterval ? `${disp.textContent} · Dashboard` : "Dashboard";
+  }
+  function startFocusTimer(){
+    if (focusInterval || focusSeconds<=0) return;
+    focusInterval = setInterval(()=>{
+      focusSeconds = Math.max(0, focusSeconds-1);
+      renderFocusTimer();
+      if (focusSeconds<=0){
+        clearInterval(focusInterval); focusInterval=null;
+        const startBtn = document.getElementById("focusStartBtn");
+        if (startBtn) startBtn.textContent = "Start";
+        showNotice("Time's up", "The focus timer has finished. Take a short break or start another session.");
+      }
+    }, 1000);
+    const startBtn = document.getElementById("focusStartBtn");
+    if (startBtn) startBtn.textContent = "Pause";
+  }
+  function pauseFocusTimer(){
+    if (focusInterval){ clearInterval(focusInterval); focusInterval=null; }
+    const startBtn = document.getElementById("focusStartBtn");
+    if (startBtn) startBtn.textContent = "Start";
+    renderFocusTimer();
+  }
+  function resetFocusTimer(){
+    pauseFocusTimer();
+    focusSeconds = focusTotal;
+    renderFocusTimer();
+  }
+
+  /* ---------- Keyboard shortcuts modal ---------- */
+  function showShortcutsModal(){
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    const rows = [
+      ["/", "Focus the global search"],
+      ["n", "Quick-add an item to the open project"],
+      ["d", "Toggle dark / light mode"],
+      ["t", "Open or close the focus timer"],
+      ["Ctrl/⌘ + Z", "Undo the last change"],
+      ["Esc", "Close the open item or dialog"],
+      ["?", "Show this shortcuts list"],
+    ];
+    overlay.innerHTML = `<div class="modal modalWrap" role="dialog" aria-modal="true">
+      <button class="btn ghost closeX" data-close>✕</button>
+      <h3>Keyboard shortcuts</h3>
+      <div>${rows.map(([key,desc])=>`<div class="shortcutRow"><span>${escapeHtml(desc)}</span><kbd>${escapeHtml(key)}</kbd></div>`).join("")}</div>
+      <div class="modalFooter"><button class="btn primary small" data-close>Got it</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelectorAll("[data-close]").forEach(btn=>btn.onclick = ()=>overlay.remove());
+    overlay.addEventListener("click", e=>{ if (e.target===overlay) overlay.remove(); });
+  }
 
   function todayStr(offsetDays){
     const d = new Date();
@@ -440,7 +610,8 @@
            description:"Add notes here. Search everything from the sidebar, drag cards between groups, switch between List and Board, and add columns that fit this project from the Columns button above.",
            calendarType:"task", startTime:"", endTime:"", location:"", endDate:"",
            tagIds:[t1.id], values:{[pr.id]:"medium",[due.id]:todayStr(2)},
-           subitems:[{id:uid(),title:"Try checking this off",done:false}], createdAt:Date.now(), updatedAt:Date.now()},
+           subitems:[{id:uid(),title:"Try checking this off",done:false}], comments:[], archived:false,
+           createdAt:Date.now(), updatedAt:Date.now()},
         ]},
         {id:uid(), name:"Doing", items:[]},
         {id:uid(), name:"Done", items:[]}
@@ -456,29 +627,46 @@
       tags:[], fields:[status],
       groups:[{id:uid(), name:"Books", items:[]}]
     };
-    return {projects:[proj1, proj2]};
+    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2]};
   }
 
-  // Upgrades data saved by the older single-column version of this app
-  // (global tags + fixed priority/dueDate) into the per-project shape.
-  function migrateState(s){
-    if (!s || !Array.isArray(s.projects)) return defaultState();
-    const alreadyNew = s.projects.every(p=>Array.isArray(p.fields) && Array.isArray(p.tags));
-    const globalTags = s.tags || [];
-    s.projects.forEach(p=>{
-      if (!Array.isArray(p.tags)) p.tags = globalTags.map(t=>({id:t.id, name:t.name, color:t.color}));
-      if (!Array.isArray(p.fields)){
-        const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
-        const due = {id:uid(), label:"Due date", type:"date", options:[]};
-        p.fields = [pr, due];
-        p.groups.forEach(g=>g.items.forEach(it=>{
-          it.values = it.values || {};
-          if (it.priority) it.values[pr.id] = it.priority;
-          if (it.dueDate) it.values[due.id] = it.dueDate;
-          delete it.priority; delete it.dueDate;
-        }));
-      }
-      p.groups.forEach(g=>g.items.forEach(it=>{
+  /* ---------- Schema migrations ----------
+     Every saved file carries a schemaVersion. On load we walk it forward
+     one step at a time through MIGRATIONS until it reaches SCHEMA_VERSION.
+     Each step assumes its input is exactly the previous version's shape —
+     rules:
+       1. Never delete a property here. If a field is retired, just stop
+          reading it in the app; leave it sitting in the JSON so an
+          incorrect migration can still be recovered from.
+       2. Keep steps small and defensive (Array.isArray / ?? guards) so a
+          hand-edited or partially-corrupt import doesn't throw.
+       3. Once shipped, a step's body doesn't change — add a new step
+          instead of editing an old one. */
+  const MIGRATIONS = {
+    // v0 (unversioned / legacy) -> v1: global tags + fixed priority/dueDate
+    // become per-project tags and a per-project fields array.
+    1: s => {
+      const globalTags = s.tags || [];
+      s.projects.forEach(p=>{
+        if (!Array.isArray(p.tags)) p.tags = globalTags.map(t=>({id:t.id, name:t.name, color:t.color}));
+        if (!Array.isArray(p.fields)){
+          const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
+          const due = {id:uid(), label:"Due date", type:"date", options:[]};
+          p.fields = [pr, due];
+          p.groups.forEach(g=>g.items.forEach(it=>{
+            it.values = it.values || {};
+            if (it.priority) it.values[pr.id] = it.priority;
+            if (it.dueDate) it.values[due.id] = it.dueDate;
+            delete it.priority; delete it.dueDate;
+          }));
+        }
+      });
+      delete s.tags;
+      return s;
+    },
+    // v1 -> v2: subitems, tag links and calendar scheduling fields on items.
+    2: s => {
+      s.projects.forEach(p=>p.groups.forEach(g=>g.items.forEach(it=>{
         it.values = it.values || {};
         it.subitems = Array.isArray(it.subitems) ? it.subitems : [];
         it.tagIds = Array.isArray(it.tagIds) ? it.tagIds : [];
@@ -487,10 +675,54 @@
         it.endTime = it.endTime || "";
         it.location = it.location || "";
         it.endDate = it.endDate || "";
-      }));
-    });
-    delete s.tags;
+      })));
+      return s;
+    },
+    // v2 -> v3: comment threads and archiving.
+    3: s => {
+      s.projects.forEach(p=>p.groups.forEach(g=>g.items.forEach(it=>{
+        it.comments = Array.isArray(it.comments) ? it.comments : [];
+        it.archived = !!it.archived;
+      })));
+      return s;
+    },
+  };
+  const SCHEMA_VERSION = Math.max(...Object.keys(MIGRATIONS).map(Number));
+  const MIGRATION_BACKUP_KEY = "personal_dashboard_pre_migration_backup_v1";
+
+  function migrateState(raw){
+    if (!raw || !Array.isArray(raw.projects)) return defaultState();
+    let version = Number.isInteger(raw.schemaVersion) ? raw.schemaVersion : 0;
+    if (version < SCHEMA_VERSION){
+      // One safety-net backup per load, taken before any step runs, so a
+      // bad migration can always be undone from the sync menu.
+      try{ localStorage.setItem(MIGRATION_BACKUP_KEY, JSON.stringify({savedAt:Date.now(), fromVersion:version, data:raw})); }catch(err){/* storage full — proceed anyway */}
+    }
+    let s = raw;
+    while (version < SCHEMA_VERSION){
+      version += 1;
+      const step = MIGRATIONS[version];
+      if (!step) break; // no step registered for this gap — leave state as-is rather than throw
+      s = step(s);
+    }
+    s.schemaVersion = SCHEMA_VERSION;
     return s;
+  }
+
+  function hasMigrationBackup(){
+    try{ return !!localStorage.getItem(MIGRATION_BACKUP_KEY); }catch(err){ return false; }
+  }
+  async function restoreMigrationBackup(){
+    let saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(MIGRATION_BACKUP_KEY) || "null"); }catch(err){ saved = null; }
+    if (!saved){ showNotice("No backup found", "There is no pre-migration backup saved in this browser."); return; }
+    const when = new Date(saved.savedAt).toLocaleString();
+    if (!await showConfirm("Restore pre-migration data", `This replaces your current data with the version saved automatically on ${when}, just before it was last upgraded (from schema v${saved.fromVersion}). This cannot be undone with Ctrl+Z.`, true)) return;
+    state = { ...saved.data, schemaVersion: saved.fromVersion };
+    lastSavedState = null;
+    undoStack.length = 0;
+    scheduleSave();
+    renderAll();
   }
 
   /* ---------- Persistence ---------- */
@@ -703,7 +935,7 @@
   }
   function addItem(pid, gid, title){
     const it = {id:uid(), title, description:"", calendarType:"task", startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[],
-      createdAt:Date.now(), updatedAt:Date.now()};
+      comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     getGroup(pid,gid).items.push(it);
     scheduleSave(); renderMain();
     return it;
@@ -712,6 +944,35 @@
     const g = getGroup(pid,gid);
     g.items = g.items.filter(i=>i.id!==iid);
     scheduleSave(); renderMain();
+  }
+  function toggleArchiveItem(pid,gid,iid){
+    const item = getItem(pid,gid,iid);
+    if (!item) return;
+    item.archived = !item.archived;
+    item.updatedAt = Date.now();
+    scheduleSave(); renderMain(); renderProjectList();
+  }
+  function addComment(pid,gid,iid,text){
+    const item = getItem(pid,gid,iid);
+    if (!item || !text.trim()) return;
+    item.comments.push({id:uid(), text:text.trim(), createdAt:Date.now()});
+    item.updatedAt = Date.now();
+    scheduleSave(); renderMain();
+  }
+  function deleteComment(pid,gid,iid,cid){
+    const item = getItem(pid,gid,iid);
+    if (!item) return;
+    item.comments = item.comments.filter(c=>c.id!==cid);
+    item.updatedAt = Date.now();
+    scheduleSave(); renderMain();
+  }
+  async function quickAddViaShortcut(){
+    const project = getProject(activeProjectId);
+    if (!project){ showNotice("Pick a project", "Open a project from the sidebar first, then press n to quickly add an item."); return; }
+    const group = project.groups[0];
+    if (!group) return;
+    const title = await showDialog({title:"New item", fields:[{label:"Item title", placeholder:"What needs to be done?"}], confirmLabel:"Add item"});
+    if (title && title.trim()) addItem(project.id, group.id, title.trim());
   }
   function undoLastChange(){
     const previous = undoStack.pop();
@@ -798,9 +1059,9 @@
   }
   async function manageFieldsFlow(project){
     const names = project.fields.map(f=>`${f.label} (${f.type})`).join(", ") || "(none yet)";
-    const action = await showDialog({title:`Columns for ${project.name}`, message:`Current columns: ${names}`, fields:[{label:"What do you want to do?", type:"select", options:[{value:"add",label:"Add a column"},{value:"delete",label:"Delete a column"}], value:"add"}], confirmLabel:"Continue"});
+    const action = await showDialog({title:`Columns for ${project.name}`, message:`Current columns: ${names}`, confirmLabel:"Add column", secondaryLabel:"Delete column"});
     if (!action) return;
-    if (action === "add"){
+    if (action === "__confirm__"){
       const details = await showDialog({title:"New column", fields:[
         {label:"Column name", placeholder:"e.g. Status, Type, Effort"},
         {label:"Column type", type:"select", options:FIELD_TYPES.map(value=>({value,label:value})), value:"select"}
@@ -867,6 +1128,7 @@
   }
 
   function itemMatchesFilter(project, item){
+    if (item.archived && !showArchived) return false;
     if (boardFilterTags.size && ![...boardFilterTags].every(tid=>item.tagIds.includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
       if (mode==="__all__") continue;
@@ -1137,7 +1399,7 @@
 
   function renderCard(project, gid, item){
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "card" + (item.archived ? " archived" : "");
     card.draggable = true;
     const doneSub = item.subitems.filter(s=>s.done).length;
     const pf = priorityField(project);
@@ -1151,7 +1413,9 @@
     card.innerHTML = `
       <div class="cardTitle">${titlePrefix}${escapeHtml(item.title)}</div>
       <div class="cardMeta">
+        ${item.archived ? `<span class="archivedBadge">Archived</span>` : ""}
         ${item.subitems.length? `<span class="subCount">${doneSub}/${item.subitems.length}</span>`:""}
+        ${item.comments && item.comments.length ? `<span class="subCount" title="Comments">💬 ${item.comments.length}</span>` : ""}
         ${dueChips}
         ${tagsHtml}
       </div>`;
@@ -1279,9 +1543,9 @@
         return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
       }).join("");
       const fieldCells = project.fields.map(f=>`<td>${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
-      return `<tr class="rowClickable" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
+      return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td>${escapeHtml(item.title)}</td>
+        <td>${item.archived?`<span class="archivedBadge" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
         <td>${escapeHtml(group.name)}</td>
         ${fieldCells}
         <td><div class="rowTags">${tagsHtml||"—"}</div></td>
@@ -1371,7 +1635,7 @@
     const group = project.groups[0];
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:!scopeProject, draft:{
       id:uid(), title:"", description:"", calendarType:"event", startTime:"09:00", endTime:"10:00", location:"", endDate:date,
-      tagIds:[], values:{[dateField.id]:date}, subitems:[], createdAt:Date.now(), updatedAt:Date.now()
+      tagIds:[], values:{[dateField.id]:date}, subitems:[], comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
     overlay.className = "overlay";
@@ -1462,12 +1726,49 @@
     wrap.className = "overviewWrap";
     const flat = allItemsFlat();
     const isDoneGroup = g => g.name.trim().toLowerCase()==="done";
-    const openItems = flat.filter(r=>!isDoneGroup(r.group));
+    const openItems = flat.filter(r=>!isDoneGroup(r.group) && !r.item.archived);
     function dueOf(r){ const f = dateFields(r.project)[0]; return f ? (r.item.values[f.id]||"") : ""; }
     function priorityOf(r){ const f = priorityField(r.project); return f ? (r.item.values[f.id]||"") : ""; }
     const overdue = openItems.filter(r=> dueOf(r) && dueOf(r) < todayStr(0)).sort((a,b)=> dueOf(a) < dueOf(b) ? -1 : 1);
     const soon = openItems.filter(r=> dueOf(r) && dueOf(r) >= todayStr(0) && dueOf(r) <= todayStr(7)).sort((a,b)=> dueOf(a) < dueOf(b) ? -1 : 1);
     const recent = [...flat].sort((a,b)=> b.item.updatedAt - a.item.updatedAt).slice(0,6);
+    const archivedCount = flat.filter(r=>r.item.archived).length;
+    const activeOpen = openItems.filter(r=>!r.item.archived);
+
+    function priorityBreakdownHtml(){
+      const counts = {high:0, medium:0, low:0, none:0};
+      activeOpen.forEach(r=>{
+        const p = priorityOf(r);
+        if (p==="high"||p==="medium"||p==="low") counts[p]++; else counts.none++;
+      });
+      const max = Math.max(1, ...Object.values(counts));
+      const rows = [
+        {label:"High", key:"high", color:"#b3261e"},
+        {label:"Medium", key:"medium", color:"#a16207"},
+        {label:"Low", key:"low", color:"#4b5563"},
+        {label:"No priority", key:"none", color:"var(--faint)"},
+      ];
+      const body = rows.map(row=>`<div class="barRow">
+        <span class="barLabel">${row.label}</span>
+        <div class="barTrack"><div class="barFill" style="width:${(counts[row.key]/max*100)}%;background:${row.color};"></div></div>
+        <span class="barCount">${counts[row.key]}</span>
+      </div>`).join("");
+      return `<div class="ovSection"><div class="ovSectionTitle">Open items by priority</div>${body}</div>`;
+    }
+    function projectBreakdownHtml(){
+      if (!state.projects.length) return "";
+      const counts = state.projects.map(p=>({
+        name:p.name,
+        count:p.groups.reduce((n,g)=>n+g.items.filter(it=>!it.archived).length,0)
+      }));
+      const max = Math.max(1, ...counts.map(c=>c.count));
+      const body = counts.map(c=>`<div class="barRow">
+        <span class="barLabel" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</span>
+        <div class="barTrack"><div class="barFill" style="width:${(c.count/max*100)}%;background:var(--accent);"></div></div>
+        <span class="barCount">${c.count}</span>
+      </div>`).join("");
+      return `<div class="ovSection"><div class="ovSectionTitle">Items by project</div>${body}</div>`;
+    }
 
     function rowHtml(r, showDue){
       const pf = priorityField(r.project);
@@ -1488,9 +1789,12 @@
         <div class="statCard"><div class="num">${openItems.length}</div><div class="lbl">Open items</div></div>
         <div class="statCard"><div class="num">${overdue.length}</div><div class="lbl">Overdue</div></div>
         <div class="statCard"><div class="num">${soon.length}</div><div class="lbl">Due in 7 days</div></div>
+        <div class="statCard"><div class="num">${archivedCount}</div><div class="lbl">Archived</div></div>
       </div>
       ${section("Overdue", overdue, true, "Nothing overdue.")}
       ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
+      ${priorityBreakdownHtml()}
+      ${projectBreakdownHtml()}
       ${section("Recently updated", recent, false, "Nothing yet — add a project to get started.")}
     `;
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
@@ -1520,7 +1824,7 @@
     if (el) el.remove();
     openItemRef = null;
   }
-  function showDialog({title, message="", fields=[], confirmLabel="Continue", danger=false, cancelLabel="Cancel"}){
+  function showDialog({title, message="", fields=[], confirmLabel="Continue", secondaryLabel="", danger=false, cancelLabel="Cancel"}){
     return new Promise(resolve=>{
       const overlay = document.createElement("div");
       overlay.className = "overlay";
@@ -1546,15 +1850,18 @@
         ${fieldsHtml}
         <div class="modalFooter">
           <button class="btn ghost" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
+          ${secondaryLabel ? `<button class="btn" data-dialog-secondary>${escapeHtml(secondaryLabel)}</button>` : ""}
           <button class="btn ${danger?"danger":"primary"}" data-dialog-confirm>${escapeHtml(confirmLabel)}</button>
         </div>
       </div>`;
       document.body.appendChild(overlay);
       const finish = value => { overlay.remove(); resolve(value); };
       overlay.querySelectorAll("[data-dialog-cancel]").forEach(button=>button.onclick=()=>finish(null));
+      const secondary = overlay.querySelector("[data-dialog-secondary]");
+      if (secondary) secondary.onclick = () => finish("__secondary__");
       overlay.querySelector("[data-dialog-confirm]").onclick = () => {
         const values = fields.map((field,index)=>overlay.querySelector(`#dialogField${index}`).value);
-        finish(values.length===1 ? values[0] : values);
+        finish(values.length===1 ? values[0] : values.length ? values : "__confirm__");
       };
       overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(null); });
       const first = overlay.querySelector("input, textarea, select");
@@ -1606,6 +1913,17 @@
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
     const fieldsHtml = project.fields.map(f=>fieldInputHtml(f, item)).join("");
+    const comments = item.comments || [];
+    const commentsHtml = comments.length
+      ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(c=>`
+        <div class="commentRow" data-cid="${c.id}">
+          <div class="commentBody">
+            <div class="commentMeta">${new Date(c.createdAt).toLocaleString()}</div>
+            <div class="commentText">${escapeHtml(c.text)}</div>
+          </div>
+          <button class="btn ghost small" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
+        </div>`).join("")
+      : `<div class="commentEmpty">No comments yet.</div>`;
 
     modal.innerHTML = `
       <button class="btn ghost closeX" data-action="close">✕</button>
@@ -1659,8 +1977,21 @@
         <div id="subitemsList">${subitemsHtml}</div>
         <button class="btn ghost small" data-action="addSub" style="margin-top:4px;padding-left:2px;">+ Add subitem</button>
       </div>
+      ${!isNew ? `
+      <div class="modalRow">
+        <label>Comments</label>
+        <div id="commentsList">${commentsHtml}</div>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
+          <button class="btn small" data-action="addComment">Add</button>
+        </div>
+      </div>` : ""}
       <div class="modalFooter">
-        ${isNew ? `<button class="btn primary small" data-action="saveItem">Create item</button>` : `<button class="btn danger small" data-action="deleteItem">Delete item</button>`}
+        <div style="display:flex;gap:8px;">
+          ${isNew ? `<button class="btn primary small" data-action="saveItem">Create item</button>` : `
+            <button class="btn danger small" data-action="deleteItem">Delete item</button>
+            <button class="btn ghost small" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>`}
+        </div>
         <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
       </div>
     `;
@@ -1761,6 +2092,25 @@
         item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
       };
     });
+    if (!isNew){
+      const commentInput = modal.querySelector("#newCommentInput");
+      const addCommentBtn = modal.querySelector('[data-action="addComment"]');
+      if (addCommentBtn){
+        const submitComment = () => {
+          if (commentInput.value.trim()){
+            addComment(projectId, groupId, itemId, commentInput.value);
+            renderItemModal();
+          }
+        };
+        addCommentBtn.onclick = submitComment;
+        commentInput.addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); submitComment(); } });
+      }
+      modal.querySelectorAll('[data-action="delComment"]').forEach(btn=>{
+        btn.onclick = () => { deleteComment(projectId, groupId, itemId, btn.dataset.cid); renderItemModal(); };
+      });
+      const archiveBtn = modal.querySelector('[data-action="toggleArchive"]');
+      if (archiveBtn) archiveBtn.onclick = () => { toggleArchiveItem(projectId, groupId, itemId); renderItemModal(); };
+    }
     if (isNew){
       modal.querySelector('[data-action="saveItem"]').onclick = () => {
         const title = item.title.trim();
@@ -1896,6 +2246,32 @@
       boardFilterText=""; boardFilterTags.clear(); boardFilterFields.clear();
       renderMain();
     };
+    document.getElementById("showArchivedToggle").addEventListener("change", e=>{
+      showArchived = e.target.checked;
+      renderMain();
+    });
+    document.getElementById("printViewBtn").onclick = () => {
+      document.getElementById("projectMenu").classList.remove("open");
+      document.getElementById("projectMenuBtn").classList.remove("active");
+      window.print();
+    };
+    document.getElementById("themeToggle").onclick = toggleTheme;
+    document.getElementById("shortcutsBtn").onclick = showShortcutsModal;
+    document.getElementById("focusTimerBtn").onclick = () => {
+      document.getElementById("focusTimerPanel").classList.toggle("open");
+    };
+    document.getElementById("focusStartBtn").onclick = () => {
+      if (focusInterval) pauseFocusTimer(); else startFocusTimer();
+    };
+    document.getElementById("focusResetBtn").onclick = resetFocusTimer;
+    document.querySelectorAll("[data-focus-preset]").forEach(btn=>{
+      btn.onclick = () => {
+        pauseFocusTimer();
+        focusTotal = Number(btn.dataset.focusPreset) * 60;
+        focusSeconds = focusTotal;
+        renderFocusTimer();
+      };
+    });
     document.getElementById("toggleFilters").onclick = () => {
       const panel = document.getElementById("filterPanel");
       const button = document.getElementById("toggleFilters");
@@ -1914,33 +2290,57 @@
     document.getElementById("connectFileBtn").onclick = connectFile;
     document.getElementById("exportBtn").onclick = exportJSON;
     document.getElementById("importBtn").onclick = () => document.getElementById("fileImportInput").click();
+    document.getElementById("restoreBackupBtn").onclick = restoreMigrationBackup;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
       if (e.target.files[0]) importJSON(e.target.files[0]);
       e.target.value = "";
     });
     document.addEventListener("keydown", e=>{
-      if (e.key==="Escape"){ closeItemModal(); return; }
+      if (e.key==="Escape"){
+        const overlays = document.querySelectorAll(".overlay");
+        if (overlays.length){
+          const top = overlays[overlays.length-1];
+          if (top.id==="itemOverlay") openItemRef = null;
+          top.remove();
+        }
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==="z"){
         e.preventDefault(); undoLastChange(); return;
       }
-      const tag = (document.activeElement && document.activeElement.tagName) || "";
-      if (e.key==="/" && tag!=="INPUT" && tag!=="TEXTAREA"){
+      const active = document.activeElement;
+      const tag = (active && active.tagName) || "";
+      const editable = tag==="INPUT" || tag==="TEXTAREA" || (active && active.isContentEditable);
+      if (e.key==="/" && !editable){
         e.preventDefault();
         document.getElementById("globalSearch").focus();
+        return;
       }
+      if (editable) return;
+      if (e.key==="n"){ e.preventDefault(); quickAddViaShortcut(); return; }
+      if (e.key==="d"){ e.preventDefault(); toggleTheme(); return; }
+      if (e.key==="t"){ e.preventDefault(); document.getElementById("focusTimerPanel").classList.toggle("open"); return; }
+      if (e.key==="?"){ e.preventDefault(); showShortcutsModal(); return; }
     });
   }
 
   /* ---------- Boot ---------- */
   async function boot(){
+    initTheme();
     wireStaticControls();
+    document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     try{ filterPrefs = JSON.parse(localStorage.getItem(FILTER_KEY) || "{}"); }
     catch(err){ filterPrefs = {}; }
     const reconnected = await tryReconnectFile();
     if (!reconnected){
       const ls = localStorage.getItem(LS_KEY);
       if (ls){
-        try{ state = migrateState(JSON.parse(ls)); }catch(e){ state = defaultState(); }
+        try{
+          state = migrateState(JSON.parse(ls));
+        }catch(err){
+          state = defaultState();
+          showNotice("Couldn't load your saved data", "Your saved data looks corrupted, so a fresh workspace was loaded instead. Nothing was overwritten yet — if you have a recent Export JSON file, use Import to restore it.");
+        }
       } else {
         state = defaultState();
       }
@@ -1950,6 +2350,7 @@
         setSyncStatus("", "Storage: browser only — click Connect file to enable cross-device sync");
       }
     }
+    document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     lastSavedState = JSON.stringify(state);
     renderAll();
   }
