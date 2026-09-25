@@ -400,6 +400,12 @@
       try{ localStorage.setItem(MIGRATION_BACKUP_KEY, JSON.stringify({savedAt:Date.now(), fromVersion:version, data:raw})); }catch(err){/* storage full - proceed anyway */}
     }
     let s = raw;
+    s.projects = s.projects.filter(Boolean).map(project=>({
+      ...project,
+      groups:(Array.isArray(project.groups) ? project.groups : [{id:uid(), name:"Items", items:[]}])
+        .filter(Boolean)
+        .map(group=>({...group, items:Array.isArray(group.items) ? group.items.filter(Boolean) : []}))
+    }));
     while (version < SCHEMA_VERSION){
       version += 1;
       const step = MIGRATIONS[version];
@@ -810,13 +816,13 @@
 
   function itemMatchesFilter(project, item){
     if (item.archived && !showArchived) return false;
-    if (boardFilterTags.size && ![...boardFilterTags].every(tid=>item.tagIds.includes(tid))) return false;
+    if (boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
       if (mode==="__all__") continue;
-      const val = item.values[fid] || "";
+      const val = (item.values||{})[fid] || "";
       if (mode==="__none__"){ if (val) return false; }
       else {
-        const field = project.fields.find(candidate=>candidate.id===fid);
+        const field = project?.fields?.find(candidate=>candidate.id===fid);
         if (field?.type==="text"){
           if (!val.toLowerCase().includes(mode.toLowerCase())) return false;
         } else if (val !== mode) return false;
@@ -824,7 +830,7 @@
     }
     if (boardFilterText){
       const q = boardFilterText.toLowerCase();
-      const hay = [item.title, item.description, ...item.subitems.map(s=>s.title), ...Object.values(item.values)].join(" ").toLowerCase();
+      const hay = [item.title, item.description, ...(item.subitems||[]).map(s=>s.title), ...Object.values(item.values||{})].join(" ").toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;

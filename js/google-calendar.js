@@ -407,7 +407,7 @@
         lines.push(`DTEND;VALUE=DATE:${calendarDateCode(entry.endDate,1)}`);
       }
       lines.push(`SUMMARY:${icsEscape(entry.item.title)}`);
-      lines.push(`DESCRIPTION:${icsEscape([entry.item.description,`Project: ${entry.project.name}`,`Group: ${entry.group.name}`].filter(Boolean).join("\n"))}`);
+      lines.push(`DESCRIPTION:${icsEscape([entry.item.description,entry.project ? `Project: ${entry.project.name}` : "Beforework Calendar",entry.group ? `Group: ${entry.group.name}` : ""].filter(Boolean).join("\n"))}`);
       lines.push("END:VEVENT");
     });
     lines.push("END:VCALENDAR");
