@@ -47,7 +47,7 @@
   html[data-theme="dark"]{color-scheme:dark;}
   body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;
-    transition:background .15s ease,color .15s ease;}
+    transition:background .15s ease,color .15s ease;line-height:1.4;}
   button{font-family:inherit;cursor:pointer;}
 
   input[type="checkbox"], input[type="radio"] {
@@ -58,13 +58,15 @@
     accent-color: var(--color-accent-emphasis);
   }
 
-  .iconBtn{display:none;}
-
   #app{display:flex;height:100vh;overflow:hidden;}
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:16px;padding:18px 20px 20px;align-items:flex-start;}
+
+  .iconBtn{display:none;}
 
   /* Sidebar */
   #sidebar{width:264px;flex:none;background:var(--bg-soft);border-right:1px solid var(--border);
-    display:flex;flex-direction:column;padding:20px 16px;gap:18px;overflow-y:auto;z-index:60;
+    display:flex;flex-direction:column;padding:18px 14px 12px;gap:16px;overflow-y:auto;z-index:60;
     transition:width .18s ease,padding .18s ease,border-color .18s ease;}
   #sidebar.collapsed{width:0;padding:0;border-right-color:transparent;overflow:hidden;}
   #app{position:relative;}
@@ -83,10 +85,10 @@
   .searchWrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);}
   #globalSearch{width:100%;padding-left:30px;}
 
-  #overviewNav{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border-radius:7px;
-    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:8px;font-weight:500;}
-  #calendarNav{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border-radius:7px;
-    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:8px;font-weight:500;}
+  #overviewNav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+  #calendarNav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:6px;font-weight:500;}
   #overviewNav:hover{background:var(--bg-soft2);color:var(--text);}
   #calendarNav:hover{background:var(--bg-soft2);color:var(--text);}
   #overviewNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
@@ -94,7 +96,7 @@
 
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
   #projectList .SideNav-item{display:flex;align-items:center;justify-content:space-between;
-    padding:7px 9px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--muted);
+    padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--muted);
     background:transparent;border:none;width:100%;text-align:left;}
   #projectList .SideNav-item:hover{background:var(--bg-soft2);color:var(--text);}
   #projectList .SideNav-item.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
@@ -109,8 +111,7 @@
   #sideTagsList,#boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
 
   /* Main */
-  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
-  #topbar{display:flex;align-items:center;gap:8px;padding:16px 24px 14px 24px;border-bottom:1px solid transparent;position:relative;}
+  #topbar{display:flex;align-items:center;gap:8px;padding:16px 20px 14px; border-bottom:1px solid var(--border);position:relative;background:var(--bg);}
   #topbar h2{font-size:18px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
   .projectMenuWrap{position:relative;display:none;flex:none;}
@@ -119,9 +120,9 @@
   .projectMenu{display:none;flex-direction:column;position:absolute;top:39px;right:0;z-index:30;min-width:170px;padding:5px;background:var(--bg);
     border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
   .projectMenu.open{display:flex;}
-  #boardFilterBar{display:block;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg);}
+  #boardFilterBar{display:block;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg-soft);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
-  #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);}
+  #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);border-radius:8px;}
   #boardSearch:focus{background:var(--bg);}
   .filterSummary{font-size:12px;color:var(--muted);margin-right:auto;}
   .filterSummary strong{color:var(--text);font-weight:600;}
@@ -155,24 +156,24 @@
 
   /* background/border/border-radius come from the .Box class already on
      the element in markup - see renderKanban(). Only layout here. */
-  .group{width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;}
+  .group{width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;padding:0 0 8px;}
   .group.dragover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
-  .groupHead{display:flex;align-items:center;gap:6px;padding:12px 12px 8px 12px;}
+  .groupHead{display:flex;align-items:center;gap:6px;padding:12px 12px 8px;}
   .groupHead input.groupTitle{background:transparent;border:1px solid transparent;font-weight:600;font-size:13.5px;
-    flex:1;padding:3px 6px;color:var(--text);border-radius:6px;min-height:0;}
+    flex:1;padding:4px 6px;color:var(--text);border-radius:6px;min-height:0;}
   .groupHead input.groupTitle:hover{background:var(--bg-soft);}
   .groupHead input.groupTitle:focus{background:var(--bg-soft);box-shadow:none;}
-  .groupBody{padding:2px 10px 8px 10px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;}
-  .addItemBtn{margin:0 10px 12px 10px;text-align:left;color:var(--muted);border:1px dashed var(--border);
+  .groupBody{padding:2px 10px 8px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;}
+  .addItemBtn{margin:0 10px 12px;text-align:left;color:var(--muted);border:1px dashed var(--border);
     background:transparent;}
   .addItemBtn:hover{border-color:var(--border-strong);background:var(--bg-soft);color:var(--text);}
 
   /* background/border/border-radius come from the .Box class already on
      the element in markup - see renderCard(). Only layout/behavior here. */
-  .card{padding:10px 11px;cursor:grab;font-size:13.5px;transition:border-color .12s,box-shadow .12s;}
+  .card{padding:12px 12px;cursor:grab;font-size:13.5px;transition:border-color .12s,box-shadow .12s;}
   .card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-lift);}
   .card.dragging{opacity:.4;}
-  .card .cardTitle{font-weight:500;margin-bottom:6px;line-height:1.35;display:flex;align-items:center;}
+  .card .cardTitle{font-weight:600;margin-bottom:6px;line-height:1.38;display:flex;align-items:center;}
   .card .cardMeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
   .Label .dot{width:6px;height:6px;border-radius:50%;flex:none;margin-right:4px;}
 
@@ -189,15 +190,6 @@
   .listAddRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
   .listAddRow select{width:auto;min-width:150px;}
   .listAddRow input[type=text]{flex:1;min-width:160px;max-width:360px;}
-  .tableScroll{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);}
-  table.listTable{width:100%;border-collapse:collapse;font-size:13.5px;}
-  table.listTable th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:9px 12px;
-    border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;background:var(--bg-soft);}
-  table.listTable th:hover{color:var(--text);}
-  table.listTable th .arrow{margin-left:4px;color:var(--faint);}
-  table.listTable td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap;}
-  table.listTable tr:last-child td{border-bottom:none;}
-  table.listTable tr.rowClickable:hover{background:var(--bg-soft);cursor:pointer;}
   .rowTags{display:flex;gap:4px;flex-wrap:wrap;}
   .bulkBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;
     border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
@@ -242,10 +234,11 @@
   .calendarEvent .eventProject{font-size:10px;color:var(--muted);}
   .calendarEvent .gcalLink{font-size:10px;color:var(--accent-strong);text-decoration:none;flex:none;}
   .calendarEmpty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);}
-  .typeTabs{display:flex;border-bottom:1px solid var(--border);}
-  .typeTabs button{flex:1;padding:7px 10px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;}
+  .typeTabs{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;align-self:flex-start;}
+  .typeTabs button{padding:5px 13px;border:none;border-right:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:12.5px;font-weight:500;}
+  .typeTabs button:last-child{border-right:none;}
   .typeTabs button:hover{color:var(--text);background:var(--bg-soft);}
-  .typeTabs button.active{color:var(--accent-strong);border-bottom-color:var(--accent);background:var(--accent-soft);}
+  .typeTabs button.active{color:var(--accent-strong);background:var(--accent-soft);font-weight:600;}
 
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
@@ -262,7 +255,7 @@
   .modalRow{margin-bottom:18px;}
   .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
   #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;min-height:0;}
-  .subitemRow{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13.5px;border-radius:6px;}
+  .subitemRow{display:flex;align-items:center;gap:9px;padding:6px 8px;font-size:13.5px;border-radius:6px;}
   .subitemRow:hover{background:var(--bg-soft);}
   .subitemRow input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;}
   .subitemRow input[type=text]{flex:1;border:none;background:transparent;padding:2px;min-height:0;}
@@ -270,6 +263,45 @@
   .modalFooter{display:flex;justify-content:space-between;align-items:center;margin-top:22px;
     border-top:1px solid var(--border);padding-top:16px;gap:12px;flex-wrap:wrap;}
   .closeX{position:absolute;top:16px;right:18px;}
+
+  /* Item modal - GitHub-issue style two-pane layout: fixed header and
+     footer, with a scrollable body split into a main column (title's
+     content: description, checklist, comments) and a metadata sidebar
+     (group, type, custom fields, tags). Deliberately overrides the
+     generic [data-modal]/.modalRow sizing above, which other, simpler
+     dialogs (New project, New tag, confirmations, ...) still use as-is. */
+  #itemModal{width:860px;padding:0;display:flex;flex-direction:column;overflow:hidden;}
+  #itemModal .closeX{top:14px;right:14px;z-index:2;}
+  .itemModalHeader{flex:none;padding:18px 52px 16px 24px;border-bottom:1px solid var(--border);}
+  .itemModalHeader #itemTitleInput{width:100%;font-size:19px;font-weight:600;padding:5px 6px;min-height:0;
+    border:1px solid transparent;border-radius:6px;}
+  .itemModalHeader #itemTitleInput:hover{background:var(--bg-soft);}
+  .itemModalHeader #itemTitleInput:focus{background:var(--bg-soft);border-color:var(--border);}
+  .itemModalBody{flex:1;min-height:0;display:flex;overflow-y:auto;}
+  .itemModalMain{flex:1;min-width:0;padding:20px 24px;display:flex;flex-direction:column;gap:24px;}
+  .itemModalSidebar{width:268px;flex:none;border-left:1px solid var(--border);background:var(--bg-soft);
+    padding:20px;display:flex;flex-direction:column;gap:18px;}
+  .mainSection{display:flex;flex-direction:column;gap:9px;}
+  .mainSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .mainSectionHead .mainSectionLabel{margin:0;}
+  .mainSectionLabel{font-size:12.5px;font-weight:600;color:var(--muted);}
+  #itemDescInput{min-height:120px;}
+  .subitemsProgress{display:flex;align-items:center;gap:8px;}
+  .subitemsProgress .progressTrack{flex:1;}
+  .subitemsProgressCount{font-size:11.5px;color:var(--faint);flex:none;}
+  .progressTrack{height:6px;border-radius:4px;background:var(--bg-soft2);overflow:hidden;}
+  .progressFill{height:100%;border-radius:4px;background:var(--accent);transition:width .2s ease;}
+  .sideItem{display:flex;flex-direction:column;gap:7px;}
+  .sideItem .sideItemLabel{font-size:12px;font-weight:600;color:var(--muted);}
+  .sideItemRow2{display:flex;gap:10px;}
+  .sideItemRow2 .sideItem{flex:1;min-width:0;}
+  .itemModalFooter{flex:none;border-top:1px solid var(--border);padding:14px 24px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  @media (max-width:860px){
+    #itemModal{width:100%;max-height:94vh;}
+    .itemModalBody{flex-direction:column;overflow-y:auto;}
+    .itemModalSidebar{width:100%;border-left:none;border-top:1px solid var(--border);}
+  }
 
   /* Search results */
   #searchResults{position:absolute;top:44px;left:0;right:0;background:var(--bg);
@@ -281,7 +313,7 @@
   #searchResults .res .path{color:var(--faint);font-size:11.5px;margin-top:2px;}
   #sidebarWrap{position:relative;}
 
-  #syncBar{display:flex;align-items:center;gap:10px;padding:9px 24px;border-top:1px solid var(--border);
+  #syncBar{display:flex;align-items:center;gap:10px;padding:10px 20px;border-top:1px solid var(--border);
     font-size:12px;color:var(--muted);flex-wrap:wrap;background:var(--bg-soft);position:relative;}
   #syncBar .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none;}
   #syncBar .dot.ok{background:var(--accent);}
@@ -304,8 +336,8 @@
   .filterToggle.checkboxToggle input{accent-color:var(--accent);}
 
   /* Comments */
-  #commentsList{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
-  .commentRow{display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:8px;background:var(--bg-soft);font-size:12.5px;}
+  #commentsList{display:flex;flex-direction:column;gap:8px;margin-bottom:2px;}
+  .commentRow{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-soft);font-size:12.5px;}
   .commentRow .commentBody{flex:1;min-width:0;}
   .commentRow .commentMeta{font-size:10.5px;color:var(--faint);margin-bottom:2px;}
   .commentRow .commentText{color:var(--text);white-space:pre-wrap;word-break:break-word;}
@@ -1819,7 +1851,9 @@
     wrap.className = "listWrap";
 
     const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
-    const fieldHeaders = project.fields.map(f=>`<th data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
+    const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
+    const TD_CLASS = "p-2 border-bottom";
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS}" data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
         <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
@@ -1833,20 +1867,18 @@
         <button class="btn btn-sm" id="bulkTag">Tag</button>
         <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
       </div>
-      <div class="tableScroll">
-      <table class="listTable">
+      <table class="listTable width-full">
         <thead><tr>
-          <th class="selectCell"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
-          <th data-field="title">Title</th>
-          <th data-field="group">Group</th>
+          <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
+          <th class="${TH_CLASS}" data-field="title">Title</th>
+          <th class="${TH_CLASS}" data-field="group">Group</th>
           ${fieldHeaders}
-          <th>Tags</th>
-          <th>Progress</th>
-          <th data-field="updated">Updated</th>
+          <th class="${TH_CLASS}">Tags</th>
+          <th class="${TH_CLASS}">Progress</th>
+          <th class="${TH_CLASS}" data-field="updated">Updated</th>
         </tr></thead>
         <tbody id="listTbody"></tbody>
       </table>
-      </div>
     `;
     board.appendChild(wrap);
 
@@ -1927,15 +1959,15 @@
         const t = tagById(project, tid); if (!t) return "";
         return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
       }).join("");
-      const fieldCells = project.fields.map(f=>`<td>${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
+      const fieldCells = project.fields.map(f=>`<td class="${TD_CLASS}">${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
       return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
-        <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td>${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
-        <td>${escapeHtml(group.name)}</td>
+        <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
+        <td class="${TD_CLASS}">${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
+        <td class="${TD_CLASS}">${escapeHtml(group.name)}</td>
         ${fieldCells}
-        <td><div class="rowTags">${tagsHtml||"-"}</div></td>
-        <td>${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>
-        <td>${new Date(item.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</td>
+        <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
+        <td class="${TD_CLASS}">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>
+        <td class="${TD_CLASS}">${new Date(item.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll("tr[data-iid]").forEach(tr=>{
@@ -1958,7 +1990,9 @@
     wrap.className = "listWrap";
 
     const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
-    const fieldHeaders = project.fields.map(f=>`<th data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
+    const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
+    const TD_CLASS = "p-2 border-bottom";
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS}" data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
         <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
@@ -1972,18 +2006,16 @@
         <button class="btn btn-sm" id="bulkTag">Tag</button>
         <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
       </div>
-      <div class="tableScroll">
-      <table class="listTable">
+      <table class="listTable width-full">
         <thead><tr>
-          <th class="selectCell"><input type="checkbox" id="selectAllItems" title="Select all visible rows"></th>
-          <th data-field="title">Title</th>
-          <th data-field="group">Group</th>
+          <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible rows"></th>
+          <th class="${TH_CLASS}" data-field="title">Title</th>
+          <th class="${TH_CLASS}" data-field="group">Group</th>
           ${fieldHeaders}
-          <th>Tags</th>
+          <th class="${TH_CLASS}">Tags</th>
         </tr></thead>
         <tbody id="listTbody"></tbody>
       </table>
-      </div>
     `;
     board.appendChild(wrap);
 
@@ -2067,23 +2099,23 @@
         const val = item.values[f.id] || "";
         if (f.type==="priority"){
           const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-          return `<td><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td class="${TD_CLASS}"><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="select"){
           const opts = [{id:"",label:"None"}, ...(f.options||[])].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-          return `<td><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td class="${TD_CLASS}"><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="date"){
-          return `<td><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+          return `<td class="${TD_CLASS}"><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
         }
-        return `<td><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+        return `<td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
       }).join("");
       return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
-        <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td><input type="text" class="form-control tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
-        <td>${escapeHtml(group.name)}</td>
+        <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
+        <td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
+        <td class="${TD_CLASS}">${escapeHtml(group.name)}</td>
         ${fieldCells}
-        <td><div class="rowTags">${tagsHtml||"-"}</div></td>
+        <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll("input[data-item-select]").forEach(input=>{
@@ -2425,17 +2457,17 @@
     if (field.type==="priority"){
       const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
         `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-      return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
+      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
     }
     if (field.type==="select"){
       const opts = [{id:"",label:"None"}, ...(field.options||[])].map(o=>
         `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-      return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
+      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
     }
     if (field.type==="date"){
-      return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
+      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
     }
-    return `<div class="modalRow"><label class="Label">${escapeHtml(field.label)}</label><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
+    return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
   }
   function renderItemModal(){
     if (!openItemRef) return;
@@ -2446,10 +2478,12 @@
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
 
-    const projectOptions = isNew && openItemRef.globalNew ? `<div class="modalRow"><label class="Label">Project</label><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
+    const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
 
+    const doneSubCount = item.subitems.filter(s=>s.done).length;
+    const subPct = item.subitems.length ? Math.round(doneSubCount/item.subitems.length*100) : 0;
     const subitemsHtml = item.subitems.map(s=>`
       <div class="subitemRow ${s.done?"done":""}" data-sid="${s.id}">
         <input type="checkbox" ${s.done?"checked":""} data-action="toggleSub">
@@ -2473,66 +2507,76 @@
 
     modal.innerHTML = `
       <button class="btn btn-invisible closeX" data-action="close">✕</button>
-      <div class="modalRow">
-        <input class="form-control" type="text" id="itemTitleInput" value="${escapeHtml(item.title)}">
+      <div class="itemModalHeader">
+        <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="${escapeHtml(item.title)}">
       </div>
-      ${projectOptions}
-      <div class="modalRow">
-        <label>Group</label>
-        <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
-      </div>
-      <div class="modalGrid">
-        <div class="modalRow">
-          <label>Calendar type</label>
-          <div class="typeTabs" id="itemCalendarType">
-            <button type="button" data-calendar-type="task" class="${item.calendarType!=="event"?"active":""}">Task</button>
-            <button type="button" data-calendar-type="event" class="${item.calendarType==="event"?"active":""}">Event</button>
+      <div class="itemModalBody">
+        <div class="itemModalMain">
+          <div class="mainSection">
+            <div class="mainSectionLabel">Description</div>
+            <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
+          </div>
+          <div class="mainSection">
+            <div class="mainSectionHead">
+              <div class="mainSectionLabel">Subitems</div>
+              ${item.subitems.length ? `<span class="subitemsProgressCount">${doneSubCount}/${item.subitems.length}</span>` : ""}
+            </div>
+            ${item.subitems.length ? `<div class="progressTrack"><div class="progressFill" style="width:${subPct}%"></div></div>` : ""}
+            <div id="subitemsList">${subitemsHtml}</div>
+            <button class="btn btn-invisible btn-sm" data-action="addSub" style="align-self:flex-start;padding-left:6px;">+ Add subitem</button>
+          </div>
+          ${!isNew ? `
+          <div class="mainSection">
+            <div class="mainSectionLabel">Comments</div>
+            <div id="commentsList">${commentsHtml}</div>
+            <div style="display:flex;gap:6px;">
+              <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
+              <button class="btn btn-sm" data-action="addComment">Add</button>
+            </div>
+          </div>` : ""}
+        </div>
+        <div class="itemModalSidebar">
+          ${projectOptions}
+          <div class="sideItem">
+            <div class="sideItemLabel">Group</div>
+            <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
+          </div>
+          <div class="sideItem">
+            <div class="sideItemLabel">Type</div>
+            <div class="typeTabs" id="itemCalendarType">
+              <button type="button" data-calendar-type="task" class="${item.calendarType!=="event"?"active":""}">Task</button>
+              <button type="button" data-calendar-type="event" class="${item.calendarType==="event"?"active":""}">Event</button>
+            </div>
+          </div>
+          ${fieldsHtml}
+          <div class="sideItem">
+            <div class="sideItemLabel">Tags</div>
+            <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              ${tagChips}
+              <button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
+            </div>
+          </div>
+          <div class="sideItem">
+            <div class="sideItemLabel">Location</div>
+            <input class="form-control" type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or link">
+          </div>
+          <div class="sideItemRow2">
+            <div class="sideItem">
+              <div class="sideItemLabel">Start time</div>
+              <input class="form-control" type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}">
+            </div>
+            <div class="sideItem">
+              <div class="sideItemLabel">End time</div>
+              <input class="form-control" type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}">
+            </div>
+          </div>
+          <div class="sideItem">
+            <div class="sideItemLabel">End date</div>
+            <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}">
           </div>
         </div>
-        <div class="modalRow">
-          <label>Location</label>
-          <input class="form-control" type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or meeting link">
-        </div>
-        <div class="modalRow">
-          <label>Start time</label>
-          <input class="form-control" type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}">
-        </div>
-        <div class="modalRow">
-          <label>End time</label>
-          <input class="form-control" type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}">
-        </div>
-        <div class="modalRow">
-          <label>End date</label>
-          <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}">
-        </div>
       </div>
-      <div class="modalGrid">${fieldsHtml}</div>
-      <div class="modalRow">
-        <label>Description</label>
-        <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
-      </div>
-      <div class="modalRow">
-        <label>Tags</label>
-        <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          ${tagChips}
-          <button class="btn btn-invisible btn-sm" data-action="newTagFromItem">+ New tag</button>
-        </div>
-      </div>
-      <div class="modalRow">
-        <label>Subitems</label>
-        <div id="subitemsList">${subitemsHtml}</div>
-        <button class="btn btn-invisible btn-sm" data-action="addSub" style="margin-top:4px;padding-left:2px;">+ Add subitem</button>
-      </div>
-      ${!isNew ? `
-      <div class="modalRow">
-        <label>Comments</label>
-        <div id="commentsList">${commentsHtml}</div>
-        <div style="display:flex;gap:6px;">
-          <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
-          <button class="btn btn-sm" data-action="addComment">Add</button>
-        </div>
-      </div>` : ""}
-      <div class="modalFooter">
+      <div class="itemModalFooter">
         <div style="display:flex;gap:8px;">
           ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Create item</button>` : `
             <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>
