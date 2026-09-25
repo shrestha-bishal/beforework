@@ -2264,6 +2264,34 @@
     return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
       start:{date:entry.date}, end:{date:endDate}};
   }
+  function googleEventDate(event, key){
+    const value = event[key]?.date || event[key]?.dateTime || "";
+    return value.slice(0,10);
+  }
+  function googleEventTime(event, key){
+    const value = event[key]?.dateTime || "";
+    return value.slice(11,16);
+  }
+  function applyGoogleEventToItem(entry, event){
+    const startDate = googleEventDate(event, "start");
+    const eventEnd = googleEventDate(event, "end");
+    let endDate = eventEnd;
+    if (event.end?.date && eventEnd){
+      const exclusiveEnd = new Date(`${eventEnd}T00:00:00`);
+      exclusiveEnd.setDate(exclusiveEnd.getDate()-1);
+      endDate = calendarDateKey(exclusiveEnd);
+    }
+    if (event.summary) entry.item.title = event.summary;
+    entry.item.description = String(event.description||"").split("\n")
+      .filter(line=>!line.startsWith("Project: ") && !line.startsWith("Group: ")).join("\n").trim();
+    entry.item.location = event.location || "";
+    entry.item.startTime = googleEventTime(event, "start");
+    entry.item.endTime = googleEventTime(event, "end");
+    if (entry.field.id === "__schedule__") entry.item.endDate = endDate || startDate;
+    else entry.item.values[entry.field.id] = startDate;
+    entry.item.endDate = endDate || startDate;
+    entry.item.updatedAt = Date.now();
+  }
   async function syncGoogleCalendar(scopeProject){
     if (!googleAccessToken || googleSyncInFlight) return;
     googleSyncInFlight = true;
@@ -2278,19 +2306,38 @@
       }
       for (const entry of entries){
         entry.item.googleEventIds = entry.item.googleEventIds || {};
+        entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
         const key = `${entry.project.id}:${entry.field.id}`;
         const eventId = entry.item.googleEventIds[key];
-        const body = googleEventBody(entry);
-        try{
-          const saved = eventId
-            ? await googleCalendarRequest(`/calendars/primary/events/${encodeURIComponent(eventId)}`, {method:"PATCH",body:JSON.stringify(body)})
-            : await googleCalendarRequest("/calendars/primary/events", {method:"POST",body:JSON.stringify(body)});
-          entry.item.googleEventIds[key] = saved.id;
-        }catch(error){
-          if (error.status!==404) throw error;
-          const saved = await googleCalendarRequest("/calendars/primary/events", {method:"POST",body:JSON.stringify(body)});
-          entry.item.googleEventIds[key] = saved.id;
+        const previous = entry.item.googleSyncMeta[key] || null;
+        let remote = null;
+        if (eventId){
+          try{
+            remote = await googleCalendarRequest(`/calendars/primary/events/${encodeURIComponent(eventId)}`);
+          }catch(error){
+            if (error.status!==404) throw error;
+            delete entry.item.googleEventIds[key];
+          }
         }
+        if (remote && previous){
+          const remoteChanged = Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"");
+          const localChanged = Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
+          const remoteTime = Date.parse(remote.updated||"") || 0;
+          if (remoteChanged && (!localChanged || remoteTime >= Number(entry.item.updatedAt||0))){
+            applyGoogleEventToItem(entry, remote);
+          }
+        }
+        const body = googleEventBody(entry);
+        let saved;
+        if (remote && !(previous && Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"") && Number(entry.item.updatedAt||0) <= Number(previous.localUpdatedAt||0))){
+          saved = await googleCalendarRequest(`/calendars/primary/events/${encodeURIComponent(remote.id)}`, {method:"PATCH",body:JSON.stringify(body)});
+        } else if (remote){
+          saved = remote;
+        } else {
+          saved = await googleCalendarRequest("/calendars/primary/events", {method:"POST",body:JSON.stringify(body)});
+        }
+        entry.item.googleEventIds[key] = saved.id;
+        entry.item.googleSyncMeta[key] = {googleUpdatedAt:saved.updated||remote?.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt||Date.now()};
       }
       scheduleSave();
       if (button) button.textContent = `Synced ${entries.length} event${entries.length===1?"":"s"}`;
