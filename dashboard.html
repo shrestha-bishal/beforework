@@ -674,12 +674,8 @@
   }
 
   function addProject(name){
-    const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
-    const due = {id:uid(), label:"Due date", type:"date", options:[]};
-    const p = {id:uid(), name, createdAt:Date.now(), tags:[], fields:[pr,due], groups:[
-      {id:uid(), name:"To do", items:[]},
-      {id:uid(), name:"Doing", items:[]},
-      {id:uid(), name:"Done", items:[]},
+    const p = {id:uid(), name, createdAt:Date.now(), tags:[], fields:[], groups:[
+      {id:uid(), name:"Items", items:[]}
     ]};
     state.projects.push(p);
     activeProjectId = p.id;
