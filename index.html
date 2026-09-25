@@ -257,6 +257,10 @@
   .modalRow label{font-size:12px;font-weight:600;color:var(--muted);}
   .modalRow .form-control{width:100%;}
   .dialogMessage{margin:-8px 0 22px;color:var(--muted);font-size:13px;line-height:1.5;}
+  .googleCalendarChoices{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto;}
+  .googleCalendarChoice{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;}
+  .googleCalendarChoice:hover{background:var(--bg-soft);border-color:var(--border-strong);}
+  .googleCalendarChoice input{accent-color:var(--accent);width:15px;height:15px;flex:none;}
   .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
   #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;min-height:0;}
   .subitemRow{display:flex;align-items:center;gap:9px;padding:6px 8px;font-size:13.5px;border-radius:6px;}
@@ -2228,6 +2232,7 @@
         googleAccessToken = response.access_token;
         updateGoogleCalendarButtons();
         if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject);
+        if (googleTokenPurpose==="manage") openGoogleCalendarManager();
       }
     });
     return true;
@@ -2250,6 +2255,55 @@
       throw error;
     }
     return response.status===204 ? null : response.json();
+  }
+  function linkedGoogleCalendarIds(){
+    if (!Array.isArray(state.googleCalendarLinks)) state.googleCalendarLinks = [];
+    return state.googleCalendarLinks;
+  }
+  async function googleCalendarList(){
+    const calendars = [];
+    let pageToken = "";
+    do{
+      const query = new URLSearchParams({minAccessRole:"writer",maxResults:"250"});
+      if (pageToken) query.set("pageToken", pageToken);
+      const result = await googleCalendarRequest(`/users/me/calendarList?${query.toString()}`);
+      calendars.push(...(result.items||[]));
+      pageToken = result.nextPageToken || "";
+    }while(pageToken);
+    return calendars;
+  }
+  async function openGoogleCalendarManager(){
+    try{
+      const calendars = await googleCalendarList();
+      const linked = new Set(linkedGoogleCalendarIds());
+      const overlay = document.createElement("div");
+      overlay.className = "overlay";
+      overlay.id = "googleCalendarOverlay";
+      overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
+        <button class="btn btn-invisible closeX" data-google-cancel aria-label="Close">✕</button>
+        <h3>Link Google calendars</h3>
+        <p class="dialogMessage">Choose one or more calendars for Beforework to sync. Unlinking stops future syncs but does not delete Google events.</p>
+        <div class="googleCalendarChoices">${calendars.length ? calendars.map(calendar=>`
+          <label class="googleCalendarChoice"><input type="checkbox" value="${escapeHtml(calendar.id)}" ${linked.has(calendar.id)?"checked":""}>
+            <span><strong>${escapeHtml(calendar.summary||calendar.id)}</strong>${calendar.primary?" <span class=\"color-fg-muted\">(primary)</span>":""}</span>
+          </label>`).join("") : `<div class="commentEmpty">No writable Google calendars found.</div>`}</div>
+        <div class="modalFooter"><button class="btn btn-invisible" data-google-cancel>Cancel</button><button class="btn btn-primary btn-sm" data-google-save>Save links</button></div>
+      </div>`;
+      document.body.appendChild(overlay);
+      const finish = save => {
+        if (save){
+          state.googleCalendarLinks = [...overlay.querySelectorAll("input[type=checkbox]:checked")].map(input=>input.value);
+          scheduleSave();
+          renderMain();
+        }
+        overlay.remove();
+      };
+      overlay.querySelectorAll("[data-google-cancel]").forEach(button=>button.onclick=()=>finish(false));
+      overlay.querySelector("[data-google-save]").onclick = () => finish(true);
+      overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(false); });
+    }catch(error){
+      await showNotice("Google Calendar", "Could not load your writable calendars. Connect Google Calendar again and approve calendar access.");
+    }
   }
   function googleEventBody(entry){
     const details = [entry.item.description, `Project: ${entry.project.name}`, `Group: ${entry.group.name}`].filter(Boolean).join("\n");
@@ -2304,47 +2358,61 @@
         await showNotice("Nothing to sync", "Add a project date or a Schedule end date to an item first. A time without a date is not enough to create a Google Calendar event.");
         return;
       }
-      for (const entry of entries){
-        entry.item.googleEventIds = entry.item.googleEventIds || {};
-        entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
-        const key = `${entry.project.id}:${entry.field.id}`;
-        const eventId = entry.item.googleEventIds[key];
-        const previous = entry.item.googleSyncMeta[key] || null;
-        let remote = null;
-        if (eventId){
-          try{
-            remote = await googleCalendarRequest(`/calendars/primary/events/${encodeURIComponent(eventId)}`);
-          }catch(error){
-            if (error.status!==404) throw error;
-            delete entry.item.googleEventIds[key];
+      const calendarIds = linkedGoogleCalendarIds();
+      if (!calendarIds.length){
+        if (button) button.textContent = "Link a calendar";
+        await showNotice("No Google calendars linked", "Choose Link calendars first, then select one or more writable Google calendars.");
+        return;
+      }
+      for (const calendarId of calendarIds){
+        for (const entry of entries){
+          entry.item.googleEventIds = entry.item.googleEventIds || {};
+          entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
+          const key = `${calendarId}:${entry.project.id}:${entry.field.id}`;
+          const legacyKey = `${entry.project.id}:${entry.field.id}`;
+          const eventId = entry.item.googleEventIds[key] || (calendarId==="primary" ? entry.item.googleEventIds[legacyKey] : "");
+          const previous = entry.item.googleSyncMeta[key] || null;
+          let remote = null;
+          if (eventId){
+            try{
+              remote = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`);
+            }catch(error){
+              if (error.status!==404) throw error;
+              delete entry.item.googleEventIds[key];
+            }
           }
-        }
-        if (remote && previous){
-          const remoteChanged = Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"");
-          const localChanged = Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
-          const remoteTime = Date.parse(remote.updated||"") || 0;
-          if (remoteChanged && (!localChanged || remoteTime >= Number(entry.item.updatedAt||0))){
-            applyGoogleEventToItem(entry, remote);
+          if (remote && previous){
+            const remoteChanged = Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"");
+            const localChanged = Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
+            const remoteTime = Date.parse(remote.updated||"") || 0;
+            if (remoteChanged && (!localChanged || remoteTime >= Number(entry.item.updatedAt||0))){
+              applyGoogleEventToItem(entry, remote);
+            }
           }
+          const body = googleEventBody(entry);
+          let saved;
+          if (remote && !(previous && Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"") && Number(entry.item.updatedAt||0) <= Number(previous.localUpdatedAt||0))){
+            saved = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(remote.id)}`, {method:"PATCH",body:JSON.stringify(body)});
+          } else if (remote){
+            saved = remote;
+          } else {
+            saved = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events`, {method:"POST",body:JSON.stringify(body)});
+          }
+          entry.item.googleEventIds[key] = saved.id;
+          entry.item.googleSyncMeta[key] = {googleUpdatedAt:saved.updated||remote?.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt||Date.now()};
         }
-        const body = googleEventBody(entry);
-        let saved;
-        if (remote && !(previous && Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"") && Number(entry.item.updatedAt||0) <= Number(previous.localUpdatedAt||0))){
-          saved = await googleCalendarRequest(`/calendars/primary/events/${encodeURIComponent(remote.id)}`, {method:"PATCH",body:JSON.stringify(body)});
-        } else if (remote){
-          saved = remote;
-        } else {
-          saved = await googleCalendarRequest("/calendars/primary/events", {method:"POST",body:JSON.stringify(body)});
-        }
-        entry.item.googleEventIds[key] = saved.id;
-        entry.item.googleSyncMeta[key] = {googleUpdatedAt:saved.updated||remote?.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt||Date.now()};
       }
       scheduleSave();
-      if (button) button.textContent = `Synced ${entries.length} event${entries.length===1?"":"s"}`;
+      if (button) button.textContent = `Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`;
     }catch(error){
       if (error.status===401) googleAccessToken = null;
       if (button) button.textContent = "Connect Google Calendar";
-      await showNotice("Google Calendar sync failed", "Google rejected the sync request. Connect again and make sure Calendar access was approved.");
+      let detail = "Google rejected the sync request.";
+      try{
+        const payload = JSON.parse(error.detail || "{}");
+        detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
+      }catch(parseError){ }
+      await showNotice("Google Calendar sync failed", `${detail} Connect again and make sure Calendar access was approved.`);
     }finally{
       googleSyncInFlight = false;
       if (button) button.disabled = false;
@@ -2358,6 +2426,15 @@
     }
     if (googleAccessToken){ syncGoogleCalendar(scopeProject); return; }
     googleTokenPurpose = "sync";
+    googleTokenClient.requestAccessToken({prompt:"consent"});
+  }
+  function manageGoogleCalendars(){
+    if (!googleTokenClient && !initGoogleCalendarAuth()){
+      showNotice("Google Calendar unavailable", "The Google authentication library has not loaded yet. Refresh the page and try again.");
+      return;
+    }
+    if (googleAccessToken){ openGoogleCalendarManager(); return; }
+    googleTokenPurpose = "manage";
     googleTokenClient.requestAccessToken({prompt:"consent"});
   }
   function calendarDateKey(date){
@@ -2447,6 +2524,7 @@
       <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
       <button class="btn btn-sm" data-calendar-action="new">+ New</button>
       <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
+      ${scopeProject ? "" : `<button class="btn btn-sm" data-calendar-action="manageGoogle">Link calendars</button>`}
       ${scopeProject ? "" : `<button class="btn btn-sm btn-invisible" data-calendar-action="google">Connect Google Calendar</button>`}
     </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
     updateGoogleCalendarButtons();
@@ -2455,6 +2533,8 @@
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
+    const manageGoogleButton = wrap.querySelector('[data-calendar-action="manageGoogle"]');
+    if (manageGoogleButton) manageGoogleButton.onclick = manageGoogleCalendars;
     const googleButton = wrap.querySelector('[data-calendar-action="google"]');
     if (googleButton) googleButton.onclick = () => connectGoogleCalendar(null);
     wrap.querySelectorAll(".calendarDay").forEach(day=>{
