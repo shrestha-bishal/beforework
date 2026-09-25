@@ -3,11 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-<title>Dashboard</title>
+<meta name="description" content="Beforework - a project dashboard that saves straight to a JSON file you control. No account, no server, your data stays on your device.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+<title>Beforework</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6f54'/%3E%3Crect x='27' y='27' width='46' height='46' rx='9' fill='white' fill-opacity='.9'/%3E%3C/svg%3E">
+<!-- Tailwind CDN (utility classes available alongside the app's existing CSS-variable design system) -->
+<script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  Netlify Identity is optional and pluggable (see the "Auth" section in the
+  script below) - if this fails to load or errors, #authBar just stays
+  hidden and the rest of the app is unaffected. crossorigin is set so the
+  browser enforces CORS on the fetch; add an integrity="sha384-..." hash
+  here too if you want to pin this to a known-good build of the script.
+  If you don't use Netlify Identity at all, just delete this line.
+-->
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js" crossorigin="anonymous"></script>
 <style>
   :root{
     --bg:#ffffff; --bg-soft:#f7f7f8; --bg-soft2:#eef0f1;
@@ -163,7 +176,7 @@
   .group{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);
     width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;}
   .group.dragover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
-  .groupHead{display:flex;align-items:center;gap:6px;padding:12px 10px 8px 12px;}
+  .groupHead{display:flex;align-items:center;gap:6px;padding:12px 12px 8px 12px;}
   .groupHead input.groupTitle{background:transparent;border:1px solid transparent;font-weight:600;font-size:13.5px;
     flex:1;padding:3px 6px;color:var(--text);border-radius:6px;}
   .groupHead input.groupTitle:hover{background:var(--bg-soft);}
@@ -386,13 +399,12 @@
     .iconBtn{display:inline-flex;}
     #sidebarCollapseHandle{display:none;}
     #topbar{padding:14px 16px 12px 16px;}
-    #boardFilterBar{padding:0 16px 12px 16px;}
-    #boardFilterBar{padding-top:10px;}
+    #boardFilterBar{padding:10px 16px 12px 16px;}
     .filterLead{width:100%;}
     .filterControls{min-width:100%;}
     #clearBoardFilters{margin-left:0;}
     #board{padding:14px 16px;}
-    .listWrap,.overviewWrap{padding:16px;}
+    .listWrap,.overviewWrap,.calendarWrap{padding:16px;}
     .statGrid{grid-template-columns:repeat(2,1fr);}
     #boardSearch{width:100%;order:1;}
     #syncBar{padding:9px 16px;}
@@ -407,8 +419,8 @@
 <body>
 <div id="connectGate">
   <div class="modal modalWrap">
-    <h3>Connect your dashboard file</h3>
-    <p>This dashboard reads from and saves directly to a JSON file on your device — there's no separate copy kept in the browser, so that file is always the single source of truth. Connect one to get started.</p>
+    <h3>Connect your Beforework file</h3>
+    <p>Beforework reads from and saves directly to a JSON file on your device - there's no separate copy kept in the browser, so that file is always the single source of truth. Connect one to get started.</p>
     <div id="gateReconnectRow" style="display:none;">
       <div>Reconnect to <strong id="gateFileName"></strong>?</div>
       <button class="btn small primary" id="gateReconnectBtn">Reconnect</button>
@@ -418,7 +430,7 @@
       <button class="btn" id="gateOpenBtn">Open existing file</button>
     </div>
     <div id="gateUnsupported" style="display:none;">
-      <p>This browser doesn't support connecting directly to a local file (that needs Chrome, Edge, or another Chromium-based browser). Switch to one of those browsers to use this dashboard.</p>
+      <p>This browser doesn't support connecting directly to a local file (that needs Chrome, Edge, or another Chromium-based browser). Switch to one of those browsers to use Beforework.</p>
     </div>
     <div id="gateLegacyRow" style="display:none;">
       <div>Found data saved in this browser from an earlier version. Move it into a file?</div>
@@ -431,7 +443,7 @@
   <div id="sidebarScrim"></div>
   <div id="sidebar">
     <div id="sidebarWrap">
-      <h1><span class="mark"></span>Dashboard<button class="btn ghost small" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button></h1>
+      <h1><span class="mark"></span>Beforework<button class="btn ghost small" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button></h1>
       <div class="searchWrap">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="globalSearch" type="text" placeholder="Search everything">
@@ -636,7 +648,7 @@
      Authentication is entirely additive here: if no provider is available
      (script blocked, feature not enabled on this deployment, offline, or a
      future provider isn't configured), #authBar just stays hidden and the
-     app works exactly as it always has — nothing below gates storage or
+     app works exactly as it always has - nothing below gates storage or
      any feature.
 
      To add another provider later (Auth0, Supabase, Clerk, a custom
@@ -670,7 +682,7 @@
       netlifyIdentity.on("login", user => { settled = true; onChange(user || null); netlifyIdentity.close(); });
       netlifyIdentity.on("logout", () => { onChange(null); });
       // If this deployment isn't actually wired up to Netlify Identity, the
-      // widget can error out instead of ever firing "init" — treat that as
+      // widget can error out instead of ever firing "init" - treat that as
       // "not configured" and fall back to normal, auth-less operation.
       netlifyIdentity.on("error", () => { if (!settled) disableAuthUI(); });
       netlifyIdentity.init();
@@ -712,7 +724,7 @@
         activeAuthProvider = provider;
         provider.init(user => { currentAuthUser = user; renderAuthUI(); });
         return; // first available provider wins
-      }catch(err){ /* this provider isn't usable in this environment — try the next one */ }
+      }catch(err){ /* this provider isn't usable in this environment - try the next one */ }
     }
     // No provider available: #authBar stays hidden (its default state),
     // and the rest of the app is completely unaffected.
@@ -724,7 +736,7 @@
     if (!disp) return;
     const m = Math.floor(focusSeconds/60), s = focusSeconds%60;
     disp.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-    document.title = focusInterval ? `${disp.textContent} · Dashboard` : "Dashboard";
+    document.title = focusInterval ? `${disp.textContent} · Beforework` : "Beforework";
   }
   function startFocusTimer(){
     if (focusInterval || focusSeconds<=0) return;
@@ -799,7 +811,7 @@
       tags:[t1,t2], fields:[pr,due], views:proj1Views, activeViewId:proj1Views[0].id, itemDefaultType:"task",
       groups:[
         {id:uid(), name:"To do", items:[
-          {id:uid(), title:"This is a card — click to open it",
+          {id:uid(), title:"This is a card - click to open it",
            description:"Add notes here. Search everything from the sidebar, drag cards between groups, switch between List and Board, and add columns that fit this project from the Columns button above.",
            calendarType:"task", startTime:"", endTime:"", location:"", endDate:"",
            tagIds:[t1.id], values:{[pr.id]:"medium",[due.id]:todayStr(2)},
@@ -830,14 +842,14 @@
   /* ---------- Schema migrations ----------
      Every saved file carries a schemaVersion. On load we walk it forward
      one step at a time through MIGRATIONS until it reaches SCHEMA_VERSION.
-     Each step assumes its input is exactly the previous version's shape —
+     Each step assumes its input is exactly the previous version's shape -
      rules:
        1. Never delete a property here. If a field is retired, just stop
           reading it in the app; leave it sitting in the JSON so an
           incorrect migration can still be recovered from.
        2. Keep steps small and defensive (Array.isArray / ?? guards) so a
           hand-edited or partially-corrupt import doesn't throw.
-       3. Once shipped, a step's body doesn't change — add a new step
+       3. Once shipped, a step's body doesn't change - add a new step
           instead of editing an old one. */
   const MIGRATIONS = {
     // v0 (unversioned / legacy) -> v1: global tags + fixed priority/dueDate
@@ -916,13 +928,13 @@
     if (version < SCHEMA_VERSION){
       // One safety-net backup per load, taken before any step runs, so a
       // bad migration can always be undone from the sync menu.
-      try{ localStorage.setItem(MIGRATION_BACKUP_KEY, JSON.stringify({savedAt:Date.now(), fromVersion:version, data:raw})); }catch(err){/* storage full — proceed anyway */}
+      try{ localStorage.setItem(MIGRATION_BACKUP_KEY, JSON.stringify({savedAt:Date.now(), fromVersion:version, data:raw})); }catch(err){/* storage full - proceed anyway */}
     }
     let s = raw;
     while (version < SCHEMA_VERSION){
       version += 1;
       const step = MIGRATIONS[version];
-      if (!step) break; // no step registered for this gap — leave state as-is rather than throw
+      if (!step) break; // no step registered for this gap - leave state as-is rather than throw
       s = step(s);
     }
     s.schemaVersion = SCHEMA_VERSION;
@@ -933,9 +945,9 @@
     if (!lastMigrationInfo) return;
     const info = lastMigrationInfo;
     lastMigrationInfo = null;
-    await showNotice("Dashboard data upgraded",
-      `This file was saved by an older version of the dashboard (format v${info.fromVersion}) and has been upgraded to the current format (v${info.toVersion}). `+
-      `A copy of the pre-upgrade data was saved automatically — use "Restore pre-upgrade backup" in the storage menu (⋮ at the bottom) if anything looks off.`);
+    await showNotice("Beforework data upgraded",
+      `This file was saved by an older version of Beforework (format v${info.fromVersion}) and has been upgraded to the current format (v${info.toVersion}). `+
+      `A copy of the pre-upgrade data was saved automatically - use "Restore pre-upgrade backup" in the storage menu (⋮ at the bottom) if anything looks off.`);
   }
 
   function hasMigrationBackup(){
@@ -956,7 +968,7 @@
 
   /* ---------- Persistence ---------- */
   // LEGACY_LS_KEY is only read once, to offer moving old browser-only data
-  // into a real file. It's never written to again — the connected file is
+  // into a real file. It's never written to again - the connected file is
   // the single source of truth from here on.
   const LEGACY_LS_KEY = "personal_dashboard_state_v2";
   const FILTER_KEY = "personal_dashboard_filters_v1";
@@ -998,7 +1010,7 @@
 
   // The connected file is the only place data lives. If it isn't connected
   // yet (or the write fails), we deliberately do NOT fall back to writing a
-  // copy into localStorage — that would create a second source of truth
+  // copy into localStorage - that would create a second source of truth
   // that could silently drift from the file.
   function scheduleSave(){
     if (!fileHandle) return;
@@ -1020,7 +1032,7 @@
       await writable.close();
       setSyncStatus("ok", "Saved to " + fileHandle.name);
     }catch(err){
-      setSyncStatus("err", "Couldn't save to file (" + err.message + ") — your changes are still in memory, try reconnecting the file");
+      setSyncStatus("err", "Couldn't save to file (" + err.message + ") - your changes are still in memory, try reconnecting the file");
     }
   }
 
@@ -1032,7 +1044,7 @@
 
   // Called once at boot. Tries to silently resume the last-connected file
   // using the handle stashed in IndexedDB (the handle itself, not the
-  // data — see idbGet/idbSet). If permission needs to be re-granted, that
+  // data - see idbGet/idbSet). If permission needs to be re-granted, that
   // requires a user gesture, so we just flag it for the connect gate.
   async function tryReconnectFile(){
     if (!("showOpenFilePicker" in window)) return false;
@@ -1070,7 +1082,7 @@
   async function createNewFile(){
     if (!("showSaveFilePicker" in window)) return;
     try{
-      const opts = {types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}], suggestedName:"dashboard-data.json"};
+      const opts = {types:[{description:"Beforework data", accept:{"application/json":[".json"]}}], suggestedName:"beforework-data.json"};
       const handle = await window.showSaveFilePicker(opts);
       const perm = await handle.requestPermission({mode:"readwrite"});
       if (perm !== "granted") return;
@@ -1088,12 +1100,12 @@
   async function openExistingFile(){
     if (!("showOpenFilePicker" in window)) return;
     try{
-      const [handle] = await window.showOpenFilePicker({types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}]});
+      const [handle] = await window.showOpenFilePicker({types:[{description:"Beforework data", accept:{"application/json":[".json"]}}]});
       const perm = await handle.requestPermission({mode:"readwrite"});
       if (perm !== "granted"){ showNotice("Permission needed", "Read-write access is required so changes can be saved back to this file."); return; }
       let loaded;
       try{ loaded = await loadFromHandle(handle); }
-      catch(err){ showNotice("Couldn't read that file", "This doesn't look like a dashboard JSON file: " + err.message); return; }
+      catch(err){ showNotice("Couldn't read that file", "This doesn't look like an Beforework JSON file: " + err.message); return; }
       fileHandle = handle;
       await idbSet("fileHandle", handle);
       state = loaded;
@@ -1105,11 +1117,11 @@
   }
 
   async function switchFile(){
-    if (!await showConfirm("Open a different file", "This switches the whole dashboard to another file. Your current file keeps whatever was last saved to it.")) return;
+    if (!await showConfirm("Open a different file", "This switches the whole workspace to another file. Your current file keeps whatever was last saved to it.")) return;
     await openExistingFile();
   }
   async function startNewFileFromMenu(){
-    if (!await showConfirm("Create a new file", "This starts a brand-new, empty dashboard in a new file. Your current file is left untouched.")) return;
+    if (!await showConfirm("Create a new file", "This starts a brand-new, empty workspace in a new file. Your current file is left untouched.")) return;
     await createNewFile();
   }
 
@@ -1124,7 +1136,7 @@
     try{ parsed = migrateState(JSON.parse(raw)); }
     catch(err){ showNotice("Couldn't read old data", "The data previously saved in this browser looks corrupted: " + err.message); return; }
     try{
-      const opts = {types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}], suggestedName:"dashboard-data.json"};
+      const opts = {types:[{description:"Beforework data", accept:{"application/json":[".json"]}}], suggestedName:"beforework-data.json"};
       const handle = await window.showSaveFilePicker(opts);
       const perm = await handle.requestPermission({mode:"readwrite"});
       if (perm !== "granted") return;
@@ -1142,7 +1154,7 @@
   }
 
   /* ---------- Connect gate ---------- */
-  // Nothing in the app is usable until a file is connected — there is no
+  // Nothing in the app is usable until a file is connected - there is no
   // in-memory-only or browser-storage-only mode. This keeps the file the
   // one and only source of truth at all times.
   function showConnectGate(){
@@ -1173,18 +1185,18 @@
     const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "dashboard-data.json";
+    a.download = "beforework-data.json";
     a.click();
     URL.revokeObjectURL(a.href);
   }
 
   function importJSON(file){
-    if (!fileHandle){ showNotice("Connect a file first", "Import replaces the data in your connected file — connect or create one first."); return; }
+    if (!fileHandle){ showNotice("Connect a file first", "Import replaces the data in your connected file - connect or create one first."); return; }
     const reader = new FileReader();
     reader.onload = async () => {
       try{
         const parsed = JSON.parse(reader.result);
-        if (!parsed.projects) throw new Error("not a dashboard file");
+        if (!parsed.projects) throw new Error("not an Beforework file");
         state = migrateState(parsed);
         lastSavedState = null;
         undoStack.length = 0;
@@ -1467,14 +1479,14 @@
   function fieldCellHtml(field, value){
     if (field.type==="priority"){
       const opt = PRIORITY_OPTIONS.find(o=>o.id===value);
-      return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "—";
+      return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "-";
     }
-    if (field.type==="date") return value ? duePillHtml(value) : "—";
+    if (field.type==="date") return value ? duePillHtml(value) : "-";
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value);
-      return opt ? fieldChipHtml(field,value) : "—";
+      return opt ? fieldChipHtml(field,value) : "-";
     }
-    return value ? escapeHtml(value) : "—";
+    return value ? escapeHtml(value) : "-";
   }
 
   function itemMatchesFilter(project, item){
@@ -1655,7 +1667,7 @@
     wrap.querySelectorAll("[data-remove-view]").forEach(x=>{
       x.onclick = async (e) => {
         e.stopPropagation();
-        if (await showConfirm("Remove this view", "This only removes the tab — your items and their data are unaffected.")) removeView(project, x.dataset.removeView);
+        if (await showConfirm("Remove this view", "This only removes the tab - your items and their data are unaffected.")) removeView(project, x.dataset.removeView);
       };
     });
     const addViewBtn = document.getElementById("addViewBtn");
@@ -1826,7 +1838,7 @@
     wrap.innerHTML = `
       <div class="listAddRow">
         <select id="quickAddGroup">${groupOptionsHtml}</select>
-        <input type="text" id="quickAddTitle" placeholder="New item title — press Enter to add">
+        <input type="text" id="quickAddTitle" placeholder="New item title - press Enter to add">
         <button class="btn small primary" id="quickAddBtn">+ Add</button>
       </div>
       <div class="bulkBar">
@@ -1936,8 +1948,8 @@
         <td>${item.archived?`<span class="archivedBadge" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
         <td>${escapeHtml(group.name)}</td>
         ${fieldCells}
-        <td><div class="rowTags">${tagsHtml||"—"}</div></td>
-        <td>${item.subitems.length? doneSub+"/"+item.subitems.length : "—"}</td>
+        <td><div class="rowTags">${tagsHtml||"-"}</div></td>
+        <td>${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>
         <td>${new Date(item.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</td>
       </tr>`;
     }).join("");
@@ -1965,7 +1977,7 @@
     wrap.innerHTML = `
       <div class="listAddRow">
         <select id="quickAddGroup">${groupOptionsHtml}</select>
-        <input type="text" id="quickAddTitle" placeholder="New row title — press Enter to add">
+        <input type="text" id="quickAddTitle" placeholder="New row title - press Enter to add">
         <button class="btn small primary" id="quickAddBtn">+ Add row</button>
       </div>
       <div class="bulkBar">
@@ -2086,7 +2098,7 @@
         <td><input type="text" class="tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
         <td>${escapeHtml(group.name)}</td>
         ${fieldCells}
-        <td><div class="rowTags">${tagsHtml||"—"}</div></td>
+        <td><div class="rowTags">${tagsHtml||"-"}</div></td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll("input[data-item-select]").forEach(input=>{
@@ -2150,10 +2162,10 @@
   }
   function exportCalendarIcs(scopeProject){
     const events = calendarEntries(scopeProject);
-    const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Projectify//Calendar//EN"];
+    const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Beforework//Calendar//EN"];
     events.forEach(entry=>{
       lines.push("BEGIN:VEVENT");
-      lines.push(`UID:${entry.item.id}-${entry.field.id}@projectify.local`);
+      lines.push(`UID:${entry.item.id}-${entry.field.id}@beforework.local`);
       lines.push(`DTSTAMP:${calendarDateCode(todayStr(0))}T000000Z`);
       if (entry.item.startTime && entry.item.endTime){
         lines.push(`DTSTART:${calendarDateCode(entry.date)}T${entry.item.startTime.replace(":","")}00`);
@@ -2345,7 +2357,7 @@
       ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
       ${priorityBreakdownHtml()}
       ${projectBreakdownHtml()}
-      ${section("Recently updated", recent, false, "Nothing yet — add a project to get started.")}
+      ${section("Recently updated", recent, false, "Nothing yet - add a project to get started.")}
     `;
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
       el.onclick = () => {
@@ -2885,7 +2897,7 @@
   /* ---------- Boot ----------
      There is no in-memory-only or browser-storage-only mode: the connected
      file is the single source of truth. Boot either silently resumes the
-     last-connected file, or shows the connect gate and waits — it never
+     last-connected file, or shows the connect gate and waits - it never
      falls back to a default or previously-legacy-saved workspace on its
      own, since that would let the app "work" without ever settling on one
      file. Auth (if a provider is available) is initialized independently
@@ -2895,7 +2907,7 @@
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
-    initAuth(); // no-op / stays hidden if no provider is available — see "Auth" section above
+    initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     const reconnected = await tryReconnectFile();
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     if (reconnected){
