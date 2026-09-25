@@ -2379,7 +2379,7 @@
     const events = [];
     let pageToken = "";
     do{
-      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500",orderBy:"updated"});
+      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500"});
       if (pageToken) query.set("pageToken", pageToken);
       const result = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`);
       events.push(...(result.items||[]));
