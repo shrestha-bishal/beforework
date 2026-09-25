@@ -34,7 +34,7 @@
     --accent:var(--color-accent-emphasis); --accent-strong:var(--color-accent-fg); --accent-soft:var(--color-accent-subtle);
     --danger:var(--color-danger-fg); --danger-soft:var(--color-danger-subtle);
     --warn:var(--color-attention-fg); --warn-soft:var(--color-attention-subtle);
-    --radius:6px; --radius-lg:12px;
+    --radius:var(--borderRadius-medium, 6px); --radius-lg:var(--borderRadius-large, 12px);
     --shadow-lift:var(--color-shadow-small);
     --shadow-modal:var(--color-shadow-large);
     --shadow-side:2px 0 10px rgba(27,31,36,.08);
@@ -58,12 +58,7 @@
     accent-color: var(--color-accent-emphasis);
   }
 
-  /* ---------- Buttons ----------
-     .btn / .btn-primary / .btn-danger / .btn-invisible / .btn-sm are
-     Primer's real component classes, loaded from the CDN above - nothing
-     to define here. Only the app's own icon button is custom. */
-  .iconBtn{display:none;background:transparent;border:1px solid var(--border);border-radius:7px;
-    width:32px;height:32px;align-items:center;justify-content:center;flex:none;color:var(--text);}
+  .iconBtn{display:none;}
 
   #app{display:flex;height:100vh;overflow:hidden;}
 
@@ -98,13 +93,14 @@
   #calendarNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
 
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
-  #projectList li{display:flex;align-items:center;justify-content:space-between;
-    padding:7px 9px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--muted);}
-  #projectList li:hover{background:var(--bg-soft2);color:var(--text);}
-  #projectList li.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #projectList li .cnt{font-size:11.5px;color:var(--faint);font-weight:400;}
-  #projectList li.active .cnt{color:var(--accent);}
-  #projectList li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectList .SideNav-item{display:flex;align-items:center;justify-content:space-between;
+    padding:7px 9px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--muted);
+    background:transparent;border:none;width:100%;text-align:left;}
+  #projectList .SideNav-item:hover{background:var(--bg-soft2);color:var(--text);}
+  #projectList .SideNav-item.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #projectList .SideNav-item .cnt{font-size:11.5px;color:var(--faint);font-weight:400;}
+  #projectList .SideNav-item.active .cnt{color:var(--accent);}
+  #projectList .SideNav-item span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   .sideSection{border-top:1px solid var(--border);padding-top:16px;}
 
@@ -136,7 +132,7 @@
   .filterPanelHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:11.5px;font-weight:600;color:var(--muted);}
   .filterPanelHint{font-size:11.5px;color:var(--muted);font-weight:400;}
   .filterControls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  #boardFilterBar select,#boardFilterBar input{border-color:var(--border);background:var(--bg);padding:7px 12px;min-height:34px;}
+  #boardFilterBar select,#boardFilterBar input{border-color:var(--border);background:var(--bg);}
   #boardFilterBar select{max-width:190px;}
   #boardFilterBar #tagFilterPicker,#boardFilterBar #fieldFilterPicker{color:var(--muted);}
   #boardFilterBar #boardTagFilters,#boardFilterBar #fieldFilters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
@@ -157,8 +153,9 @@
   td .tableCell:hover{border-color:var(--border);background:var(--bg-soft);}
   td .tableCell:focus{background:var(--bg);border-color:var(--accent);}
 
-  .group{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);
-    width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;}
+  /* background/border/border-radius come from the .Box class already on
+     the element in markup - see renderKanban(). Only layout here. */
+  .group{width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;}
   .group.dragover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   .groupHead{display:flex;align-items:center;gap:6px;padding:12px 12px 8px 12px;}
   .groupHead input.groupTitle{background:transparent;border:1px solid transparent;font-weight:600;font-size:13.5px;
@@ -170,8 +167,9 @@
     background:transparent;}
   .addItemBtn:hover{border-color:var(--border-strong);background:var(--bg-soft);color:var(--text);}
 
-  .card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:10px 11px;cursor:grab;font-size:13.5px;transition:border-color .12s,box-shadow .12s;}
+  /* background/border/border-radius come from the .Box class already on
+     the element in markup - see renderCard(). Only layout/behavior here. */
+  .card{padding:10px 11px;cursor:grab;font-size:13.5px;transition:border-color .12s,box-shadow .12s;}
   .card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-lift);}
   .card.dragging{opacity:.4;}
   .card .cardTitle{font-weight:500;margin-bottom:6px;line-height:1.35;display:flex;align-items:center;}
@@ -179,8 +177,9 @@
   .Label .dot{width:6px;height:6px;border-radius:50%;flex:none;margin-right:4px;}
 
   .priorityDot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block;margin-right:7px;}
-  .Label.due-overdue{background:var(--danger-soft);color:var(--danger);}
-  .Label.due-soon{background:var(--warn-soft);color:var(--warn);}
+  /* Overdue/due-soon coloring now comes from Primer's own Label--danger /
+     Label--attention modifiers (see duePillHtml) instead of a custom
+     due-overdue/due-soon class, so it tracks theme changes automatically. */
 
   #emptyState{margin:auto;text-align:center;color:var(--muted);max-width:420px;}
   #emptyState h2{color:var(--text);font-size:17px;margin-bottom:6px;}
@@ -238,7 +237,7 @@
   .calendarEvent:hover{background:var(--accent-soft);}
   .calendarEvent .eventDot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;}
   .calendarEvent.event{background:var(--accent-soft);}
-  .calendarEvent.event .eventDot{background:#2f6fed;}
+  .calendarEvent.event .eventDot{background:var(--color-accent-fg);}
   .calendarEvent .eventTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
   .calendarEvent .eventProject{font-size:10px;color:var(--muted);}
   .calendarEvent .gcalLink{font-size:10px;color:var(--accent-strong);text-decoration:none;flex:none;}
@@ -251,8 +250,14 @@
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(20,21,26,.32);backdrop-filter:blur(2px);display:flex;
     align-items:center;justify-content:center;z-index:50;padding:16px;}
-  [data-modal]{background:var(--color-canvas-overlay);border:1px solid var(--color-border-default);border-radius:12px;width:540px;box-shadow:var(--shadow-modal);
-    max-width:100%;max-height:90vh;overflow-y:auto;padding:26px 28px;}
+  /* The modal box now carries Primer's own .Overlay component class (see
+     the modal-creation points in JS and the static connect-gate markup),
+     which is meant to supply background/border/border-radius/box-shadow.
+     These are kept here too as a fallback in case a given Primer build's
+     .Overlay doesn't cover every one of them - harmless duplication if it
+     does, since it's the same design tokens either way. */
+  [data-modal]{background:var(--color-canvas-overlay);border:1px solid var(--color-border-default);border-radius:var(--radius-lg);
+    width:540px;box-shadow:var(--shadow-modal);max-width:100%;max-height:90vh;overflow-y:auto;padding:26px 28px;}
   [data-modal] h3{margin:0 0 10px 0;}
   .modalRow{margin-bottom:18px;}
   .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
@@ -386,7 +391,7 @@
 </head>
 <body>
 <div id="connectGate">
-  <div class="Box position-relative" data-modal>
+  <div class="Overlay Overlay--size-medium position-relative" data-modal>
     <h3>Connect your Beforework file</h3>
     <p>Beforework is a local-first, privacy-first project workspace. Your data is never transmitted to a server or third party - projects are saved directly to a JSON file on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
     <p>Changes are written to the file immediately, with no intermediate save step and no data held outside the file itself. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
@@ -428,7 +433,7 @@
 
     <div>
       <div class="d-flex flex-justify-between flex-items-center mb-2"><span class="Label color-fg-muted">Projects</span></div>
-      <ul id="projectList"></ul>
+      <ul class="SideNav" id="projectList"></ul>
       <button class="btn btn-sm btn-invisible" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
     </div>
 
@@ -445,7 +450,7 @@
 
   <div id="main">
     <div id="topbar">
-      <button class="iconBtn" id="sidebarToggle" title="Menu">
+      <button class="iconBtn btn-octicon" id="sidebarToggle" title="Menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <h2 id="projectTitleLabel">Overview</h2>
@@ -525,13 +530,18 @@
 
   /* ---------- Constants ---------- */
   const uid = () => crypto.randomUUID();
-  const TAG_COLORS = ["#2f6fed","#c2410c","#7c3aed","#0891b2","#be185d","#a16207","#15803d","#4b5563"];
+  // Primer's own semantic fg tokens, not hand-picked hex - these track
+  // light/dark theme automatically instead of needing a second palette.
+  const TAG_COLORS = [
+    "var(--color-accent-fg)","var(--color-severe-fg)","var(--color-sponsors-fg)","var(--color-open-fg)",
+    "var(--color-danger-fg)","var(--color-attention-fg)","var(--color-success-fg)","var(--color-fg-muted)"
+  ];
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
   const PRIORITY_OPTIONS = [
-    {id:"high",label:"High",color:"#b3261e",rank:3},
-    {id:"medium",label:"Medium",color:"#a16207",rank:2},
-    {id:"low",label:"Low",color:"#4b5563",rank:1},
+    {id:"high",label:"High",color:"var(--color-danger-fg)",rank:3},
+    {id:"medium",label:"Medium",color:"var(--color-attention-fg)",rank:2},
+    {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:1},
   ];
   const FIELD_TYPES = ["priority","select","date","text"];
   const THEME_KEY = "personal_dashboard_theme_v1";
@@ -754,7 +764,7 @@
       ["Esc", "Close the open item or dialog"],
       ["?", "Show this shortcuts list"],
     ];
-    overlay.innerHTML = `<div class="Box position-relative" data-modal role="dialog" aria-modal="true">
+    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
       <button class="btn btn-invisible closeX" data-close>✕</button>
       <h3>Keyboard shortcuts</h3>
       <div>${rows.map(([key,desc])=>`<div class="shortcutRow"><span>${escapeHtml(desc)}</span><kbd>${escapeHtml(key)}</kbd></div>`).join("")}</div>
@@ -1426,8 +1436,8 @@
   }
   function dueClass(dateStr){
     if (!dateStr) return "";
-    if (dateStr < todayStr(0)) return "due-overdue";
-    if (dateStr <= todayStr(3)) return "due-soon";
+    if (dateStr < todayStr(0)) return "Label--danger";
+    if (dateStr <= todayStr(3)) return "Label--attention";
     return "";
   }
   function duePillHtml(dateStr){
@@ -1508,7 +1518,7 @@
     state.projects.forEach(p=>{
       const count = p.groups.reduce((n,g)=>n+g.items.length,0);
       const li = document.createElement("li");
-      li.className = p.id===activeProjectId ? "active" : "";
+      li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "");
       li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="cnt">${count}</span>`;
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
@@ -2177,7 +2187,7 @@
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="Box position-relative" data-modal id="itemModal"></div>`;
+    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="itemModal"></div>`;
     overlay.addEventListener("click", event=>{ if (event.target===overlay) closeItemModal(); });
     document.body.appendChild(overlay);
     renderItemModal();
@@ -2280,9 +2290,9 @@
       });
       const max = Math.max(1, ...Object.values(counts));
       const rows = [
-        {label:"High", key:"high", color:"#b3261e"},
-        {label:"Medium", key:"medium", color:"#a16207"},
-        {label:"Low", key:"low", color:"#4b5563"},
+        {label:"High", key:"high", color:"var(--color-danger-fg)"},
+        {label:"Medium", key:"medium", color:"var(--color-attention-fg)"},
+        {label:"Low", key:"low", color:"var(--color-fg-muted)"},
         {label:"No priority", key:"none", color:"var(--faint)"},
       ];
       const body = rows.map(row=>`<div class="barRow">
@@ -2350,7 +2360,7 @@
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="Box position-relative" data-modal id="itemModal"></div>`;
+    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="itemModal"></div>`;
     overlay.addEventListener("click", (e)=>{ if (e.target===overlay) closeItemModal(); });
     document.body.appendChild(overlay);
     renderItemModal();
@@ -2379,7 +2389,7 @@
           : `<input class="form-control" id="${id}" type="text" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
         return `<div class="modalRow">${label}${control}</div>`;
       }).join("");
-      overlay.innerHTML = `<div class="Box position-relative" data-modal role="dialog" aria-modal="true">
+      overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
         <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
         <h3>${escapeHtml(title)}</h3>
         ${message ? `<p class="dialogMessage">${escapeHtml(message)}</p>` : ""}
