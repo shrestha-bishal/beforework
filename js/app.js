@@ -11,6 +11,7 @@
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
   const INTEGRATIONS = "__integrations__";
+  const SETTINGS = "__settings__";
   const PRIORITY_OPTIONS = [
     {id:"high",label:"High",color:"var(--color-danger-fg)",rank:3},
     {id:"medium",label:"Medium",color:"var(--color-attention-fg)",rank:2},
@@ -18,6 +19,7 @@
   ];
   const FIELD_TYPES = ["priority","select","date","text"];
   const THEME_KEY = "personal_dashboard_theme_v1";
+  const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
@@ -91,6 +93,17 @@
     try{ saved = localStorage.getItem(THEME_KEY); }catch(err){/* ignore */}
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     applyTheme(saved || (prefersDark ? "dark" : "light"));
+  }
+
+  function getTimeFormat(){
+    try{ return localStorage.getItem(TIME_FORMAT_KEY)==="24" ? "24" : "12"; }catch(err){ return "12"; }
+  }
+  function formatTime(date){
+    return date.toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit", hour12:getTimeFormat()==="12"});
+  }
+  function formatDateTime(timestamp){
+    const date = new Date(timestamp);
+    return date.toLocaleString(undefined, {dateStyle:"medium", timeStyle:"short", hour12:getTimeFormat()==="12"});
   }
 
   /* ---------- Sidebar collapse (desktop) ---------- */
@@ -774,6 +787,21 @@
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
   }
+  function formatUpdatedAt(timestamp){
+    const date = new Date(timestamp);
+    if (!Number.isFinite(date.getTime())) return "Unknown";
+    const now = new Date();
+    const dayStamp = value => Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+    const daysAgo = Math.round((dayStamp(now) - dayStamp(date)) / 86400000);
+    const time = formatTime(date);
+    if (daysAgo===0) return time;
+    if (daysAgo===1) return `Yesterday at ${time}`;
+    if (daysAgo>1 && daysAgo<7) return `${daysAgo}d ago at ${time}`;
+    const dateLabel = date.toLocaleDateString(undefined, {
+      day:"numeric", month:"short", ...(date.getFullYear()===now.getFullYear() ? {} : {year:"numeric"})
+    });
+    return `${dateLabel} at ${time}`;
+  }
   function dueClass(dateStr){
     if (!dateStr) return "";
     if (dateStr < todayStr(0)) return "Label--danger";
@@ -854,6 +882,7 @@
     document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
     document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
     document.getElementById("integrationsNav").className = activeProjectId===INTEGRATIONS ? "active" : "";
+    document.getElementById("settingsNav").className = activeProjectId===SETTINGS ? "active" : "";
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
     state.projects.forEach(p=>{
@@ -888,13 +917,20 @@
     closeSidebarOnMobile();
   }
 
+  function navigateToSettings(){
+    activeProjectId = SETTINGS;
+    persistActiveLocation();
+    renderAll();
+    closeSidebarOnMobile();
+  }
+
   function restoreActiveLocation(){
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
     const integrationPath = window.location.pathname==="/integrations" || window.location.pathname.endsWith("/integrations/");
     const hashLocation = integrationPath || window.location.hash==="#integrations" ? INTEGRATIONS : null;
     if (hashLocation) activeProjectId = hashLocation;
-    else if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || getProject(saved)) activeProjectId = saved;
+    else if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
     if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR) restoreProjectFilters(activeProjectId);
   }
@@ -904,7 +940,7 @@
     const wrap = document.getElementById("sideTagsList");
     const label = document.getElementById("tagsSectionLabel");
     const project = getProject(activeProjectId);
-    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===INTEGRATIONS || !project){ section.style.display = "none"; return; }
+    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project){ section.style.display = "none"; return; }
     section.style.display = "block";
     label.textContent = "Tags in " + project.name;
     wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("")
@@ -920,6 +956,36 @@
 
   /* Integrations view moved to js/google-calendar.js */
 
+  function renderSettings(board){
+    const theme = document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
+    const timeFormat = getTimeFormat();
+    const sidebarCollapsed = document.getElementById("sidebar").classList.contains("collapsed");
+    board.innerHTML = `<div class="settingsWrap">
+      <div class="settingsIntro"><div><h3>Settings</h3><p>Personalise how Beforework looks and behaves on this device.</p></div></div>
+      <div class="settingsGrid">
+        <section class="settingsSection">
+          <div class="settingsSectionHead"><h4>Appearance</h4><span>Visual preferences</span></div>
+          <div class="settingsRow"><div><strong>Colour mode</strong><p>Use a light or dark workspace.</p></div><button class="btn btn-sm" id="settingsThemeToggle">${theme} mode</button></div>
+          <div class="settingsRow"><div><strong>Time format</strong><p>Choose how times appear throughout the app.</p></div><select class="form-control settingsSelect" id="settingsTimeFormat" aria-label="Time format"><option value="12" ${timeFormat==="12"?"selected":""}>12-hour</option><option value="24" ${timeFormat==="24"?"selected":""}>24-hour</option></select></div>
+          <div class="settingsRow"><div><strong>Sidebar</strong><p>Keep the project navigation visible.</p></div><button class="btn btn-sm" id="settingsSidebarToggle">${sidebarCollapsed ? "Expand" : "Collapse"} sidebar</button></div>
+        </section>
+        <section class="settingsSection">
+          <div class="settingsSectionHead"><h4>Focus</h4><span>Stay on task</span></div>
+          <div class="settingsRow"><div><strong>Focus timer</strong><p>Open the timer and choose a session length.</p></div><button class="btn btn-sm" id="settingsFocusTimer">Open timer</button></div>
+          <div class="settingsRow"><div><strong>Keyboard shortcuts</strong><p>View the shortcuts available throughout the app.</p></div><button class="btn btn-sm" id="settingsShortcuts">View shortcuts</button></div>
+        </section>
+      </div>
+    </div>`;
+    board.querySelector("#settingsThemeToggle").onclick = () => { toggleTheme(); renderSettings(board); };
+    board.querySelector("#settingsTimeFormat").onchange = event => {
+      try{ localStorage.setItem(TIME_FORMAT_KEY, event.target.value); }catch(err){/* ignore */}
+      renderAll();
+    };
+    board.querySelector("#settingsSidebarToggle").onclick = () => { toggleSidebarCollapsed(); renderSettings(board); };
+    board.querySelector("#settingsFocusTimer").onclick = () => document.getElementById("focusTimerPanel").classList.toggle("open");
+    board.querySelector("#settingsShortcuts").onclick = showShortcutsModal;
+  }
+
   function renderMain(){
     const filterBar = document.getElementById("boardFilterBar");
     const renameBtn = document.getElementById("renameProjectBtn");
@@ -932,10 +998,11 @@
     const board = document.getElementById("board");
     board.innerHTML = "";
 
-    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS){
+    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS){
       topLabel.textContent = "Overview";
       if (activeProjectId===CALENDAR) topLabel.textContent = "Calendar";
       if (activeProjectId===INTEGRATIONS) topLabel.textContent = "Integrations";
+      if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
       filterBar.style.display = "none";
       renameBtn.style.display = "none";
       deleteBtn.style.display = "none";
@@ -947,6 +1014,7 @@
       viewTabs.style.display = "none";
       if (activeProjectId===CALENDAR) renderCalendar(board, null);
       else if (activeProjectId===INTEGRATIONS) renderIntegrations(board);
+      else if (activeProjectId===SETTINGS) renderSettings(board);
       else renderOverview(board);
       return;
     }
@@ -1298,7 +1366,7 @@
         ${fieldCells}
         <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
         <td class="${TD_CLASS}">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>
-        <td class="${TD_CLASS}">${new Date(item.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</td>
+        <td class="${TD_CLASS}">${escapeHtml(formatUpdatedAt(item.updatedAt))}</td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll("tr[data-iid]").forEach(tr=>{
@@ -1706,7 +1774,7 @@
       const dot = pf ? fieldChipHtml(pf, priorityOf(r)) : "";
       return `<div class="ovRow" data-pid="${r.project.id}" data-gid="${r.group.id}" data-iid="${r.item.id}">
         <div class="rowLeft">${dot}<span class="t">${escapeHtml(r.item.title)}</span></div>
-        <span class="path">${showDue && dueOf(r) ? fmtDate(dueOf(r))+" · " : ""}${escapeHtml(r.project.name)} / ${escapeHtml(r.group.name)}</span>
+        <span class="path">${showDue && dueOf(r) ? fmtDate(dueOf(r))+" · " : `Updated ${formatUpdatedAt(r.item.updatedAt)} · `}${escapeHtml(r.project.name)} / ${escapeHtml(r.group.name)}</span>
       </div>`;
     }
     function section(title, rows, showDue, emptyMsg){
@@ -1875,7 +1943,7 @@
       ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(c=>`
         <div class="commentRow" data-cid="${c.id}">
           <div class="commentBody">
-            <div class="commentMeta">${new Date(c.createdAt).toLocaleString()}</div>
+            <div class="commentMeta">${escapeHtml(formatDateTime(c.createdAt))}</div>
             <div class="commentText">${escapeHtml(c.text)}</div>
           </div>
           <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
@@ -1944,7 +2012,7 @@
         </div>
       </div>
       <div class="itemModalFooter">
-        <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${new Date(item.updatedAt).toLocaleString()}`}</span>
+        <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`}</span>
         <div style="display:flex;gap:8px;">
           ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>` : `
             <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>
@@ -2166,6 +2234,7 @@
     document.getElementById("integrationsNav").onclick = () => {
       navigateToIntegrations();
     };
+    document.getElementById("settingsNav").onclick = navigateToSettings;
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
       const menu = document.getElementById("projectMenu");
@@ -2241,7 +2310,6 @@
       document.getElementById("projectMenuBtn").classList.remove("active");
       window.print();
     };
-    document.getElementById("themeToggle").onclick = toggleTheme;
     document.getElementById("shortcutsBtn").onclick = showShortcutsModal;
     document.getElementById("focusTimerBtn").onclick = () => {
       document.getElementById("focusTimerPanel").classList.toggle("open");
