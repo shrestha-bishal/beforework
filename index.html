@@ -872,7 +872,7 @@
       tags:[], fields:[status], views:proj2Views, activeViewId:proj2Views[0].id, itemDefaultType:"task",
       groups:[{id:uid(), name:"Books", items:[]}]
     };
-    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], calendarItems:[]};
+    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], calendarItems:[], googleDeletedEventIds:[]};
   }
 
   /* ---------- Schema migrations ----------
@@ -974,6 +974,7 @@
       s = step(s);
     }
     if (!Array.isArray(s.calendarItems)) s.calendarItems = [];
+    if (!Array.isArray(s.googleDeletedEventIds)) s.googleDeletedEventIds = [];
     s.schemaVersion = SCHEMA_VERSION;
     if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};
     return s;
@@ -1317,6 +1318,8 @@
     scheduleSave(); renderMain();
   }
   function deleteProject(pid){
+    const project = getProject(pid);
+    if (project) project.groups.forEach(group=>group.items.forEach(queueGoogleEventDeletes));
     state.projects = state.projects.filter(p=>p.id!==pid);
     if (activeProjectId===pid){
       activeProjectId = state.projects[0]?.id || OVERVIEW;
@@ -1336,6 +1339,8 @@
       showNotice("Group required", "A project needs at least one group.");
       return;
     }
+    const group = p.groups.find(candidate=>candidate.id===gid);
+    if (group) group.items.forEach(queueGoogleEventDeletes);
     p.groups = p.groups.filter(g=>g.id!==gid);
     scheduleSave(); renderMain();
   }
@@ -1367,6 +1372,8 @@
   }
   function deleteItem(pid,gid,iid){
     const g = getGroup(pid,gid);
+    const item = g.items.find(candidate=>candidate.id===iid);
+    queueGoogleEventDeletes(item);
     g.items = g.items.filter(i=>i.id!==iid);
     scheduleSave(); renderMain();
   }
@@ -1411,7 +1418,10 @@
   async function bulkDelete(project){
     if (!selectedItemIds.size) return;
     if (!await showConfirm("Delete selected items", `Delete ${selectedItemIds.size} selected item(s)?`, true)) return;
-    project.groups.forEach(g=>{ g.items = g.items.filter(item=>!selectedItemIds.has(item.id)); });
+    project.groups.forEach(g=>{
+      g.items.forEach(item=>{ if (selectedItemIds.has(item.id)) queueGoogleEventDeletes(item); });
+      g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
+    });
     selectedItemIds.clear(); scheduleSave(); renderMain(); renderProjectList();
   }
   async function bulkMove(project){
@@ -2201,12 +2211,10 @@
     const projects = scopeProject ? [scopeProject] : state.projects;
     projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
       const fields = dateFields(project);
-      const datedFields = fields.filter(field=>item.values[field.id]);
-      if (datedFields.length){
-        datedFields.forEach(field=>{
-          const date = item.values[field.id];
-          entries.push({project, group, item, field, date, endDate:item.endDate && item.endDate>=date ? item.endDate : date});
-        });
+      const datedField = fields.find(field=>item.values[field.id]);
+      if (datedField){
+        const date = item.values[datedField.id];
+        entries.push({project, group, item, field:datedField, date, endDate:item.endDate && item.endDate>=date ? item.endDate : date});
       } else if (item.endDate){
         // A schedule date is sufficient for a high-level calendar event even
         // when the project has no custom date column.
@@ -2237,8 +2245,7 @@
       scope:GOOGLE_CALENDAR_SCOPE,
       callback:response=>{
         if (response.error){
-          googleAccessToken = null;
-          updateGoogleCalendarButtons();
+          handleGoogleAuthFailure();
           if (googleTokenPurpose==="sync") showNotice("Google Calendar", "Google authentication was not completed.");
           return;
         }
@@ -2252,8 +2259,15 @@
   }
   function updateGoogleCalendarButtons(){
     document.querySelectorAll('[data-calendar-action="google"]').forEach(button=>{
-      if (!googleSyncInFlight) button.textContent = googleAccessToken ? "Sync Google Calendar" : "Connect Google Calendar";
+      if (!googleSyncInFlight) button.textContent = googleAccessToken ? "Sync Google Calendar" : "Reconnect Google Calendar";
     });
+  }
+  function handleGoogleAuthFailure(){
+    googleAccessToken = null;
+    clearTimeout(googleAutoSyncTimer);
+    if (googlePollTimer){ clearInterval(googlePollTimer); googlePollTimer = null; }
+    updateGoogleCalendarButtons();
+    setSyncStatus("err", "Google Calendar needs reconnecting");
   }
   async function googleCalendarRequest(path, options={}){
     const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
@@ -2272,6 +2286,39 @@
   function linkedGoogleCalendarIds(){
     if (!Array.isArray(state.googleCalendarLinks)) state.googleCalendarLinks = [];
     return state.googleCalendarLinks;
+  }
+  let googleDeleteInFlight = false;
+  function queueGoogleEventDeletes(item){
+    if (!item?.googleEventIds) return;
+    if (!Array.isArray(state.googleDeletedEventIds)) state.googleDeletedEventIds = [];
+    Object.entries(item.googleEventIds).forEach(([key,eventId])=>{
+      const parts = key.split(":");
+      const calendarId = parts.length>=3 ? parts[0] : "primary";
+      if (!state.googleDeletedEventIds.some(entry=>entry.calendarId===calendarId && entry.eventId===eventId)){
+        state.googleDeletedEventIds.push({calendarId,eventId});
+      }
+    });
+    if (googleAccessToken) processGoogleDeletions();
+  }
+  async function processGoogleDeletions(){
+    if (!googleAccessToken || googleDeleteInFlight || !state.googleDeletedEventIds?.length) return;
+    googleDeleteInFlight = true;
+    try{
+      const remaining = [];
+      for (const deletion of state.googleDeletedEventIds){
+        try{
+          await googleCalendarRequest(`/calendars/${encodeURIComponent(deletion.calendarId)}/events/${encodeURIComponent(deletion.eventId)}`, {method:"DELETE"});
+        }catch(error){
+          if (error.status===404) continue;
+          if (error.status===401){ handleGoogleAuthFailure(); remaining.push(deletion); break; }
+          remaining.push(deletion);
+        }
+      }
+      state.googleDeletedEventIds = remaining;
+      scheduleSave();
+    }finally{
+      googleDeleteInFlight = false;
+    }
   }
   async function googleCalendarList(){
     const calendars = [];
@@ -2400,8 +2447,24 @@
       for (const calendarId of calendarIds){
         const events = await googleCalendarEvents(calendarId);
         for (const event of events){
-          if (!event.id || event.status==="cancelled") continue;
+          if (!event.id) continue;
           const entry = findLinkedGoogleEntry(calendarId, event.id);
+          if (event.status==="cancelled"){
+            if (entry){
+              const ownerId = entry.project ? entry.project.id : "__calendar__";
+              const key = `${calendarId}:${ownerId}:${entry.field.id}`;
+              if (!entry.project){
+                state.calendarItems = state.calendarItems.filter(item=>item.id!==entry.item.id);
+              } else {
+                entry.item.googleEventIds = entry.item.googleEventIds || {};
+                entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
+                delete entry.item.googleEventIds[key];
+                entry.item.googleSyncMeta[key] = {remoteDeletedAt:Date.now(), localUpdatedAt:entry.item.updatedAt};
+              }
+              imported = true;
+            }
+            continue;
+          }
           if (entry){
             const ownerId = entry.project ? entry.project.id : "__calendar__";
             const key = `${calendarId}:${ownerId}:${entry.field.id}`;
@@ -2432,7 +2495,7 @@
       }
       if (imported){ scheduleSave(); renderAll(); }
     }catch(error){
-      if (error.status===401) googleAccessToken = null;
+      if (error.status===401) handleGoogleAuthFailure();
     }finally{
       googleImportInFlight = false;
     }
@@ -2470,6 +2533,8 @@
           const legacyKey = `${ownerId}:${entry.field.id}`;
           const eventId = entry.item.googleEventIds[key] || (calendarId==="primary" ? entry.item.googleEventIds[legacyKey] : "");
           const previous = entry.item.googleSyncMeta[key] || null;
+          if (previous?.remoteDeletedAt && Number(entry.item.updatedAt||0) <= Number(previous.remoteDeletedAt)) continue;
+          if (previous?.remoteDeletedAt) delete entry.item.googleSyncMeta[key].remoteDeletedAt;
           let remote = null;
           if (eventId){
             try{
@@ -2479,31 +2544,36 @@
               delete entry.item.googleEventIds[key];
             }
           }
-          if (remote && previous){
-            const remoteChanged = Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"");
-            const localChanged = Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
+          let saved = remote;
+          let pushLocal = !remote;
+          if (remote){
             const remoteTime = Date.parse(remote.updated||"") || 0;
+            const previousRemoteTime = Date.parse(previous?.googleUpdatedAt||"") || 0;
+            const localChanged = !previous || Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
+            const remoteChanged = !!previous && remoteTime > previousRemoteTime;
             if (remoteChanged && (!localChanged || remoteTime >= Number(entry.item.updatedAt||0))){
               applyGoogleEventToItem(entry, remote);
+              pushLocal = false;
+            } else {
+              pushLocal = localChanged;
             }
-          }
-          const body = googleEventBody(entry);
-          let saved;
-          if (remote && !(previous && Date.parse(remote.updated||"") > Date.parse(previous.googleUpdatedAt||"") && Number(entry.item.updatedAt||0) <= Number(previous.localUpdatedAt||0))){
-            saved = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(remote.id)}`, {method:"PATCH",body:JSON.stringify(body)});
-          } else if (remote){
-            saved = remote;
+            if (pushLocal){
+              const body = googleEventBody(entry);
+              saved = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(remote.id)}`, {method:"PATCH",body:JSON.stringify(body)});
+            }
           } else {
+            const body = googleEventBody(entry);
             saved = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events`, {method:"POST",body:JSON.stringify(body)});
           }
           entry.item.googleEventIds[key] = saved.id;
           entry.item.googleSyncMeta[key] = {googleUpdatedAt:saved.updated||remote?.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt||Date.now()};
         }
       }
+      await processGoogleDeletions();
       scheduleSave();
       if (button) button.textContent = `Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`;
     }catch(error){
-      if (error.status===401) googleAccessToken = null;
+      if (error.status===401) handleGoogleAuthFailure();
       if (button) button.textContent = "Connect Google Calendar";
       let detail = "Google rejected the sync request.";
       try{
@@ -3063,13 +3133,18 @@
         if (id==="itemLocationInput") item.location = e.target.value.trim();
         if (id==="itemStartTimeInput") item.startTime = e.target.value;
         if (id==="itemEndTimeInput") item.endTime = e.target.value;
-        if (id==="itemEndDateInput") item.endDate = e.target.value;
+        if (id==="itemEndDateInput"){
+          if (item.endDate && !e.target.value) queueGoogleEventDeletes(item);
+          item.endDate = e.target.value;
+        }
         if (isNew){ renderItemModal(); return; }
         item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
       });
     });
     modal.querySelectorAll(".fieldInput").forEach(el=>{
       el.addEventListener("change", e=>{
+        const field = project.fields.find(candidate=>candidate.id===el.dataset.fieldid);
+        if (field?.type==="date" && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
         item.values[el.dataset.fieldid] = e.target.value;
         if (isNew){ renderItemModal(); return; }
         item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
