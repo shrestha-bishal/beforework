@@ -23,6 +23,17 @@
         const resumedSilently = googleSilentAuth;
         googleSilentAuth = false;
         googleAccessToken = response.access_token;
+        clearTimeout(googleTokenRefreshTimer);
+        const expiresInMs = (Number(response.expires_in)||3300) * 1000;
+        const refreshDelay = Math.max(30000, expiresInMs - 5*60*1000); // refresh 5 min before it expires
+        googleTokenRefreshTimer = setTimeout(()=>{
+          if (!linkedGoogleCalendarIds().length || !googleTokenClient) return;
+          googleSilentAuth = true;
+          googleTokenPurpose = "sync";
+          googleSyncScopeProject = null;
+          try{ googleTokenClient.requestAccessToken({prompt:"none"}); }
+          catch(err){ googleSilentAuth = false; }
+        }, refreshDelay);
         updateGoogleCalendarButtons();
         if (resumedSilently) renderMain();
         if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject).then(startGoogleCalendarPolling);
@@ -33,7 +44,8 @@
   }
   function updateGoogleCalendarButtons(){
     document.querySelectorAll('[data-calendar-action="google"]').forEach(button=>{
-      if (!googleSyncInFlight) button.textContent = "Sync now";
+      button.textContent = googleSyncInFlight ? "Syncing..." : "Sync now";
+      button.disabled = googleSyncInFlight;
     });
     updateGoogleCalendarStatus();
   }
@@ -44,10 +56,12 @@
   function handleGoogleAuthFailure(){
     googleAccessToken = null;
     clearTimeout(googleAutoSyncTimer);
+    clearTimeout(googleTokenRefreshTimer);
     if (googlePollTimer){ clearInterval(googlePollTimer); googlePollTimer = null; }
     updateGoogleCalendarButtons();
     updateGoogleCalendarStatus("Google connection expired - reconnect in Integrations");
     setSyncStatus("err", "Google Calendar needs reconnecting");
+    if (activeProjectId===INTEGRATIONS || activeProjectId===CALENDAR) renderMain();
   }
   async function googleCalendarRequest(path, options={}){
     const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
@@ -310,18 +324,17 @@
     if (!googleAccessToken || googleSyncInFlight) return;
     clearTimeout(googleAutoSyncTimer);
     googleSyncInFlight = true;
-    const button = document.querySelector('[data-calendar-action="google"]');
-    if (button){ button.disabled = true; button.textContent = "Syncing..."; }
+    updateGoogleCalendarButtons();
     try{
       const entries = calendarEntries(scopeProject);
       if (!entries.length){
-        if (button) button.textContent = "No dated items";
+        updateGoogleCalendarStatus("No dated items to sync");
         await showNotice("Nothing to sync", "Add a project date or a Schedule end date to an item first. A time without a date is not enough to create a Google Calendar event.");
         return;
       }
       const calendarIds = linkedGoogleCalendarIds();
       if (!calendarIds.length){
-        if (button) button.textContent = "Link a calendar";
+        updateGoogleCalendarStatus("Link a calendar first");
         await showNotice("No Google calendars linked", "Choose Link calendars first, then select one or more writable Google calendars.");
         return;
       }
@@ -375,12 +388,13 @@
       saveGoogleState();
       await flushSave();
       const syncLabel = `Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`;
-      if (button) button.textContent = "Sync now";
       updateGoogleCalendarStatus(syncLabel);
     }catch(error){
-      if (error.status===401) handleGoogleAuthFailure();
-      if (button) button.textContent = "Connect Google Calendar";
-      updateGoogleCalendarStatus("Sync failed - see details");
+      if (error.status===401){
+        handleGoogleAuthFailure();
+      } else {
+        updateGoogleCalendarStatus("Sync failed - see details");
+      }
       let detail = "Google rejected the sync request.";
       try{
         const payload = JSON.parse(error.detail || "{}");
@@ -389,7 +403,7 @@
       await showNotice("Google Calendar sync failed", `${detail} Connect again and make sure Calendar access was approved.`);
     }finally{
       googleSyncInFlight = false;
-      if (button) button.disabled = false;
+      updateGoogleCalendarButtons();
       if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length){
         googleSyncQueued = false;
         clearTimeout(googleAutoSyncTimer);

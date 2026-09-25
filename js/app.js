@@ -76,6 +76,7 @@
   let googleSyncScopeProject = null;
   let googleTokenPurpose = "sync";
   let googleSilentAuth = false;
+  let googleTokenRefreshTimer = null;
 
   /* ---------- Theme ---------- */
   function applyTheme(theme){
