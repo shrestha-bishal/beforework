@@ -294,6 +294,9 @@
   .sideItem .sideItemLabel{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;}
   .sideItemRow2{display:flex;gap:10px;}
   .sideItemRow2 .sideItem{flex:1;min-width:0;}
+  .scheduleAddBtn{align-self:flex-start;padding-left:0;padding-right:0;}
+  .scheduleEditor{display:flex;flex-direction:column;gap:14px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);}
+  .scheduleEditor .sideItemRow2{gap:10px;}
   .itemModalFooter{flex:none;border-top:1px solid var(--border);padding:14px 20px;
     display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-soft);}
   @media (max-width:860px){
@@ -2512,6 +2515,24 @@
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
     const fieldsHtml = project.fields.map(f=>fieldInputHtml(f, item)).join("");
+    const hasSchedule = !!(item.startTime || item.endTime || item.endDate);
+    const scheduleHtml = hasSchedule || openItemRef.scheduleOpen ? `
+      <div class="scheduleEditor">
+        <div class="sideItemRow2">
+          <div class="sideItem">
+            <div class="sideItemLabel">Start time</div>
+            <input class="form-control" type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}" aria-label="Start time">
+          </div>
+          <div class="sideItem">
+            <div class="sideItemLabel">End time</div>
+            <input class="form-control" type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}" aria-label="End time">
+          </div>
+        </div>
+        <div class="sideItem">
+          <div class="sideItemLabel">End date</div>
+          <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}" aria-label="End date">
+        </div>
+      </div>` : `<button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>`;
     const comments = item.comments || [];
     const commentsHtml = comments.length
       ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(c=>`
@@ -2579,19 +2600,9 @@
             <div class="sideItemLabel">Location</div>
             <input class="form-control" type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or link">
           </div>
-          <div class="sideItemRow2">
-            <div class="sideItem">
-              <div class="sideItemLabel">Start time</div>
-              <input class="form-control" type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}">
-            </div>
-            <div class="sideItem">
-              <div class="sideItemLabel">End time</div>
-              <input class="form-control" type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}">
-            </div>
-          </div>
           <div class="sideItem">
-            <div class="sideItemLabel">End date</div>
-            <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}">
+            <div class="sideItemLabel">Schedule</div>
+            ${scheduleHtml}
           </div>
         </div>
       </div>
@@ -2631,6 +2642,13 @@
         openItemRef.groupId = newGid;
       }
     });
+    const addScheduleBtn = modal.querySelector('[data-action="addSchedule"]');
+    if (addScheduleBtn) addScheduleBtn.onclick = () => {
+      openItemRef.scheduleOpen = true;
+      renderItemModal();
+      const firstScheduleInput = modal.querySelector("#itemEndDateInput") || modal.querySelector("#itemStartTimeInput");
+      if (firstScheduleInput) firstScheduleInput.focus();
+    };
     modal.querySelectorAll("[data-calendar-type]").forEach(button=>{
       button.onclick = () => {
         item.calendarType = button.dataset.calendarType;
@@ -2640,7 +2658,9 @@
       };
     });
     ["itemLocationInput","itemStartTimeInput","itemEndTimeInput","itemEndDateInput"].forEach(id=>{
-      modal.querySelector("#"+id).addEventListener("change", e=>{
+      const input = modal.querySelector("#"+id);
+      if (!input) return;
+      input.addEventListener("change", e=>{
         if (id==="itemCalendarType") item.calendarType = e.target.value;
         if (id==="itemLocationInput") item.location = e.target.value.trim();
         if (id==="itemStartTimeInput") item.startTime = e.target.value;
