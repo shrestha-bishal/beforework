@@ -2183,10 +2183,19 @@
     const entries = [];
     const projects = scopeProject ? [scopeProject] : state.projects;
     projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
-      dateFields(project).forEach(field=>{
-        const date = item.values[field.id];
-        if (date) entries.push({project, group, item, field, date, endDate:item.endDate && item.endDate>=date ? item.endDate : date});
-      });
+      const fields = dateFields(project);
+      const datedFields = fields.filter(field=>item.values[field.id]);
+      if (datedFields.length){
+        datedFields.forEach(field=>{
+          const date = item.values[field.id];
+          entries.push({project, group, item, field, date, endDate:item.endDate && item.endDate>=date ? item.endDate : date});
+        });
+      } else if (item.endDate){
+        // A schedule date is sufficient for a high-level calendar event even
+        // when the project has no custom date column.
+        const field = fields[0] || {id:"__schedule__", label:"Schedule", type:"date"};
+        entries.push({project, group, item, field, date:item.endDate, endDate:item.endDate});
+      }
     })));
     return entries;
   }
@@ -2264,7 +2273,7 @@
       const entries = calendarEntries(scopeProject);
       if (!entries.length){
         if (button) button.textContent = "No dated items";
-        await showNotice("Nothing to sync", "Add a date to an item first. Google Calendar sync uses the project's date field; an item's schedule time alone is not enough to create a calendar event.");
+        await showNotice("Nothing to sync", "Add a project date or a Schedule end date to an item first. A time without a date is not enough to create a Google Calendar event.");
         return;
       }
       for (const entry of entries){
@@ -2391,7 +2400,7 @@
       <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
       <button class="btn btn-sm" data-calendar-action="new">+ New</button>
       <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
-      <button class="btn btn-sm btn-invisible" data-calendar-action="google">Connect Google Calendar</button>
+      ${scopeProject ? "" : `<button class="btn btn-sm btn-invisible" data-calendar-action="google">Connect Google Calendar</button>`}
     </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
     updateGoogleCalendarButtons();
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
@@ -2399,7 +2408,8 @@
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
-    wrap.querySelector('[data-calendar-action="google"]').onclick = () => connectGoogleCalendar(scopeProject);
+    const googleButton = wrap.querySelector('[data-calendar-action="google"]');
+    if (googleButton) googleButton.onclick = () => connectGoogleCalendar(null);
     wrap.querySelectorAll(".calendarDay").forEach(day=>{
       day.addEventListener("click", event=>{
         if (event.target.closest(".calendarEvent")) return;
@@ -2412,7 +2422,8 @@
         const data = JSON.parse(event.dataTransfer.getData("text/plain"));
         const item = getItem(data.pid,data.gid,data.iid);
         if (!item) return;
-        item.values[data.fid] = day.dataset.date;
+        if (data.fid === "__schedule__") item.endDate = day.dataset.date;
+        else item.values[data.fid] = day.dataset.date;
         const start = new Date(`${data.start}T00:00:00`);
         const end = new Date(`${data.end}T00:00:00`);
         const duration = Math.max(0, Math.round((end-start)/86400000));
