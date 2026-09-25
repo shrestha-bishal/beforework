@@ -633,6 +633,9 @@
   let googleAccessToken = null;
   let googleTokenClient = null;
   let googleSyncInFlight = false;
+  let googleImportInFlight = false;
+  let googlePollTimer = null;
+  let googleAutoSyncTimer = null;
   let googleSyncScopeProject = null;
   let googleTokenPurpose = "sync";
 
@@ -1056,6 +1059,10 @@
     lastSavedState = serialized;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(writeToFile, 400);
+    if (googleAccessToken && state && linkedGoogleCalendarIds().length && !googleSyncInFlight && !googleImportInFlight){
+      clearTimeout(googleAutoSyncTimer);
+      googleAutoSyncTimer = setTimeout(()=>syncGoogleCalendar(null), 1200);
+    }
   }
 
   async function writeToFile(){
@@ -2237,8 +2244,8 @@
         }
         googleAccessToken = response.access_token;
         updateGoogleCalendarButtons();
-        if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject);
-        if (googleTokenPurpose==="manage") openGoogleCalendarManager();
+        if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject).then(startGoogleCalendarPolling);
+        if (googleTokenPurpose==="manage") { openGoogleCalendarManager(); startGoogleCalendarPolling(); }
       }
     });
     return true;
@@ -2360,8 +2367,81 @@
     entry.item.endDate = endDate || startDate;
     entry.item.updatedAt = Date.now();
   }
+  function findLinkedGoogleEntry(calendarId, eventId){
+    return calendarEntries(null).find(entry=>{
+      const ownerId = entry.project ? entry.project.id : "__calendar__";
+      const key = `${calendarId}:${ownerId}:${entry.field.id}`;
+      const legacyKey = `${ownerId}:${entry.field.id}`;
+      return entry.item.googleEventIds?.[key]===eventId || (calendarId==="primary" && entry.item.googleEventIds?.[legacyKey]===eventId);
+    });
+  }
+  async function googleCalendarEvents(calendarId){
+    const events = [];
+    let pageToken = "";
+    do{
+      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500",orderBy:"updated"});
+      if (pageToken) query.set("pageToken", pageToken);
+      const result = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`);
+      events.push(...(result.items||[]));
+      pageToken = result.nextPageToken || "";
+    }while(pageToken);
+    return events;
+  }
+  async function importGoogleCalendarEvents(){
+    if (!googleAccessToken || googleImportInFlight) return;
+    const calendarIds = linkedGoogleCalendarIds();
+    if (!calendarIds.length) return;
+    googleImportInFlight = true;
+    let imported = false;
+    try{
+      for (const calendarId of calendarIds){
+        const events = await googleCalendarEvents(calendarId);
+        for (const event of events){
+          if (!event.id || event.status==="cancelled") continue;
+          const entry = findLinkedGoogleEntry(calendarId, event.id);
+          if (entry){
+            const ownerId = entry.project ? entry.project.id : "__calendar__";
+            const key = `${calendarId}:${ownerId}:${entry.field.id}`;
+            const previous = entry.item.googleSyncMeta?.[key];
+            if (!previous || Date.parse(event.updated||"") > Date.parse(previous.googleUpdatedAt||"")){
+              applyGoogleEventToItem(entry, event);
+              entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
+              entry.item.googleSyncMeta[key] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt};
+              imported = true;
+            }
+            continue;
+          }
+          const startDate = googleEventDate(event, "start");
+          if (!startDate) continue;
+          const eventEnd = googleEventDate(event, "end");
+          let endDate = eventEnd || startDate;
+          if (event.end?.date && eventEnd){
+            const exclusiveEnd = new Date(`${eventEnd}T00:00:00`);
+            exclusiveEnd.setDate(exclusiveEnd.getDate()-1);
+            endDate = calendarDateKey(exclusiveEnd);
+          }
+          const item = {id:uid(), title:event.summary||"Google Calendar event", description:String(event.description||"").split("\n").filter(line=>!line.startsWith("Project: ")&&!line.startsWith("Group: ")).join("\n").trim(), calendarType:"event", startTime:googleEventTime(event,"start"), endTime:googleEventTime(event,"end"), location:event.location||"", endDate, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now(), googleEventIds:{}, googleSyncMeta:{}};
+          item.googleEventIds[`${calendarId}:__calendar__:__standalone__`] = event.id;
+          item.googleSyncMeta[`${calendarId}:__calendar__:__standalone__`] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:item.updatedAt};
+          state.calendarItems.push(item);
+          imported = true;
+        }
+      }
+      if (imported){ scheduleSave(); renderAll(); }
+    }catch(error){
+      if (error.status===401) googleAccessToken = null;
+    }finally{
+      googleImportInFlight = false;
+    }
+  }
+  function startGoogleCalendarPolling(){
+    if (googlePollTimer) return;
+    googlePollTimer = setInterval(importGoogleCalendarEvents, 60000);
+    importGoogleCalendarEvents();
+  }
   async function syncGoogleCalendar(scopeProject){
     if (!googleAccessToken || googleSyncInFlight) return;
+    clearTimeout(googleAutoSyncTimer);
     googleSyncInFlight = true;
     const button = document.querySelector('[data-calendar-action="google"]');
     if (button){ button.disabled = true; button.textContent = "Syncing..."; }
