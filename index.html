@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 <title>Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -361,6 +362,10 @@
   #gateLegacyRow{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
   #gateLegacyRow div{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
 
+  /* Auth (optional / pluggable) */
+  #authBar{display:none;align-items:center;gap:8px;}
+  #authBar .authUser{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+
   @media print{
     #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewTabs,
     #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate,#sidebarCollapseHandle{display:none!important;}
@@ -503,6 +508,7 @@
   <span id="syncLabel">Storage: browser only</span>
   <button class="btn small ghost" id="focusTimerBtn" title="Focus timer">⏱ Focus</button>
   <button class="btn small ghost" id="shortcutsBtn" title="Keyboard shortcuts">⌨ Shortcuts</button>
+  <span id="authBar"></span>
   <div class="syncMenuWrap">
     <button class="btn small ghost syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
     <div class="syncMenu" id="syncMenu">
@@ -624,6 +630,92 @@
     let saved = null;
     try{ saved = localStorage.getItem(SIDEBAR_KEY); }catch(err){/* ignore */}
     applySidebarCollapsed(saved === "1");
+  }
+
+  /* ---------- Auth (optional, pluggable) ----------
+     Authentication is entirely additive here: if no provider is available
+     (script blocked, feature not enabled on this deployment, offline, or a
+     future provider isn't configured), #authBar just stays hidden and the
+     app works exactly as it always has — nothing below gates storage or
+     any feature.
+
+     To add another provider later (Auth0, Supabase, Clerk, a custom
+     backend, etc.), implement an object with the same four members and
+     register it:
+
+       registerAuthProvider("myProvider", {
+         isAvailable(){ ... return true/false, or a Promise of one },
+         init(onChange){ ... call onChange(user|null) whenever auth changes },
+         login(){ ... },
+         logout(){ ... },
+         label(user){ ... return a display string for the signed-in user },
+       });
+
+     then add "myProvider" to AUTH_PROVIDER_ORDER. The first provider in
+     that list that reports itself available is the one that's used. */
+  const AUTH_PROVIDERS = {};
+  const AUTH_PROVIDER_ORDER = ["netlify"]; // try in this order; add new provider names here
+  let activeAuthProvider = null;
+  let currentAuthUser = null;
+
+  function registerAuthProvider(name, provider){ AUTH_PROVIDERS[name] = provider; }
+
+  registerAuthProvider("netlify", {
+    isAvailable(){
+      return typeof window.netlifyIdentity !== "undefined";
+    },
+    init(onChange){
+      let settled = false;
+      netlifyIdentity.on("init", user => { settled = true; onChange(user || null); });
+      netlifyIdentity.on("login", user => { settled = true; onChange(user || null); netlifyIdentity.close(); });
+      netlifyIdentity.on("logout", () => { onChange(null); });
+      // If this deployment isn't actually wired up to Netlify Identity, the
+      // widget can error out instead of ever firing "init" — treat that as
+      // "not configured" and fall back to normal, auth-less operation.
+      netlifyIdentity.on("error", () => { if (!settled) disableAuthUI(); });
+      netlifyIdentity.init();
+      // Belt-and-braces: nothing fired after a few seconds → assume this
+      // page isn't connected to an Identity instance and stay out of the way.
+      setTimeout(()=>{ if (!settled) disableAuthUI(); }, 4000);
+    },
+    login(){ netlifyIdentity.open("login"); },
+    logout(){ netlifyIdentity.logout(); },
+    label(user){
+      return (user && (user.user_metadata && user.user_metadata.full_name)) || (user && user.email) || "Signed in";
+    }
+  });
+
+  function disableAuthUI(){
+    activeAuthProvider = null;
+    const bar = document.getElementById("authBar");
+    if (bar){ bar.style.display = "none"; bar.innerHTML = ""; }
+  }
+  function renderAuthUI(){
+    const bar = document.getElementById("authBar");
+    if (!bar || !activeAuthProvider) return;
+    bar.style.display = "flex";
+    if (currentAuthUser){
+      bar.innerHTML = `<span class="authUser" title="${escapeHtml(activeAuthProvider.label(currentAuthUser))}">${escapeHtml(activeAuthProvider.label(currentAuthUser))}</span><button class="btn small ghost" id="authLogoutBtn">Log out</button>`;
+      document.getElementById("authLogoutBtn").onclick = () => activeAuthProvider.logout();
+    } else {
+      bar.innerHTML = `<button class="btn small ghost" id="authLoginBtn">Log in</button>`;
+      document.getElementById("authLoginBtn").onclick = () => activeAuthProvider.login();
+    }
+  }
+  async function initAuth(){
+    for (const name of AUTH_PROVIDER_ORDER){
+      const provider = AUTH_PROVIDERS[name];
+      if (!provider) continue;
+      try{
+        const available = await provider.isAvailable();
+        if (!available) continue;
+        activeAuthProvider = provider;
+        provider.init(user => { currentAuthUser = user; renderAuthUI(); });
+        return; // first available provider wins
+      }catch(err){ /* this provider isn't usable in this environment — try the next one */ }
+    }
+    // No provider available: #authBar stays hidden (its default state),
+    // and the rest of the app is completely unaffected.
   }
 
   /* ---------- Focus timer ---------- */
@@ -2796,12 +2888,14 @@
      last-connected file, or shows the connect gate and waits — it never
      falls back to a default or previously-legacy-saved workspace on its
      own, since that would let the app "work" without ever settling on one
-     file. */
+     file. Auth (if a provider is available) is initialized independently
+     and never blocks or gates this flow. */
   async function boot(){
     initTheme();
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
+    initAuth(); // no-op / stays hidden if no provider is available — see "Auth" section above
     const reconnected = await tryReconnectFile();
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     if (reconnected){
