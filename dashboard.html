@@ -90,9 +90,25 @@
   #topbar{display:flex;align-items:center;gap:8px;padding:16px 24px 14px 24px;border-bottom:1px solid transparent;}
   #topbar h2{font-size:18px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
-  #boardFilterBar{display:flex;align-items:center;gap:10px;padding:0 24px 14px 24px;flex-wrap:wrap;
-    border-bottom:1px solid var(--border);}
-  #boardSearch{width:200px;}
+  #boardFilterBar{display:block;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
+  #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);}
+  #boardSearch:focus{background:var(--bg);}
+  .filterSummary{font-size:12px;color:var(--muted);margin-right:auto;}
+  .filterSummary strong{color:var(--text);font-weight:600;}
+  .filterToggle{display:inline-flex;align-items:center;gap:6px;}
+  .filterToggle.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
+  .filterPanel{display:none;margin-top:10px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);
+    background:var(--bg-soft);}
+  .filterPanel.open{display:block;}
+  .filterPanelHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;font-size:12px;font-weight:600;}
+  .filterPanelHint{font-size:11.5px;color:var(--muted);font-weight:400;}
+  .filterControls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  #boardFilterBar select,#boardFilterBar input{border-color:var(--border);background:var(--bg);}
+  #boardFilterBar select{max-width:190px;}
+  #boardFilterBar #tagFilterPicker,#boardFilterBar #fieldFilterPicker{color:var(--muted);}
+  #boardFilterBar #boardTagFilters,#boardFilterBar #fieldFilters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  #boardFilterBar .sideLabel{font-size:11px;color:var(--muted);font-weight:600;}
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:16px;padding:20px 24px;align-items:flex-start;}
 
   .viewToggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:none;}
@@ -152,8 +168,9 @@
     border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
   .bulkBar strong{font-size:12px;margin-right:auto;}
   .listTable .selectCell{width:34px;text-align:center;padding-left:8px;padding-right:4px;}
-  .fieldFilterGroup{display:inline-flex;align-items:center;gap:5px;}
-  .fieldFilterGroup .removeFieldFilter{padding:2px 5px;font-size:11px;}
+  .fieldFilterGroup,.tagFilterGroup{display:inline-flex;align-items:center;gap:5px;padding:3px 4px 3px 8px;
+    border:1px solid var(--border);border-radius:8px;background:var(--bg);box-shadow:0 1px 1px rgba(15,17,21,.03);}
+  .fieldFilterGroup .removeFieldFilter,.tagFilterGroup .removeFieldFilter{padding:2px 5px;font-size:11px;}
 
   /* Overview */
   .overviewWrap{padding:22px 24px;overflow:auto;flex:1;width:100%;}
@@ -219,6 +236,10 @@
     .iconBtn{display:inline-flex;}
     #topbar{padding:14px 16px 12px 16px;}
     #boardFilterBar{padding:0 16px 12px 16px;}
+    #boardFilterBar{padding-top:10px;}
+    .filterLead{width:100%;}
+    .filterControls{min-width:100%;}
+    #clearBoardFilters{margin-left:0;}
     #board{padding:14px 16px;}
     .listWrap,.overviewWrap{padding:16px;}
     .statGrid{grid-template-columns:repeat(2,1fr);}
@@ -279,10 +300,22 @@
       <button class="btn small danger" id="deleteProjectBtn" style="display:none;">Delete</button>
     </div>
     <div id="boardFilterBar" style="display:none;">
-      <input id="boardSearch" type="text" placeholder="Filter items in this project">
-      <div id="boardTagFilters"></div>
-      <div id="fieldFilters" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-      <button class="btn small ghost" id="clearBoardFilters">Clear filters</button>
+      <div class="filterMainRow">
+        <input id="boardSearch" type="text" placeholder="Search items">
+        <span class="filterSummary" id="filterSummary">All items</span>
+        <button class="btn small filterToggle" id="toggleFilters" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"/></svg>
+          Filters
+        </button>
+        <button class="btn small ghost" id="clearBoardFilters">Clear</button>
+      </div>
+      <div class="filterPanel" id="filterPanel">
+        <div class="filterPanelHeader"><span>Refine this project</span><span class="filterPanelHint">Choose tags or columns</span></div>
+        <div class="filterControls">
+          <div id="boardTagFilters"></div>
+          <div id="fieldFilters"></div>
+        </div>
+      </div>
     </div>
     <div id="board"></div>
   </div>
@@ -877,7 +910,7 @@
     persistActiveFilters();
 
     topLabel.textContent = project.name;
-    filterBar.style.display = "flex";
+    filterBar.style.display = "block";
     renameBtn.style.display = "inline-block";
     deleteBtn.style.display = "inline-block";
     fieldsBtn.style.display = "inline-block";
@@ -888,6 +921,7 @@
     document.getElementById("boardSearch").value = boardFilterText;
     renderBoardTagFilters(project);
     renderFieldFilters(project);
+    updateFilterSummary();
 
     fieldsBtn.onclick = () => manageFieldsFlow(project);
     addGroupBtn.onclick = async () => {
@@ -908,11 +942,20 @@
 
   function renderBoardTagFilters(project){
     const wrap = document.getElementById("boardTagFilters");
-    wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("");
-    wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
-      el.onclick = () => {
-        const tid = el.dataset.tagfilter;
-        if (boardFilterTags.has(tid)) boardFilterTags.delete(tid); else boardFilterTags.add(tid);
+    const availableTags = project.tags.filter(tag=>!boardFilterTags.has(tag.id));
+    const activeTags = project.tags.filter(tag=>boardFilterTags.has(tag.id));
+    wrap.innerHTML = `<select id="tagFilterPicker" aria-label="Add tag filter">
+      <option value="">Add tag filter...</option>
+      ${availableTags.map(tag=>`<option value="${tag.id}">${escapeHtml(tag.name)}</option>`).join("")}
+    </select>${activeTags.map(tag=>`<span class="tagFilterGroup"><span class="miniTag"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span><button class="btn ghost removeFieldFilter" data-remove-tag-filter="${tag.id}" title="Remove ${escapeHtml(tag.name)} filter">✕</button></span>`).join("")}`;
+    wrap.querySelector("#tagFilterPicker").addEventListener("change", event=>{
+      if (!event.target.value) return;
+      boardFilterTags.add(event.target.value);
+      renderMain();
+    });
+    wrap.querySelectorAll("[data-remove-tag-filter]").forEach(button=>{
+      button.onclick = () => {
+        boardFilterTags.delete(button.dataset.removeTagFilter);
         renderMain();
       };
     });
@@ -962,6 +1005,13 @@
         renderMain();
       };
     });
+  }
+  function updateFilterSummary(){
+    const summary = document.getElementById("filterSummary");
+    if (!summary) return;
+    const fieldCount = [...boardFilterFields.values()].filter(value=>value!=="__all__").length;
+    const count = fieldCount + boardFilterTags.size + (boardFilterText ? 1 : 0);
+    summary.innerHTML = count ? `<strong>${count}</strong> filter${count===1?"":"s"} applied` : "All items";
   }
 
   /* ---------- Kanban ---------- */
@@ -1502,6 +1552,12 @@
     document.getElementById("clearBoardFilters").onclick = () => {
       boardFilterText=""; boardFilterTags.clear(); boardFilterFields.clear();
       renderMain();
+    };
+    document.getElementById("toggleFilters").onclick = () => {
+      const panel = document.getElementById("filterPanel");
+      const button = document.getElementById("toggleFilters");
+      const isOpen = panel.classList.toggle("open");
+      button.classList.toggle("active", isOpen);
     };
     document.getElementById("viewToggle").addEventListener("click", e=>{
       const btn = e.target.closest("button[data-view]");
