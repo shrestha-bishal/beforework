@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Beforework - a project dashboard that saves straight to a JSON file you control. No account, no server, your data stays on your device.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://accounts.google.com https://www.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
 <title>Beforework</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6f54'/%3E%3Crect x='27' y='27' width='46' height='46' rx='9' fill='white' fill-opacity='.9'/%3E%3C/svg%3E">
 <!-- Primer CSS (GitHub's design system) - provides the .btn/.form-control/.Box/.Label
@@ -22,6 +22,7 @@
   If you don't use Netlify Identity at all, just delete this line.
 -->
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js" crossorigin="anonymous"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   /* These are just local aliases - every value points straight at a real
      Primer CSS custom property, so Primer's own [data-color-mode] rules
@@ -582,6 +583,8 @@
   const THEME_KEY = "personal_dashboard_theme_v1";
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
+  const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
+  const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
   let state = null;                 // { projects:[] }
   let showArchived = false;
@@ -623,6 +626,10 @@
   const undoStack = [];
   const selectedItemIds = new Set();
   let filterPrefs = {};
+  let googleAccessToken = null;
+  let googleTokenClient = null;
+  let googleSyncInFlight = false;
+  let googleSyncScopeProject = null;
 
   /* ---------- Theme ---------- */
   function applyTheme(theme){
@@ -2196,6 +2203,89 @@
     const params = new URLSearchParams({action:"TEMPLATE",text:title,dates,details,location:entry.item.location||""});
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
+  function initGoogleCalendarAuth(){
+    if (!window.google?.accounts?.oauth2) return false;
+    googleTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id:GOOGLE_CLIENT_ID,
+      scope:GOOGLE_CALENDAR_SCOPE,
+      callback:response=>{
+        if (response.error){ showNotice("Google Calendar", "Google authentication was not completed."); return; }
+        googleAccessToken = response.access_token;
+        syncGoogleCalendar(googleSyncScopeProject);
+      }
+    });
+    return true;
+  }
+  async function googleCalendarRequest(path, options={}){
+    const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
+      ...options,
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${googleAccessToken}`,...(options.headers||{})}
+    });
+    if (!response.ok){
+      const detail = await response.text();
+      const error = new Error(`Google Calendar request failed (${response.status})`);
+      error.status = response.status;
+      error.detail = detail;
+      throw error;
+    }
+    return response.status===204 ? null : response.json();
+  }
+  function googleEventBody(entry){
+    const details = [entry.item.description, `Project: ${entry.project.name}`, `Group: ${entry.group.name}`].filter(Boolean).join("\n");
+    if (entry.item.startTime && entry.item.endTime){
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
+        start:{dateTime:`${entry.date}T${entry.item.startTime}:00`,timeZone},
+        end:{dateTime:`${entry.endDate}T${entry.item.endTime}:00`,timeZone}};
+    }
+    const nextDate = calendarDateCode(entry.endDate,1);
+    const endDate = `${nextDate.slice(0,4)}-${nextDate.slice(4,6)}-${nextDate.slice(6)}`;
+    return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
+      start:{date:entry.date}, end:{date:endDate}};
+  }
+  async function syncGoogleCalendar(scopeProject){
+    if (!googleAccessToken || googleSyncInFlight) return;
+    googleSyncInFlight = true;
+    const button = document.querySelector('[data-calendar-action="google"]');
+    if (button){ button.disabled = true; button.textContent = "Syncing..."; }
+    try{
+      const entries = calendarEntries(scopeProject);
+      for (const entry of entries){
+        entry.item.googleEventIds = entry.item.googleEventIds || {};
+        const key = `${entry.project.id}:${entry.field.id}`;
+        const eventId = entry.item.googleEventIds[key];
+        const body = googleEventBody(entry);
+        try{
+          const saved = eventId
+            ? await googleCalendarRequest(`/calendars/primary/events/${encodeURIComponent(eventId)}`, {method:"PATCH",body:JSON.stringify(body)})
+            : await googleCalendarRequest("/calendars/primary/events", {method:"POST",body:JSON.stringify(body)});
+          entry.item.googleEventIds[key] = saved.id;
+        }catch(error){
+          if (error.status!==404) throw error;
+          const saved = await googleCalendarRequest("/calendars/primary/events", {method:"POST",body:JSON.stringify(body)});
+          entry.item.googleEventIds[key] = saved.id;
+        }
+      }
+      scheduleSave();
+      if (button) button.textContent = `Synced ${entries.length} event${entries.length===1?"":"s"}`;
+    }catch(error){
+      if (error.status===401) googleAccessToken = null;
+      if (button) button.textContent = "Connect Google Calendar";
+      await showNotice("Google Calendar sync failed", "Google rejected the sync request. Connect again and make sure Calendar access was approved.");
+    }finally{
+      googleSyncInFlight = false;
+      if (button) button.disabled = false;
+    }
+  }
+  function connectGoogleCalendar(scopeProject){
+    googleSyncScopeProject = scopeProject || null;
+    if (!googleTokenClient && !initGoogleCalendarAuth()){
+      showNotice("Google Calendar unavailable", "The Google authentication library has not loaded yet. Refresh the page and try again.");
+      return;
+    }
+    if (googleAccessToken){ syncGoogleCalendar(scopeProject); return; }
+    googleTokenClient.requestAccessToken({prompt:"consent"});
+  }
   function calendarDateKey(date){
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
   }
@@ -2283,14 +2373,14 @@
       <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
       <button class="btn btn-sm" data-calendar-action="new">+ New</button>
       <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
-      <button class="btn btn-sm btn-invisible" data-calendar-action="google">Google Calendar (.ics)</button>
+      <button class="btn btn-sm btn-invisible" data-calendar-action="google">Connect Google Calendar</button>
     </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
-    wrap.querySelector('[data-calendar-action="google"]').onclick = () => exportCalendarIcs(scopeProject);
+    wrap.querySelector('[data-calendar-action="google"]').onclick = () => connectGoogleCalendar(scopeProject);
     wrap.querySelectorAll(".calendarDay").forEach(day=>{
       day.addEventListener("click", event=>{
         if (event.target.closest(".calendarEvent")) return;
