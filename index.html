@@ -2309,6 +2309,7 @@
           state.googleCalendarLinks = [...overlay.querySelectorAll("input[type=checkbox]:checked")].map(input=>input.value);
           shouldSync = state.googleCalendarLinks.length > 0;
           scheduleSave();
+          if (fileHandle){ clearTimeout(saveTimer); saveTimer = null; writeToFile(); }
           renderMain();
         }
         overlay.remove();
