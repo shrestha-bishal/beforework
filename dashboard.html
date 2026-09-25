@@ -136,10 +136,19 @@
   #boardFilterBar .sideLabel{font-size:11px;color:var(--muted);font-weight:600;}
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:16px;padding:20px 24px;align-items:flex-start;}
 
-  .viewToggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:none;}
-  .viewToggle button{border:none;background:var(--bg);padding:6px 13px;font-size:12.5px;font-weight:500;color:var(--muted);}
-  .viewToggle button:not(:last-child){border-right:1px solid var(--border);}
-  .viewToggle button.active{background:var(--accent-soft);color:var(--accent-strong);}
+  .viewTabs{display:flex;align-items:center;gap:5px;flex:none;flex-wrap:wrap;}
+  .viewTabs .tab{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg);
+    border-radius:8px;padding:6px 8px 6px 12px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;}
+  .viewTabs .tab:hover{border-color:var(--border-strong);}
+  .viewTabs .tab.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
+  .viewTabs .tab .tabClose{color:var(--faint);border-radius:4px;padding:0 3px;line-height:1.4;}
+  .viewTabs .tab .tabClose:hover{color:var(--danger);background:var(--danger-soft);}
+  .viewTabs .addViewBtn{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:8px;font-size:15px;}
+  .tableCell{width:100%;min-width:110px;}
+  td .tableCell{background:transparent;border:1px solid transparent;}
+  td .tableCell:hover{border-color:var(--border);background:var(--bg-soft);}
+  td .tableCell:focus{background:var(--bg);border-color:var(--accent);}
 
   .group{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);
     width:276px;flex:none;display:flex;flex-direction:column;max-height:100%;}
@@ -344,7 +353,7 @@
   #gateLegacyRow div{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
 
   @media print{
-    #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewToggle,
+    #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewTabs,
     #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate{display:none!important;}
     #app{height:auto;display:block;}
     #main{overflow:visible;}
@@ -439,11 +448,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <h2 id="projectTitleLabel">Overview</h2>
-      <div class="viewToggle" id="viewToggle" style="display:none;">
-        <button data-view="list" class="active">List</button>
-        <button data-view="kanban">Board</button>
-        <button data-view="calendar">Calendar</button>
-      </div>
+      <div class="viewTabs" id="viewTabs" style="display:none;"></div>
       <div class="projectMenuWrap" id="projectMenuWrap">
         <button class="btn small ghost projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
         <div class="projectMenu" id="projectMenu">
@@ -535,7 +540,28 @@
   let focusSeconds = 25*60;
   let focusTotal = 25*60;
   let activeProjectId = OVERVIEW;
-  let currentView = "list";         // 'list' | 'kanban' (list is the default)
+  // View type is per-project now (project.views + project.activeViewId), not global.
+  const VIEW_DEFS = [
+    {type:"list", label:"List"},
+    {type:"table", label:"Table"},
+    {type:"kanban", label:"Board"},
+    {type:"calendar", label:"Calendar"},
+  ];
+  function viewLabel(type){ return (VIEW_DEFS.find(v=>v.type===type)||{}).label || type; }
+  const PROJECT_TEMPLATES = {
+    simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:["Items"]},
+    table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:["Rows"]},
+    taskboard:{label:"Project / task management",  views:["list","kanban","calendar"], fields:["priority","due"], groups:["To do","Doing","Done"]},
+    calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:["Items"], itemDefaultType:"event"},
+    blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:["Items"]},
+  };
+  function buildFieldsForTemplate(keys){
+    return (keys||[]).map(k=>{
+      if (k==="priority") return {id:uid(), label:"Priority", type:"priority", options:[]};
+      if (k==="due") return {id:uid(), label:"Due date", type:"date", options:[]};
+      return null;
+    }).filter(Boolean);
+  }
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let boardFilterText = "";
   let boardFilterTags = new Set();
@@ -637,9 +663,14 @@
     const due = {id:uid(), label:"Due date", type:"date", options:[]};
     const t1 = {id:uid(), name:"feature", color:TAG_COLORS[0]};
     const t2 = {id:uid(), name:"urgent", color:TAG_COLORS[1]};
+    const proj1Views = [
+      {id:uid(), type:"list", name:"List"},
+      {id:uid(), type:"kanban", name:"Board"},
+      {id:uid(), type:"calendar", name:"Calendar"},
+    ];
     const proj1 = {
       id:uid(), name:"Product roadmap", createdAt:Date.now(),
-      tags:[t1,t2], fields:[pr,due],
+      tags:[t1,t2], fields:[pr,due], views:proj1Views, activeViewId:proj1Views[0].id, itemDefaultType:"task",
       groups:[
         {id:uid(), name:"To do", items:[
           {id:uid(), title:"This is a card — click to open it",
@@ -658,9 +689,13 @@
       {id:uid(), label:"Reading", color:TAG_COLORS[3]},
       {id:uid(), label:"Finished", color:TAG_COLORS[6]},
     ]};
+    const proj2Views = [
+      {id:uid(), type:"table", name:"Table"},
+      {id:uid(), type:"list", name:"List"},
+    ];
     const proj2 = {
       id:uid(), name:"Reading list", createdAt:Date.now(),
-      tags:[], fields:[status],
+      tags:[], fields:[status], views:proj2Views, activeViewId:proj2Views[0].id, itemDefaultType:"task",
       groups:[{id:uid(), name:"Books", items:[]}]
     };
     return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2]};
@@ -720,6 +755,24 @@
         it.comments = Array.isArray(it.comments) ? it.comments : [];
         it.archived = !!it.archived;
       })));
+      return s;
+    },
+    // v3 -> v4: projects gain their own set of views (list/table/kanban/
+    // calendar tabs) instead of one global List/Board/Calendar toggle that
+    // applied to every project. Existing projects keep the full set they
+    // already behaved like, so nothing they had access to disappears.
+    4: s => {
+      s.projects.forEach(p=>{
+        if (!Array.isArray(p.views) || !p.views.length){
+          p.views = [
+            {id:uid(), type:"list", name:"List"},
+            {id:uid(), type:"kanban", name:"Board"},
+            {id:uid(), type:"calendar", name:"Calendar"},
+          ];
+        }
+        if (!p.activeViewId || !p.views.some(v=>v.id===p.activeViewId)) p.activeViewId = p.views[0].id;
+        if (p.itemDefaultType !== "event") p.itemDefaultType = "task";
+      });
       return s;
     },
   };
@@ -1037,13 +1090,32 @@
     return out;
   }
 
-  function addProject(name){
-    const p = {id:uid(), name, createdAt:Date.now(), tags:[], fields:[], groups:[
-      {id:uid(), name:"Items", items:[]}
-    ]};
+  function addProject(name, templateKey){
+    const tpl = PROJECT_TEMPLATES[templateKey] || PROJECT_TEMPLATES.blank;
+    const views = tpl.views.map(type=>({id:uid(), type, name:viewLabel(type)}));
+    const p = {
+      id:uid(), name, createdAt:Date.now(),
+      tags:[],
+      fields: buildFieldsForTemplate(tpl.fields),
+      groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
+      views, activeViewId: views[0].id,
+      itemDefaultType: tpl.itemDefaultType || "task",
+    };
     state.projects.push(p);
     activeProjectId = p.id;
     scheduleSave(); renderAll();
+  }
+  function addView(project, type){
+    const v = {id:uid(), type, name:viewLabel(type)};
+    project.views.push(v);
+    project.activeViewId = v.id;
+    scheduleSave(); renderMain();
+  }
+  function removeView(project, viewId){
+    if (project.views.length <= 1) return;
+    project.views = project.views.filter(v=>v.id!==viewId);
+    if (project.activeViewId===viewId) project.activeViewId = project.views[0].id;
+    scheduleSave(); renderMain();
   }
   function deleteProject(pid){
     state.projects = state.projects.filter(p=>p.id!==pid);
@@ -1066,7 +1138,9 @@
     scheduleSave(); renderMain();
   }
   function addItem(pid, gid, title){
-    const it = {id:uid(), title, description:"", calendarType:"task", startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[],
+    const project = getProject(pid);
+    const it = {id:uid(), title, description:"", calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
+      startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[],
       comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     getGroup(pid,gid).items.push(it);
     scheduleSave(); renderMain();
@@ -1344,7 +1418,7 @@
     const fieldsBtn = document.getElementById("manageFieldsBtn");
     const addGroupBtn = document.getElementById("addGroupBtn");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
-    const viewToggle = document.getElementById("viewToggle");
+    const viewTabs = document.getElementById("viewTabs");
     const topLabel = document.getElementById("projectTitleLabel");
     const board = document.getElementById("board");
     board.innerHTML = "";
@@ -1360,7 +1434,7 @@
       projectMenuWrap.style.display = "none";
       document.getElementById("projectMenu").classList.remove("open");
       document.getElementById("projectMenuBtn").classList.remove("active");
-      viewToggle.style.display = "none";
+      viewTabs.style.display = "none";
       if (activeProjectId===CALENDAR) renderCalendar(board, null);
       else renderOverview(board);
       return;
@@ -1383,8 +1457,14 @@
     fieldsBtn.style.display = "inline-block";
     addGroupBtn.style.display = "inline-block";
     projectMenuWrap.style.display = "inline-flex";
-    viewToggle.style.display = "inline-flex";
-    viewToggle.querySelectorAll("button").forEach(b=> b.classList.toggle("active", b.dataset.view===currentView));
+    if (!Array.isArray(project.views) || !project.views.length){
+      project.views = [{id:uid(), type:"list", name:"List"}];
+    }
+    if (!project.activeViewId || !project.views.some(v=>v.id===project.activeViewId)){
+      project.activeViewId = project.views[0].id;
+    }
+    viewTabs.style.display = "flex";
+    renderViewTabs(project);
 
     document.getElementById("boardSearch").value = boardFilterText;
     renderBoardTagFilters(project);
@@ -1404,9 +1484,41 @@
       if (await showConfirm(`Delete project ${project.name}`, "This will delete everything in the project.", true)) deleteProject(project.id);
     };
 
-    if (currentView === "list") renderListView(project, board);
-    else if (currentView === "calendar") renderCalendar(board, project);
+    const activeView = project.views.find(v=>v.id===project.activeViewId) || project.views[0];
+    if (activeView.type === "list") renderListView(project, board);
+    else if (activeView.type === "table") renderTableView(project, board);
+    else if (activeView.type === "calendar") renderCalendar(board, project);
     else renderKanban(project, board);
+  }
+
+  function renderViewTabs(project){
+    const wrap = document.getElementById("viewTabs");
+    const tabsHtml = project.views.map(v=>`
+      <span class="tab ${v.id===project.activeViewId?"active":""}" data-view-id="${v.id}">
+        ${escapeHtml(viewLabel(v.type))}${project.views.length>1 ? `<span class="tabClose" data-remove-view="${v.id}" title="Remove this view">✕</span>` : ""}
+      </span>`).join("");
+    const missing = VIEW_DEFS.filter(d=>!project.views.some(v=>v.type===d.type));
+    const addBtn = missing.length ? `<button class="btn ghost small addViewBtn" id="addViewBtn" title="Add a view">+</button>` : "";
+    wrap.innerHTML = tabsHtml + addBtn;
+    wrap.querySelectorAll(".tab").forEach(tab=>{
+      tab.addEventListener("click", e=>{
+        if (e.target.closest(".tabClose")) return;
+        if (project.activeViewId === tab.dataset.viewId) return;
+        project.activeViewId = tab.dataset.viewId;
+        scheduleSave(); renderMain();
+      });
+    });
+    wrap.querySelectorAll("[data-remove-view]").forEach(x=>{
+      x.onclick = async (e) => {
+        e.stopPropagation();
+        if (await showConfirm("Remove this view", "This only removes the tab — your items and their data are unaffected.")) removeView(project, x.dataset.removeView);
+      };
+    });
+    const addViewBtn = document.getElementById("addViewBtn");
+    if (addViewBtn) addViewBtn.onclick = async () => {
+      const type = await showDialog({title:"Add a view", fields:[{label:"View type", type:"select", options:missing.map(m=>({value:m.type,label:m.label}))}], confirmLabel:"Add view"});
+      if (type) addView(project, type);
+    };
   }
 
   function renderBoardTagFilters(project){
@@ -1699,6 +1811,168 @@
     updateSelection();
   }
 
+  /* ---------- Table view ---------- */
+  function renderTableView(project, board){
+    const wrap = document.createElement("div");
+    wrap.className = "listWrap";
+
+    const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
+    const fieldHeaders = project.fields.map(f=>`<th data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
+    wrap.innerHTML = `
+      <div class="listAddRow">
+        <select id="quickAddGroup">${groupOptionsHtml}</select>
+        <input type="text" id="quickAddTitle" placeholder="New row title — press Enter to add">
+        <button class="btn small primary" id="quickAddBtn">+ Add row</button>
+      </div>
+      <div class="bulkBar">
+        <strong><span id="selectedCount">0</span> selected</strong>
+        <button class="btn small" id="bulkSelectAll">Select all</button>
+        <button class="btn small" id="bulkMove">Move</button>
+        <button class="btn small" id="bulkTag">Tag</button>
+        <button class="btn small danger" id="bulkDelete">Delete</button>
+      </div>
+      <div class="tableScroll">
+      <table class="listTable">
+        <thead><tr>
+          <th class="selectCell"><input type="checkbox" id="selectAllItems" title="Select all visible rows"></th>
+          <th data-field="title">Title</th>
+          <th data-field="group">Group</th>
+          ${fieldHeaders}
+          <th>Tags</th>
+        </tr></thead>
+        <tbody id="listTbody"></tbody>
+      </table>
+      </div>
+    `;
+    board.appendChild(wrap);
+
+    const doQuickAdd = () => {
+      const titleInput = document.getElementById("quickAddTitle");
+      const gid = document.getElementById("quickAddGroup").value;
+      const title = titleInput.value.trim();
+      if (!title) return;
+      addItem(project.id, gid, title);
+    };
+    document.getElementById("quickAddBtn").onclick = doQuickAdd;
+    document.getElementById("quickAddTitle").addEventListener("keydown", e=>{
+      if (e.key==="Enter") doQuickAdd();
+    });
+    const updateSelection = () => {
+      document.getElementById("selectedCount").textContent = selectedItemIds.size;
+      wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
+        input.checked = selectedItemIds.has(input.dataset.itemSelect);
+      });
+    };
+    document.getElementById("bulkSelectAll").onclick = () => {
+      rowsForSelection(project).forEach(row=>selectedItemIds.add(row.item.id));
+      updateSelection();
+    };
+    document.getElementById("selectAllItems").onchange = e => {
+      rowsForSelection(project).forEach(row=>{
+        if (e.target.checked) selectedItemIds.add(row.item.id);
+        else selectedItemIds.delete(row.item.id);
+      });
+      updateSelection();
+    };
+    document.getElementById("bulkMove").onclick = () => bulkMove(project);
+    document.getElementById("bulkTag").onclick = () => bulkTag(project);
+    document.getElementById("bulkDelete").onclick = () => bulkDelete(project);
+
+    wrap.querySelectorAll("th[data-field]").forEach(th=>{
+      const field = th.dataset.field;
+      const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
+      th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+      th.onclick = () => {
+        if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
+        else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
+        renderMain();
+      };
+    });
+
+    let rows = [];
+    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it)).forEach(it=> rows.push({item:it, group:g})));
+
+    rows.sort((a,b)=>{
+      let va, vb;
+      const f = project.fields.find(x=>x.id===listSort.field);
+      if (listSort.field==="title"){ va=a.item.title.toLowerCase(); vb=b.item.title.toLowerCase(); }
+      else if (listSort.field==="group"){ va=a.group.name.toLowerCase(); vb=b.group.name.toLowerCase(); }
+      else if (listSort.field==="updated"){ va=a.item.updatedAt; vb=b.item.updatedAt; }
+      else if (f && f.type==="priority"){
+        va=(PRIORITY_OPTIONS.find(o=>o.id===a.item.values[f.id])||{rank:0}).rank;
+        vb=(PRIORITY_OPTIONS.find(o=>o.id===b.item.values[f.id])||{rank:0}).rank;
+      } else if (f && f.type==="date"){
+        va=a.item.values[f.id]||"9999-99-99"; vb=b.item.values[f.id]||"9999-99-99";
+      } else if (f){
+        va=(a.item.values[f.id]||"").toLowerCase(); vb=(b.item.values[f.id]||"").toLowerCase();
+      } else { va=a.item.updatedAt; vb=b.item.updatedAt; }
+      if (va<vb) return listSort.dir==="asc" ? -1 : 1;
+      if (va>vb) return listSort.dir==="asc" ? 1 : -1;
+      return 0;
+    });
+
+    const tbody = document.getElementById("listTbody");
+    const colCount = 4 + project.fields.length;
+    if (!rows.length){
+      tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No rows match the current filters.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(({item,group})=>{
+      const tagsHtml = item.tagIds.map(tid=>{
+        const t = tagById(project, tid); if (!t) return "";
+        return `<span class="miniTag"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+      }).join("");
+      const fieldCells = project.fields.map(f=>{
+        const val = item.values[f.id] || "";
+        if (f.type==="priority"){
+          const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
+          return `<td><select class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+        }
+        if (f.type==="select"){
+          const opts = [{id:"",label:"None"}, ...(f.options||[])].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
+          return `<td><select class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+        }
+        if (f.type==="date"){
+          return `<td><input type="date" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+        }
+        return `<td><input type="text" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+      }).join("");
+      return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
+        <td class="selectCell"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
+        <td><input type="text" class="tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
+        <td>${escapeHtml(group.name)}</td>
+        ${fieldCells}
+        <td><div class="rowTags">${tagsHtml||"—"}</div></td>
+      </tr>`;
+    }).join("");
+    tbody.querySelectorAll("input[data-item-select]").forEach(input=>{
+      input.addEventListener("change", e=>{
+        if (e.target.checked) selectedItemIds.add(input.dataset.itemSelect);
+        else selectedItemIds.delete(input.dataset.itemSelect);
+        updateSelection();
+      });
+    });
+    tbody.querySelectorAll("input[data-title-cell]").forEach(input=>{
+      input.addEventListener("change", e=>{
+        const it = getItem(input.dataset.pid, input.dataset.gid, input.dataset.iid);
+        if (!it) return;
+        it.title = e.target.value.trim() || it.title;
+        it.updatedAt = Date.now();
+        scheduleSave(); renderProjectList();
+      });
+    });
+    tbody.querySelectorAll(".tableCell[data-fieldid]").forEach(control=>{
+      control.addEventListener("change", e=>{
+        const it = getItem(control.dataset.pid, control.dataset.gid, control.dataset.iid);
+        if (!it) return;
+        it.values[control.dataset.fieldid] = e.target.value;
+        it.updatedAt = Date.now();
+        scheduleSave();
+      });
+    });
+    updateSelection();
+  }
+
   function calendarEntries(scopeProject){
     const entries = [];
     const projects = scopeProject ? [scopeProject] : state.projects;
@@ -1932,7 +2206,6 @@
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
       el.onclick = () => {
         activeProjectId = el.dataset.pid;
-        currentView = "list";
         renderAll();
         openItemModal(el.dataset.pid, el.dataset.gid, el.dataset.iid);
       };
@@ -2359,8 +2632,14 @@
       }
     });
     document.getElementById("addProjectBtn").onclick = async () => {
-      const name = await showDialog({title:"New project", fields:[{label:"Project name", placeholder:"e.g. Marketing launch"}], confirmLabel:"Create project"});
-      if (name && name.trim()) addProject(name.trim());
+      const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
+      const result = await showDialog({title:"New project", fields:[
+        {label:"Project name", placeholder:"e.g. Marketing launch"},
+        {label:"Template", type:"select", options:templateOptions, value:"taskboard"}
+      ], confirmLabel:"Create project"});
+      if (!result) return;
+      const [name, templateKey] = result;
+      if (name && name.trim()) addProject(name.trim(), templateKey);
     };
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);
@@ -2416,12 +2695,6 @@
       const isOpen = panel.classList.toggle("open");
       button.classList.toggle("active", isOpen);
     };
-    document.getElementById("viewToggle").addEventListener("click", e=>{
-      const btn = e.target.closest("button[data-view]");
-      if (!btn) return;
-      currentView = btn.dataset.view;
-      renderMain();
-    });
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
     document.getElementById("undoBtn").onclick = undoLastChange;
