@@ -330,9 +330,22 @@
   kbd{background:var(--bg-soft);border:1px solid var(--border);border-radius:5px;padding:2px 7px;
     font-family:inherit;font-size:11.5px;color:var(--text);}
 
+  /* Connect gate */
+  #connectGate{display:none;position:fixed;inset:0;background:rgba(20,21,26,.5);backdrop-filter:blur(3px);
+    z-index:100;align-items:center;justify-content:center;padding:16px;}
+  #connectGate.open{display:flex;}
+  #connectGate .modal{width:460px;}
+  #connectGate p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 14px 0;}
+  #gateReconnectRow{margin-bottom:14px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
+  #gateReconnectRow div{font-size:13px;margin-bottom:8px;}
+  #gateSupportedActions{display:flex;gap:8px;margin-bottom:4px;}
+  #gateUnsupported p{color:var(--warn);}
+  #gateLegacyRow{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+  #gateLegacyRow div{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
+
   @media print{
     #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewToggle,
-    #boardFilterBar,.overlay,.iconBtn,#themeToggle{display:none!important;}
+    #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate{display:none!important;}
     #app{height:auto;display:block;}
     #main{overflow:visible;}
     #board{overflow:visible;padding:0;flex-wrap:wrap;}
@@ -368,6 +381,28 @@
 </style>
 </head>
 <body>
+<div id="connectGate">
+  <div class="modal modalWrap">
+    <h3>Connect your dashboard file</h3>
+    <p>This dashboard reads from and saves directly to a JSON file on your device — there's no separate copy kept in the browser, so that file is always the single source of truth. Connect one to get started.</p>
+    <div id="gateReconnectRow" style="display:none;">
+      <div>Reconnect to <strong id="gateFileName"></strong>?</div>
+      <button class="btn small primary" id="gateReconnectBtn">Reconnect</button>
+    </div>
+    <div id="gateSupportedActions">
+      <button class="btn primary" id="gateNewBtn">Create new file</button>
+      <button class="btn" id="gateOpenBtn">Open existing file</button>
+    </div>
+    <div id="gateUnsupported" style="display:none;">
+      <p>This browser doesn't support connecting directly to a local file (that needs Chrome, Edge, or another Chromium-based browser). Switch to one of those browsers to use this dashboard.</p>
+    </div>
+    <div id="gateLegacyRow" style="display:none;">
+      <div>Found data saved in this browser from an earlier version. Move it into a file?</div>
+      <button class="btn small" id="gateLegacyBtn">Migrate into a new file</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
   <div id="sidebarScrim"></div>
   <div id="sidebar">
@@ -454,7 +489,8 @@
   <div class="syncMenuWrap">
     <button class="btn small ghost syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
     <div class="syncMenu" id="syncMenu">
-      <button class="btn small" id="connectFileBtn">Connect file for autosave</button>
+      <button class="btn small" id="switchFileBtn">Open a different file</button>
+      <button class="btn small ghost" id="newFileBtn">Start a new file</button>
       <button class="btn small ghost" id="exportBtn">Export JSON</button>
       <button class="btn small ghost" id="importBtn">Import JSON</button>
       <button class="btn small ghost" id="restoreBackupBtn" style="display:none;" title="Restore the snapshot saved automatically before the last data upgrade">Restore pre-upgrade backup</button>
@@ -726,9 +762,13 @@
   }
 
   /* ---------- Persistence ---------- */
-  const LS_KEY = "personal_dashboard_state_v2";
+  // LEGACY_LS_KEY is only read once, to offer moving old browser-only data
+  // into a real file. It's never written to again — the connected file is
+  // the single source of truth from here on.
+  const LEGACY_LS_KEY = "personal_dashboard_state_v2";
   const FILTER_KEY = "personal_dashboard_filters_v1";
   const DB_NAME = "dashboard_meta", DB_STORE = "kv";
+  let pendingReconnectHandle = null; // a previously-used handle waiting on a user gesture to re-grant permission
 
   function idbOpen(){
     return new Promise((resolve,reject)=>{
@@ -763,83 +803,174 @@
     document.getElementById("syncLabel").textContent = text;
   }
 
+  // The connected file is the only place data lives. If it isn't connected
+  // yet (or the write fails), we deliberately do NOT fall back to writing a
+  // copy into localStorage — that would create a second source of truth
+  // that could silently drift from the file.
   function scheduleSave(){
+    if (!fileHandle) return;
     const serialized = JSON.stringify(state);
     if (lastSavedState && lastSavedState !== serialized){
       undoStack.push(lastSavedState);
       if (undoStack.length > 30) undoStack.shift();
     }
     lastSavedState = serialized;
-    localStorage.setItem(LS_KEY, serialized);
-    if (!fileHandle) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(writeToFile, 400);
   }
 
   async function writeToFile(){
+    if (!fileHandle) return;
     try{
       const writable = await fileHandle.createWritable();
       await writable.write(JSON.stringify(state, null, 2));
       await writable.close();
-      setSyncStatus("ok", "Autosaving to " + fileHandle.name);
+      setSyncStatus("ok", "Saved to " + fileHandle.name);
     }catch(err){
-      setSyncStatus("err", "Couldn't save to file (" + err.message + ")");
+      setSyncStatus("err", "Couldn't save to file (" + err.message + ") — your changes are still in memory, try reconnecting the file");
     }
   }
 
+  async function loadFromHandle(handle){
+    const file = await handle.getFile();
+    const text = await file.text();
+    return text.trim() ? migrateState(JSON.parse(text)) : defaultState();
+  }
+
+  // Called once at boot. Tries to silently resume the last-connected file
+  // using the handle stashed in IndexedDB (the handle itself, not the
+  // data — see idbGet/idbSet). If permission needs to be re-granted, that
+  // requires a user gesture, so we just flag it for the connect gate.
   async function tryReconnectFile(){
-    if (!("showSaveFilePicker" in window)) return false;
+    if (!("showOpenFilePicker" in window)) return false;
     try{
       const handle = await idbGet("fileHandle");
       if (!handle) return false;
       const perm = await handle.queryPermission({mode:"readwrite"});
       if (perm === "granted"){
         fileHandle = handle;
-        const file = await handle.getFile();
-        const text = await file.text();
-        if (text.trim()){ state = migrateState(JSON.parse(text)); }
-        setSyncStatus("ok", "Autosaving to " + handle.name);
+        state = await loadFromHandle(handle);
+        lastSavedState = JSON.stringify(state);
+        setSyncStatus("ok", "Saved to " + handle.name);
         return true;
-      } else {
-        setSyncStatus("", "Previously connected to " + handle.name + " — click Reconnect to grant access again");
-        document.getElementById("connectFileBtn").textContent = "Reconnect file";
-        return false;
       }
+      pendingReconnectHandle = handle;
+      return false;
     }catch(err){ return false; }
   }
 
-  async function connectFile(){
-    if (!("showSaveFilePicker" in window)){
-      showNotice("File access unavailable", "Your browser does not support direct file access. Use Export and Import instead, or open this file in Chrome or Edge.");
-      return;
-    }
+  async function reconnectPendingFile(){
+    if (!pendingReconnectHandle) return;
     try{
-      // If we already have a handle from a previous visit, just re-request permission on it
-      // instead of asking the person to pick the file again.
-      const existing = await idbGet("fileHandle");
-      if (existing){
-        const perm = await existing.requestPermission({mode:"readwrite"});
-        if (perm === "granted"){
-          fileHandle = existing;
-          const file = await fileHandle.getFile();
-          const text = await file.text();
-          if (text.trim()) state = migrateState(JSON.parse(text));
-          await writeToFile();
-          document.getElementById("connectFileBtn").textContent = "Connect file for autosave";
-          renderAll();
-          return;
-        }
-      }
+      const perm = await pendingReconnectHandle.requestPermission({mode:"readwrite"});
+      if (perm !== "granted"){ showNotice("Permission needed", "Access to that file wasn't granted, so it couldn't be reconnected."); return; }
+      fileHandle = pendingReconnectHandle;
+      state = await loadFromHandle(fileHandle);
+      lastSavedState = JSON.stringify(state);
+      setSyncStatus("ok", "Saved to " + fileHandle.name);
+      hideConnectGate();
+      renderAll();
+    }catch(err){ showNotice("Couldn't reconnect", err.message); }
+  }
+
+  async function createNewFile(){
+    if (!("showSaveFilePicker" in window)) return;
+    try{
       const opts = {types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}], suggestedName:"dashboard-data.json"};
       const handle = await window.showSaveFilePicker(opts);
       const perm = await handle.requestPermission({mode:"readwrite"});
       if (perm !== "granted") return;
       fileHandle = handle;
       await idbSet("fileHandle", handle);
+      state = defaultState();
+      lastSavedState = null;
       await writeToFile();
-      document.getElementById("connectFileBtn").textContent = "Connect file for autosave";
-      setSyncStatus("ok", "Autosaving to " + handle.name + " — place this file in a synced folder (OneDrive/Google Drive) to share it across devices");
-    }catch(err){ /* user cancelled */ }
+      lastSavedState = JSON.stringify(state);
+      hideConnectGate();
+      renderAll();
+    }catch(err){ /* user cancelled the picker */ }
+  }
+
+  async function openExistingFile(){
+    if (!("showOpenFilePicker" in window)) return;
+    try{
+      const [handle] = await window.showOpenFilePicker({types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}]});
+      const perm = await handle.requestPermission({mode:"readwrite"});
+      if (perm !== "granted"){ showNotice("Permission needed", "Read-write access is required so changes can be saved back to this file."); return; }
+      let loaded;
+      try{ loaded = await loadFromHandle(handle); }
+      catch(err){ showNotice("Couldn't read that file", "This doesn't look like a dashboard JSON file: " + err.message); return; }
+      fileHandle = handle;
+      await idbSet("fileHandle", handle);
+      state = loaded;
+      lastSavedState = JSON.stringify(state);
+      hideConnectGate();
+      renderAll();
+    }catch(err){ /* user cancelled the picker */ }
+  }
+
+  async function switchFile(){
+    if (!await showConfirm("Open a different file", "This switches the whole dashboard to another file. Your current file keeps whatever was last saved to it.")) return;
+    await openExistingFile();
+  }
+  async function startNewFileFromMenu(){
+    if (!await showConfirm("Create a new file", "This starts a brand-new, empty dashboard in a new file. Your current file is left untouched.")) return;
+    await createNewFile();
+  }
+
+  // One-time offer to move data that was saved under the old browser-only
+  // storage model (before this version) into a real file, so nobody loses
+  // their board when upgrading.
+  async function migrateLegacyBrowserData(){
+    if (!("showSaveFilePicker" in window)) return;
+    const raw = localStorage.getItem(LEGACY_LS_KEY);
+    if (!raw) return;
+    let parsed;
+    try{ parsed = migrateState(JSON.parse(raw)); }
+    catch(err){ showNotice("Couldn't read old data", "The data previously saved in this browser looks corrupted: " + err.message); return; }
+    try{
+      const opts = {types:[{description:"Dashboard data", accept:{"application/json":[".json"]}}], suggestedName:"dashboard-data.json"};
+      const handle = await window.showSaveFilePicker(opts);
+      const perm = await handle.requestPermission({mode:"readwrite"});
+      if (perm !== "granted") return;
+      fileHandle = handle;
+      await idbSet("fileHandle", handle);
+      state = parsed;
+      lastSavedState = null;
+      await writeToFile();
+      lastSavedState = JSON.stringify(state);
+      localStorage.removeItem(LEGACY_LS_KEY);
+      hideConnectGate();
+      renderAll();
+    }catch(err){ /* user cancelled the picker */ }
+  }
+
+  /* ---------- Connect gate ---------- */
+  // Nothing in the app is usable until a file is connected — there is no
+  // in-memory-only or browser-storage-only mode. This keeps the file the
+  // one and only source of truth at all times.
+  function showConnectGate(){
+    const gate = document.getElementById("connectGate");
+    const supported = "showOpenFilePicker" in window && "showSaveFilePicker" in window;
+    document.getElementById("gateSupportedActions").style.display = supported ? "flex" : "none";
+    document.getElementById("gateUnsupported").style.display = supported ? "none" : "block";
+    const reconnectRow = document.getElementById("gateReconnectRow");
+    if (supported && pendingReconnectHandle){
+      reconnectRow.style.display = "block";
+      document.getElementById("gateFileName").textContent = pendingReconnectHandle.name;
+    } else {
+      reconnectRow.style.display = "none";
+    }
+    const legacyRow = document.getElementById("gateLegacyRow");
+    if (supported && localStorage.getItem(LEGACY_LS_KEY)){
+      legacyRow.style.display = "block";
+    } else {
+      legacyRow.style.display = "none";
+    }
+    gate.classList.add("open");
+  }
+  function hideConnectGate(){
+    document.getElementById("connectGate").classList.remove("open");
   }
 
   function exportJSON(){
@@ -852,6 +983,7 @@
   }
 
   function importJSON(file){
+    if (!fileHandle){ showNotice("Connect a file first", "Import replaces the data in your connected file — connect or create one first."); return; }
     const reader = new FileReader();
     reader.onload = () => {
       try{
@@ -2179,6 +2311,12 @@
   }
 
   /* ---------- Wiring ---------- */
+  function wireConnectGate(){
+    document.getElementById("gateNewBtn").onclick = createNewFile;
+    document.getElementById("gateOpenBtn").onclick = openExistingFile;
+    document.getElementById("gateReconnectBtn").onclick = reconnectPendingFile;
+    document.getElementById("gateLegacyBtn").onclick = migrateLegacyBrowserData;
+  }
   function wireStaticControls(){
     document.getElementById("overviewNav").onclick = () => {
       activeProjectId = OVERVIEW; renderAll(); closeSidebarOnMobile();
@@ -2287,7 +2425,8 @@
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
     document.getElementById("undoBtn").onclick = undoLastChange;
-    document.getElementById("connectFileBtn").onclick = connectFile;
+    document.getElementById("switchFileBtn").onclick = switchFile;
+    document.getElementById("newFileBtn").onclick = startNewFileFromMenu;
     document.getElementById("exportBtn").onclick = exportJSON;
     document.getElementById("importBtn").onclick = () => document.getElementById("fileImportInput").click();
     document.getElementById("restoreBackupBtn").onclick = restoreMigrationBackup;
@@ -2324,35 +2463,24 @@
     });
   }
 
-  /* ---------- Boot ---------- */
+  /* ---------- Boot ----------
+     There is no in-memory-only or browser-storage-only mode: the connected
+     file is the single source of truth. Boot either silently resumes the
+     last-connected file, or shows the connect gate and waits — it never
+     falls back to a default or previously-legacy-saved workspace on its
+     own, since that would let the app "work" without ever settling on one
+     file. */
   async function boot(){
     initTheme();
     wireStaticControls();
-    document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
-    try{ filterPrefs = JSON.parse(localStorage.getItem(FILTER_KEY) || "{}"); }
-    catch(err){ filterPrefs = {}; }
+    wireConnectGate();
     const reconnected = await tryReconnectFile();
-    if (!reconnected){
-      const ls = localStorage.getItem(LS_KEY);
-      if (ls){
-        try{
-          state = migrateState(JSON.parse(ls));
-        }catch(err){
-          state = defaultState();
-          showNotice("Couldn't load your saved data", "Your saved data looks corrupted, so a fresh workspace was loaded instead. Nothing was overwritten yet — if you have a recent Export JSON file, use Import to restore it.");
-        }
-      } else {
-        state = defaultState();
-      }
-      if (!("showSaveFilePicker" in window)){
-        setSyncStatus("", "Storage: this browser only (use Export/Import to move data)");
-      } else if (!document.getElementById("syncLabel").textContent.includes("Previously connected")){
-        setSyncStatus("", "Storage: browser only — click Connect file to enable cross-device sync");
-      }
-    }
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
-    lastSavedState = JSON.stringify(state);
-    renderAll();
+    if (reconnected){
+      renderAll();
+    } else {
+      showConnectGate();
+    }
   }
   boot();
 })();
