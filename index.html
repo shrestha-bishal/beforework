@@ -588,7 +588,7 @@
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
-  const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+  const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
 
   let state = null;                 // { projects:[] }
   let showArchived = false;
@@ -2302,7 +2302,12 @@
       overlay.querySelector("[data-google-save]").onclick = () => finish(true);
       overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(false); });
     }catch(error){
-      await showNotice("Google Calendar", "Could not load your writable calendars. Connect Google Calendar again and approve calendar access.");
+      let detail = "Could not load your writable calendars.";
+      try{
+        const payload = JSON.parse(error.detail || "{}");
+        detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
+      }catch(parseError){ /* keep the generic message when Google returns non-JSON text */ }
+      await showNotice("Google Calendar", `${detail} Connect Google Calendar again and approve calendar access.`);
     }
   }
   function googleEventBody(entry){
