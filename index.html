@@ -189,7 +189,7 @@
   .listWrap{padding:18px 24px;overflow:auto;flex:1;width:100%;}
   .listAddRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
   .listAddRow select{width:auto;min-width:150px;}
-  .listAddRow input[type=text]{flex:1;min-width:160px;max-width:360px;}
+  .listAddRow .addListItemBtn{margin-left:auto;}
   .rowTags{display:flex;gap:4px;flex-wrap:wrap;}
   .bulkBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;
     border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
@@ -271,8 +271,8 @@
      footer, with a scrollable body split into a main column and a metadata sidebar. */
   #itemModal{width:860px;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
-  .itemModalHeader{flex:none;padding:18px 52px 14px 20px;border-bottom:1px solid var(--border);background:var(--bg);}
-  .itemModalHeader #itemTitleInput{width:100%;font-size:19px;font-weight:600;padding:10px 12px;min-height:0;
+  .itemModalHeader{flex:none;padding:14px 60px 12px 20px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .itemModalHeader #itemTitleInput{width:100%;font-size:17px;font-weight:600;padding:7px 10px;min-height:0;
     border:1px solid transparent;border-radius:10px;}
   .itemModalHeader #itemTitleInput:hover{background:var(--bg-soft);}
   .itemModalHeader #itemTitleInput:focus{background:var(--bg-soft);border-color:var(--border);box-shadow:none;}
@@ -299,6 +299,7 @@
   .scheduleEditor .sideItemRow2{gap:10px;}
   .itemModalFooter{flex:none;border-top:1px solid var(--border);padding:14px 20px;
     display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-soft);}
+  .itemModalFooterNote{font-size:11.5px;color:var(--faint);}
   @media (max-width:860px){
     #itemModal{width:100%;max-height:94vh;}
     .itemModalBody{flex-direction:column;overflow-y:auto;}
@@ -1327,6 +1328,23 @@
     scheduleSave(); renderMain();
     return it;
   }
+  function openNewItemModal(project, group){
+    if (!project || !group) return;
+    openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false, draft:{
+      id:uid(), title:"", description:"", calendarType:project.itemDefaultType==="event" ? "event" : "task",
+      startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[], comments:[],
+      archived:false, createdAt:Date.now(), updatedAt:Date.now()
+    }};
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "itemOverlay";
+    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="itemModal"></div>`;
+    overlay.addEventListener("click", event=>{ if (event.target===overlay) closeItemModal(); });
+    document.body.appendChild(overlay);
+    renderItemModal();
+    const titleInput = document.getElementById("itemTitleInput");
+    if (titleInput) titleInput.focus();
+  }
   function deleteItem(pid,gid,iid){
     const g = getGroup(pid,gid);
     g.items = g.items.filter(i=>i.id!==iid);
@@ -1358,8 +1376,7 @@
     if (!project){ showNotice("Pick a project", "Open a project from the sidebar first, then press n to quickly add an item."); return; }
     const group = project.groups[0];
     if (!group) return;
-    const title = await showDialog({title:"New item", fields:[{label:"Item title", placeholder:"What needs to be done?"}], confirmLabel:"Add item"});
-    if (title && title.trim()) addItem(project.id, group.id, title.trim());
+    openNewItemModal(project, group);
   }
   function undoLastChange(){
     const previous = undoStack.pop();
@@ -1816,8 +1833,7 @@
         if (await showConfirm(`Delete group ${group.name}`, `This will delete the group and its ${group.items.length} item(s).`, true)) deleteGroup(project.id, group.id);
       };
       col.querySelector('[data-action="addItem"]').onclick = async () => {
-        const title = await showDialog({title:"New item", fields:[{label:"Item title", placeholder:"What needs to be done?"}], confirmLabel:"Add item"});
-        if (title && title.trim()) addItem(project.id, group.id, title.trim());
+        openNewItemModal(project, group);
       };
 
       const body = col.querySelector(".groupBody");
@@ -1878,8 +1894,7 @@
     wrap.innerHTML = `
       <div class="listAddRow">
         <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
-        <input class="form-control" type="text" id="quickAddTitle" placeholder="New item title - press Enter to add">
-        <button class="btn btn-sm btn-primary" id="quickAddBtn">+ Add</button>
+        <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
       </div>
       <div class="bulkBar">
         <strong><span id="selectedCount">0</span> selected</strong>
@@ -1904,16 +1919,11 @@
     board.appendChild(wrap);
 
     const doQuickAdd = () => {
-      const titleInput = document.getElementById("quickAddTitle");
       const gid = document.getElementById("quickAddGroup").value;
-      const title = titleInput.value.trim();
-      if (!title) return;
-      addItem(project.id, gid, title);
+      const group = project.groups.find(candidate=>candidate.id===gid);
+      openNewItemModal(project, group);
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
-    document.getElementById("quickAddTitle").addEventListener("keydown", e=>{
-      if (e.key==="Enter") doQuickAdd();
-    });
     const updateSelection = () => {
       document.getElementById("selectedCount").textContent = selectedItemIds.size;
       wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
@@ -2017,8 +2027,7 @@
     wrap.innerHTML = `
       <div class="listAddRow">
         <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
-        <input class="form-control" type="text" id="quickAddTitle" placeholder="New row title - press Enter to add">
-        <button class="btn btn-sm btn-primary" id="quickAddBtn">+ Add row</button>
+        <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add row</button>
       </div>
       <div class="bulkBar">
         <strong><span id="selectedCount">0</span> selected</strong>
@@ -2041,16 +2050,11 @@
     board.appendChild(wrap);
 
     const doQuickAdd = () => {
-      const titleInput = document.getElementById("quickAddTitle");
       const gid = document.getElementById("quickAddGroup").value;
-      const title = titleInput.value.trim();
-      if (!title) return;
-      addItem(project.id, gid, title);
+      const group = project.groups.find(candidate=>candidate.id===gid);
+      openNewItemModal(project, group);
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
-    document.getElementById("quickAddTitle").addEventListener("keydown", e=>{
-      if (e.key==="Enter") doQuickAdd();
-    });
     const updateSelection = () => {
       document.getElementById("selectedCount").textContent = selectedItemIds.size;
       wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
@@ -2607,9 +2611,9 @@
         </div>
       </div>
       <div class="itemModalFooter">
-        <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
+        <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${new Date(item.updatedAt).toLocaleString()}`}</span>
         <div style="display:flex;gap:8px;">
-          ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Create item</button>` : `
+          ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>` : `
             <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>
             <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>`}
         </div>
