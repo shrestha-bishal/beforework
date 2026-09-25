@@ -630,7 +630,7 @@
   let googleTokenClient = null;
   let googleSyncInFlight = false;
   let googleSyncScopeProject = null;
-  let googleTokenPurpose = "restore";
+  let googleTokenPurpose = "sync";
 
   /* ---------- Theme ---------- */
   function applyTheme(theme){
@@ -2228,12 +2228,6 @@
       if (!googleSyncInFlight) button.textContent = googleAccessToken ? "Sync Google Calendar" : "Connect Google Calendar";
     });
   }
-  function restoreGoogleCalendarSession(){
-    if (googleAccessToken) return;
-    if (!googleTokenClient && !initGoogleCalendarAuth()) return;
-    googleTokenPurpose = "restore";
-    googleTokenClient.requestAccessToken({prompt:"none"});
-  }
   async function googleCalendarRequest(path, options={}){
     const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
       ...options,
@@ -3094,7 +3088,6 @@
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
-    window.addEventListener("load", restoreGoogleCalendarSession, {once:true});
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     const reconnected = await tryReconnectFile();
     document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
