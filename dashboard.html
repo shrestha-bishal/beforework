@@ -91,9 +91,17 @@
 
   /* Main */
   #main{flex:1;display:flex;flex-direction:column;min-width:0;}
-  #topbar{display:flex;align-items:center;gap:8px;padding:16px 24px 14px 24px;border-bottom:1px solid transparent;}
+  #topbar{display:flex;align-items:center;gap:8px;padding:16px 24px 14px 24px;border-bottom:1px solid transparent;position:relative;}
   #topbar h2{font-size:18px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
+  .projectMenuWrap{position:relative;display:none;flex:none;}
+  .projectMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;font-size:18px;line-height:1;}
+  .projectMenuBtn.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
+  .projectMenu{display:none;position:absolute;top:39px;right:0;z-index:30;min-width:170px;padding:5px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
+  .projectMenu.open{display:block;}
+  #projectMenu .btn{display:block!important;width:100%;text-align:left;border:none;border-radius:6px;}
+  #projectMenu .btn.danger{color:var(--danger);}
   #boardFilterBar{display:block;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
   #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);}
@@ -326,11 +334,16 @@
         <button data-view="kanban">Board</button>
         <button data-view="calendar">Calendar</button>
       </div>
-      <button class="btn small ghost" id="manageFieldsBtn" style="display:none;">Columns</button>
-      <button class="btn small ghost" id="addGroupBtn" style="display:none;">+ Group</button>
-      <button class="btn small ghost" id="undoBtn" title="Undo last change">Undo</button>
-      <button class="btn small ghost" id="renameProjectBtn" style="display:none;">Rename</button>
-      <button class="btn small danger" id="deleteProjectBtn" style="display:none;">Delete</button>
+      <div class="projectMenuWrap" id="projectMenuWrap">
+        <button class="btn small ghost projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
+        <div class="projectMenu" id="projectMenu">
+          <button class="btn small ghost" id="manageFieldsBtn">Columns</button>
+          <button class="btn small ghost" id="addGroupBtn">+ Group</button>
+          <button class="btn small ghost" id="undoBtn" title="Undo last change">Undo</button>
+          <button class="btn small ghost" id="renameProjectBtn">Rename</button>
+          <button class="btn small danger" id="deleteProjectBtn">Delete</button>
+        </div>
+      </div>
     </div>
     <div id="boardFilterBar" style="display:none;">
       <div class="filterMainRow">
@@ -928,6 +941,7 @@
     const deleteBtn = document.getElementById("deleteProjectBtn");
     const fieldsBtn = document.getElementById("manageFieldsBtn");
     const addGroupBtn = document.getElementById("addGroupBtn");
+    const projectMenuWrap = document.getElementById("projectMenuWrap");
     const viewToggle = document.getElementById("viewToggle");
     const topLabel = document.getElementById("projectTitleLabel");
     const board = document.getElementById("board");
@@ -941,6 +955,9 @@
       deleteBtn.style.display = "none";
       fieldsBtn.style.display = "none";
       addGroupBtn.style.display = "none";
+      projectMenuWrap.style.display = "none";
+      document.getElementById("projectMenu").classList.remove("open");
+      document.getElementById("projectMenuBtn").classList.remove("active");
       viewToggle.style.display = "none";
       if (activeProjectId===CALENDAR) renderCalendar(board, null);
       else renderOverview(board);
@@ -963,6 +980,7 @@
     deleteBtn.style.display = "inline-block";
     fieldsBtn.style.display = "inline-block";
     addGroupBtn.style.display = "inline-block";
+    projectMenuWrap.style.display = "inline-flex";
     viewToggle.style.display = "inline-flex";
     viewToggle.querySelectorAll("button").forEach(b=> b.classList.toggle("active", b.dataset.view===currentView));
 
@@ -1810,6 +1828,24 @@
     document.getElementById("calendarNav").onclick = () => {
       activeProjectId = CALENDAR; renderAll(); closeSidebarOnMobile();
     };
+    document.getElementById("projectMenuBtn").onclick = event => {
+      event.stopPropagation();
+      const menu = document.getElementById("projectMenu");
+      const open = menu.classList.toggle("open");
+      event.currentTarget.classList.toggle("active", open);
+    };
+    document.getElementById("projectMenu").addEventListener("click", event=>{
+      if (event.target.closest("button")){
+        document.getElementById("projectMenu").classList.remove("open");
+        document.getElementById("projectMenuBtn").classList.remove("active");
+      }
+    });
+    document.addEventListener("click", event=>{
+      if (!event.target.closest("#projectMenuWrap")){
+        document.getElementById("projectMenu").classList.remove("open");
+        document.getElementById("projectMenuBtn").classList.remove("active");
+      }
+    });
     document.getElementById("addProjectBtn").onclick = async () => {
       const name = await showDialog({title:"New project", fields:[{label:"Project name", placeholder:"e.g. Marketing launch"}], confirmLabel:"Create project"});
       if (name && name.trim()) addProject(name.trim());
