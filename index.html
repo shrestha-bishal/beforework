@@ -869,7 +869,7 @@
       tags:[], fields:[status], views:proj2Views, activeViewId:proj2Views[0].id, itemDefaultType:"task",
       groups:[{id:uid(), name:"Books", items:[]}]
     };
-    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2]};
+    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], calendarItems:[]};
   }
 
   /* ---------- Schema migrations ----------
@@ -970,6 +970,7 @@
       if (!step) break; // no step registered for this gap - leave state as-is rather than throw
       s = step(s);
     }
+    if (!Array.isArray(s.calendarItems)) s.calendarItems = [];
     s.schemaVersion = SCHEMA_VERSION;
     if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};
     return s;
@@ -2185,6 +2186,11 @@
 
   function calendarEntries(scopeProject){
     const entries = [];
+    if (!scopeProject){
+      (state.calendarItems||[]).forEach(item=>{
+        if (item.endDate) entries.push({project:null, group:null, item, field:{id:"__standalone__", label:"Calendar", type:"date"}, date:item.endDate, endDate:item.endDate});
+      });
+    }
     const projects = scopeProject ? [scopeProject] : state.projects;
     projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
       const fields = dateFields(project);
@@ -2210,7 +2216,7 @@
   }
   function googleCalendarUrl(entry){
     const title = entry.item.title;
-    const details = [entry.item.description, `Project: ${entry.project.name}`, `Group: ${entry.group.name}`].filter(Boolean).join("\n");
+    const details = [entry.item.description, entry.project ? `Project: ${entry.project.name}` : "Beforework Calendar", entry.group ? `Group: ${entry.group.name}` : ""].filter(Boolean).join("\n");
     const dates = entry.item.startTime && entry.item.endTime
       ? `${calendarDateCode(entry.date)}T${entry.item.startTime.replace(":","")}00/${calendarDateCode(entry.endDate)}T${entry.item.endTime.replace(":","")}00`
       : `${calendarDateCode(entry.date)}/${calendarDateCode(entry.endDate,1)}`;
@@ -2314,7 +2320,7 @@
     }
   }
   function googleEventBody(entry){
-    const details = [entry.item.description, `Project: ${entry.project.name}`, `Group: ${entry.group.name}`].filter(Boolean).join("\n");
+    const details = [entry.item.description, entry.project ? `Project: ${entry.project.name}` : "Beforework Calendar", entry.group ? `Group: ${entry.group.name}` : ""].filter(Boolean).join("\n");
     if (entry.item.startTime && entry.item.endTime){
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
@@ -2349,7 +2355,7 @@
     entry.item.location = event.location || "";
     entry.item.startTime = googleEventTime(event, "start");
     entry.item.endTime = googleEventTime(event, "end");
-    if (entry.field.id === "__schedule__") entry.item.endDate = endDate || startDate;
+    if (entry.field.id === "__schedule__" || entry.field.id === "__standalone__") entry.item.endDate = endDate || startDate;
     else entry.item.values[entry.field.id] = startDate;
     entry.item.endDate = endDate || startDate;
     entry.item.updatedAt = Date.now();
@@ -2376,8 +2382,9 @@
         for (const entry of entries){
           entry.item.googleEventIds = entry.item.googleEventIds || {};
           entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
-          const key = `${calendarId}:${entry.project.id}:${entry.field.id}`;
-          const legacyKey = `${entry.project.id}:${entry.field.id}`;
+          const ownerId = entry.project ? entry.project.id : "__calendar__";
+          const key = `${calendarId}:${ownerId}:${entry.field.id}`;
+          const legacyKey = `${ownerId}:${entry.field.id}`;
           const eventId = entry.item.googleEventIds[key] || (calendarId==="primary" ? entry.item.googleEventIds[legacyKey] : "");
           const previous = entry.item.googleSyncMeta[key] || null;
           let remote = null;
@@ -2480,8 +2487,51 @@
   async function showGoogleCalendarInfo(){
     await showNotice("Google Calendar sync", "This local file cannot silently sync with Google Calendar because Google requires OAuth credentials and a server-side token flow. Use the GCal link on an event for one-click creation, or export an .ics file and import it into Google Calendar.");
   }
+  function openStandaloneCalendarItemModal(item, isNew=false){
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.id = "standaloneCalendarOverlay";
+    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="standaloneCalendarModal"></div>`;
+    overlay.addEventListener("click", event=>{ if (event.target===overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    const modal = overlay.querySelector("#standaloneCalendarModal");
+    modal.innerHTML = `<button class="btn btn-invisible closeX" data-calendar-close aria-label="Close">✕</button>
+      <h3>${isNew ? "New calendar item" : "Edit calendar item"}</h3>
+      <div class="modalRow"><label for="standaloneTitle">Title</label><input class="form-control" id="standaloneTitle" value="${escapeHtml(item.title||"")}" placeholder="Calendar item title"></div>
+      <div class="modalRow"><label for="standaloneDescription">Description</label><textarea class="form-control" id="standaloneDescription" placeholder="Add notes...">${escapeHtml(item.description||"")}</textarea></div>
+      <div class="modalGrid">
+        <div class="modalRow"><label for="standaloneDate">Date</label><input class="form-control" id="standaloneDate" type="date" value="${escapeHtml(item.endDate||"")}"></div>
+        <div class="modalRow"><label for="standaloneLocation">Location</label><input class="form-control" id="standaloneLocation" value="${escapeHtml(item.location||"")}" placeholder="Optional location"></div>
+        <div class="modalRow"><label for="standaloneStart">Start time</label><input class="form-control" id="standaloneStart" type="time" value="${escapeHtml(item.startTime||"")}"></div>
+        <div class="modalRow"><label for="standaloneEnd">End time</label><input class="form-control" id="standaloneEnd" type="time" value="${escapeHtml(item.endTime||"")}"></div>
+      </div>
+      <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button><button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
+    modal.querySelectorAll("[data-calendar-close]").forEach(button=>button.onclick=()=>overlay.remove());
+    modal.querySelector("[data-calendar-save]").onclick = () => {
+      const title = modal.querySelector("#standaloneTitle").value.trim();
+      const date = modal.querySelector("#standaloneDate").value;
+      if (!title || !date) return;
+      item.title = title;
+      item.description = modal.querySelector("#standaloneDescription").value;
+      item.endDate = date;
+      item.location = modal.querySelector("#standaloneLocation").value.trim();
+      item.startTime = modal.querySelector("#standaloneStart").value;
+      item.endTime = modal.querySelector("#standaloneEnd").value;
+      item.updatedAt = Date.now();
+      if (isNew) state.calendarItems.push(item);
+      scheduleSave();
+      overlay.remove();
+      renderAll();
+      if (googleAccessToken && linkedGoogleCalendarIds().length) syncGoogleCalendar(null);
+    };
+    modal.querySelector("#standaloneTitle").focus();
+  }
   async function openNewCalendarItemModal(scopeProject, date){
-    const project = scopeProject || state.projects[0];
+    if (!scopeProject){
+      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", calendarType:"event", startTime:"", endTime:"", location:"", endDate:date, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
+      return;
+    }
+    const project = scopeProject;
     if (!project) return;
     const dateField = dateFields(project)[0];
     if (!dateField){ await showNotice("Date column required", `Add a date column to ${project.name} before creating calendar items.`); return; }
@@ -2517,9 +2567,9 @@
       const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
       const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item));
       const eventHtml = dayEntries.map((entry,index)=>`
-        <div class="calendarEvent ${entry.item.calendarType==="event"?"event":"task"}" draggable="true" data-pid="${entry.project.id}" data-gid="${entry.group.id}" data-iid="${entry.item.id}" data-fid="${entry.field.id}" data-start="${entry.date}" data-end="${entry.endDate}">
+        <div class="calendarEvent ${entry.item.calendarType==="event"?"event":"task"}" draggable="true" data-pid="${entry.project ? entry.project.id : ""}" data-gid="${entry.group ? entry.group.id : ""}" data-iid="${entry.item.id}" data-fid="${entry.field.id}" data-start="${entry.date}" data-end="${entry.endDate}">
           <span class="eventDot"></span><span class="eventTitle">${entry.item.startTime ? escapeHtml(entry.item.startTime+" ") : ""}${escapeHtml(entry.item.title)}</span>
-          ${scopeProject ? "" : `<span class="eventProject">${escapeHtml(entry.project.name)}</span>`}
+          ${scopeProject || !entry.project ? "" : `<span class="eventProject">${escapeHtml(entry.project.name)}</span>`}
           <a class="gcalLink" href="${escapeHtml(googleCalendarUrl(entry))}" target="_blank" rel="noopener" title="Add to Google Calendar">GCal</a>
         </div>`).join("");
       cells.push(`<div class="calendarDay${inMonth?"":" muted"}${cellDate===today?" today":""}" data-date="${cellDate}"><div class="calendarDayNumber">${dateNumber}</div>${eventHtml}</div>`);
@@ -2555,7 +2605,9 @@
       day.addEventListener("drop", event=>{
         event.preventDefault(); day.classList.remove("dragover");
         const data = JSON.parse(event.dataTransfer.getData("text/plain"));
-        const item = getItem(data.pid,data.gid,data.iid);
+        const item = data.pid
+          ? getItem(data.pid,data.gid,data.iid)
+          : (state.calendarItems||[]).find(candidate=>candidate.id===data.iid);
         if (!item) return;
         if (data.fid === "__schedule__") item.endDate = day.dataset.date;
         else item.values[data.fid] = day.dataset.date;
@@ -2573,7 +2625,11 @@
       });
       event.onclick = click => {
         if (click.target.closest("a")) return;
-        openItemModal(event.dataset.pid,event.dataset.gid,event.dataset.iid);
+        if (event.dataset.pid) openItemModal(event.dataset.pid,event.dataset.gid,event.dataset.iid);
+        else {
+          const item = (state.calendarItems||[]).find(candidate=>candidate.id===event.dataset.iid);
+          if (item) openStandaloneCalendarItemModal(item);
+        }
       };
     });
     board.appendChild(wrap);
