@@ -2380,7 +2380,9 @@
     const events = [];
     let pageToken = "";
     do{
-      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500"});
+      // Calendar API requires a non-empty query range for expanded event
+      // listings. This does not require individual events to have times.
+      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500",timeMin:"2000-01-01T00:00:00Z",timeMax:"2100-01-01T00:00:00Z"});
       if (pageToken) query.set("pageToken", pageToken);
       const result = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`);
       events.push(...(result.items||[]));
