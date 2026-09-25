@@ -418,3 +418,35 @@
     link.click();
     URL.revokeObjectURL(link.href);
   }
+
+  function renderIntegrations(board){
+    const links = linkedGoogleCalendarIds();
+    const catalog = new Map((state.googleCalendarCatalog||[]).map(calendar=>[calendar.id, calendar]));
+    const connectionLabel = googleAccessToken ? "Connected" : "Not connected";
+    const lastSync = state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet";
+    const linkedHtml = links.length ? links.map(id=>{
+      const calendar = catalog.get(id);
+      return `<div class="linkedCalendarRow"><iconify-icon icon="mdi:calendar-check-outline"></iconify-icon><span title="${escapeHtml(calendar?.summary||id)}">${escapeHtml(calendar?.summary||id)}${calendar?.primary?" (primary)":""}</span><button class="btn btn-sm btn-invisible" data-unlink-calendar="${escapeHtml(id)}">Unlink</button></div>`;
+    }).join("") : `<div class="integrationEmpty">No Google calendars linked yet.</div>`;
+    board.innerHTML = `<div class="integrationWrap">
+      <div class="integrationHeader"><iconify-icon icon="mdi:hub-outline"></iconify-icon><div><h3>Integrations</h3><p>Connect external services while keeping Beforework as your local workspace.</p></div></div>
+      <div class="integrationCard">
+        <div class="integrationCardHead"><iconify-icon icon="logos:google-calendar"></iconify-icon><strong>Google Calendar</strong><span class="integrationStatus">${connectionLabel}</span></div>
+        <p class="dialogMessage">Sync standalone calendar items and scheduled project items to one or more Google calendars.</p>
+        <div class="linkedCalendarList">${linkedHtml}</div>
+        <div class="d-flex flex-items-center gap-2"><button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>${googleAccessToken?"":`<button class="btn btn-sm" data-integration-connect>Connect Google</button>`}<span class="integrationStatus">${escapeHtml(lastSync)}</span></div>
+      </div>
+    </div>`;
+    board.querySelector("[data-integration-link]").onclick = manageGoogleCalendars;
+    const connectButton = board.querySelector("[data-integration-connect]");
+    if (connectButton) connectButton.onclick = () => connectGoogleCalendar(null);
+    board.querySelectorAll("[data-unlink-calendar]").forEach(button=>{
+      button.onclick = () => {
+        state.googleCalendarLinks = linkedGoogleCalendarIds().filter(id=>id!==button.dataset.unlinkCalendar);
+        scheduleSave();
+        if (fileHandle){ clearTimeout(saveTimer); saveTimer = null; writeToFile(); }
+        renderMain();
+      };
+    });
+  }
+
