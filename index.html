@@ -2577,12 +2577,12 @@
         </div>
       </div>
       <div class="itemModalFooter">
+        <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
         <div style="display:flex;gap:8px;">
           ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Create item</button>` : `
-            <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>
-            <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>`}
+            <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>
+            <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>`}
         </div>
-        <span style="font-size:11.5px;color:var(--faint);">Updated ${new Date(item.updatedAt).toLocaleString()}</span>
       </div>
     `;
 
