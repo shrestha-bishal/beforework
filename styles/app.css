@@ -156,6 +156,7 @@
   .projectMenu{display:none;flex-direction:column;position:absolute;top:39px;right:0;z-index:30;min-width:170px;padding:5px;background:var(--bg);
     border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
   .projectMenu.open{display:flex;}
+  .projectMenu>button{display:flex;align-items:center;justify-content:flex-start;width:100%;text-align:left;}
   #boardFilterBar{display:block;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg-soft);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
   #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);border-radius:8px;}
