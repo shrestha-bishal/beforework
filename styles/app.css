@@ -59,14 +59,15 @@
   .searchWrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);}
   #globalSearch{width:100%;padding-left:30px;}
 
-  #overviewNav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;
+  #overviewNav{display:flex;align-items:center;justify-content:flex-start;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
-  #calendarNav{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;
+  #calendarNav{display:flex;align-items:center;justify-content:flex-start;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
   #overviewNav:hover{background:var(--bg-soft2);color:var(--text);}
   #calendarNav:hover{background:var(--bg-soft2);color:var(--text);}
   #overviewNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #calendarNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #overviewNav iconify-icon,#calendarNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon{font-size:16px;flex:none;}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}
@@ -76,7 +77,7 @@
   #focusTimerNav iconify-icon{font-size:16px;}
   #focusTimerNav:hover{background:var(--bg-soft2);color:var(--text);}
   #focusTimerNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #settingsNav{display:flex;align-items:center;padding:8px 10px;border-radius:8px;
+  #settingsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin:0;padding-top:8px;font-weight:500;}
   #settingsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #settingsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
@@ -106,7 +107,9 @@
   #projectList .SideNav-item.active{background:transparent;color:var(--accent-strong);font-weight:600;}
   #projectList .SideNav-item .cnt{font-size:11.5px;color:var(--faint);font-weight:400;}
   #projectList .SideNav-item.active .cnt{color:var(--accent);}
-  #projectList .SideNav-item span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectList .SideNav-item .projectIcon{font-size:15px;flex:none;color:var(--faint);}
+  #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
+  #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   .sideSection{border-top:1px solid var(--border);padding-top:16px;}
   .sidebarSectionLabel{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}

@@ -977,7 +977,7 @@
       const count = p.groups.reduce((n,g)=>n+g.items.length,0);
       const li = document.createElement("li");
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
-      li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="cnt">${count}</span>`;
+      li.innerHTML = `<iconify-icon class="projectIcon" icon="mdi:clipboard-text-outline" aria-hidden="true"></iconify-icon><span class="projectName">${escapeHtml(p.name)}</span><span class="cnt">${count}</span>`;
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
     };
