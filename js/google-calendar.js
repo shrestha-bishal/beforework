@@ -1,6 +1,8 @@
 /* Google Calendar integration */
   let googleSyncFeedbackMessage = "";
   let googleSyncProgress = null;
+  let googleResumeRetryCount = 0;
+  let googleResumeRetryTimer = null;
   function googleCalendarUrl(entry){
     const title = entry.item.title;
     const details = [entry.item.description, entry.project ? `Project: ${entry.project.name}` : "Beforework Calendar", entry.group ? `Group: ${entry.group.name}` : ""].filter(Boolean).join("\n");
@@ -12,6 +14,8 @@
   }
   function initGoogleCalendarAuth(){
     if (!window.google?.accounts?.oauth2) return false;
+    clearTimeout(googleResumeRetryTimer);
+    googleResumeRetryCount = 0;
     googleTokenClient = google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID,
       scope:GOOGLE_CALENDAR_SCOPE,
@@ -371,11 +375,21 @@
     importGoogleCalendarEvents();
   }
   function resumeGoogleCalendarSync(){
-    if (!state || !linkedGoogleCalendarIds().length || googleAccessToken) return;
+    if (!state || !linkedGoogleCalendarIds().length) return;
+    if (googleAccessToken){ startGoogleCalendarPolling(); return; }
     if (!googleTokenClient && !initGoogleCalendarAuth()){
-      window.addEventListener("load", resumeGoogleCalendarSync, {once:true});
+      if (googleResumeRetryCount===0 && document.readyState!=="complete"){
+        window.addEventListener("load", resumeGoogleCalendarSync, {once:true});
+      } else if (googleResumeRetryCount<12){
+        googleResumeRetryCount++;
+        updateGoogleCalendarStatus("Waiting for Google Calendar to load...");
+        googleResumeRetryTimer = setTimeout(resumeGoogleCalendarSync, 1000);
+      } else {
+        updateGoogleCalendarStatus("Google Calendar did not load; refresh to retry");
+      }
       return;
     }
+    googleResumeRetryCount = 0;
     googleTokenPurpose = "sync";
     googleSyncScopeProject = null;
     googleSilentAuth = true;

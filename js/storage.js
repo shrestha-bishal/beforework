@@ -131,6 +131,7 @@
       hideConnectGate();
       renderAll();
       await maybeShowMigrationNotice();
+      resumeGoogleCalendarSync();
     }catch(err){ showNotice("Couldn't reconnect", err.message); }
   }
 
@@ -168,6 +169,7 @@
       hideConnectGate();
       renderAll();
       await maybeShowMigrationNotice();
+      resumeGoogleCalendarSync();
     }catch(err){ /* user cancelled the picker */ }
   }
 
