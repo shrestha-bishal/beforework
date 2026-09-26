@@ -81,7 +81,6 @@
     if (googlePollTimer){ clearInterval(googlePollTimer); googlePollTimer = null; }
     updateGoogleCalendarButtons();
     updateGoogleCalendarStatus("Google connection expired - reconnect in Integrations");
-    setSyncStatus("err", "Google Calendar needs reconnecting");
     if (activeProjectId===INTEGRATIONS || activeProjectId===CALENDAR) renderMain();
   }
   async function googleCalendarRequest(path, options={}){

@@ -1058,7 +1058,7 @@
     view.querySelector("#settingsThemeToggle").textContent = `${theme} mode`;
     view.querySelector("#settingsTimeFormat").value = timeFormat;
     view.querySelector("#settingsSidebarToggle").textContent = `${sidebarCollapsed ? "Expand" : "Collapse"} sidebar`;
-    view.querySelector("#settingsStorageStatus").textContent = document.getElementById("syncLabel").textContent;
+    view.querySelector("#settingsStorageStatus").textContent = getSyncStatusText();
     view.querySelector("#settingsBackupRow").hidden = !hasMigrationBackup();
     view.querySelector("#settingsAccountName").textContent = accountName;
     view.querySelector("#settingsAccountSection").hidden = !accountName;

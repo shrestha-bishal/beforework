@@ -7,6 +7,9 @@
   const DB_NAME = "dashboard_meta", DB_STORE = "kv";
   let pendingReconnectHandle = null; // a previously-used handle waiting on a user gesture to re-grant permission
   let fileWriteQueue = Promise.resolve();
+  let syncStatusText = "Storage: browser only";
+
+  function getSyncStatusText(){ return syncStatusText; }
 
   function idbOpen(){
     return new Promise((resolve,reject)=>{
@@ -35,10 +38,8 @@
     });
   }
 
-  function setSyncStatus(kind, text){
-    const dot = document.getElementById("syncDot");
-    dot.className = "dot" + (kind==="ok" ? " ok" : kind==="err" ? " err" : "");
-    document.getElementById("syncLabel").textContent = text;
+  function setSyncStatus(text){
+    syncStatusText = text;
     const settingsStatus = document.getElementById("settingsStorageStatus");
     if (settingsStatus) settingsStatus.textContent = text;
   }
@@ -76,9 +77,9 @@
         const writable = await handle.createWritable();
         await writable.write(JSON.stringify(state, null, 2));
         await writable.close();
-        setSyncStatus("ok", "Saved to " + handle.name);
+        setSyncStatus("Saved to " + handle.name);
       }catch(err){
-        setSyncStatus("err", "Couldn't save to file (" + err.message + ") - your changes are still in memory, try reconnecting the file");
+        setSyncStatus("Couldn't save to file (" + err.message + ") - your changes are still in memory, try reconnecting the file");
       }
     }).catch(()=>{});
     return fileWriteQueue;
@@ -111,7 +112,7 @@
         fileHandle = handle;
         state = await loadFromHandle(handle);
         lastSavedState = JSON.stringify(state);
-        setSyncStatus("ok", "Saved to " + handle.name);
+        setSyncStatus("Saved to " + handle.name);
         return true;
       }
       pendingReconnectHandle = handle;
@@ -127,7 +128,7 @@
       fileHandle = pendingReconnectHandle;
       state = await loadFromHandle(fileHandle);
       lastSavedState = JSON.stringify(state);
-      setSyncStatus("ok", "Saved to " + fileHandle.name);
+      setSyncStatus("Saved to " + fileHandle.name);
       hideConnectGate();
       renderAll();
       await maybeShowMigrationNotice();
