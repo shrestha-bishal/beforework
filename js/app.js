@@ -987,49 +987,60 @@
       const cnt = document.createElement("span");
       cnt.className = "cnt";
       cnt.textContent = String(count);
+      const wrap = document.createElement("div");
+      wrap.className = "projectQuickMenuWrap";
       const menuBtn = document.createElement("button");
       menuBtn.type = "button";
       menuBtn.className = "projectMenuBtnSmall";
       menuBtn.title = "Project actions";
       menuBtn.setAttribute("aria-label", `Project actions for ${p.name}`);
       menuBtn.textContent = "⋯";
-      menuBtn.onclick = async event => {
+      const menu = document.createElement("div");
+      menu.className = "projectQuickMenu";
+      menu.innerHTML = `
+        <button type="button" data-project-action="rename">Rename</button>
+        <button type="button" data-project-action="columns">Columns</button>
+        <button type="button" data-project-action="group">New group</button>
+        <button type="button" data-project-action="move">Move to folder</button>
+        <button type="button" data-project-action="undo">Undo</button>
+        <button type="button" data-project-action="print">Print / PDF</button>
+        <button type="button" data-project-action="delete" class="danger">Delete</button>
+      `;
+      const closeMenu = () => menu.classList.remove("open");
+      menuBtn.onclick = event => {
         event.stopPropagation();
-        const action = await showDialog({
-          title: `Project actions - ${p.name}`,
-          fields:[{label:"Choose action", type:"select", options:[
-            {value:"rename", label:"Rename project"},
-            {value:"columns", label:"Columns"},
-            {value:"group", label:"New group"},
-            {value:"move", label:"Move to folder"},
-            {value:"undo", label:"Undo"},
-            {value:"print", label:"Print / PDF"},
-            {value:"delete", label:"Delete project"}
-          ], value:"rename"}],
-          confirmLabel:"Continue"
-        });
-        if (!action) return;
-        if (action === "rename") {
-          const renamed = await showDialog({title:"Rename project", fields:[{label:"Project name", value:p.name}], confirmLabel:"Save"});
-          if (!renamed || !renamed.trim()) return;
-          p.name = renamed.trim();
-          scheduleSave(); renderAll();
-        } else if (action === "columns") {
-          manageFieldsFlow(p);
-        } else if (action === "group") {
-          const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
-          if (name && name.trim()) addGroup(p.id, name.trim());
-        } else if (action === "move") {
-          await moveProjectToFolder(p);
-        } else if (action === "undo") {
-          undoLastChange();
-        } else if (action === "print") {
-          window.print();
-        } else if (action === "delete") {
-          if (await showConfirm(`Delete project ${p.name}`, "This will delete everything in the project.", true)) deleteProject(p.id);
-        }
+        const isOpen = menu.classList.toggle("open");
+        if (!isOpen) return;
+        document.querySelectorAll(".projectQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
       };
-      li.append(icon, name, cnt, menuBtn);
+      menu.querySelectorAll("[data-project-action]").forEach(button => {
+        button.onclick = async event => {
+          event.stopPropagation();
+          closeMenu();
+          const action = button.dataset.projectAction;
+          if (action === "rename") {
+            const renamed = await showDialog({title:"Rename project", fields:[{label:"Project name", value:p.name}], confirmLabel:"Save"});
+            if (!renamed || !renamed.trim()) return;
+            p.name = renamed.trim();
+            scheduleSave(); renderAll();
+          } else if (action === "columns") {
+            manageFieldsFlow(p);
+          } else if (action === "group") {
+            const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
+            if (name && name.trim()) addGroup(p.id, name.trim());
+          } else if (action === "move") {
+            await moveProjectToFolder(p);
+          } else if (action === "undo") {
+            undoLastChange();
+          } else if (action === "print") {
+            window.print();
+          } else if (action === "delete") {
+            if (await showConfirm(`Delete project ${p.name}`, "This will delete everything in the project.", true)) deleteProject(p.id);
+          }
+        };
+      });
+      wrap.append(menuBtn, menu);
+      li.append(icon, name, cnt, wrap);
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
     };
@@ -1049,26 +1060,61 @@
       const count = document.createElement("span");
       count.className = "folderCount";
       count.textContent = String(projectCount);
+      const wrap = document.createElement("div");
+      wrap.className = "folderQuickMenuWrap";
       const menuBtn = document.createElement("button");
       menuBtn.type = "button";
       menuBtn.className = "folderMenuBtn";
       menuBtn.title = "Folder actions";
       menuBtn.setAttribute("aria-label", `Folder actions for ${folder.name}`);
       menuBtn.textContent = "⋯";
-      menuBtn.onclick = async event => {
+      const menu = document.createElement("div");
+      menu.className = "folderQuickMenu";
+      menu.innerHTML = `
+        <button type="button" data-folder-action="rename">Rename</button>
+        <button type="button" data-folder-action="delete" class="danger">Delete</button>
+      `;
+      menuBtn.onclick = event => {
         event.stopPropagation();
-        const updated = await showDialog({
-          title: "Rename folder",
-          fields: [{label: "Folder name", value: folder.name}],
-          confirmLabel: "Save"
-        });
-        if (!updated || !updated.trim()) return;
-        const trimmed = updated.trim();
-        if (trimmed === folder.name) return;
-        folder.name = trimmed;
-        scheduleSave(); renderProjectList();
+        const isOpen = menu.classList.toggle("open");
+        if (!isOpen) return;
+        document.querySelectorAll(".folderQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
       };
-      heading.append(icon, name, count, menuBtn);
+      menu.querySelectorAll("[data-folder-action]").forEach(button => {
+        button.onclick = async event => {
+          event.stopPropagation();
+          menu.classList.remove("open");
+          const action = button.dataset.folderAction;
+          if (action === "rename") {
+            const updated = await showDialog({
+              title: "Rename folder",
+              fields: [{label: "Folder name", value: folder.name}],
+              confirmLabel: "Save"
+            });
+            if (!updated || !updated.trim()) return;
+            const trimmed = updated.trim();
+            if (trimmed === folder.name) return;
+            folder.name = trimmed;
+            scheduleSave(); renderProjectList();
+          } else if (action === "delete") {
+            const projectsInFolder = state.projects.filter(project => project.folderId === folder.id);
+            if (!projectsInFolder.length) {
+              state.folders = state.folders.filter(f => f.id !== folder.id);
+              scheduleSave(); renderProjectList();
+              return;
+            }
+            if (await showConfirm(`Delete folder ${folder.name}`, "This moves all projects in it out of the folder, but does not delete the projects themselves.", true)) {
+              state.projects.forEach(project => {
+                if (project.folderId === folder.id) project.folderId = null;
+              });
+              state.folders = state.folders.filter(f => f.id !== folder.id);
+              scheduleSave(); renderProjectList();
+            }
+          }
+        };
+      });
+      wrap.append(menuBtn, menu);
+      heading.append(icon, name, count, wrap);
       ul.appendChild(heading);
       state.projects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
     });

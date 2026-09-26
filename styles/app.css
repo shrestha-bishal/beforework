@@ -97,28 +97,43 @@
   .projectCreateMenu button iconify-icon{font-size:15px;color:var(--muted);}
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;border:0;box-shadow:none;}
   #projectList .folderHeading{display:flex;align-items:center;gap:7px;min-width:0;margin-top:5px;padding:9px 10px 5px;
-    border-top:1px solid var(--border);font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;letter-spacing:0;}
+    border-top:1px solid var(--border);font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;letter-spacing:0;
+    position:relative;}
   #projectList .folderHeading:first-child{margin-top:0;padding-top:5px;border-top:0;}
   #projectList .folderHeading iconify-icon{flex:none;color:var(--accent-strong);font-size:14px;}
   #projectList .folderHeading .folderName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #projectList .folderHeading .folderCount{margin-left:auto;flex:none;color:var(--faint);font-size:10.5px;font-weight:500;}
+  #projectList .folderHeading .folderCount{margin-left:auto;flex:none;color:var(--faint);font-size:10.5px;font-weight:500;transition:opacity .12s ease, transform .12s ease;}
+  #projectList .folderHeading .folderQuickMenuWrap{position:relative;display:flex;align-items:center;flex:none;}
   #projectList .folderHeading .folderMenuBtn{flex:none;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transition:opacity .12s ease, visibility .12s ease, background-color .12s ease;}
+  #projectList .folderHeading:hover .folderCount{opacity:0;transform:scale(.8);}
   #projectList .folderHeading:hover .folderMenuBtn{opacity:1;visibility:visible;}
   #projectList .folderHeading .folderMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
+  #projectList .folderHeading .folderQuickMenu{position:absolute;right:0;top:calc(100% + 6px);display:none;flex-direction:column;min-width:150px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);z-index:50;}
+  #projectList .folderHeading .folderQuickMenu.open{display:flex;}
+  #projectList .folderHeading .folderQuickMenu button{border:0;background:transparent;padding:7px 8px;border-radius:6px;text-align:left;color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;}
+  #projectList .folderHeading .folderQuickMenu button:hover{background:var(--bg-soft2);}
+  #projectList .folderHeading .folderQuickMenu button.danger{color:var(--danger);}
   #projectList .SideNav-item.inFolder{padding-left:28px;}
-  #projectList .SideNav-item{display:flex;align-items:center;justify-content:space-between;gap:6px;
+  #projectList .SideNav-item{display:flex;align-items:center;gap:6px;position:relative;
     padding:7px 10px;border:0;border-radius:6px;cursor:pointer;font-size:13.5px;color:var(--muted);
     background:transparent;width:100%;text-align:left;box-shadow:none;}
   #projectList .SideNav-item:hover{background:var(--bg-soft2);color:var(--text);}
   #projectList .SideNav-item.active{background:transparent;color:var(--accent-strong);font-weight:600;}
-  #projectList .SideNav-item .cnt{font-size:11.5px;color:var(--faint);font-weight:400;}
+  #projectList .SideNav-item .cnt{font-size:11.5px;color:var(--faint);font-weight:400;transition:opacity .12s ease, transform .12s ease;}
   #projectList .SideNav-item.active .cnt{color:var(--accent);}
   #projectList .SideNav-item .projectIcon{font-size:15px;flex:none;color:var(--faint);}
   #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectList .SideNav-item .projectQuickMenuWrap{position:relative;display:flex;align-items:center;flex:none;}
   #projectList .SideNav-item .projectMenuBtnSmall{flex:none;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transition:opacity .12s ease, visibility .12s ease, background-color .12s ease;}
+  #projectList .SideNav-item:hover .cnt{opacity:0;transform:scale(.8);}
   #projectList .SideNav-item:hover .projectMenuBtnSmall{opacity:1;visibility:visible;}
   #projectList .SideNav-item .projectMenuBtnSmall:hover{background:var(--bg-soft2);color:var(--text);}
+  #projectList .SideNav-item .projectQuickMenu{position:absolute;right:0;top:calc(100% + 6px);display:none;flex-direction:column;min-width:170px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);z-index:50;}
+  #projectList .SideNav-item .projectQuickMenu.open{display:flex;}
+  #projectList .SideNav-item .projectQuickMenu button{border:0;background:transparent;padding:7px 8px;border-radius:6px;text-align:left;color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;}
+  #projectList .SideNav-item .projectQuickMenu button:hover{background:var(--bg-soft2);}
+  #projectList .SideNav-item .projectQuickMenu button.danger{color:var(--danger);}
 
   .sideSection{border-top:1px solid var(--border);padding-top:16px;}
   .sidebarSectionLabel{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
