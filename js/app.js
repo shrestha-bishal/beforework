@@ -1011,7 +1011,7 @@
         event.stopPropagation();
         const isOpen = menu.classList.toggle("open");
         if (!isOpen) return;
-        document.querySelectorAll(".projectQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
+        document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
       };
       menu.querySelectorAll("[data-project-action]").forEach(button => {
         button.onclick = async event => {
@@ -1078,7 +1078,7 @@
         event.stopPropagation();
         const isOpen = menu.classList.toggle("open");
         if (!isOpen) return;
-        document.querySelectorAll(".folderQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
+        document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
       };
       menu.querySelectorAll("[data-folder-action]").forEach(button => {
         button.onclick = async event => {
@@ -2599,6 +2599,10 @@
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
       if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
+      const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
+      document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
+        if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
+      });
     });
     document.getElementById("addProjectBtn").onclick = async () => {
       const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
