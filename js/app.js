@@ -2271,9 +2271,11 @@
       projectCreateBtn.classList.remove("active");
       projectCreateBtn.setAttribute("aria-expanded", "false");
     };
-    document.getElementById("overviewNav").onclick = () => {
+    const goToOverview = () => {
       activeProjectId = OVERVIEW; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
     };
+    document.getElementById("overviewNav").onclick = goToOverview;
+    document.getElementById("brandHomeBtn").onclick = goToOverview;
     document.getElementById("calendarNav").onclick = () => {
       activeProjectId = CALENDAR; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
     };

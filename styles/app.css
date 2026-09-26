@@ -52,9 +52,8 @@
   #sidebarCollapseHandle:hover{color:var(--text);border-color:var(--border-strong);}
   #sidebar.collapsed + #sidebarCollapseHandle{left:8px;}
   #sidebar h1{font-size:15px;font-weight:700;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;letter-spacing:-.01em;}
-  #sidebar h1 .mark{width:20px;height:20px;border-radius:6px;background:var(--accent);
-    display:inline-block;position:relative;flex:none;}
-  #sidebar h1 .mark::after{content:"";position:absolute;inset:5px;border-radius:2px;background:#fff;opacity:.85;}
+  #sidebar h1 .brandHomeBtn{display:block;padding:0;border:0;background:transparent;line-height:0;}
+  #sidebar h1 .mark{display:block;width:190px;height:auto;flex:none;}
 
   .searchWrap{position:relative;}
   .searchWrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);}
