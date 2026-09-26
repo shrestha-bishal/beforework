@@ -1007,7 +1007,6 @@
 
   function navigateToIntegrations(){
     if (window.location.protocol==="http:" || window.location.protocol==="https:") window.history.pushState({}, "", "/integrations");
-    else window.location.hash = "integrations";
     activeProjectId = INTEGRATIONS;
     persistActiveLocation();
     renderAll();
@@ -1024,9 +1023,6 @@
   function restoreActiveLocation(){
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
-    //const integrationPath = window.location.pathname==="/integrations" || window.location.pathname.endsWith("/integrations/");
-    //const hashLocation = integrationPath //|| window.location.hash==="#integrations" ? INTEGRATIONS : null;
-    //if (hashLocation) activeProjectId = hashLocation;
     if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
     if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR) restoreProjectFilters(activeProjectId);
