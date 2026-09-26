@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!--
   Netlify Identity is optional and pluggable (see the "Auth" section in the
-  script below) - if this fails to load or errors, #authBar just stays
+  script below) - if this fails to load or errors, account controls stay
   hidden and the rest of the app is unaffected. crossorigin is set so the
   browser enforces CORS on the fetch; add an integrity="sha384-..." hash
   here too if you want to pin this to a known-good build of the script.
@@ -90,6 +90,19 @@
       <div id="sideTagsList"></div>
     </div>
     <div class="sidebarBottomNav">
+      <button id="focusTimerNav" type="button" title="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Focus timer</span></button>
+      <div class="focusTimerPanel Box" id="focusTimerPanel">
+        <h4>Focus timer</h4>
+        <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
+        <div class="focusTimerModeRow">
+          <button class="btn btn-sm" data-focus-preset="25">Focus 25</button>
+          <button class="btn btn-sm btn-invisible" data-focus-preset="5">Break 5</button>
+        </div>
+        <div class="focusTimerBtnRow">
+          <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
+          <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
+        </div>
+      </div>
       <div id="integrationsNav"><span>Integrations</span></div>
       <div id="settingsNav"><span>Settings</span></div>
     </div>
@@ -142,37 +155,11 @@
   </div>
 </div>
 
-<div id="syncBar">
+<div id="syncBar" role="status" aria-live="polite">
   <span class="dot" id="syncDot"></span>
   <span id="syncLabel">Storage: browser only</span>
-  <button class="btn btn-sm btn-invisible" id="focusTimerBtn" title="Focus timer">⏱ Focus</button>
-  <button class="btn btn-sm btn-invisible" id="shortcutsBtn" title="Keyboard shortcuts">⌨ Shortcuts</button>
-  <span id="authBar"></span>
-  <div class="syncMenuWrap">
-    <button class="btn btn-sm btn-invisible syncMenuBtn" id="syncMenuBtn" title="Storage actions" aria-label="Storage actions">⋮</button>
-    <div class="syncMenu" id="syncMenu">
-      <button class="btn btn-sm" id="switchFileBtn">Open a different file</button>
-      <button class="btn btn-sm btn-invisible" id="newFileBtn">Start a new file</button>
-      <button class="btn btn-sm btn-invisible" id="exportBtn">Export JSON</button>
-      <button class="btn btn-sm btn-invisible" id="importBtn">Import JSON</button>
-      <button class="btn btn-sm btn-invisible" id="restoreBackupBtn" style="display:none;" title="Restore the snapshot saved automatically before the last data upgrade">Restore pre-upgrade backup</button>
-    </div>
-  </div>
-  <input class="form-control" type="file" id="fileImportInput" accept="application/json">
 </div>
-
-<div class="focusTimerPanel Box" id="focusTimerPanel">
-  <h4>Focus timer</h4>
-  <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
-  <div class="focusTimerModeRow">
-    <button class="btn btn-sm" data-focus-preset="25">Focus 25</button>
-    <button class="btn btn-sm btn-invisible" data-focus-preset="5">Break 5</button>
-  </div>
-  <div class="focusTimerBtnRow">
-    <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
-    <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
-  </div>
-</div>
+<input class="form-control" type="file" id="fileImportInput" accept="application/json">
 
 <script src="js/storage.js"></script>
 <script src="js/google-calendar.js"></script>

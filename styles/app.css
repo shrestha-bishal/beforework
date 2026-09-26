@@ -71,6 +71,11 @@
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #integrationsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #focusTimerNav{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:8px;
+    background:transparent;text-align:left;font-size:13.5px;color:var(--muted);font-weight:500;}
+  #focusTimerNav iconify-icon{font-size:16px;}
+  #focusTimerNav:hover{background:var(--bg-soft2);color:var(--text);}
+  #focusTimerNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #settingsNav{display:flex;align-items:center;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin:0;padding-top:8px;font-weight:500;}
   #settingsNav:hover{background:var(--bg-soft2);color:var(--text);}
@@ -283,6 +288,7 @@
   .settingsRow strong{font-size:13px;font-weight:600;}
   .settingsRow p{margin:3px 0 0;color:var(--muted);font-size:11.5px;line-height:1.45;}
   .settingsRow .btn{flex:none;}
+  .settingsRowActions{display:flex;align-items:center;gap:6px;flex:none;}
   .settingsSelect{width:auto;min-width:112px;}
   @media (max-width:700px){
     .settingsGrid{grid-template-columns:1fr;}
@@ -373,12 +379,7 @@
   #syncBar .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none;}
   #syncBar .dot.ok{background:var(--accent);}
   #syncBar .dot.err{background:var(--danger);}
-  .syncMenuWrap{position:relative;margin-left:auto;}
-  .syncMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;font-size:18px;line-height:1;}
-  .syncMenuBtn.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
-  .syncMenu{display:none;flex-direction:column;position:absolute;right:0;bottom:37px;z-index:30;min-width:190px;padding:5px;background:var(--bg);
-    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
-  .syncMenu.open{display:flex;}
+  #syncLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #fileImportInput{display:none;}
   #sidebarScrim{display:none;}
 
@@ -399,9 +400,9 @@
   .commentEmpty{font-size:12px;color:var(--faint);padding:2px 2px 4px 2px;}
 
   /* Focus timer */
-  .focusTimerPanel{position:fixed;bottom:56px;right:18px;z-index:70;width:216px;background:var(--bg);
-    border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-modal);
-    padding:14px 16px 16px;display:none;}
+  .focusTimerPanel{position:static;width:auto;margin:4px 0 8px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:none;
+    padding:14px 12px 12px;display:none;}
   .focusTimerPanel.open{display:block;}
   .focusTimerPanel h4{margin:0 0 2px 0;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
   .focusTimerDisplay{font-size:34px;font-weight:700;text-align:center;margin:6px 0 10px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
@@ -434,10 +435,6 @@
   #gateUnsupported p{color:var(--warn);}
   #gateLegacyRow{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
   #gateLegacyRow div{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
-
-  /* Auth (optional / pluggable) */
-  #authBar{display:none;align-items:center;gap:8px;}
-  #authBar .authUser{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
 
   @media print{
     #sidebar,#sidebarScrim,#syncBar,.focusTimerPanel,.projectMenuWrap,.viewTabs,

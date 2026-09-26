@@ -39,6 +39,8 @@
     const dot = document.getElementById("syncDot");
     dot.className = "dot" + (kind==="ok" ? " ok" : kind==="err" ? " err" : "");
     document.getElementById("syncLabel").textContent = text;
+    const settingsStatus = document.getElementById("settingsStorageStatus");
+    if (settingsStatus) settingsStatus.textContent = text;
   }
 
   // The connected file is the only place data lives. If it isn't connected

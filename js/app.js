@@ -133,7 +133,7 @@
   /* ---------- Auth (optional, pluggable) ----------
      Authentication is entirely additive here: if no provider is available
      (script blocked, feature not enabled on this deployment, offline, or a
-     future provider isn't configured), #authBar just stays hidden and the
+      future provider isn't configured), account controls stay unavailable and the
      app works exactly as it always has - nothing below gates storage or
      any feature.
 
@@ -185,20 +185,10 @@
 
   function disableAuthUI(){
     activeAuthProvider = null;
-    const bar = document.getElementById("authBar");
-    if (bar){ bar.style.display = "none"; bar.innerHTML = ""; }
+    if (activeProjectId===SETTINGS) renderMain();
   }
   function renderAuthUI(){
-    const bar = document.getElementById("authBar");
-    if (!bar || !activeAuthProvider) return;
-    if (currentAuthUser){
-      bar.style.display = "flex";
-      bar.innerHTML = `<span class="authUser" title="${escapeHtml(activeAuthProvider.label(currentAuthUser))}">${escapeHtml(activeAuthProvider.label(currentAuthUser))}</span><button class="btn btn-sm btn-invisible" id="authLogoutBtn">Log out</button>`;
-      document.getElementById("authLogoutBtn").onclick = () => activeAuthProvider.logout();
-    } else {
-      bar.style.display = "none";
-      bar.innerHTML = "";
-    }
+    if (activeProjectId===SETTINGS) renderMain();
   }
   async function initAuth(){
     for (const name of AUTH_PROVIDER_ORDER){
@@ -212,8 +202,8 @@
         return; // first available provider wins
       }catch(err){ /* this provider isn't usable in this environment - try the next one */ }
     }
-    // No provider available: #authBar stays hidden (its default state),
-    // and the rest of the app is completely unaffected.
+    // No provider available: account controls stay unavailable and the rest
+    // of the app is completely unaffected.
   }
 
   /* ---------- Focus timer ---------- */
@@ -249,6 +239,20 @@
     pauseFocusTimer();
     focusSeconds = focusTotal;
     renderFocusTimer();
+  }
+  function toggleFocusTimer(){
+    const panel = document.getElementById("focusTimerPanel");
+    const open = panel.classList.toggle("open");
+    const timerNav = document.getElementById("focusTimerNav");
+    timerNav.classList.toggle("active", open);
+    timerNav.setAttribute("aria-expanded", String(open));
+    if (open){
+      applySidebarCollapsed(false);
+      if (window.innerWidth<=860){
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebarScrim").classList.add("show");
+      }
+    }
   }
 
   /* ---------- Keyboard shortcuts modal ---------- */
@@ -1005,10 +1009,20 @@
           <div class="Box-row settingsRow"><div><strong>Sidebar</strong><p>Keep the project navigation visible.</p></div><button class="btn btn-sm" id="settingsSidebarToggle">${sidebarCollapsed ? "Expand" : "Collapse"} sidebar</button></div>
         </section>
         <section class="Box settingsSection">
-          <div class="Box-header settingsSectionHead"><h4>Focus</h4><span>Stay on task</span></div>
-          <div class="Box-row settingsRow"><div><strong>Focus timer</strong><p>Open the timer and choose a session length.</p></div><button class="btn btn-sm" id="settingsFocusTimer">Open timer</button></div>
+          <div class="Box-header settingsSectionHead"><h4>Tools</h4><span>Workspace controls</span></div>
           <div class="Box-row settingsRow"><div><strong>Keyboard shortcuts</strong><p>View the shortcuts available throughout the app.</p></div><button class="btn btn-sm" id="settingsShortcuts">View shortcuts</button></div>
         </section>
+        <section class="Box settingsSection">
+          <div class="Box-header settingsSectionHead"><h4>Storage &amp; Data</h4><span>Manage your project file</span></div>
+          <div class="Box-row settingsRow"><div><strong>Connected file</strong><p id="settingsStorageStatus">${escapeHtml(document.getElementById("syncLabel").textContent)}</p></div><button class="btn btn-sm" id="settingsSwitchFile">Open different file</button></div>
+          <div class="Box-row settingsRow"><div><strong>New file</strong><p>Start a separate project workspace.</p></div><button class="btn btn-sm" id="settingsNewFile">Create file</button></div>
+          <div class="Box-row settingsRow"><div><strong>JSON backup</strong><p>Import or export a copy of your project data.</p></div><div class="settingsRowActions"><button class="btn btn-sm" id="settingsExport">Export</button><button class="btn btn-sm" id="settingsImport">Import</button></div></div>
+          ${hasMigrationBackup() ? `<div class="Box-row settingsRow"><div><strong>Pre-upgrade backup</strong><p>Restore the snapshot saved before the last data upgrade.</p></div><button class="btn btn-sm" id="settingsRestoreBackup">Restore</button></div>` : ""}
+        </section>
+        ${currentAuthUser && activeAuthProvider ? `<section class="Box settingsSection">
+          <div class="Box-header settingsSectionHead"><h4>Account</h4><span>Signed-in account</span></div>
+          <div class="Box-row settingsRow"><div><strong>${escapeHtml(activeAuthProvider.label(currentAuthUser))}</strong><p>Connected through your identity provider.</p></div><button class="btn btn-sm" id="settingsLogout">Log out</button></div>
+        </section>` : ""}
       </div>
     </div>`;
     board.querySelector("#settingsThemeToggle").onclick = () => { toggleTheme(); renderSettings(board); };
@@ -1017,8 +1031,15 @@
       renderAll();
     };
     board.querySelector("#settingsSidebarToggle").onclick = () => { toggleSidebarCollapsed(); renderSettings(board); };
-    board.querySelector("#settingsFocusTimer").onclick = () => document.getElementById("focusTimerPanel").classList.toggle("open");
     board.querySelector("#settingsShortcuts").onclick = showShortcutsModal;
+    board.querySelector("#settingsSwitchFile").onclick = switchFile;
+    board.querySelector("#settingsNewFile").onclick = startNewFileFromMenu;
+    board.querySelector("#settingsExport").onclick = exportJSON;
+    board.querySelector("#settingsImport").onclick = () => document.getElementById("fileImportInput").click();
+    const restoreBackupButton = board.querySelector("#settingsRestoreBackup");
+    if (restoreBackupButton) restoreBackupButton.onclick = restoreMigrationBackup;
+    const logoutButton = board.querySelector("#settingsLogout");
+    if (logoutButton) logoutButton.onclick = () => activeAuthProvider.logout();
   }
 
   function renderMain(){
@@ -2283,6 +2304,7 @@
       navigateToIntegrations();
     };
     document.getElementById("settingsNav").onclick = navigateToSettings;
+    document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
       const menu = document.getElementById("projectMenu");
@@ -2304,28 +2326,12 @@
     projectCreateMenu.addEventListener("click", event=>{
       if (event.target.closest("button")) closeProjectCreateMenu();
     });
-    document.getElementById("syncMenuBtn").onclick = event => {
-      event.stopPropagation();
-      const menu = document.getElementById("syncMenu");
-      const open = menu.classList.toggle("open");
-      event.currentTarget.classList.toggle("active", open);
-    };
-    document.getElementById("syncMenu").addEventListener("click", event=>{
-      if (event.target.closest("button")){
-        document.getElementById("syncMenu").classList.remove("open");
-        document.getElementById("syncMenuBtn").classList.remove("active");
-      }
-    });
     document.addEventListener("click", event=>{
       if (!event.target.closest("#projectMenuWrap")){
         document.getElementById("projectMenu").classList.remove("open");
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
       if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
-      if (!event.target.closest(".syncMenuWrap")){
-        document.getElementById("syncMenu").classList.remove("open");
-        document.getElementById("syncMenuBtn").classList.remove("active");
-      }
     });
     document.getElementById("addProjectBtn").onclick = async () => {
       const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
@@ -2369,10 +2375,6 @@
       document.getElementById("projectMenuBtn").classList.remove("active");
       window.print();
     };
-    document.getElementById("shortcutsBtn").onclick = showShortcutsModal;
-    document.getElementById("focusTimerBtn").onclick = () => {
-      document.getElementById("focusTimerPanel").classList.toggle("open");
-    };
     document.getElementById("focusStartBtn").onclick = () => {
       if (focusInterval) pauseFocusTimer(); else startFocusTimer();
     };
@@ -2395,11 +2397,6 @@
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
     document.getElementById("sidebarCollapseHandle").onclick = toggleSidebarCollapsed;
     document.getElementById("undoBtn").onclick = undoLastChange;
-    document.getElementById("switchFileBtn").onclick = switchFile;
-    document.getElementById("newFileBtn").onclick = startNewFileFromMenu;
-    document.getElementById("exportBtn").onclick = exportJSON;
-    document.getElementById("importBtn").onclick = () => document.getElementById("fileImportInput").click();
-    document.getElementById("restoreBackupBtn").onclick = restoreMigrationBackup;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
       if (e.target.files[0]) importJSON(e.target.files[0]);
       e.target.value = "";
@@ -2429,7 +2426,7 @@
       if (e.key==="n"){ e.preventDefault(); quickAddViaShortcut(); return; }
       if (e.key==="d"){ e.preventDefault(); toggleTheme(); return; }
       if (e.key==="["){ e.preventDefault(); toggleSidebarCollapsed(); return; }
-      if (e.key==="t"){ e.preventDefault(); document.getElementById("focusTimerPanel").classList.toggle("open"); return; }
+      if (e.key==="t"){ e.preventDefault(); toggleFocusTimer(); return; }
       if (e.key==="?"){ e.preventDefault(); showShortcutsModal(); return; }
     });
   }
@@ -2449,7 +2446,6 @@
     wireConnectGate();
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     const reconnected = await tryReconnectFile();
-    document.getElementById("restoreBackupBtn").style.display = hasMigrationBackup() ? "block" : "none";
     if (reconnected){
       restoreActiveLocation();
       renderAll();
