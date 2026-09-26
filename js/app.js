@@ -977,7 +977,59 @@
       const count = p.groups.reduce((n,g)=>n+g.items.length,0);
       const li = document.createElement("li");
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
-      li.innerHTML = `<iconify-icon class="projectIcon" icon="mdi:clipboard-text-outline" aria-hidden="true"></iconify-icon><span class="projectName">${escapeHtml(p.name)}</span><span class="cnt">${count}</span>`;
+      const icon = document.createElement("iconify-icon");
+      icon.className = "projectIcon";
+      icon.setAttribute("icon", "mdi:clipboard-text-outline");
+      icon.setAttribute("aria-hidden", "true");
+      const name = document.createElement("span");
+      name.className = "projectName";
+      name.textContent = p.name;
+      const cnt = document.createElement("span");
+      cnt.className = "cnt";
+      cnt.textContent = String(count);
+      const menuBtn = document.createElement("button");
+      menuBtn.type = "button";
+      menuBtn.className = "projectMenuBtnSmall";
+      menuBtn.title = "Project actions";
+      menuBtn.setAttribute("aria-label", `Project actions for ${p.name}`);
+      menuBtn.textContent = "⋯";
+      menuBtn.onclick = async event => {
+        event.stopPropagation();
+        const action = await showDialog({
+          title: `Project actions - ${p.name}`,
+          fields:[{label:"Choose action", type:"select", options:[
+            {value:"rename", label:"Rename project"},
+            {value:"columns", label:"Columns"},
+            {value:"group", label:"New group"},
+            {value:"move", label:"Move to folder"},
+            {value:"undo", label:"Undo"},
+            {value:"print", label:"Print / PDF"},
+            {value:"delete", label:"Delete project"}
+          ], value:"rename"}],
+          confirmLabel:"Continue"
+        });
+        if (!action) return;
+        if (action === "rename") {
+          const renamed = await showDialog({title:"Rename project", fields:[{label:"Project name", value:p.name}], confirmLabel:"Save"});
+          if (!renamed || !renamed.trim()) return;
+          p.name = renamed.trim();
+          scheduleSave(); renderAll();
+        } else if (action === "columns") {
+          manageFieldsFlow(p);
+        } else if (action === "group") {
+          const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
+          if (name && name.trim()) addGroup(p.id, name.trim());
+        } else if (action === "move") {
+          await moveProjectToFolder(p);
+        } else if (action === "undo") {
+          undoLastChange();
+        } else if (action === "print") {
+          window.print();
+        } else if (action === "delete") {
+          if (await showConfirm(`Delete project ${p.name}`, "This will delete everything in the project.", true)) deleteProject(p.id);
+        }
+      };
+      li.append(icon, name, cnt, menuBtn);
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
     };
@@ -987,7 +1039,36 @@
       const heading = document.createElement("li");
       heading.className = "folderHeading";
       const projectCount = state.projects.filter(project=>project.folderId===folder.id).length;
-      heading.innerHTML = `<iconify-icon icon="mdi:folder-outline" aria-hidden="true"></iconify-icon><span class="folderName">${escapeHtml(folder.name)}</span><span class="folderCount">${projectCount}</span>`;
+      const icon = document.createElement("iconify-icon");
+      icon.className = "folderIcon";
+      icon.setAttribute("icon", "mdi:folder-outline");
+      icon.setAttribute("aria-hidden", "true");
+      const name = document.createElement("span");
+      name.className = "folderName";
+      name.textContent = folder.name;
+      const count = document.createElement("span");
+      count.className = "folderCount";
+      count.textContent = String(projectCount);
+      const menuBtn = document.createElement("button");
+      menuBtn.type = "button";
+      menuBtn.className = "folderMenuBtn";
+      menuBtn.title = "Folder actions";
+      menuBtn.setAttribute("aria-label", `Folder actions for ${folder.name}`);
+      menuBtn.textContent = "⋯";
+      menuBtn.onclick = async event => {
+        event.stopPropagation();
+        const updated = await showDialog({
+          title: "Rename folder",
+          fields: [{label: "Folder name", value: folder.name}],
+          confirmLabel: "Save"
+        });
+        if (!updated || !updated.trim()) return;
+        const trimmed = updated.trim();
+        if (trimmed === folder.name) return;
+        folder.name = trimmed;
+        scheduleSave(); renderProjectList();
+      };
+      heading.append(icon, name, count, menuBtn);
       ul.appendChild(heading);
       state.projects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
     });
