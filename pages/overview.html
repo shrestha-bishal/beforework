@@ -1,5 +1,37 @@
-<div class="overviewStats" data-overview-stats></div>
-<div class="overviewColumns">
-  <div class="overviewMain" data-overview-main></div>
-  <aside class="overviewAside" data-overview-aside></aside>
+<div class="overviewDashboard">
+  <header class="overviewDashHeader">
+    <div>
+      <div class="overviewEyebrow">WORKSPACE</div>
+      <h2>Dashboard</h2>
+      <p>Projects, priorities and what’s coming up.</p>
+    </div>
+    <div class="overviewQuickActions" aria-label="Create">
+      <button class="btn btn-sm" type="button" data-overview-action="project"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon><span>New project</span></button>
+      <button class="btn btn-sm btn-primary" type="button" data-overview-action="task"><iconify-icon icon="mdi:clipboard-plus-outline" aria-hidden="true"></iconify-icon><span>New task</span></button>
+      <button class="btn btn-sm" type="button" data-overview-action="event"><iconify-icon icon="mdi:calendar-plus-outline" aria-hidden="true"></iconify-icon><span>Calendar item</span></button>
+    </div>
+  </header>
+  <section class="overviewStats" data-overview-stats aria-label="Workspace summary"></section>
+  <div class="overviewDashboardGrid">
+    <main class="overviewDashboardMain">
+      <section class="overviewPanel">
+        <header class="overviewPanelHeader"><div><h3>Next 7 days</h3><p>Scheduled project work and calendar items</p></div><button class="btn btn-sm btn-invisible" type="button" data-overview-action="calendar">Open calendar</button></header>
+        <div class="overviewTimelineScroll"><div class="overviewTimeline" data-overview-timeline></div></div>
+      </section>
+      <section class="overviewPanel">
+        <header class="overviewPanelHeader"><div><h3>Recently updated</h3><p>Latest changes across your projects</p></div></header>
+        <div class="overviewRecentList" data-overview-recent></div>
+      </section>
+    </main>
+    <aside class="overviewDashboardAside">
+      <section class="overviewPanel">
+        <header class="overviewPanelHeader"><div><h3>Project progress</h3><p>Open and completed work by project</p></div></header>
+        <div class="overviewProjectList" data-overview-projects></div>
+      </section>
+      <section class="overviewPanel">
+        <header class="overviewPanelHeader"><div><h3>Open items by priority</h3><p>Active tasks across all projects</p></div></header>
+        <div class="overviewPriorityList" data-overview-priorities></div>
+      </section>
+    </aside>
+  </div>
 </div>

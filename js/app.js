@@ -1842,62 +1842,51 @@
     const wrap = document.createElement("div");
     wrap.className = "overviewWrap";
     const flat = allItemsFlat();
-    const isDoneGroup = g => g.name.trim().toLowerCase()==="done";
-    const openItems = flat.filter(r=>!isDoneGroup(r.group) && !r.item.archived);
-    function dueOf(r){ const f = dateFields(r.project)[0]; return f ? (r.item.values[f.id]||"") : ""; }
+    const isDoneGroup = group => group.name.trim().toLowerCase()==="done";
+    const activeItems = flat.filter(row=>!row.item.archived);
+    const openItems = activeItems.filter(row=>!isDoneGroup(row.group));
+    const completedItems = activeItems.filter(row=>isDoneGroup(row.group));
+    function dueOf(row){
+      const field = dateFields(row.project).find(candidate=>row.item.values[candidate.id]);
+      return field ? row.item.values[field.id] : row.item.endDate||"";
+    }
     function priorityOf(r){ const f = priorityField(r.project); return f ? (r.item.values[f.id]||"") : ""; }
-    const overdue = openItems.filter(r=> dueOf(r) && dueOf(r) < todayStr(0)).sort((a,b)=> dueOf(a) < dueOf(b) ? -1 : 1);
-    const soon = openItems.filter(r=> dueOf(r) && dueOf(r) >= todayStr(0) && dueOf(r) <= todayStr(7)).sort((a,b)=> dueOf(a) < dueOf(b) ? -1 : 1);
-    const recent = [...flat].sort((a,b)=> b.item.updatedAt - a.item.updatedAt).slice(0,6);
-    const archivedCount = flat.filter(r=>r.item.archived).length;
-    const activeOpen = openItems.filter(r=>!r.item.archived);
+    const today = todayStr(0);
+    const weekEnd = todayStr(7);
+    const overdue = openItems.filter(row=>dueOf(row) && dueOf(row)<today);
+    const dueThisWeek = openItems.filter(row=>dueOf(row)>=today && dueOf(row)<=weekEnd);
+    const recent = [...activeItems].sort((a,b)=>b.item.updatedAt-a.item.updatedAt).slice(0,5);
 
     function priorityBreakdownHtml(){
       const counts = {high:0, medium:0, low:0, none:0};
-      activeOpen.forEach(r=>{
+      openItems.forEach(r=>{
         const p = priorityOf(r);
         if (p==="high"||p==="medium"||p==="low") counts[p]++; else counts.none++;
       });
       const max = Math.max(1, ...Object.values(counts));
       const rows = [
-        {label:"High", key:"high", color:"var(--color-danger-fg)"},
-        {label:"Medium", key:"medium", color:"var(--color-attention-fg)"},
-        {label:"Low", key:"low", color:"var(--color-fg-muted)"},
-        {label:"No priority", key:"none", color:"var(--faint)"},
+        {label:"High",key:"high",color:"var(--color-danger-fg)"},
+        {label:"Medium",key:"medium",color:"var(--color-attention-fg)"},
+        {label:"Low",key:"low",color:"var(--color-attention-fg)"},
+        {label:"No priority",key:"none",color:"var(--color-neutral-muted)"},
       ];
-      const body = rows.map(row=>`<div class="barRow">
+      const body = rows.map(row=>`<div class="overviewPriorityRow">
         <span class="barLabel">${row.label}</span>
         <div class="barTrack"><div class="barFill" style="width:${(counts[row.key]/max*100)}%;background:${row.color};"></div></div>
         <span class="barCount">${counts[row.key]}</span>
       </div>`).join("");
-      return `<div class="ovSection"><div class="ovSectionTitle">Open items by priority</div>${body}</div>`;
+      return body;
     }
     function projectBreakdownHtml(){
-      if (!state.projects.length) return "";
-      const counts = state.projects.map(p=>({
-        name:p.name,
-        count:p.groups.reduce((n,g)=>n+g.items.filter(it=>!it.archived).length,0)
-      }));
-      const max = Math.max(1, ...counts.map(c=>c.count));
-      const body = counts.map(c=>`<div class="barRow">
-        <span class="barLabel" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</span>
-        <div class="barTrack"><div class="barFill" style="width:${(c.count/max*100)}%;background:var(--accent);"></div></div>
-        <span class="barCount">${c.count}</span>
-      </div>`).join("");
-      return `<div class="ovSection"><div class="ovSectionTitle">Items by project</div>${body}</div>`;
-    }
-
-    function rowHtml(r, showDue){
-      const pf = priorityField(r.project);
-      const dot = pf ? fieldChipHtml(pf, priorityOf(r)) : "";
-      return `<div class="ovRow" data-pid="${r.project.id}" data-gid="${r.group.id}" data-iid="${r.item.id}">
-        <div class="rowLeft">${dot}<span class="t">${escapeHtml(r.item.title)}</span></div>
-        <span class="path">${showDue && dueOf(r) ? fmtDate(dueOf(r))+" · " : `Updated ${formatUpdatedAt(r.item.updatedAt)} · `}${escapeHtml(r.project.name)} / ${escapeHtml(r.group.name)}</span>
-      </div>`;
-    }
-    function section(title, rows, showDue, emptyMsg){
-      const body = rows.length ? rows.map(r=>rowHtml(r,showDue)).join("") : `<div class="ovEmpty">${emptyMsg}</div>`;
-      return `<div class="ovSection"><div class="ovSectionTitle">${title}</div>${body}</div>`;
+      return state.projects.map(project=>{
+        const projectItems = project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
+        const complete = projectItems.filter(row=>isDoneGroup(row.group)).length;
+        const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
+        return `<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
+          <span class="overviewProjectInfo"><strong>${escapeHtml(project.name)}</strong><small>${complete} of ${projectItems.length} complete</small></span>
+          <span class="overviewProjectTrack"><span style="width:${percent}%"></span></span>
+        </button>`;
+      }).join("") || `<div class="overviewQuiet">No projects yet.</div>`;
     }
 
     const view = window.ProjectifyViewTemplates.clone("overview");
@@ -1905,8 +1894,7 @@
       {value:state.projects.length,label:"Projects"},
       {value:openItems.length,label:"Open items"},
       {value:overdue.length,label:"Overdue"},
-      {value:soon.length,label:"Due in 7 days"},
-      {value:archivedCount,label:"Archived"}
+      {value:completedItems.length,label:"Completed"}
     ];
     const stats = view.querySelector("[data-overview-stats]");
     statRows.forEach(({value,label})=>{
@@ -1921,19 +1909,84 @@
       row.append(count,name);
       stats.appendChild(row);
     });
-    view.querySelector("[data-overview-main]").innerHTML = [
-      section("Overdue", overdue, true, "Nothing overdue."),
-      section("Due soon", soon, true, "Nothing due in the next 7 days."),
-      section("Recently updated", recent, false, "Nothing yet - add a project to get started.")
-    ].join("");
-    view.querySelector("[data-overview-aside]").innerHTML = priorityBreakdownHtml()+projectBreakdownHtml();
+    const scheduled = [];
+    openItems.forEach(row=>{
+      const date = dueOf(row);
+      if (date && date>=today && date<=weekEnd) scheduled.push({...row,date,source:"project"});
+    });
+    (state.calendarItems||[]).filter(item=>!item.archived && item.endDate>=today && item.endDate<=weekEnd).forEach(item=>{
+      scheduled.push({item,date:item.endDate,project:null,group:null,source:"calendar"});
+    });
+    scheduled.sort((a,b)=>a.date.localeCompare(b.date) || (a.item.startTime||"").localeCompare(b.item.startTime||""));
+    const weekDays = Array.from({length:7},(_,offset)=>{
+      const date = todayStr(offset);
+      const items = scheduled.filter(row=>row.date===date);
+      const day = new Date(`${date}T00:00:00`);
+      const entries = items.slice(0,3).map(row=>`<button class="overviewTimelineItem" type="button"${row.source==="project"?` data-pid="${escapeHtml(row.project.id)}" data-gid="${escapeHtml(row.group.id)}" data-iid="${escapeHtml(row.item.id)}"`:` data-calendar-id="${escapeHtml(row.item.id)}"`}>
+        <strong>${escapeHtml(row.item.title||"Untitled item")}</strong><span>${row.source==="project"?escapeHtml(`${row.project.name} / ${row.group.name}`):"Calendar item"}</span>
+      </button>`).join("");
+      return `<div class="overviewDay${offset===0?" today":""}">
+        <div class="overviewDayHeader"><span>${day.toLocaleDateString(undefined,{weekday:"short"})}</span><strong>${day.getDate()}</strong></div>
+        <div class="overviewDayItems">${entries||`<span class="overviewDayEmpty">No work due</span>`}${items.length>3?`<span class="overviewMore">+${items.length-3} more</span>`:""}</div>
+      </div>`;
+    }).join("");
+    view.querySelector("[data-overview-timeline]").innerHTML = weekDays;
+    view.querySelector("[data-overview-projects]").innerHTML = projectBreakdownHtml();
+    view.querySelector("[data-overview-priorities]").innerHTML = priorityBreakdownHtml();
+    view.querySelector("[data-overview-recent]").innerHTML = recent.map(row=>{
+      const priority = priorityField(row.project);
+      const chip = priority ? fieldChipHtml(priority,priorityOf(row)) : "";
+      return `<button class="overviewRecentRow" type="button" data-pid="${escapeHtml(row.project.id)}" data-gid="${escapeHtml(row.group.id)}" data-iid="${escapeHtml(row.item.id)}">
+        <span class="overviewRecentMain">${chip}<strong>${escapeHtml(row.item.title)}</strong></span>
+        <span class="overviewRecentMeta">${escapeHtml(row.project.name)} / ${escapeHtml(row.group.name)} <span>· ${escapeHtml(formatUpdatedAt(row.item.updatedAt))}</span></span>
+      </button>`;
+    }).join("") || `<div class="overviewQuiet">No project activity yet.</div>`;
     wrap.appendChild(view);
-    wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
+    wrap.querySelectorAll(".overviewRecentRow[data-iid]").forEach(el=>{
       el.onclick = () => {
-        activeProjectId = el.dataset.pid;
-        persistActiveLocation();
-        renderAll();
-        openItemModal(el.dataset.pid, el.dataset.gid, el.dataset.iid);
+        openItemModal(el.dataset.pid,el.dataset.gid,el.dataset.iid);
+      };
+    });
+    wrap.querySelectorAll(".overviewTimelineItem[data-iid]").forEach(el=>{
+      el.onclick = () => openItemModal(el.dataset.pid,el.dataset.gid,el.dataset.iid);
+    });
+    wrap.querySelectorAll(".overviewTimelineItem[data-calendar-id]").forEach(el=>{
+      el.onclick = () => {
+        const item = (state.calendarItems||[]).find(candidate=>candidate.id===el.dataset.calendarId);
+        if (item) openStandaloneCalendarItemModal(item);
+      };
+    });
+    wrap.querySelectorAll("[data-overview-project]").forEach(el=>{
+      el.onclick = () => selectProject(el.dataset.overviewProject);
+    });
+    wrap.querySelectorAll("[data-overview-action]").forEach(button=>{
+      button.onclick = async () => {
+        if (button.dataset.overviewAction==="project"){
+          document.getElementById("addProjectBtn").click();
+          return;
+        }
+        if (button.dataset.overviewAction==="calendar"){
+          activeProjectId = CALENDAR; persistActiveLocation(); renderAll(); return;
+        }
+        if (button.dataset.overviewAction==="event"){
+          openNewCalendarItemModal(null,today);
+          return;
+        }
+        if (!state.projects.length){
+          await showNotice("Create a project first","Tasks are organized inside project groups.");
+          return;
+        }
+        const result = await showDialog({title:"New task",fields:[
+          {label:"Task name",placeholder:"What needs to get done?"},
+          {label:"Project",type:"select",options:state.projects.map(project=>({value:project.id,label:project.name})),value:state.projects[0].id}
+        ],confirmLabel:"Create task"});
+        if (!result) return;
+        const [title,projectId] = result;
+        const project = getProject(projectId);
+        const group = project?.groups[0];
+        if (!title.trim() || !project || !group) return;
+        const item = addItem(project.id,group.id,title.trim());
+        openItemModal(project.id,group.id,item.id);
       };
     });
     board.appendChild(wrap);
