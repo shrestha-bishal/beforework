@@ -101,12 +101,11 @@
     position:relative;}
   #projectList .folderHeading:first-child{margin-top:0;padding-top:5px;border-top:0;}
   #projectList .folderHeading iconify-icon{flex:none;color:var(--accent-strong);font-size:14px;}
-  #projectList .folderHeading .folderName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #projectList .folderHeading .folderCount{margin-left:auto;flex:none;color:var(--faint);font-size:10.5px;font-weight:500;transition:opacity .12s ease, transform .12s ease;}
-  #projectList .folderHeading .folderQuickMenuWrap{position:relative;display:flex;align-items:center;flex:none;}
-  #projectList .folderHeading .folderMenuBtn{flex:none;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transition:opacity .12s ease, visibility .12s ease, background-color .12s ease;}
-  #projectList .folderHeading:hover .folderCount{opacity:0;transform:scale(.8);}
-  #projectList .folderHeading:hover .folderMenuBtn{opacity:1;visibility:visible;}
+  #projectList .folderHeading .folderName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectList .folderHeading .folderCount{flex:none;width:24px;text-align:center;color:var(--faint);font-size:10.5px;font-weight:500;transition:opacity .12s ease, transform .12s ease;margin-left:auto;}
+  #projectList .folderHeading .folderQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
+  #projectList .folderHeading .folderMenuBtn{flex:none;width:24px;height:20px;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease, visibility .14s ease, transform .14s ease, background-color .12s ease;}
+  #projectList .folderHeading:hover .folderMenuBtn{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
   #projectList .folderHeading .folderMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
   #projectList .folderHeading .folderQuickMenu{position:absolute;right:0;top:calc(100% + 6px);display:none;flex-direction:column;min-width:150px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);z-index:50;}
   #projectList .folderHeading .folderQuickMenu.open{display:flex;}
@@ -119,15 +118,14 @@
     background:transparent;width:100%;text-align:left;box-shadow:none;}
   #projectList .SideNav-item:hover{background:var(--bg-soft2);color:var(--text);}
   #projectList .SideNav-item.active{background:transparent;color:var(--accent-strong);font-weight:600;}
-  #projectList .SideNav-item .cnt{font-size:11.5px;color:var(--faint);font-weight:400;transition:opacity .12s ease, transform .12s ease;}
+  #projectList .SideNav-item .cnt{width:24px;text-align:center;font-size:11.5px;color:var(--faint);font-weight:400;transition:opacity .12s ease, transform .12s ease;margin-left:auto;}
   #projectList .SideNav-item.active .cnt{color:var(--accent);}
   #projectList .SideNav-item .projectIcon{font-size:15px;flex:none;color:var(--faint);}
   #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #projectList .SideNav-item .projectQuickMenuWrap{position:relative;display:flex;align-items:center;flex:none;}
-  #projectList .SideNav-item .projectMenuBtnSmall{flex:none;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transition:opacity .12s ease, visibility .12s ease, background-color .12s ease;}
-  #projectList .SideNav-item:hover .cnt{opacity:0;transform:scale(.8);}
-  #projectList .SideNav-item:hover .projectMenuBtnSmall{opacity:1;visibility:visible;}
+  #projectList .SideNav-item .projectQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
+  #projectList .SideNav-item .projectMenuBtnSmall{flex:none;width:24px;height:20px;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease, visibility .14s ease, transform .14s ease, background-color .12s ease;}
+  #projectList .SideNav-item:hover .projectMenuBtnSmall{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
   #projectList .SideNav-item .projectMenuBtnSmall:hover{background:var(--bg-soft2);color:var(--text);}
   #projectList .SideNav-item .projectQuickMenu{position:absolute;right:0;top:calc(100% + 6px);display:none;flex-direction:column;min-width:170px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);z-index:50;}
   #projectList .SideNav-item .projectQuickMenu.open{display:flex;}

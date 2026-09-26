@@ -2150,6 +2150,7 @@
     openItemRef = null;
   }
   function showDialog({title, message="", fields=[], confirmLabel="Continue", secondaryLabel="", danger=false, cancelLabel="Cancel"}){
+    if (showDialog.finishActive) showDialog.finishActive(null);
     return new Promise(resolve=>{
       const overlay = document.createElement("div");
       overlay.className = "overlay";
@@ -2180,7 +2181,12 @@
         </div>
       </div>`;
       document.body.appendChild(overlay);
-      const finish = value => { overlay.remove(); resolve(value); };
+      const finish = value => {
+        overlay.remove();
+        if (showDialog.finishActive === finish) showDialog.finishActive = null;
+        resolve(value);
+      };
+      showDialog.finishActive = finish;
       overlay.querySelectorAll("[data-dialog-cancel]").forEach(button=>button.onclick=()=>finish(null));
       const secondary = overlay.querySelector("[data-dialog-secondary]");
       if (secondary) secondary.onclick = () => finish("__secondary__");
