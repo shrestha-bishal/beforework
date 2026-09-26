@@ -191,13 +191,13 @@
   function renderAuthUI(){
     const bar = document.getElementById("authBar");
     if (!bar || !activeAuthProvider) return;
-    bar.style.display = "flex";
     if (currentAuthUser){
+      bar.style.display = "flex";
       bar.innerHTML = `<span class="authUser" title="${escapeHtml(activeAuthProvider.label(currentAuthUser))}">${escapeHtml(activeAuthProvider.label(currentAuthUser))}</span><button class="btn btn-sm btn-invisible" id="authLogoutBtn">Log out</button>`;
       document.getElementById("authLogoutBtn").onclick = () => activeAuthProvider.logout();
     } else {
-      bar.innerHTML = `<button class="btn btn-sm btn-invisible" id="authLoginBtn">Log in</button>`;
-      document.getElementById("authLoginBtn").onclick = () => activeAuthProvider.login();
+      bar.style.display = "none";
+      bar.innerHTML = "";
     }
   }
   async function initAuth(){
