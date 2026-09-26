@@ -845,25 +845,38 @@
     if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
     scheduleSave(); renderAll();
   }
-  async function manageFieldsFlow(project){
-    const names = project.fields.map(f=>`${f.label} (${f.type})`).join(", ") || "(none yet)";
-    const action = await showDialog({title:`Columns for ${project.name}`, message:`Current columns: ${names}`, confirmLabel:"Add column", secondaryLabel:"Delete column"});
-    if (!action) return;
-    if (action === "__confirm__"){
-      const details = await showDialog({title:"New column", fields:[
-        {label:"Column name", placeholder:"e.g. Status, Type, Effort"},
-        {label:"Column type", type:"select", options:FIELD_TYPES.map(value=>({value,label:value})), value:"select"}
-      ], confirmLabel:"Create column"});
-      if (!details) return;
-      const [label,type] = details;
+  async function addColumnFlow(project){
+    const details = await showDialog({title:"Add column", fields:[
+      {label:"Column name", placeholder:"e.g. Status, Type, Effort"},
+      {label:"Column type", type:"select", options:FIELD_TYPES.map(value=>({value,label:value})), value:"select"}
+    ], confirmLabel:"Add column"});
+    if (!details) return;
+    const [label,type] = details;
+    if (!label || !label.trim()) return;
+    await addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
+  }
+  function wireCustomColumnHeader(th, field, project){
+    const menuButton = th.querySelector(".fieldColumnMenuBtn");
+    const menu = th.querySelector(".fieldColumnMenu");
+    menuButton.onclick = event => {
+      event.stopPropagation();
+      const shouldOpen = !menu.classList.contains("open");
+      document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
+      menu.classList.toggle("open", shouldOpen);
+    };
+    menu.querySelector('[data-column-action="edit"]').onclick = async event => {
+      event.stopPropagation();
+      menu.classList.remove("open");
+      const label = await showDialog({title:"Edit column", fields:[{label:"Column name", value:field.label}], confirmLabel:"Save"});
       if (!label || !label.trim()) return;
-      addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
-      return;
-    }
-    const fid = await showDialog({title:"Delete column", fields:[{label:"Column", type:"select", options:project.fields.map(field=>({value:field.id,label:`${field.label} (${field.type})`})), value:project.fields[0]?.id}], confirmLabel:"Choose column"});
-    const f = project.fields.find(field=>field.id===fid);
-    if (!f) return;
-    if (await showConfirm(`Delete column ${f.label}`, "This removes its values from every item in this project.", true)) deleteField(project, f.id);
+      field.label = label.trim();
+      scheduleSave(); renderAll();
+    };
+    menu.querySelector('[data-column-action="delete"]').onclick = async event => {
+      event.stopPropagation();
+      menu.classList.remove("open");
+      if (await showConfirm(`Delete column ${field.label}`, "This removes its values from every item in this project.", true)) deleteField(project, field.id);
+    };
   }
 
   /* ---------- Shared helpers ---------- */
@@ -999,7 +1012,7 @@
       menu.className = "projectQuickMenu";
       menu.innerHTML = `
         <button type="button" data-project-action="rename">Rename</button>
-        <button type="button" data-project-action="columns">Columns</button>
+        <button type="button" data-project-action="add-column">Add column</button>
         <button type="button" data-project-action="group">New group</button>
         <button type="button" data-project-action="move">Move to folder</button>
         <button type="button" data-project-action="undo">Undo</button>
@@ -1023,8 +1036,8 @@
             if (!renamed || !renamed.trim()) return;
             p.name = renamed.trim();
             scheduleSave(); renderAll();
-          } else if (action === "columns") {
-            manageFieldsFlow(p);
+          } else if (action === "add-column") {
+            await addColumnFlow(p);
           } else if (action === "group") {
             const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
             if (name && name.trim()) addGroup(p.id, name.trim());
@@ -1275,7 +1288,7 @@
     renderFieldFilters(project);
     updateFilterSummary();
 
-    fieldsBtn.onclick = () => manageFieldsFlow(project);
+    fieldsBtn.onclick = () => addColumnFlow(project);
     moveFolderBtn.onclick = () => moveProjectToFolder(project);
     addGroupBtn.onclick = async () => {
       const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
@@ -1484,7 +1497,7 @@
     const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS}" data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
         <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
@@ -1542,7 +1555,13 @@
     wrap.querySelectorAll("th[data-field]").forEach(th=>{
       const field = th.dataset.field;
       const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
-      th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+      const customField = project.fields.find(candidate=>candidate.id===field);
+      if (customField){
+        th.querySelector(".arrow").textContent = arrow;
+        wireCustomColumnHeader(th, customField, project);
+      } else {
+        th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+      }
       th.onclick = () => {
         if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
         else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
@@ -1617,7 +1636,7 @@
     const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS}" data-field="${f.id}">${escapeHtml(f.label)}</th>`).join("");
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
         <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
@@ -1673,7 +1692,13 @@
     wrap.querySelectorAll("th[data-field]").forEach(th=>{
       const field = th.dataset.field;
       const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
-      th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+      const customField = project.fields.find(candidate=>candidate.id===field);
+      if (customField){
+        th.querySelector(".arrow").textContent = arrow;
+        wireCustomColumnHeader(th, customField, project);
+      } else {
+        th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+      }
       th.onclick = () => {
         if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
         else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
@@ -2603,6 +2628,9 @@
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
         if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
       });
+      if (!event.target.closest(".fieldColumnHeader")){
+        document.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>menu.classList.remove("open"));
+      }
     });
     document.getElementById("addProjectBtn").onclick = async () => {
       const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
