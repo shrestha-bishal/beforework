@@ -1006,7 +1006,6 @@
   }
 
   function navigateToIntegrations(){
-    if (window.location.protocol==="http:" || window.location.protocol==="https:") window.history.pushState({}, "", "/integrations");
     activeProjectId = INTEGRATIONS;
     persistActiveLocation();
     renderAll();
@@ -1053,32 +1052,15 @@
     const theme = document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
     const timeFormat = getTimeFormat();
     const sidebarCollapsed = document.getElementById("sidebar").classList.contains("collapsed");
-    board.innerHTML = `<div class="settingsWrap">
-      <div class="Subhead settingsIntro"><div><h3 class="Subhead-heading">Settings</h3><p class="color-fg-muted">Personalise how Beforework looks and behaves on this device.</p></div></div>
-      <div class="settingsGrid">
-        <section class="Box settingsSection">
-          <div class="Box-header settingsSectionHead"><h4>Appearance</h4><span>Visual preferences</span></div>
-          <div class="Box-row settingsRow"><div><strong>Colour mode</strong><p>Use a light or dark workspace.</p></div><button class="btn btn-sm" id="settingsThemeToggle">${theme} mode</button></div>
-          <div class="Box-row settingsRow"><div><strong>Time format</strong><p>Choose how times appear throughout the app.</p></div><select class="form-control settingsSelect" id="settingsTimeFormat" aria-label="Time format"><option value="12" ${timeFormat==="12"?"selected":""}>12-hour</option><option value="24" ${timeFormat==="24"?"selected":""}>24-hour</option></select></div>
-          <div class="Box-row settingsRow"><div><strong>Sidebar</strong><p>Keep the project navigation visible.</p></div><button class="btn btn-sm" id="settingsSidebarToggle">${sidebarCollapsed ? "Expand" : "Collapse"} sidebar</button></div>
-        </section>
-        <section class="Box settingsSection">
-          <div class="Box-header settingsSectionHead"><h4>Tools</h4><span>Workspace controls</span></div>
-          <div class="Box-row settingsRow"><div><strong>Keyboard shortcuts</strong><p>View the shortcuts available throughout the app.</p></div><button class="btn btn-sm" id="settingsShortcuts">View shortcuts</button></div>
-        </section>
-        <section class="Box settingsSection">
-          <div class="Box-header settingsSectionHead"><h4>Storage &amp; Data</h4><span>Manage your project file</span></div>
-          <div class="Box-row settingsRow"><div><strong>Connected file</strong><p id="settingsStorageStatus">${escapeHtml(document.getElementById("syncLabel").textContent)}</p></div><button class="btn btn-sm" id="settingsSwitchFile">Open different file</button></div>
-          <div class="Box-row settingsRow"><div><strong>New file</strong><p>Start a separate project workspace.</p></div><button class="btn btn-sm" id="settingsNewFile">Create file</button></div>
-          <div class="Box-row settingsRow"><div><strong>JSON backup</strong><p>Import or export a copy of your project data.</p></div><div class="settingsRowActions"><button class="btn btn-sm" id="settingsExport">Export</button><button class="btn btn-sm" id="settingsImport">Import</button></div></div>
-          ${hasMigrationBackup() ? `<div class="Box-row settingsRow"><div><strong>Pre-upgrade backup</strong><p>Restore the snapshot saved before the last data upgrade.</p></div><button class="btn btn-sm" id="settingsRestoreBackup">Restore</button></div>` : ""}
-        </section>
-        ${currentAuthUser && activeAuthProvider ? `<section class="Box settingsSection">
-          <div class="Box-header settingsSectionHead"><h4>Account</h4><span>Signed-in account</span></div>
-          <div class="Box-row settingsRow"><div><strong>${escapeHtml(activeAuthProvider.label(currentAuthUser))}</strong><p>Connected through your identity provider.</p></div><button class="btn btn-sm" id="settingsLogout">Log out</button></div>
-        </section>` : ""}
-      </div>
-    </div>`;
+    const accountName = currentAuthUser && activeAuthProvider ? escapeHtml(activeAuthProvider.label(currentAuthUser)) : "";
+    board.innerHTML = window.ProjectifyTemplates.settings({
+      theme,
+      timeFormat,
+      sidebarCollapsed,
+      storageStatus:escapeHtml(document.getElementById("syncLabel").textContent),
+      hasBackup:hasMigrationBackup(),
+      accountName
+    });
     board.querySelector("#settingsThemeToggle").onclick = () => { toggleTheme(); renderSettings(board); };
     board.querySelector("#settingsTimeFormat").onchange = event => {
       try{ localStorage.setItem(TIME_FORMAT_KEY, event.target.value); }catch(err){/* ignore */}
@@ -1764,24 +1746,34 @@
       const cellDate = calendarDateKey(cell);
       const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
       const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item));
-      const eventHtml = dayEntries.map((entry,index)=>`
-        <div class="calendarEvent ${entry.item.calendarType==="event"?"event":"task"}" draggable="true" data-pid="${entry.project ? entry.project.id : ""}" data-gid="${entry.group ? entry.group.id : ""}" data-iid="${entry.item.id}" data-fid="${entry.field.id}" data-start="${entry.date}" data-end="${entry.endDate}">
-          <span class="eventDot"></span><span class="eventTitle">${entry.item.startTime ? escapeHtml(entry.item.startTime+" ") : ""}${escapeHtml(entry.item.title)}</span>
-          ${scopeProject || !entry.project ? "" : `<span class="eventProject">${escapeHtml(entry.project.name)}</span>`}
-          <a class="gcalLink" href="${escapeHtml(googleCalendarUrl(entry))}" target="_blank" rel="noopener" title="Add to Google Calendar">GCal</a>
-        </div>`).join("");
-      cells.push(`<div class="calendarDay${inMonth?"":" muted"}${cellDate===today?" today":""}" data-date="${cellDate}"><div class="calendarDayNumber">${dateNumber}</div>${eventHtml}</div>`);
+      const eventHtml = dayEntries.map(entry=>window.ProjectifyTemplates.calendarEvent({
+        className:entry.item.calendarType==="event" ? "event" : "task",
+        pid:entry.project ? escapeHtml(entry.project.id) : "",
+        gid:entry.group ? escapeHtml(entry.group.id) : "",
+        iid:escapeHtml(entry.item.id),
+        fid:escapeHtml(entry.field.id),
+        start:escapeHtml(entry.date),
+        end:escapeHtml(entry.endDate),
+        title:escapeHtml(entry.item.title),
+        startTime:entry.item.startTime ? escapeHtml(entry.item.startTime+" ") : "",
+        projectName:scopeProject || !entry.project ? "" : escapeHtml(entry.project.name),
+        url:escapeHtml(googleCalendarUrl(entry))
+      })).join("");
+      cells.push(window.ProjectifyTemplates.calendarDay({
+        className:`${inMonth ? "" : " muted"}${cellDate===today ? " today" : ""}`,
+        date:escapeHtml(cellDate),
+        number:dateNumber,
+        events:eventHtml
+      }));
     }
-    wrap.innerHTML = `<div class="calendarToolbar">
-      <button class="btn btn-sm" data-calendar-action="prev" aria-label="Previous month">‹</button>
-      <button class="btn btn-sm" data-calendar-action="today">Today</button>
-      <button class="btn btn-sm" data-calendar-action="next" aria-label="Next month">›</button>
-      <h3>${monthLabel}</h3>
-      <span class="filterSummary">${scopeProject ? escapeHtml(scopeProject.name) : "All projects"}</span>
-      <button class="btn btn-sm" data-calendar-action="new">+ New</button>
-      <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
-      ${scopeProject ? "" : `<button class="btn btn-sm" data-calendar-action="integrations"><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button><button class="btn btn-sm btn-primary" data-calendar-action="google"><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Sync now</button><span class="calendarSyncStatus" data-calendar-sync-status></span>`}
-    </div><div class="calendarGrid"><div class="calendarWeekday">Sun</div><div class="calendarWeekday">Mon</div><div class="calendarWeekday">Tue</div><div class="calendarWeekday">Wed</div><div class="calendarWeekday">Thu</div><div class="calendarWeekday">Fri</div><div class="calendarWeekday">Sat</div>${cells.join("")}</div>`;
+    wrap.innerHTML = window.ProjectifyTemplates.calendar({
+      monthLabel:escapeHtml(monthLabel),
+      scopeLabel:scopeProject ? escapeHtml(scopeProject.name) : "All projects",
+      isGlobal:!scopeProject,
+      googleConnected:!!googleAccessToken,
+      lastSync:escapeHtml(state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet"),
+      cells:cells.join("")
+    });
     updateGoogleCalendarButtons();
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
@@ -1896,26 +1888,21 @@
       return `<div class="ovSection"><div class="ovSectionTitle">${title}</div>${body}</div>`;
     }
 
-    wrap.innerHTML = `
-      <div class="overviewStats">
-        <div class="overviewStat"><div class="h2">${state.projects.length}</div><div class="color-fg-muted text-small">Projects</div></div>
-        <div class="overviewStat"><div class="h2">${openItems.length}</div><div class="color-fg-muted text-small">Open items</div></div>
-        <div class="overviewStat"><div class="h2">${overdue.length}</div><div class="color-fg-muted text-small">Overdue</div></div>
-        <div class="overviewStat"><div class="h2">${soon.length}</div><div class="color-fg-muted text-small">Due in 7 days</div></div>
-        <div class="overviewStat"><div class="h2">${archivedCount}</div><div class="color-fg-muted text-small">Archived</div></div>
-      </div>
-      <div class="overviewColumns">
-        <div class="overviewMain">
-          ${section("Overdue", overdue, true, "Nothing overdue.")}
-          ${section("Due soon", soon, true, "Nothing due in the next 7 days.")}
-          ${section("Recently updated", recent, false, "Nothing yet - add a project to get started.")}
-        </div>
-        <aside class="overviewAside">
-          ${priorityBreakdownHtml()}
-          ${projectBreakdownHtml()}
-        </aside>
-      </div>
-    `;
+    wrap.innerHTML = window.ProjectifyTemplates.overview({
+      stats:[
+        {value:state.projects.length,label:"Projects"},
+        {value:openItems.length,label:"Open items"},
+        {value:overdue.length,label:"Overdue"},
+        {value:soon.length,label:"Due in 7 days"},
+        {value:archivedCount,label:"Archived"}
+      ],
+      main:[
+        section("Overdue", overdue, true, "Nothing overdue."),
+        section("Due soon", soon, true, "Nothing due in the next 7 days."),
+        section("Recently updated", recent, false, "Nothing yet - add a project to get started.")
+      ].join(""),
+      aside:priorityBreakdownHtml()+projectBreakdownHtml()
+    });
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
       el.onclick = () => {
         activeProjectId = el.dataset.pid;

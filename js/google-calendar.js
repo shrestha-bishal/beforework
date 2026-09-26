@@ -466,21 +466,20 @@
   function renderIntegrations(board){
     const links = linkedGoogleCalendarIds();
     const catalog = new Map((state.googleCalendarCatalog||[]).map(calendar=>[calendar.id, calendar]));
-    const connectionLabel = googleAccessToken ? "Connected" : "Not connected";
     const lastSync = state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet";
     const linkedHtml = links.length ? links.map(id=>{
       const calendar = catalog.get(id);
-      return `<div class="linkedCalendarRow"><iconify-icon icon="mdi:calendar-check-outline"></iconify-icon><span title="${escapeHtml(calendar?.summary||id)}">${escapeHtml(calendar?.summary||id)}${calendar?.primary?" (primary)":""}</span><button class="btn btn-sm btn-invisible" data-unlink-calendar="${escapeHtml(id)}">Unlink</button></div>`;
+      return window.ProjectifyTemplates.calendarLink({
+        id:escapeHtml(id),
+        name:escapeHtml(calendar?.summary||id),
+        isPrimary:!!calendar?.primary
+      });
     }).join("") : `<div class="integrationEmpty">No Google calendars linked yet.</div>`;
-    board.innerHTML = `<div class="integrationWrap">
-      <div class="integrationHeader"><iconify-icon icon="mdi:hub-outline"></iconify-icon><div><h3>Integrations</h3><p>Connect external services while keeping Beforework as your local workspace.</p></div></div>
-      <div class="integrationCard">
-        <div class="integrationCardHead"><iconify-icon icon="logos:google-calendar"></iconify-icon><strong>Google Calendar</strong><span class="integrationStatus">${connectionLabel}</span></div>
-        <p class="dialogMessage">Sync standalone calendar items and scheduled project items to one or more Google calendars.</p>
-        <div class="linkedCalendarList">${linkedHtml}</div>
-        <div class="integrationActions"><button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>${googleAccessToken?`<button class="btn btn-sm" data-integration-sync>Sync now</button>`:`<button class="btn btn-sm" data-integration-connect>Connect Google</button>`}<span class="integrationStatus">${escapeHtml(lastSync)}</span></div>
-      </div>
-    </div>`;
+    board.innerHTML = window.ProjectifyTemplates.integrations({
+      connected:!!googleAccessToken,
+      lastSync:escapeHtml(lastSync),
+      linkedCalendars:linkedHtml
+    });
     board.querySelector("[data-integration-link]").onclick = manageGoogleCalendars;
     const syncButton = board.querySelector("[data-integration-sync]");
     if (syncButton) syncButton.onclick = () => syncGoogleCalendar(null);

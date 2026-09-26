@@ -1,0 +1,25 @@
+window.ProjectifyTemplates = window.ProjectifyTemplates || {};
+window.ProjectifyTemplates.settings = ({theme,timeFormat,sidebarCollapsed,storageStatus,hasBackup,accountName}) => `
+  <div class="settingsWrap">
+    <div class="Subhead settingsIntro"><div><h3 class="Subhead-heading">Settings</h3><p class="color-fg-muted">Personalise how Beforework looks and behaves on this device.</p></div></div>
+    <div class="settingsGrid">
+      <section class="Box settingsSection">
+        <div class="Box-header settingsSectionHead"><h4>Appearance</h4><span>Visual preferences</span></div>
+        <div class="Box-row settingsRow"><div><strong>Colour mode</strong><p>Use a light or dark workspace.</p></div><button class="btn btn-sm" id="settingsThemeToggle">${theme} mode</button></div>
+        <div class="Box-row settingsRow"><div><strong>Time format</strong><p>Choose how times appear throughout the app.</p></div><select class="form-control settingsSelect" id="settingsTimeFormat" aria-label="Time format"><option value="12" ${timeFormat==="12"?"selected":""}>12-hour</option><option value="24" ${timeFormat==="24"?"selected":""}>24-hour</option></select></div>
+        <div class="Box-row settingsRow"><div><strong>Sidebar</strong><p>Keep the project navigation visible.</p></div><button class="btn btn-sm" id="settingsSidebarToggle">${sidebarCollapsed ? "Expand" : "Collapse"} sidebar</button></div>
+      </section>
+      <section class="Box settingsSection">
+        <div class="Box-header settingsSectionHead"><h4>Tools</h4><span>Workspace controls</span></div>
+        <div class="Box-row settingsRow"><div><strong>Keyboard shortcuts</strong><p>View the shortcuts available throughout the app.</p></div><button class="btn btn-sm" id="settingsShortcuts">View shortcuts</button></div>
+      </section>
+      <section class="Box settingsSection">
+        <div class="Box-header settingsSectionHead"><h4>Storage &amp; Data</h4><span>Manage your project file</span></div>
+        <div class="Box-row settingsRow"><div><strong>Connected file</strong><p id="settingsStorageStatus">${storageStatus}</p></div><button class="btn btn-sm" id="settingsSwitchFile">Open different file</button></div>
+        <div class="Box-row settingsRow"><div><strong>New file</strong><p>Start a separate project workspace.</p></div><button class="btn btn-sm" id="settingsNewFile">Create file</button></div>
+        <div class="Box-row settingsRow"><div><strong>JSON backup</strong><p>Import or export a copy of your project data.</p></div><div class="settingsRowActions"><button class="btn btn-sm" id="settingsExport">Export</button><button class="btn btn-sm" id="settingsImport">Import</button></div></div>
+        ${hasBackup ? `<div class="Box-row settingsRow"><div><strong>Pre-upgrade backup</strong><p>Restore the snapshot saved before the last data upgrade.</p></div><button class="btn btn-sm" id="settingsRestoreBackup">Restore</button></div>` : ""}
+      </section>
+      ${accountName ? `<section class="Box settingsSection"><div class="Box-header settingsSectionHead"><h4>Account</h4><span>Signed-in account</span></div><div class="Box-row settingsRow"><div><strong>${accountName}</strong><p>Connected through your identity provider.</p></div><button class="btn btn-sm" id="settingsLogout">Log out</button></div></section>` : ""}
+    </div>
+  </div>`;
