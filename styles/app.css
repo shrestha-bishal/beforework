@@ -77,7 +77,24 @@
   #settingsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #settingsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   .sidebarBottomNav{margin-top:auto;border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:2px;}
+  .projectSectionHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .projectCreateWrap{position:relative;}
+  .projectCreateBtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;color:var(--muted);}
+  .projectCreateBtn:hover,.projectCreateBtn.active{background:var(--bg-soft2);color:var(--text);}
+  .projectCreateBtn iconify-icon{font-size:16px;}
+  .projectCreateMenu{display:none;flex-direction:column;position:absolute;top:32px;right:0;z-index:40;min-width:176px;padding:5px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
+  .projectCreateMenu.open{display:flex;}
+  .projectCreateMenu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;white-space:nowrap;}
+  .projectCreateMenu button iconify-icon{font-size:15px;color:var(--muted);}
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;border:0;box-shadow:none;}
+  #projectList .folderHeading{display:flex;align-items:center;gap:7px;min-width:0;margin-top:5px;padding:9px 10px 5px;
+    border-top:1px solid var(--border);font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;letter-spacing:0;}
+  #projectList .folderHeading:first-child{margin-top:0;padding-top:5px;border-top:0;}
+  #projectList .folderHeading iconify-icon{flex:none;color:var(--accent-strong);font-size:14px;}
+  #projectList .folderHeading .folderName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectList .folderHeading .folderCount{margin-left:auto;flex:none;color:var(--faint);font-size:10.5px;font-weight:500;}
+  #projectList .SideNav-item.inFolder{padding-left:28px;}
   #projectList .SideNav-item{display:flex;align-items:center;justify-content:space-between;
     padding:7px 10px;border:0;border-radius:6px;cursor:pointer;font-size:13.5px;color:var(--muted);
     background:transparent;width:100%;text-align:left;box-shadow:none;}

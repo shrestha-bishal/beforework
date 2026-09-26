@@ -69,9 +69,17 @@
     <div id="calendarNav"><span>Calendar</span></div>
 
     <div>
-      <div class="d-flex flex-justify-between flex-items-center mb-2"><span class="sidebarSectionLabel">Projects</span></div>
+      <div class="projectSectionHeader">
+        <span class="sidebarSectionLabel">Projects</span>
+        <div class="projectCreateWrap">
+          <button class="btn btn-sm btn-invisible projectCreateBtn" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
+          <div class="projectCreateMenu" id="projectCreateMenu" role="menu">
+            <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
+            <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
+          </div>
+        </div>
+      </div>
       <ul class="SideNav" id="projectList"></ul>
-      <button class="btn btn-sm btn-invisible" id="addProjectBtn" style="margin-top:6px;width:100%;justify-content:flex-start;text-align:left;">+ New project</button>
     </div>
 
     <div class="sideSection" id="tagsSection">
@@ -101,6 +109,7 @@
         <div class="projectMenu" id="projectMenu">
           <button class="btn btn-sm btn-invisible" id="manageFieldsBtn">Columns</button>
           <button class="btn btn-sm btn-invisible" id="addGroupBtn">+ Group</button>
+          <button class="btn btn-sm btn-invisible" id="moveProjectFolderBtn">Move to folder</button>
           <button class="btn btn-sm btn-invisible" id="undoBtn" title="Undo last change">Undo</button>
           <button class="btn btn-sm btn-invisible" id="printViewBtn">Print / PDF</button>
           <button class="btn btn-sm btn-invisible" id="renameProjectBtn">Rename</button>

@@ -322,7 +322,7 @@
       tags:[], fields:[status], views:proj2Views, activeViewId:proj2Views[0].id, itemDefaultType:"task",
       groups:[{id:uid(), name:"Books", items:[]}]
     };
-    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], calendarItems:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleLastSyncAt:0};
+    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], folders:[], calendarItems:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleLastSyncAt:0};
   }
 
   /* ---------- Schema migrations ----------
@@ -399,6 +399,14 @@
       });
       return s;
     },
+    // v4 -> v5: projects may belong to one optional folder.
+    5: s => {
+      if (!Array.isArray(s.folders)) s.folders = [];
+      s.projects.forEach(project=>{
+        if (!Object.prototype.hasOwnProperty.call(project, "folderId")) project.folderId = null;
+      });
+      return s;
+    },
   };
   const SCHEMA_VERSION = Math.max(...Object.keys(MIGRATIONS).map(Number));
   const MIGRATION_BACKUP_KEY = "personal_dashboard_pre_migration_backup_v1";
@@ -429,6 +437,7 @@
       if (!step) break; // no step registered for this gap - leave state as-is rather than throw
       s = step(s);
     }
+    if (!Array.isArray(s.folders)) s.folders = [];
     if (!Array.isArray(s.calendarItems)) s.calendarItems = [];
     if (!Array.isArray(s.googleDeletedEventIds)) s.googleDeletedEventIds = [];
     if (!Array.isArray(s.googleCalendarLinks)) s.googleCalendarLinks = [];
@@ -563,7 +572,7 @@
     const tpl = PROJECT_TEMPLATES[templateKey] || PROJECT_TEMPLATES.blank;
     const views = tpl.views.map(type=>({id:uid(), type, name:viewLabel(type)}));
     const p = {
-      id:uid(), name, createdAt:Date.now(),
+      id:uid(), name, createdAt:Date.now(), folderId:null,
       tags:[],
       fields: buildFieldsForTemplate(tpl.fields),
       groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
@@ -574,6 +583,18 @@
     activeProjectId = p.id;
     persistActiveLocation();
     scheduleSave(); renderAll();
+  }
+  async function createFolder(){
+    const name = await showDialog({title:"New folder", fields:[{label:"Folder name", placeholder:"e.g. Personal"}], confirmLabel:"Create folder"});
+    if (!name || !name.trim()) return;
+    state.folders.push({id:uid(), name:name.trim()});
+    scheduleSave(); renderProjectList();
+  }
+  async function moveProjectToFolder(project){
+    const folderId = await showDialog({title:"Move project to folder", fields:[{label:"Folder", type:"select", options:[{value:"",label:"No folder"}, ...state.folders.map(folder=>({value:folder.id,label:folder.name}))], value:project.folderId || ""}], confirmLabel:"Move project"});
+    if (folderId === null) return;
+    project.folderId = folderId || null;
+    scheduleSave(); renderProjectList();
   }
   function addView(project, type){
     const v = {id:uid(), type, name:viewLabel(type)};
@@ -889,13 +910,23 @@
     document.getElementById("settingsNav").className = activeProjectId===SETTINGS ? "active" : "";
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
-    state.projects.forEach(p=>{
+    const appendProject = (p, inFolder=false) => {
       const count = p.groups.reduce((n,g)=>n+g.items.length,0);
       const li = document.createElement("li");
-      li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "");
+      li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
       li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="cnt">${count}</span>`;
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
+    };
+    const unfiled = state.projects.filter(project=>!project.folderId || !state.folders.some(folder=>folder.id===project.folderId));
+    unfiled.forEach(project=>appendProject(project));
+    state.folders.forEach(folder=>{
+      const heading = document.createElement("li");
+      heading.className = "folderHeading";
+      const projectCount = state.projects.filter(project=>project.folderId===folder.id).length;
+      heading.innerHTML = `<iconify-icon icon="mdi:folder-outline" aria-hidden="true"></iconify-icon><span class="folderName">${escapeHtml(folder.name)}</span><span class="folderCount">${projectCount}</span>`;
+      ul.appendChild(heading);
+      state.projects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
     });
   }
 
@@ -996,6 +1027,7 @@
     const deleteBtn = document.getElementById("deleteProjectBtn");
     const fieldsBtn = document.getElementById("manageFieldsBtn");
     const addGroupBtn = document.getElementById("addGroupBtn");
+    const moveFolderBtn = document.getElementById("moveProjectFolderBtn");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
     const viewTabs = document.getElementById("viewTabs");
     const topLabel = document.getElementById("projectTitleLabel");
@@ -1012,6 +1044,7 @@
       deleteBtn.style.display = "none";
       fieldsBtn.style.display = "none";
       addGroupBtn.style.display = "none";
+      moveFolderBtn.style.display = "none";
       projectMenuWrap.style.display = "none";
       document.getElementById("projectMenu").classList.remove("open");
       document.getElementById("projectMenuBtn").classList.remove("active");
@@ -1039,6 +1072,7 @@
     deleteBtn.style.display = "inline-block";
     fieldsBtn.style.display = "inline-block";
     addGroupBtn.style.display = "inline-block";
+    moveFolderBtn.style.display = "inline-block";
     projectMenuWrap.style.display = "inline-flex";
     if (!Array.isArray(project.views) || !project.views.length){
       project.views = [{id:uid(), type:"list", name:"List"}];
@@ -1055,6 +1089,7 @@
     updateFilterSummary();
 
     fieldsBtn.onclick = () => manageFieldsFlow(project);
+    moveFolderBtn.onclick = () => moveProjectToFolder(project);
     addGroupBtn.onclick = async () => {
       const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
       if (name && name.trim()) addGroup(project.id, name.trim());
@@ -2229,6 +2264,13 @@
     document.getElementById("gateLegacyBtn").onclick = migrateLegacyBrowserData;
   }
   function wireStaticControls(){
+    const projectCreateMenu = document.getElementById("projectCreateMenu");
+    const projectCreateBtn = document.getElementById("projectCreateBtn");
+    const closeProjectCreateMenu = () => {
+      projectCreateMenu.classList.remove("open");
+      projectCreateBtn.classList.remove("active");
+      projectCreateBtn.setAttribute("aria-expanded", "false");
+    };
     document.getElementById("overviewNav").onclick = () => {
       activeProjectId = OVERVIEW; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
     };
@@ -2251,6 +2293,15 @@
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
     });
+    projectCreateBtn.onclick = event => {
+      event.stopPropagation();
+      const open = projectCreateMenu.classList.toggle("open");
+      projectCreateBtn.classList.toggle("active", open);
+      projectCreateBtn.setAttribute("aria-expanded", String(open));
+    };
+    projectCreateMenu.addEventListener("click", event=>{
+      if (event.target.closest("button")) closeProjectCreateMenu();
+    });
     document.getElementById("syncMenuBtn").onclick = event => {
       event.stopPropagation();
       const menu = document.getElementById("syncMenu");
@@ -2268,6 +2319,7 @@
         document.getElementById("projectMenu").classList.remove("open");
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
+      if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
       if (!event.target.closest(".syncMenuWrap")){
         document.getElementById("syncMenu").classList.remove("open");
         document.getElementById("syncMenuBtn").classList.remove("active");
@@ -2283,6 +2335,7 @@
       const [name, templateKey] = result;
       if (name && name.trim()) addProject(name.trim(), templateKey);
     };
+    document.getElementById("addFolderBtn").onclick = createFolder;
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);
       if (!project) return;
