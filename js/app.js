@@ -1833,6 +1833,7 @@
       };
     });
     board.appendChild(wrap);
+    updateGoogleCalendarButtons();
   }
 
   /* ---------- Overview ---------- */

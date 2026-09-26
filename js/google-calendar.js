@@ -1,4 +1,6 @@
 /* Google Calendar integration */
+  let googleSyncFeedbackMessage = "";
+  let googleSyncProgress = null;
   function googleCalendarUrl(entry){
     const title = entry.item.title;
     const details = [entry.item.description, entry.project ? `Project: ${entry.project.name}` : "Beforework Calendar", entry.group ? `Group: ${entry.group.name}` : ""].filter(Boolean).join("\n");
@@ -47,11 +49,26 @@
       button.textContent = googleSyncInFlight ? "Syncing..." : "Sync now";
       button.disabled = googleSyncInFlight;
     });
+    document.querySelectorAll("[data-integration-sync]").forEach(button=>{
+      button.textContent = googleSyncInFlight ? "Syncing..." : "Sync now";
+      button.disabled = googleSyncInFlight;
+    });
     updateGoogleCalendarStatus();
   }
-  function updateGoogleCalendarStatus(text){
-    const status = text || (googleAccessToken ? (linkedGoogleCalendarIds().length ? "Ready to sync" : "No calendars linked") : "Connect Google Calendar in Integrations");
-    document.querySelectorAll("[data-calendar-sync-status]").forEach(element=>{ element.textContent = status; });
+  function updateGoogleCalendarStatus(text, progress){
+    if (text!==undefined) googleSyncFeedbackMessage = text;
+    if (progress!==undefined) googleSyncProgress = progress;
+    const readyStatus = googleAccessToken ? (linkedGoogleCalendarIds().length ? "Ready to sync" : "No calendars linked") : "Connect Google Calendar in Integrations";
+    const status = googleSyncFeedbackMessage || readyStatus;
+    document.querySelectorAll("[data-calendar-sync-status], [data-google-sync-status]").forEach(element=>{ element.textContent = status; });
+    document.querySelectorAll("[data-google-sync-feedback]").forEach(element=>{ element.hidden = !googleSyncFeedbackMessage; });
+    document.querySelectorAll("[data-google-sync-progress]").forEach(element=>{
+      element.hidden = !googleSyncProgress;
+      if (googleSyncProgress){
+        element.max = googleSyncProgress.total;
+        element.value = googleSyncProgress.completed;
+      }
+    });
   }
   function handleGoogleAuthFailure(){
     googleAccessToken = null;
@@ -324,6 +341,7 @@
     if (!googleAccessToken || googleSyncInFlight) return;
     clearTimeout(googleAutoSyncTimer);
     googleSyncInFlight = true;
+    updateGoogleCalendarStatus("Starting Google Calendar sync...", null);
     updateGoogleCalendarButtons();
     try{
       const entries = calendarEntries(scopeProject);
@@ -338,8 +356,15 @@
         await showNotice("No Google calendars linked", "Choose Link calendars first, then select one or more writable Google calendars.");
         return;
       }
+      const total = entries.length * calendarIds.length;
+      let completed = 0;
+      updateGoogleCalendarStatus("Preparing calendar items...", {completed,total});
       for (const calendarId of calendarIds){
         for (const entry of entries){
+          const calendar = (state.googleCalendarCatalog||[]).find(item=>item.id===calendarId);
+          const calendarName = calendar?.summary || (calendarId==="primary" ? "Primary calendar" : calendarId);
+          const itemName = entry.item.title || "Untitled item";
+          updateGoogleCalendarStatus(`Syncing ${completed+1} of ${total}: ${itemName} · ${calendarName}`, {completed,total});
           entry.item.googleEventIds = entry.item.googleEventIds || {};
           entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
           const ownerId = entry.project ? entry.project.id : "__calendar__";
@@ -347,7 +372,11 @@
           const legacyKey = `${ownerId}:${entry.field.id}`;
           const eventId = entry.item.googleEventIds[key] || (calendarId==="primary" ? entry.item.googleEventIds[legacyKey] : "");
           const previous = entry.item.googleSyncMeta[key] || null;
-          if (previous?.remoteDeletedAt && Number(entry.item.updatedAt||0) <= Number(previous.remoteDeletedAt)) continue;
+          if (previous?.remoteDeletedAt && Number(entry.item.updatedAt||0) <= Number(previous.remoteDeletedAt)){
+            completed++;
+            updateGoogleCalendarStatus(`Synced ${completed} of ${total} calendar operations`, {completed,total});
+            continue;
+          }
           if (previous?.remoteDeletedAt) delete entry.item.googleSyncMeta[key].remoteDeletedAt;
           let remote = null;
           if (eventId){
@@ -381,25 +410,29 @@
           }
           entry.item.googleEventIds[key] = saved.id;
           entry.item.googleSyncMeta[key] = {googleUpdatedAt:saved.updated||remote?.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt||Date.now()};
+          completed++;
+          updateGoogleCalendarStatus(`Synced ${completed} of ${total} calendar operations`, {completed,total});
         }
       }
+      updateGoogleCalendarStatus("Finalising Google Calendar sync...", {completed:total,total});
       await processGoogleDeletions();
       state.googleLastSyncAt = Date.now();
       saveGoogleState();
       await flushSave();
       const syncLabel = `Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`;
-      updateGoogleCalendarStatus(syncLabel);
+      const lastSync = `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}`;
+      document.querySelectorAll("[data-integration-last-sync]").forEach(element=>{ element.textContent = lastSync; });
+      updateGoogleCalendarStatus(syncLabel, null);
     }catch(error){
       if (error.status===401){
         handleGoogleAuthFailure();
-      } else {
-        updateGoogleCalendarStatus("Sync failed - see details");
       }
       let detail = "Google rejected the sync request.";
       try{
         const payload = JSON.parse(error.detail || "{}");
         detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
       }catch(parseError){ }
+      updateGoogleCalendarStatus(error.status===401 ? "Google connection expired - reconnect in Integrations" : `Sync failed: ${detail}`, null);
       await showNotice("Google Calendar sync failed", `${detail} Connect again and make sure Calendar access was approved.`);
     }finally{
       googleSyncInFlight = false;
@@ -418,6 +451,7 @@
       return;
     }
     if (googleAccessToken){ syncGoogleCalendar(scopeProject); return; }
+    updateGoogleCalendarStatus("Connecting to Google Calendar...", null);
     googleTokenPurpose = "sync";
     googleTokenClient.requestAccessToken({prompt:"consent"});
   }
@@ -492,6 +526,7 @@
     if (syncButton) syncButton.onclick = () => syncGoogleCalendar(null);
     const connectButton = board.querySelector("[data-integration-connect]");
     if (connectButton) connectButton.onclick = () => connectGoogleCalendar(null);
+    updateGoogleCalendarButtons();
     board.querySelectorAll("[data-unlink-calendar]").forEach(button=>{
       button.onclick = () => {
         state.googleCalendarLinks = linkedGoogleCalendarIds().filter(id=>id!==button.dataset.unlinkCalendar);

@@ -8,7 +8,8 @@
   <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
   <button class="btn btn-sm" data-calendar-action="integrations" data-calendar-global hidden><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>
   <button class="btn btn-sm btn-primary" data-calendar-action="google" data-calendar-global hidden><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Sync now</button>
-  <span class="calendarSyncStatus" data-calendar-sync-status data-calendar-global hidden></span>
+  <span class="calendarSyncStatus" data-calendar-sync-status data-google-sync-status data-calendar-global hidden></span>
+  <progress class="calendarSyncProgress" data-google-sync-progress data-calendar-global max="1" value="0" hidden></progress>
 </div>
 <template id="calendarDayTemplate">
   <div class="calendarDay">
