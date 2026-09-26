@@ -400,14 +400,29 @@
   .commentEmpty{font-size:12px;color:var(--faint);padding:2px 2px 4px 2px;}
 
   /* Focus timer */
-  .focusTimerPanel{position:static;width:auto;margin:4px 0 8px;background:var(--bg);
-    border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:none;
-    padding:14px 12px 12px;display:none;}
+  .focusTimerPanel{position:static;width:auto;margin:5px 0 8px;padding:12px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius);box-shadow:none;display:none;}
   .focusTimerPanel.open{display:block;}
-  .focusTimerPanel h4{margin:0 0 2px 0;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
-  .focusTimerDisplay{font-size:34px;font-weight:700;text-align:center;margin:6px 0 10px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
-  .focusTimerModeRow{display:flex;justify-content:center;gap:6px;margin-bottom:10px;}
+  .focusTimerHeader{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .focusTimerPanel h4{margin:0;font-size:12px;font-weight:600;color:var(--text);}
+  .focusTimerDurationRow label{font-size:10px;font-weight:600;color:var(--muted);}
+  .focusTimerDisplay{font-size:32px;font-weight:600;text-align:center;margin:5px 0 9px;font-variant-numeric:tabular-nums;line-height:1.15;}
+  .focusTimerDurationRow{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+  .focusTimerDurationControl{display:flex;align-items:center;gap:6px;}
+  #focusDurationInput{width:100%;min-width:0;height:30px;padding:3px 7px;text-align:center;font-variant-numeric:tabular-nums;}
+  #focusDurationApplyBtn{height:30px;}
+  .focusTimerQuickRow{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+  .focusTimerQuickRow>span{font-size:10px;font-weight:600;color:var(--muted);}
+  #focusTimerQuickOptions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;}
+  #focusTimerQuickOptions button{min-width:0;padding:4px 2px;font-size:11px;font-variant-numeric:tabular-nums;}
+  #focusTimerQuickOptions button.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);}
+  .focusTimerModeRow{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:8px;padding:2px;
+    border:1px solid var(--border);border-radius:6px;background:var(--bg-soft);}
+  .focusTimerModeRow button{width:100%;min-width:0;padding:4px 6px;border:0;background:transparent;color:var(--muted);}
+  .focusTimerModeRow button.selected{background:var(--bg);color:var(--text);box-shadow:var(--shadow-lift);}
+  .focusTimerModeRow button:hover{color:var(--text);}
   .focusTimerBtnRow{display:flex;gap:6px;}
+  .focusTimerBtnRow button:first-child{flex:1;}
 
   /* Analytics bars (Overview) */
   .barRow{display:flex;align-items:center;gap:9px;margin-bottom:8px;font-size:12.5px;}

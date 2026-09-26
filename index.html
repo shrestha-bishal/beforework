@@ -92,11 +92,22 @@
     <div class="sidebarBottomNav">
       <button id="focusTimerNav" type="button" title="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Focus timer</span></button>
       <div class="focusTimerPanel Box" id="focusTimerPanel">
-        <h4>Focus timer</h4>
+        <div class="focusTimerHeader"><h4>Timer</h4></div>
+        <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
+          <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
+          <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
+        </div>
         <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
-        <div class="focusTimerModeRow">
-          <button class="btn btn-sm" data-focus-preset="25">Focus 25</button>
-          <button class="btn btn-sm btn-invisible" data-focus-preset="5">Break 5</button>
+        <div class="focusTimerDurationRow">
+          <label for="focusDurationInput">Duration (minutes)</label>
+          <div class="focusTimerDurationControl">
+            <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
+            <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Set</button>
+          </div>
+        </div>
+        <div class="focusTimerQuickRow">
+          <span>Quick durations</span>
+          <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
         </div>
         <div class="focusTimerBtnRow">
           <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>

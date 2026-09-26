@@ -28,8 +28,11 @@
   let state = null;                 // { projects:[] }
   let showArchived = false;
   let focusInterval = null;
+  let focusMode = "focus";
   let focusSeconds = 25*60;
   let focusTotal = 25*60;
+  let focusDuration = 25*60;
+  let breakDuration = 5*60;
   let activeProjectId = OVERVIEW;
   // View type is per-project now (project.views + project.activeViewId), not global.
   const VIEW_DEFS = [
@@ -223,7 +226,7 @@
         clearInterval(focusInterval); focusInterval=null;
         const startBtn = document.getElementById("focusStartBtn");
         if (startBtn) startBtn.textContent = "Start";
-        showNotice("Time's up", "The focus timer has finished. Take a short break or start another session.");
+        showNotice(focusMode==="break" ? "Break finished" : "Focus session finished", focusMode==="break" ? "Your break has finished. Start another focus session when you're ready." : "Your focus session has finished. Take a short break or start another session.");
       }
     }, 1000);
     const startBtn = document.getElementById("focusStartBtn");
@@ -239,6 +242,61 @@
     pauseFocusTimer();
     focusSeconds = focusTotal;
     renderFocusTimer();
+  }
+  function setFocusDuration(minutes){
+    pauseFocusTimer();
+    focusTotal = minutes * 60;
+    if (focusMode==="focus") focusDuration = focusTotal;
+    else breakDuration = focusTotal;
+    focusSeconds = focusTotal;
+    const input = document.getElementById("focusDurationInput");
+    input.setCustomValidity("");
+    input.value = "";
+    input.placeholder = String(minutes);
+    renderFocusTimer();
+    renderFocusQuickOptions();
+  }
+  function renderFocusQuickOptions(){
+    const container = document.getElementById("focusTimerQuickOptions");
+    if (!container) return;
+    const options = focusMode==="focus" ? [25,50,90] : [5,10,15];
+    const currentMinutes = focusTotal/60;
+    container.innerHTML = options.map(minutes=>
+      `<button class="btn btn-sm${minutes===currentMinutes?" selected":""}" type="button" data-focus-quick="${minutes}" aria-label="${minutes} minute ${focusMode}" aria-pressed="${minutes===currentMinutes}">${minutes}m</button>`
+    ).join("");
+    container.querySelectorAll("[data-focus-quick]").forEach(button=>{
+      button.onclick = () => setFocusDuration(Number(button.dataset.focusQuick));
+    });
+  }
+  function setFocusMode(mode){
+    if (mode!=="focus" && mode!=="break") return;
+    if (focusMode===mode) return;
+    pauseFocusTimer();
+    focusMode = mode;
+    focusTotal = mode==="focus" ? focusDuration : breakDuration;
+    focusSeconds = focusTotal;
+    const input = document.getElementById("focusDurationInput");
+    input.value = "";
+    input.placeholder = String(focusTotal/60);
+    input.setCustomValidity("");
+    document.querySelectorAll("[data-focus-mode]").forEach(button=>{
+      const selected = button.dataset.focusMode===mode;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    renderFocusTimer();
+    renderFocusQuickOptions();
+  }
+  function applyCustomFocusDuration(){
+    const input = document.getElementById("focusDurationInput");
+    const minutes = input.valueAsNumber;
+    if (!Number.isInteger(minutes) || minutes<1 || minutes>180){
+      input.setCustomValidity("Enter a whole number from 1 to 180.");
+      input.reportValidity();
+      return;
+    }
+    input.setCustomValidity("");
+    setFocusDuration(minutes);
   }
   function toggleFocusTimer(){
     const panel = document.getElementById("focusTimerPanel");
@@ -966,10 +1024,10 @@
   function restoreActiveLocation(){
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
-    const integrationPath = window.location.pathname==="/integrations" || window.location.pathname.endsWith("/integrations/");
-    const hashLocation = integrationPath || window.location.hash==="#integrations" ? INTEGRATIONS : null;
-    if (hashLocation) activeProjectId = hashLocation;
-    else if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || getProject(saved)) activeProjectId = saved;
+    //const integrationPath = window.location.pathname==="/integrations" || window.location.pathname.endsWith("/integrations/");
+    //const hashLocation = integrationPath //|| window.location.hash==="#integrations" ? INTEGRATIONS : null;
+    //if (hashLocation) activeProjectId = hashLocation;
+    if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
     if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR) restoreProjectFilters(activeProjectId);
   }
@@ -2379,14 +2437,15 @@
       if (focusInterval) pauseFocusTimer(); else startFocusTimer();
     };
     document.getElementById("focusResetBtn").onclick = resetFocusTimer;
-    document.querySelectorAll("[data-focus-preset]").forEach(btn=>{
-      btn.onclick = () => {
-        pauseFocusTimer();
-        focusTotal = Number(btn.dataset.focusPreset) * 60;
-        focusSeconds = focusTotal;
-        renderFocusTimer();
-      };
+    document.getElementById("focusDurationApplyBtn").onclick = applyCustomFocusDuration;
+    document.getElementById("focusDurationInput").addEventListener("input", event=>event.target.setCustomValidity(""));
+    document.getElementById("focusDurationInput").addEventListener("keydown", event=>{
+      if (event.key==="Enter"){ event.preventDefault(); applyCustomFocusDuration(); }
     });
+    document.querySelectorAll("[data-focus-mode]").forEach(button=>{
+      button.onclick = () => setFocusMode(button.dataset.focusMode);
+    });
+    renderFocusQuickOptions();
     document.getElementById("toggleFilters").onclick = () => {
       const panel = document.getElementById("filterPanel");
       const button = document.getElementById("toggleFilters");
