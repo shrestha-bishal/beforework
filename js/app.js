@@ -1070,6 +1070,7 @@
     };
     board.querySelector("#settingsSidebarToggle").onclick = () => { toggleSidebarCollapsed(); renderSettings(board); };
     board.querySelector("#settingsShortcuts").onclick = showShortcutsModal;
+    board.querySelector("#settingsContactForm").onclick = () => window.open("https://forms.gle/CsCWxj8YFjiSpt6m6", "_blank", "noopener,noreferrer");
     board.querySelector("#settingsSwitchFile").onclick = switchFile;
     board.querySelector("#settingsNewFile").onclick = startNewFileFromMenu;
     board.querySelector("#settingsExport").onclick = exportJSON;
@@ -2436,6 +2437,7 @@
       navigateToIntegrations();
     };
     document.getElementById("settingsNav").onclick = navigateToSettings;
+    document.getElementById("feedbackNav").onclick = () => window.open("https://forms.gle/CsCWxj8YFjiSpt6m6", "_blank", "noopener,noreferrer");
     document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
