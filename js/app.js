@@ -1883,30 +1883,43 @@
         const complete = projectItems.filter(row=>isDoneGroup(row.group)).length;
         const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
         return `<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
-          <span class="overviewProjectInfo"><strong>${escapeHtml(project.name)}</strong><small>${complete} of ${projectItems.length} complete</small></span>
-          <span class="overviewProjectTrack"><span style="width:${percent}%"></span></span>
+          <span class="overviewProjectInfo"><strong>${escapeHtml(project.name)}</strong><small>${percent}%</small></span>
+          <span class="overviewProjectTrack" role="progressbar" aria-label="${escapeHtml(project.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></span>
+          <span class="overviewProjectMeta">${complete} of ${projectItems.length} complete</span>
         </button>`;
       }).join("") || `<div class="overviewQuiet">No projects yet.</div>`;
     }
 
     const view = window.ProjectifyViewTemplates.clone("overview");
     const statRows = [
-      {value:state.projects.length,label:"Projects"},
-      {value:openItems.length,label:"Open items"},
-      {value:overdue.length,label:"Overdue"},
-      {value:completedItems.length,label:"Completed"}
+      {value:state.projects.length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects"},
+      {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open"},
+      {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue"},
+      {value:completedItems.length,label:"Completed",detail:"Moved into Done",icon:"mdi:check-circle-outline",tone:"completed"}
     ];
     const stats = view.querySelector("[data-overview-stats]");
-    statRows.forEach(({value,label})=>{
+    statRows.forEach(({value,label,detail,icon,tone})=>{
       const row = document.createElement("div");
-      row.className = "overviewStat";
+      row.className = `overviewStat overviewStat-${tone}${tone==="overdue"?(overdue.length?" has-overdue":" is-clear"):""}`;
+      const iconWrap = document.createElement("span");
+      iconWrap.className = "overviewStatIcon";
+      const iconElement = document.createElement("iconify-icon");
+      iconElement.setAttribute("icon",icon);
+      iconElement.setAttribute("aria-hidden","true");
+      iconWrap.appendChild(iconElement);
+      const copy = document.createElement("span");
+      copy.className = "overviewStatCopy";
       const count = document.createElement("div");
-      count.className = "h2";
+      count.className = "overviewStatValue";
       count.textContent = String(value);
       const name = document.createElement("div");
-      name.className = "color-fg-muted text-small";
+      name.className = "overviewStatLabel";
       name.textContent = label;
-      row.append(count,name);
+      const description = document.createElement("div");
+      description.className = "overviewStatDetail";
+      description.textContent = detail;
+      copy.append(count,name,description);
+      row.append(iconWrap,copy);
       stats.appendChild(row);
     });
     const scheduled = [];

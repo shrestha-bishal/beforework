@@ -211,50 +211,58 @@
   /* Overview */
   .overviewWrap{padding:20px clamp(18px,3vw,32px);overflow:auto;flex:1;width:100%;max-width:1440px;}
   .overviewDashboard{width:100%;}
-  .overviewDashHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;}
-  .overviewEyebrow{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
-  .overviewDashHeader h2{margin:0;font-size:20px;font-weight:600;color:var(--text);}
-  .overviewDashHeader p,.overviewPanelHeader p{margin:4px 0 0;color:var(--muted);font-size:12px;}
+  .overviewDashHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;padding:3px 0 18px;border-bottom:1px solid var(--border);}
+  .overviewDashHeader h2{margin:0;font-size:24px;line-height:1.2;font-weight:700;color:var(--text);}
+  .overviewDashHeader p,.overviewPanelHeader p{margin:5px 0 0;color:var(--muted);font-size:12px;}
   .overviewQuickActions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
   .overviewQuickActions button{display:inline-flex;align-items:center;gap:6px;}
   .overviewQuickActions iconify-icon{font-size:15px;}
-  .overviewStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;}
-  .overviewStat{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:12px 14px;
-    border:1px solid var(--border);border-radius:8px;background:var(--bg);}
-  .overviewStat .h2{font-size:22px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;}
-  .overviewStat .text-small{font-size:11px;color:var(--muted);text-align:right;}
-  .overviewDashboardGrid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,.85fr);gap:14px;align-items:start;}
+  .overviewStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px;padding:2px 0 14px;border-bottom:1px solid var(--border);}
+  .overviewStat{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-width:0;min-height:64px;padding:8px 16px;
+    border:0;border-right:1px solid var(--border);border-radius:0;background:transparent;}
+  .overviewStat:first-child{padding-left:0;}
+  .overviewStat:last-child{border-right:0;}
+  .overviewStatIcon{display:grid;place-items:center;width:24px;height:24px;flex:none;color:var(--muted);}
+  .overviewStatIcon iconify-icon{font-size:19px;}
+  .overviewStatCopy{display:grid;grid-template-columns:1fr;min-width:0;}
+  .overviewStatValue{font-size:24px;font-weight:650;line-height:1.05;font-variant-numeric:tabular-nums;}
+  .overviewStatLabel{margin-top:3px;font-size:11px;font-weight:600;color:var(--text);}
+  .overviewStatDetail{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--muted);}
+  .overviewStat-overdue.has-overdue .overviewStatIcon{color:var(--color-danger-fg);}
+  .overviewDashboardGrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(270px,.8fr);gap:16px;align-items:start;}
   .overviewDashboardMain,.overviewDashboardAside{display:flex;flex-direction:column;gap:14px;min-width:0;}
-  .overviewPanel{min-width:0;padding:15px;border:1px solid var(--border);border-radius:8px;background:var(--bg);}
-  .overviewPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
-  .overviewPanelHeader h3{margin:0;font-size:13px;font-weight:600;}
+  .overviewPanel{min-width:0;padding:17px;border:1px solid var(--border);border-radius:8px;background:var(--bg);}
+  .overviewPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .overviewPanelHeader h3{margin:0;font-size:13px;font-weight:650;}
   .overviewPanelHeader p{font-size:11px;}
   .overviewTimelineScroll{overflow-x:auto;}
   .overviewTimeline{display:grid;grid-template-columns:repeat(7,minmax(84px,1fr));min-width:610px;}
-  .overviewDay{min-height:145px;padding:8px;border-left:1px solid var(--border);}
+  .overviewDay{min-height:156px;padding:8px;border-left:1px solid var(--border);}
   .overviewDay:first-child{border-left:0;}
-  .overviewDayHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--muted);font-size:10px;}
+  .overviewDayHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;color:var(--muted);font-size:10px;}
   .overviewDayHeader strong{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;font-size:11px;color:var(--text);font-weight:600;}
   .overviewDay.today .overviewDayHeader strong{background:var(--accent);color:#fff;}
   .overviewDayItems{display:flex;flex-direction:column;gap:5px;}
-  .overviewTimelineItem{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0;padding:6px;border:0;border-left:2px solid var(--accent);border-radius:0 4px 4px 0;background:var(--bg-soft);text-align:left;color:var(--text);}
+  .overviewTimelineItem{display:flex;flex-direction:column;gap:4px;width:100%;min-width:0;padding:7px;border:0;border-left:2px solid var(--accent);border-radius:6px;background:var(--bg-soft);text-align:left;color:var(--text);transition:background .12s ease;}
   .overviewTimelineItem:hover,.overviewRecentRow:hover,.overviewProjectRow:hover{background:var(--bg-soft2);}
+  .overviewTimelineItem:focus-visible,.overviewRecentRow:focus-visible,.overviewProjectRow:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
   .overviewTimelineItem strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:600;}
   .overviewTimelineItem span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:var(--muted);}
   .overviewDayEmpty{margin-top:5px;color:var(--faint);font-size:10px;}
   .overviewMore{font-size:9px;color:var(--muted);}
   .overviewRecentList,.overviewProjectList{display:flex;flex-direction:column;}
-  .overviewRecentRow,.overviewProjectRow{display:flex;flex-direction:column;gap:5px;width:100%;padding:10px 4px;border:0;border-top:1px solid var(--border);background:transparent;text-align:left;color:var(--text);}
+  .overviewRecentRow,.overviewProjectRow{display:flex;flex-direction:column;gap:5px;width:100%;padding:10px;border:0;border-top:1px solid var(--border);border-radius:6px;background:transparent;text-align:left;color:var(--text);transition:background .12s ease;}
   .overviewRecentRow:first-child,.overviewProjectRow:first-child{border-top:0;}
   .overviewRecentMain,.overviewRecentMeta,.overviewProjectInfo{display:flex;align-items:center;gap:7px;min-width:0;}
   .overviewRecentMain strong,.overviewProjectInfo strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600;}
   .overviewRecentMeta{font-size:10px;color:var(--muted);}
   .overviewRecentMeta span{color:var(--faint);}
   .overviewProjectInfo{justify-content:space-between;}
-  .overviewProjectInfo small{flex:none;color:var(--muted);font-size:10px;}
-  .overviewProjectTrack,.overviewProjectTrack span{display:block;height:5px;border-radius:4px;}
+  .overviewProjectInfo small{flex:none;color:var(--accent-strong);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .overviewProjectTrack,.overviewProjectTrack span{display:block;height:6px;border-radius:4px;}
   .overviewProjectTrack{overflow:hidden;background:var(--bg-soft2);}
-  .overviewProjectTrack span{background:var(--accent);}
+  .overviewProjectTrack span{background:var(--accent);transition:width .25s ease;}
+  .overviewProjectMeta{font-size:10px;color:var(--muted);}
   .overviewPriorityRow{display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid var(--border);font-size:11px;}
   .overviewPriorityRow:first-child{border-top:0;}
   .overviewPriorityRow .barLabel{width:80px;}
@@ -520,7 +528,10 @@
     #clearBoardFilters{margin-left:0;}
     #board{padding:14px 16px;}
     .listWrap,.overviewWrap,.calendarWrap{padding:16px;}
-    .overviewStats{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));}
+    .overviewStats{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .overviewStat:nth-child(even){border-right:0;}
+    .overviewStat:nth-child(n+3){border-top:1px solid var(--border);}
+    .overviewStat:nth-child(3){padding-left:0;}
     .overviewDashboardGrid{grid-template-columns:1fr;}
     .overviewDashboardAside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
     #boardSearch{width:100%;order:1;}
