@@ -467,19 +467,26 @@
     const links = linkedGoogleCalendarIds();
     const catalog = new Map((state.googleCalendarCatalog||[]).map(calendar=>[calendar.id, calendar]));
     const lastSync = state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet";
-    const linkedHtml = links.length ? links.map(id=>{
+    const view = window.ProjectifyViewTemplates.clone("integrations");
+    const list = view.querySelector("[data-linked-calendar-list]");
+    const rowTemplate = view.querySelector("#linkedCalendarRowTemplate");
+    list.querySelector("[data-no-linked-calendars]").hidden = links.length>0;
+    links.forEach(id=>{
       const calendar = catalog.get(id);
-      return window.ProjectifyTemplates.calendarLink({
-        id:escapeHtml(id),
-        name:escapeHtml(calendar?.summary||id),
-        isPrimary:!!calendar?.primary
-      });
-    }).join("") : `<div class="integrationEmpty">No Google calendars linked yet.</div>`;
-    board.innerHTML = window.ProjectifyTemplates.integrations({
-      connected:!!googleAccessToken,
-      lastSync:escapeHtml(lastSync),
-      linkedCalendars:linkedHtml
+      const row = rowTemplate.content.firstElementChild.cloneNode(true);
+      const name = calendar?.summary||id;
+      const label = row.querySelector("span");
+      label.textContent = `${name}${calendar?.primary ? " (primary)" : ""}`;
+      label.title = name;
+      row.querySelector("[data-unlink-calendar]").setAttribute("data-unlink-calendar", id);
+      list.appendChild(row);
     });
+    const connected = !!googleAccessToken;
+    view.querySelector("[data-integration-connection]").textContent = connected ? "Connected" : "Not connected";
+    view.querySelector("[data-integration-last-sync]").textContent = lastSync;
+    view.querySelector("[data-integration-sync]").hidden = !connected;
+    view.querySelector("[data-integration-connect]").hidden = connected;
+    board.replaceChildren(view);
     board.querySelector("[data-integration-link]").onclick = manageGoogleCalendars;
     const syncButton = board.querySelector("[data-integration-sync]");
     if (syncButton) syncButton.onclick = () => syncGoogleCalendar(null);

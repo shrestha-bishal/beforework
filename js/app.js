@@ -1052,15 +1052,16 @@
     const theme = document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
     const timeFormat = getTimeFormat();
     const sidebarCollapsed = document.getElementById("sidebar").classList.contains("collapsed");
-    const accountName = currentAuthUser && activeAuthProvider ? escapeHtml(activeAuthProvider.label(currentAuthUser)) : "";
-    board.innerHTML = window.ProjectifyTemplates.settings({
-      theme,
-      timeFormat,
-      sidebarCollapsed,
-      storageStatus:escapeHtml(document.getElementById("syncLabel").textContent),
-      hasBackup:hasMigrationBackup(),
-      accountName
-    });
+    const accountName = currentAuthUser && activeAuthProvider ? activeAuthProvider.label(currentAuthUser) : "";
+    const view = window.ProjectifyViewTemplates.clone("settings");
+    view.querySelector("#settingsThemeToggle").textContent = `${theme} mode`;
+    view.querySelector("#settingsTimeFormat").value = timeFormat;
+    view.querySelector("#settingsSidebarToggle").textContent = `${sidebarCollapsed ? "Expand" : "Collapse"} sidebar`;
+    view.querySelector("#settingsStorageStatus").textContent = document.getElementById("syncLabel").textContent;
+    view.querySelector("#settingsBackupRow").hidden = !hasMigrationBackup();
+    view.querySelector("#settingsAccountName").textContent = accountName;
+    view.querySelector("#settingsAccountSection").hidden = !accountName;
+    board.replaceChildren(view);
     board.querySelector("#settingsThemeToggle").onclick = () => { toggleTheme(); renderSettings(board); };
     board.querySelector("#settingsTimeFormat").onchange = event => {
       try{ localStorage.setItem(TIME_FORMAT_KEY, event.target.value); }catch(err){/* ignore */}
@@ -1731,6 +1732,7 @@
   function renderCalendar(board, scopeProject){
     const wrap = document.createElement("div");
     wrap.className = "calendarWrap";
+    const view = window.ProjectifyViewTemplates.clone("calendar");
     const entries = calendarEntries(scopeProject);
     const year = calendarCursor.getFullYear();
     const month = calendarCursor.getMonth();
@@ -1746,34 +1748,42 @@
       const cellDate = calendarDateKey(cell);
       const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
       const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item));
-      const eventHtml = dayEntries.map(entry=>window.ProjectifyTemplates.calendarEvent({
-        className:entry.item.calendarType==="event" ? "event" : "task",
-        pid:entry.project ? escapeHtml(entry.project.id) : "",
-        gid:entry.group ? escapeHtml(entry.group.id) : "",
-        iid:escapeHtml(entry.item.id),
-        fid:escapeHtml(entry.field.id),
-        start:escapeHtml(entry.date),
-        end:escapeHtml(entry.endDate),
-        title:escapeHtml(entry.item.title),
-        startTime:entry.item.startTime ? escapeHtml(entry.item.startTime+" ") : "",
-        projectName:scopeProject || !entry.project ? "" : escapeHtml(entry.project.name),
-        url:escapeHtml(googleCalendarUrl(entry))
-      })).join("");
-      cells.push(window.ProjectifyTemplates.calendarDay({
-        className:`${inMonth ? "" : " muted"}${cellDate===today ? " today" : ""}`,
-        date:escapeHtml(cellDate),
-        number:dateNumber,
-        events:eventHtml
-      }));
+      const day = view.querySelector("#calendarDayTemplate").content.firstElementChild.cloneNode(true);
+      day.dataset.date = cellDate;
+      day.classList.toggle("muted", !inMonth);
+      day.classList.toggle("today", cellDate===today);
+      day.querySelector(".calendarDayNumber").textContent = String(dateNumber);
+      dayEntries.forEach(entry=>{
+        const event = view.querySelector("#calendarEventTemplate").content.firstElementChild.cloneNode(true);
+        const isEvent = entry.item.calendarType==="event";
+        event.classList.toggle("event", isEvent);
+        event.classList.toggle("task", !isEvent);
+        event.dataset.pid = entry.project ? entry.project.id : "";
+        event.dataset.gid = entry.group ? entry.group.id : "";
+        event.dataset.iid = entry.item.id;
+        event.dataset.fid = entry.field.id;
+        event.dataset.start = entry.date;
+        event.dataset.end = entry.endDate;
+        event.querySelector(".eventTitle").textContent = `${entry.item.startTime ? entry.item.startTime+" " : ""}${entry.item.title}`;
+        const projectName = event.querySelector(".eventProject");
+        if (scopeProject || !entry.project) projectName.remove();
+        else {
+          projectName.textContent = entry.project.name;
+          projectName.title = entry.project.name;
+          projectName.hidden = false;
+        }
+        event.querySelector(".gcalLink").href = googleCalendarUrl(entry);
+        day.appendChild(event);
+      });
+      cells.push(day);
     }
-    wrap.innerHTML = window.ProjectifyTemplates.calendar({
-      monthLabel:escapeHtml(monthLabel),
-      scopeLabel:scopeProject ? escapeHtml(scopeProject.name) : "All projects",
-      isGlobal:!scopeProject,
-      googleConnected:!!googleAccessToken,
-      lastSync:escapeHtml(state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet"),
-      cells:cells.join("")
-    });
+    view.querySelector("[data-calendar-month]").textContent = monthLabel;
+    view.querySelector("[data-calendar-scope]").textContent = scopeProject ? scopeProject.name : "All projects";
+    view.querySelectorAll("[data-calendar-global]").forEach(element=>{ element.hidden = !!scopeProject; });
+    view.querySelector("[data-calendar-sync-status]").textContent = state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet";
+    const grid = view.querySelector(".calendarGrid");
+    cells.forEach(day=>grid.appendChild(day));
+    wrap.appendChild(view);
     updateGoogleCalendarButtons();
     wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
     wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
@@ -1888,21 +1898,34 @@
       return `<div class="ovSection"><div class="ovSectionTitle">${title}</div>${body}</div>`;
     }
 
-    wrap.innerHTML = window.ProjectifyTemplates.overview({
-      stats:[
-        {value:state.projects.length,label:"Projects"},
-        {value:openItems.length,label:"Open items"},
-        {value:overdue.length,label:"Overdue"},
-        {value:soon.length,label:"Due in 7 days"},
-        {value:archivedCount,label:"Archived"}
-      ],
-      main:[
-        section("Overdue", overdue, true, "Nothing overdue."),
-        section("Due soon", soon, true, "Nothing due in the next 7 days."),
-        section("Recently updated", recent, false, "Nothing yet - add a project to get started.")
-      ].join(""),
-      aside:priorityBreakdownHtml()+projectBreakdownHtml()
+    const view = window.ProjectifyViewTemplates.clone("overview");
+    const statRows = [
+      {value:state.projects.length,label:"Projects"},
+      {value:openItems.length,label:"Open items"},
+      {value:overdue.length,label:"Overdue"},
+      {value:soon.length,label:"Due in 7 days"},
+      {value:archivedCount,label:"Archived"}
+    ];
+    const stats = view.querySelector("[data-overview-stats]");
+    statRows.forEach(({value,label})=>{
+      const row = document.createElement("div");
+      row.className = "overviewStat";
+      const count = document.createElement("div");
+      count.className = "h2";
+      count.textContent = String(value);
+      const name = document.createElement("div");
+      name.className = "color-fg-muted text-small";
+      name.textContent = label;
+      row.append(count,name);
+      stats.appendChild(row);
     });
+    view.querySelector("[data-overview-main]").innerHTML = [
+      section("Overdue", overdue, true, "Nothing overdue."),
+      section("Due soon", soon, true, "Nothing due in the next 7 days."),
+      section("Recently updated", recent, false, "Nothing yet - add a project to get started.")
+    ].join("");
+    view.querySelector("[data-overview-aside]").innerHTML = priorityBreakdownHtml()+projectBreakdownHtml();
+    wrap.appendChild(view);
     wrap.querySelectorAll(".ovRow[data-iid]").forEach(el=>{
       el.onclick = () => {
         activeProjectId = el.dataset.pid;
@@ -2487,6 +2510,12 @@
     wireStaticControls();
     wireConnectGate();
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
+    try{
+      await window.ProjectifyViewTemplates.loadAll();
+    }catch(err){
+      showNotice("Couldn't load views", err.message);
+      return;
+    }
     const reconnected = await tryReconnectFile();
     if (reconnected){
       restoreActiveLocation();

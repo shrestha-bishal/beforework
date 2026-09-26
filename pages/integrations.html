@@ -1,15 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0; url=../index.html">
-  <title>Beforework Integrations</title>
-</head>
-<body>
-  <p>Opening Beforework Integrations...</p>
-  <script>
-    window.location.replace("../index.html");
-  </script>
-</body>
-</html>
+<div class="integrationWrap">
+  <div class="integrationHeader"><iconify-icon icon="mdi:hub-outline"></iconify-icon><div><h3>Integrations</h3><p>Connect external services while keeping Beforework as your local workspace.</p></div></div>
+  <div class="integrationCard">
+    <div class="integrationCardHead"><iconify-icon icon="logos:google-calendar"></iconify-icon><strong>Google Calendar</strong><span class="integrationStatus" data-integration-connection></span></div>
+    <p class="dialogMessage">Sync standalone calendar items and scheduled project items to one or more Google calendars.</p>
+    <div class="linkedCalendarList" data-linked-calendar-list>
+      <div class="integrationEmpty" data-no-linked-calendars hidden>No Google calendars linked yet.</div>
+      <template id="linkedCalendarRowTemplate">
+        <div class="linkedCalendarRow">
+          <iconify-icon icon="mdi:calendar-check-outline"></iconify-icon>
+          <span></span>
+          <button class="btn btn-sm btn-invisible" data-unlink-calendar>Unlink</button>
+        </div>
+      </template>
+    </div>
+    <div class="integrationActions">
+      <button class="btn btn-primary btn-sm" data-integration-link><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>
+      <button class="btn btn-sm" data-integration-sync hidden>Sync now</button>
+      <button class="btn btn-sm" data-integration-connect hidden>Connect Google</button>
+      <span class="integrationStatus" data-integration-last-sync></span>
+    </div>
+  </div>
+</div>

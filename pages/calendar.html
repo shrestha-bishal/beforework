@@ -1,0 +1,34 @@
+<div class="calendarToolbar">
+  <button class="btn btn-sm" data-calendar-action="prev" aria-label="Previous month">‹</button>
+  <button class="btn btn-sm" data-calendar-action="today">Today</button>
+  <button class="btn btn-sm" data-calendar-action="next" aria-label="Next month">›</button>
+  <h3 data-calendar-month></h3>
+  <span class="filterSummary" data-calendar-scope></span>
+  <button class="btn btn-sm" data-calendar-action="new">+ New</button>
+  <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
+  <button class="btn btn-sm" data-calendar-action="integrations" data-calendar-global hidden><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>
+  <button class="btn btn-sm btn-primary" data-calendar-action="google" data-calendar-global hidden><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Sync now</button>
+  <span class="calendarSyncStatus" data-calendar-sync-status data-calendar-global hidden></span>
+</div>
+<template id="calendarDayTemplate">
+  <div class="calendarDay">
+    <div class="calendarDayNumber"></div>
+  </div>
+</template>
+<template id="calendarEventTemplate">
+  <div class="calendarEvent" draggable="true">
+    <span class="eventDot"></span>
+    <span class="eventTitle"></span>
+    <span class="eventProject" hidden></span>
+    <a class="gcalLink" target="_blank" rel="noopener" title="Add to Google Calendar">GCal</a>
+  </div>
+</template>
+<div class="calendarGrid">
+  <div class="calendarWeekday">Sun</div>
+  <div class="calendarWeekday">Mon</div>
+  <div class="calendarWeekday">Tue</div>
+  <div class="calendarWeekday">Wed</div>
+  <div class="calendarWeekday">Thu</div>
+  <div class="calendarWeekday">Fri</div>
+  <div class="calendarWeekday">Sat</div>
+</div>
