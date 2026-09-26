@@ -384,7 +384,7 @@
       tags:[], fields:[status], views:proj2Views, activeViewId:proj2Views[0].id, itemDefaultType:"task",
       groups:[{id:uid(), name:"Books", items:[]}]
     };
-    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], folders:[], calendarItems:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleLastSyncAt:0};
+    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], folders:[], calendarItems:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
   }
 
   /* ---------- Schema migrations ----------
@@ -504,6 +504,7 @@
     if (!Array.isArray(s.googleDeletedEventIds)) s.googleDeletedEventIds = [];
     if (!Array.isArray(s.googleCalendarLinks)) s.googleCalendarLinks = [];
     if (!Array.isArray(s.googleCalendarCatalog)) s.googleCalendarCatalog = [];
+    if (!s.googleCalendarSyncTokens || typeof s.googleCalendarSyncTokens!=="object" || Array.isArray(s.googleCalendarSyncTokens)) s.googleCalendarSyncTokens = {};
     if (!Number.isFinite(s.googleLastSyncAt)) s.googleLastSyncAt = 0;
     s.schemaVersion = SCHEMA_VERSION;
     if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};

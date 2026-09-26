@@ -239,30 +239,46 @@
       return entry.item.googleEventIds?.[key]===eventId || (calendarId==="primary" && entry.item.googleEventIds?.[legacyKey]===eventId);
     });
   }
-  async function googleCalendarEvents(calendarId){
+  async function googleCalendarEvents(calendarId, syncToken=state.googleCalendarSyncTokens?.[calendarId]){
     const events = [];
     let pageToken = "";
+    let nextSyncToken = "";
     do{
-      // Calendar API requires a non-empty query range for expanded event
-      // listings. This does not require individual events to have times.
-      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500",timeMin:"2000-01-01T00:00:00Z",timeMax:"2100-01-01T00:00:00Z"});
+      const query = new URLSearchParams({singleEvents:"true",showDeleted:"true",maxResults:"2500"});
+      if (syncToken) query.set("syncToken", syncToken);
       if (pageToken) query.set("pageToken", pageToken);
       const result = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`);
       events.push(...(result.items||[]));
       pageToken = result.nextPageToken || "";
+      if (!pageToken) nextSyncToken = result.nextSyncToken || "";
     }while(pageToken);
-    return events;
+    return {events,nextSyncToken};
   }
   async function importGoogleCalendarEvents(){
-    if (!googleAccessToken || googleImportInFlight) return;
+    if (!googleAccessToken || googleImportInFlight || googleSyncInFlight) return;
     const calendarIds = linkedGoogleCalendarIds();
     if (!calendarIds.length) return;
     googleImportInFlight = true;
-    let imported = false;
+    let importedCount = 0;
+    let tokenChanged = false;
+    const nextTokens = {...(state.googleCalendarSyncTokens||{})};
     try{
-      for (const calendarId of calendarIds){
-        const events = await googleCalendarEvents(calendarId);
-        for (const event of events){
+      updateGoogleCalendarStatus("Checking linked Google calendars...", null);
+      for (const [calendarIndex,calendarId] of calendarIds.entries()){
+        const calendar = (state.googleCalendarCatalog||[]).find(item=>item.id===calendarId);
+        const calendarName = calendar?.summary || (calendarId==="primary" ? "Primary calendar" : calendarId);
+        updateGoogleCalendarStatus(`Checking ${calendarName} (${calendarIndex+1} of ${calendarIds.length})...`, null);
+        let result;
+        try{
+          result = await googleCalendarEvents(calendarId, nextTokens[calendarId]||"");
+        }catch(error){
+          if (error.status!==410 || !nextTokens[calendarId]) throw error;
+          delete nextTokens[calendarId];
+          tokenChanged = true;
+          updateGoogleCalendarStatus(`Refreshing ${calendarName} after its sync cursor expired...`, null);
+          result = await googleCalendarEvents(calendarId, "");
+        }
+        for (const event of result.events){
           if (!event.id) continue;
           const entry = findLinkedGoogleEntry(calendarId, event.id);
           if (event.status==="cancelled"){
@@ -277,7 +293,7 @@
                 delete entry.item.googleEventIds[key];
                 entry.item.googleSyncMeta[key] = {remoteDeletedAt:Date.now(), localUpdatedAt:entry.item.updatedAt};
               }
-              imported = true;
+              importedCount++;
             }
             continue;
           }
@@ -289,7 +305,7 @@
               applyGoogleEventToItem(entry, event);
               entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
               entry.item.googleSyncMeta[key] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt};
-              imported = true;
+              importedCount++;
             }
             continue;
           }
@@ -306,12 +322,40 @@
           item.googleEventIds[`${calendarId}:__calendar__:__standalone__`] = event.id;
           item.googleSyncMeta[`${calendarId}:__calendar__:__standalone__`] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:item.updatedAt};
           state.calendarItems.push(item);
-          imported = true;
+          importedCount++;
+        }
+        if (result.nextSyncToken && result.nextSyncToken!==nextTokens[calendarId]){
+          nextTokens[calendarId] = result.nextSyncToken;
+          tokenChanged = true;
         }
       }
-      if (imported){ saveGoogleState(); await flushSave(); renderAll(); }
+      if (tokenChanged || importedCount){
+        state.googleCalendarSyncTokens = nextTokens;
+        if (importedCount) state.googleLastSyncAt = Date.now();
+        saveGoogleState();
+        await flushSave();
+      }
+      if (importedCount){
+        renderAll();
+        updateGoogleCalendarStatus(`Imported ${importedCount} change${importedCount===1?"":"s"} from ${calendarIds.length} linked calendar${calendarIds.length===1?"":"s"}`, null);
+      } else {
+        updateGoogleCalendarStatus(`Google calendars up to date · checked ${new Date().toLocaleTimeString()}`, null);
+      }
     }catch(error){
+      if (tokenChanged || importedCount){
+        state.googleCalendarSyncTokens = nextTokens;
+        if (importedCount) state.googleLastSyncAt = Date.now();
+        saveGoogleState();
+        await flushSave();
+        if (importedCount) renderAll();
+      }
       if (error.status===401) handleGoogleAuthFailure();
+      let detail = "Google Calendar could not be checked.";
+      try{
+        const payload = JSON.parse(error.detail || "{}");
+        detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
+      }catch(parseError){ }
+      updateGoogleCalendarStatus(error.status===401 ? "Google connection expired - reconnect in Integrations" : `Google Calendar check failed: ${detail}`, null);
     }finally{
       googleImportInFlight = false;
       if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length && !googleSyncInFlight){
@@ -338,7 +382,11 @@
     try{ googleTokenClient.requestAccessToken({prompt:"none"}); }catch(error){ googleSilentAuth = false; }
   }
   async function syncGoogleCalendar(scopeProject){
-    if (!googleAccessToken || googleSyncInFlight) return;
+    if (!googleAccessToken) return;
+    if (googleSyncInFlight || googleImportInFlight){
+      googleSyncQueued = true;
+      return;
+    }
     clearTimeout(googleAutoSyncTimer);
     googleSyncInFlight = true;
     updateGoogleCalendarStatus("Starting Google Calendar sync...", null);
@@ -437,6 +485,7 @@
     }finally{
       googleSyncInFlight = false;
       updateGoogleCalendarButtons();
+      if (googleAccessToken && linkedGoogleCalendarIds().length) startGoogleCalendarPolling();
       if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length){
         googleSyncQueued = false;
         clearTimeout(googleAutoSyncTimer);
