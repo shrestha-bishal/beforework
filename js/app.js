@@ -22,6 +22,7 @@
   const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
+  const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
   const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
 
@@ -1260,7 +1261,7 @@
     };
     board.querySelector("#settingsSidebarToggle").onclick = () => { toggleSidebarCollapsed(); renderSettings(board); };
     board.querySelector("#settingsShortcuts").onclick = showShortcutsModal;
-    board.querySelector("#settingsContactForm").onclick = () => window.open("https://forms.gle/CsCWxj8YFjiSpt6m6", "_blank", "noopener,noreferrer");
+    board.querySelector("#settingsContactForm").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     board.querySelector("#settingsSwitchFile").onclick = switchFile;
     board.querySelector("#settingsNewFile").onclick = startNewFileFromMenu;
     board.querySelector("#settingsExport").onclick = exportJSON;
@@ -2681,7 +2682,7 @@
       navigateToIntegrations();
     };
     document.getElementById("settingsNav").onclick = navigateToSettings;
-    document.getElementById("feedbackNav").onclick = () => window.open("https://forms.gle/CsCWxj8YFjiSpt6m6", "_blank", "noopener,noreferrer");
+    document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
