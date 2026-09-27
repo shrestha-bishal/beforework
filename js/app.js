@@ -8,6 +8,14 @@
     "var(--color-accent-fg)","var(--color-severe-fg)","var(--color-sponsors-fg)","var(--color-open-fg)",
     "var(--color-danger-fg)","var(--color-attention-fg)","var(--color-success-fg)","var(--color-fg-muted)"
   ];
+  const TAG_COLOR_OPTIONS = [
+    {label:"Blue",value:TAG_COLORS[0]}, {label:"Purple",value:TAG_COLORS[1]},
+    {label:"Pink",value:TAG_COLORS[2]}, {label:"Green",value:TAG_COLORS[3]},
+    {label:"Red",value:TAG_COLORS[4]}, {label:"Amber",value:TAG_COLORS[5]},
+    {label:"Forest",value:TAG_COLORS[6]}, {label:"Grey",value:TAG_COLORS[7]},
+    {label:"Teal",value:"#0f766e"}, {label:"Orange",value:"#bc4c00"},
+    {label:"Coral",value:"#cf4a2c"}
+  ];
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
   const INTEGRATIONS = "__integrations__";
@@ -957,7 +965,13 @@
     const name = await showDialog({title:"Tag selected items", message:`Add a tag to ${selectedItemIds.size} selected item(s).`, fields:[{label:"Tag name", value:project.tags[0]?.name || "", placeholder:"e.g. urgent"}], confirmLabel:"Apply tag"});
     if (!name || !name.trim()) return;
     let tag = project.tags.find(t=>t.name.toLowerCase()===name.trim().toLowerCase());
-    if (!tag) tag = createTag(project, name.trim());
+    if (!tag){
+      const color = await showDialog({title:`Pill color for ${name.trim()}`, fields:[
+        {label:"Pill color", type:"tagColor", value:TAG_COLOR_OPTIONS[project.tags.length % TAG_COLOR_OPTIONS.length].value}
+      ], confirmLabel:"Create tag"});
+      if (!color) return;
+      tag = createTag(project, name.trim(), color);
+    }
     project.groups.forEach(g=>g.items.forEach(item=>{
       if (selectedItemIds.has(item.id) && !item.tagIds.includes(tag.id)){
         item.tagIds.push(tag.id); item.updatedAt = Date.now();
@@ -991,7 +1005,7 @@
     scheduleSave(); renderMain();
   }
   function createTag(project, name, color){
-    const t = {id:uid(), name, color: color || TAG_COLORS[project.tags.length % TAG_COLORS.length]};
+    const t = {id:uid(), name, color: color || TAG_COLOR_OPTIONS[project.tags.length % TAG_COLOR_OPTIONS.length].value};
     project.tags.push(t);
     scheduleSave();
     return t;
@@ -1088,9 +1102,14 @@
     if (!dateStr) return "";
     return `<span class="Label Label--secondary ${dueClass(dateStr)}">${fmtDate(dateStr)}</span>`;
   }
+  function tagPillHtml(t, selected=false, filterable=false){
+    const color = t.color || TAG_COLORS[0];
+    const filterAttribute = filterable ? ` data-tagfilter="${t.id}"` : "";
+    return `<span class="Label Label--secondary tagColorPill${selected?" selected":""}" style="--tag-color:${escapeHtml(color)}"${filterAttribute}>
+      <span class="dot"></span>${escapeHtml(t.name)}</span>`;
+  }
   function tagDotHtml(t, selected){
-    return `<span class="Label Label--secondary${selected?" selected":""}" data-tagfilter="${t.id}">
-      <span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+    return tagPillHtml(t, selected, true);
   }
   function fieldChipHtml(field, value){
     if (!value) return "";
@@ -1669,8 +1688,7 @@
     const titlePrefix = pf ? fieldChipHtml(pf, item.values[pf.id]) : "";
     const dueChips = dfs.map(f=>fieldChipHtml(f, item.values[f.id])).join("");
     const tagsHtml = item.tagIds.map(tid=>{
-      const t = tagById(project, tid); if (!t) return "";
-      return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+      const tag = tagById(project, tid); return tag ? tagPillHtml(tag) : "";
     }).join("");
     card.innerHTML = `
       <div class="cardTitle">${titlePrefix}${escapeHtml(item.title)}</div>
@@ -1802,8 +1820,7 @@
     tbody.innerHTML = rows.map(({item,group})=>{
       const doneSub = item.subitems.filter(s=>s.done).length;
       const tagsHtml = item.tagIds.map(tid=>{
-        const t = tagById(project, tid); if (!t) return "";
-        return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+        const tag = tagById(project, tid); return tag ? tagPillHtml(tag) : "";
       }).join("");
       const fieldCells = project.fields.map(f=>`<td class="${TD_CLASS}">${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
       return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
@@ -1939,8 +1956,7 @@
     }
     tbody.innerHTML = rows.map(({item,group})=>{
       const tagsHtml = item.tagIds.map(tid=>{
-        const t = tagById(project, tid); if (!t) return "";
-        return `<span class="Label Label--secondary"><span class="dot" style="background:${t.color}"></span>${escapeHtml(t.name)}</span>`;
+        const tag = tagById(project, tid); return tag ? tagPillHtml(tag) : "";
       }).join("");
       const fieldCells = project.fields.map(f=>{
         const val = item.values[f.id] || "";
@@ -2449,7 +2465,23 @@
       overlay.id = "dialogOverlay";
       const fieldsHtml = fields.map((field,index)=>{
         const id = `dialogField${index}`;
-        const label = field.label ? `<label for="${id}">${escapeHtml(field.label)}</label>` : "";
+        const labelFor = field.type === "tagColor" ? `${id}Color0` : id;
+        const label = field.label ? `<label for="${labelFor}">${escapeHtml(field.label)}</label>` : "";
+        if (field.type === "tagColor"){
+          const selectedIndex = TAG_COLOR_OPTIONS.findIndex(option=>option.value===field.value);
+          const customValue = /^#[0-9a-f]{6}$/i.test(field.value||"") ? field.value : "#0969da";
+          const swatches = TAG_COLOR_OPTIONS.map((option,optionIndex)=>`<label class="tagColorOption" title="${option.label}">
+            <input id="${id}Color${optionIndex}" type="radio" name="${id}" value="${escapeHtml(option.value)}" ${selectedIndex===optionIndex?"checked":""}>
+            <span class="tagColorSwatch" style="background:${escapeHtml(option.value)}"></span><span class="sr-only">${option.label}</span>
+          </label>`).join("");
+          return `<div class="modalRow">${label}<div class="tagColorGrid" role="radiogroup" aria-label="${escapeHtml(field.label||"Pill color")}">
+            ${swatches}<div class="tagColorCustomOption" title="Custom color">
+              <input id="${id}Custom" type="radio" name="${id}" value="__custom__" ${selectedIndex<0?"checked":""} aria-label="Custom color">
+              <span class="tagColorCustomSwatch"><iconify-icon icon="mdi:eyedropper-variant" aria-hidden="true"></iconify-icon><span class="tagColorCustomCurrent${selectedIndex<0?" is-visible":""}" style="background:${customValue}"></span></span>
+              <input class="tagColorPicker" id="dialogColor${index}" type="color" value="${customValue}" aria-label="Choose custom pill color">
+            </div>
+          </div></div>`;
+        }
         if (field.type === "select"){
           const options = (field.options||[]).map(option=>
             `<option value="${escapeHtml(option.value)}" ${option.value===field.value?"selected":""}>${escapeHtml(option.label)}</option>`).join("");
@@ -2479,11 +2511,30 @@
         resolve(value);
       };
       showDialog.finishActive = finish;
+      fields.forEach((field,index)=>{
+        if (field.type !== "tagColor") return;
+        const customRadio = overlay.querySelector(`input[name="dialogField${index}"][value="__custom__"]`);
+        const picker = overlay.querySelector(`#dialogColor${index}`);
+        const currentColor = overlay.querySelector(`.tagColorCustomCurrent`);
+        const selectCustom = () => { customRadio.checked = true; currentColor.classList.add("is-visible"); };
+        picker.addEventListener("pointerdown",selectCustom);
+        picker.addEventListener("input",()=>{
+          selectCustom();
+          currentColor.style.background = picker.value;
+        });
+        overlay.querySelectorAll(`input[name="dialogField${index}"]:not([value="__custom__"])`).forEach(radio=>{
+          radio.addEventListener("change",()=>currentColor.classList.remove("is-visible"));
+        });
+      });
       overlay.querySelectorAll("[data-dialog-cancel]").forEach(button=>button.onclick=()=>finish(null));
       const secondary = overlay.querySelector("[data-dialog-secondary]");
       if (secondary) secondary.onclick = () => finish("__secondary__");
       overlay.querySelector("[data-dialog-confirm]").onclick = () => {
-        const values = fields.map((field,index)=>overlay.querySelector(`#dialogField${index}`).value);
+        const values = fields.map((field,index)=>{
+          if (field.type !== "tagColor") return overlay.querySelector(`#dialogField${index}`).value;
+          const selected = overlay.querySelector(`input[name="dialogField${index}"]:checked`);
+          return selected?.value === "__custom__" ? overlay.querySelector(`#dialogColor${index}`).value : selected?.value;
+        });
         finish(values.length===1 ? values[0] : values.length ? values : "__confirm__");
       };
       overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(null); });
@@ -2720,9 +2771,12 @@
       };
     });
     modal.querySelector('[data-action="newTagFromItem"]').onclick = async () => {
-      const name = await showDialog({title:"New tag", fields:[{label:"Tag name", placeholder:"e.g. urgent"}], confirmLabel:"Create tag"});
-      if (name && name.trim()){
-        const t = createTag(project, name.trim());
+      const result = await showDialog({title:"New tag", fields:[
+        {label:"Tag name", placeholder:"e.g. urgent"},
+        {label:"Pill color", type:"tagColor", value:TAG_COLOR_OPTIONS[project.tags.length % TAG_COLOR_OPTIONS.length].value}
+      ], confirmLabel:"Create tag"});
+      if (result && result[0] && result[0].trim()){
+        const t = createTag(project, result[0].trim(), result[1]);
         item.tagIds.push(t.id);
         scheduleSave(); renderSidebarTags(); renderMain(); renderItemModal();
       }
@@ -2921,12 +2975,28 @@
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);
       if (!project) return;
-      const list = project.tags.map(t=>t.name).join(", ") || "(none yet)";
-      const action = await showDialog({title:`Manage tags in ${project.name}`, message:`Current tags: ${list}`, fields:[{label:"Tag to delete", placeholder:"Enter an exact tag name"}], confirmLabel:"Continue"});
-      if (action && action.trim()){
-        const t = project.tags.find(t=>t.name.toLowerCase()===action.trim().toLowerCase());
-        if (t && await showConfirm(`Delete tag ${t.name}`, "This removes the tag from all items in this project.", true)) deleteTag(project, t.id);
-        else if (!t) showNotice("Tag not found", "No tag with that name exists in this project.");
+      if (!project.tags.length){ await showNotice("No tags", "Create a tag from an item before managing tags."); return; }
+      const result = await showDialog({title:`Manage tags in ${project.name}`, fields:[
+        {label:"Action", type:"select", value:"edit", options:[{value:"edit",label:"Edit tag"},{value:"delete",label:"Delete tag"}]},
+        {label:"Tag", type:"select", options:project.tags.map(tag=>({value:tag.id,label:tag.name}))}
+      ], confirmLabel:"Continue"});
+      if (!result) return;
+      const [action,tagId] = result;
+      const tag = project.tags.find(candidate=>candidate.id===tagId);
+      if (!tag) return;
+      if (action === "edit"){
+        const changes = await showDialog({title:`Edit tag ${tag.name}`, fields:[
+          {label:"Tag name", value:tag.name},
+          {label:"Pill color", type:"tagColor", value:tag.color}
+        ], confirmLabel:"Save changes"});
+        if (!changes) return;
+        const [name,color] = changes;
+        if (!name.trim()){ await showNotice("Tag name required", "Enter a name for this tag."); return; }
+        tag.name = name.trim();
+        tag.color = color;
+        scheduleSave(); renderAll();
+      } else if (await showConfirm(`Delete tag ${tag.name}`, "This removes the tag from all items in this project.", true)){
+        deleteTag(project, tag.id);
       }
     };
     document.getElementById("globalSearch").addEventListener("input", e=> runGlobalSearch(e.target.value.trim()));

@@ -144,6 +144,8 @@
   .sidebarSectionLabel{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
 
   [data-tagfilter]{cursor:pointer;}
+    .tagColorPill{background-color:color-mix(in srgb,var(--tag-color) 12%,var(--bg));border-color:color-mix(in srgb,var(--tag-color) 30%,var(--border));color:var(--text);}
+    .tagColorPill .dot{background:var(--tag-color);}
   .Label.selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
   #sideTagsList,#boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
 
@@ -462,6 +464,17 @@
   .modalRow{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
   .modalRow label{font-size:12px;font-weight:600;color:var(--muted);}
   .modalRow .form-control{width:100%;}
+  .tagColorGrid{display:grid;grid-template-columns:repeat(6,34px);gap:8px;align-items:center;}
+  .tagColorOption,.tagColorCustomOption{position:relative;display:grid;place-items:center;width:34px;height:34px;border:1px solid transparent;border-radius:7px;cursor:pointer;}
+  .tagColorOption input[type="radio"],.tagColorCustomOption input[type="radio"]{position:absolute;width:1px;height:1px;margin:0;opacity:0;}
+  .tagColorSwatch{width:23px;height:23px;border:1px solid rgba(27,31,36,.18);border-radius:50%;}
+  .tagColorCustomSwatch{position:relative;display:grid;place-items:center;width:23px;height:23px;border:1px dashed var(--border-strong);border-radius:50%;background:var(--bg);color:var(--muted);}
+  .tagColorCustomSwatch iconify-icon{font-size:13px;}
+  .tagColorCustomCurrent{display:none;position:absolute;right:-2px;bottom:-2px;width:8px;height:8px;border:1px solid var(--bg);border-radius:50%;}
+  .tagColorCustomCurrent.is-visible{display:block;}
+  .tagColorOption:has(input:checked),.tagColorCustomOption:has(input[type="radio"]:checked){outline:2px solid var(--accent);outline-offset:2px;}
+  .tagColorOption:focus-within,.tagColorCustomOption:focus-within{outline:2px solid var(--accent);outline-offset:2px;}
+  .tagColorPicker{position:absolute;inset:-1px;z-index:2;width:auto;height:auto;padding:0;border:0;border-radius:7px;opacity:0;cursor:pointer;}
   .dialogMessage{margin:-8px 0 22px;color:var(--muted);font-size:13px;line-height:1.5;}
   .googleCalendarChoices{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto;}
   .googleCalendarChoice{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;}
