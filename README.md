@@ -20,6 +20,7 @@ Beforework is open source under the [MIT License](LICENSE). Contributions and bu
 ## Features
 
 - Project, folder, task, and group management
+- Duplicate projects, project tasks, and standalone calendar items
 - List, table, board, and calendar views
 - Tags, priorities, due dates, custom fields, and archived items
 - Overview dashboard with workload and progress summaries

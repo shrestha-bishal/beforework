@@ -738,6 +738,82 @@
     }
     scheduleSave(); renderAll();
   }
+  async function duplicateProject(project){
+    const proposedName = `${project.name} (copy)`;
+    const name = await showDialog({
+      title:"Duplicate project",
+      message:"Groups, fields, tags, views, and items will be copied. Comments and Google Calendar sync history won't be copied. Scheduled items may sync as new events.",
+      fields:[{label:"Project name", value:proposedName}],
+      confirmLabel:"Duplicate"
+    });
+    if (!name || !name.trim()) return;
+
+    const fieldIds = new Map();
+    const optionIds = new Map();
+    const tagIds = new Map();
+    const groupIds = new Map();
+    const viewIds = new Map();
+    const now = Date.now();
+    const fields = (project.fields||[]).map(field=>{
+      const id = uid();
+      fieldIds.set(field.id, id);
+      const options = (field.options||[]).map(option=>{
+        const optionId = uid();
+        optionIds.set(option.id, optionId);
+        return {...option, id:optionId};
+      });
+      return {...field, id, options};
+    });
+    const tags = (project.tags||[]).map(tag=>{
+      const id = uid();
+      tagIds.set(tag.id, id);
+      return {...tag, id};
+    });
+    const groups = project.groups||[];
+    const views = project.views||[];
+    groups.forEach(group=>groupIds.set(group.id, uid()));
+    views.forEach(view=>viewIds.set(view.id, uid()));
+
+    const copyItem = item=>{
+      const values = {};
+      Object.entries(item.values||{}).forEach(([fieldId,value])=>{
+        values[fieldIds.get(fieldId)||fieldId] = optionIds.get(value)||value;
+      });
+      const copy = {
+        ...item,
+        id:uid(),
+        tagIds:(item.tagIds||[]).map(id=>tagIds.get(id)).filter(Boolean),
+        values,
+        subitems:(item.subitems||[]).map(subitem=>({...subitem,id:uid()})),
+        comments:[],
+        createdAt:now,
+        updatedAt:now
+      };
+      delete copy.googleEventIds;
+      delete copy.googleSyncMeta;
+      return copy;
+    };
+    const copy = {
+      ...project,
+      id:uid(),
+      name:name.trim(),
+      createdAt:now,
+      fields,
+      tags,
+      groups:groups.map(group=>({
+        ...group,
+        id:groupIds.get(group.id),
+        items:(group.items||[]).map(copyItem)
+      })),
+      views:views.map(view=>({...view,id:viewIds.get(view.id)})),
+      activeViewId:viewIds.get(project.activeViewId)||viewIds.get(views[0]?.id)
+    };
+    state.projects.push(copy);
+    activeProjectId = copy.id;
+    persistActiveLocation();
+    scheduleSave();
+    renderAll();
+  }
   function addGroup(pid, name){
     const project = getProject(pid);
     if (!project) return;
@@ -787,6 +863,34 @@
     queueGoogleEventDeletes(item);
     g.items = g.items.filter(i=>i.id!==iid);
     scheduleSave(); renderMain();
+  }
+  function makeDuplicateItem(source){
+    const now = Date.now();
+    const copy = {
+      ...source,
+      id:uid(),
+      title:`${source.title} (copy)`,
+      tagIds:[...(source.tagIds||[])],
+      values:{...(source.values||{})},
+      subitems:(source.subitems||[]).map(subitem=>({...subitem,id:uid(),done:false})),
+      comments:[],
+      archived:false,
+      createdAt:now,
+      updatedAt:now
+    };
+    delete copy.googleEventIds;
+    delete copy.googleSyncMeta;
+    return copy;
+  }
+  function duplicateItem(pid,gid,iid){
+    const group = getGroup(pid,gid);
+    const index = group?.items.findIndex(candidate=>candidate.id===iid) ?? -1;
+    if (index<0) return null;
+    const copy = makeDuplicateItem(group.items[index]);
+    group.items.splice(index+1,0,copy);
+    scheduleSave();
+    renderMain();
+    return copy;
   }
   function toggleArchiveItem(pid,gid,iid){
     const item = getItem(pid,gid,iid);
@@ -860,6 +964,20 @@
       }
     }));
     selectedItemIds.clear(); scheduleSave(); renderAll();
+  }
+  function bulkDuplicate(project){
+    if (!selectedItemIds.size) return;
+    const selected = new Set(selectedItemIds);
+    project.groups.forEach(group=>{
+      const items = [];
+      group.items.forEach(item=>{
+        items.push(item);
+        if (selected.has(item.id)) items.push(makeDuplicateItem(item));
+      });
+      group.items = items;
+    });
+    selectedItemIds.clear();
+    scheduleSave(); renderMain(); renderProjectList();
   }
   function moveItem(pid, fromGid, toGid, iid, toIndex){
     const from = getGroup(pid, fromGid);
@@ -1074,6 +1192,7 @@
       menu.className = "projectQuickMenu";
       menu.innerHTML = `
         <button type="button" data-project-action="rename">Rename</button>
+        <button type="button" data-project-action="duplicate">Duplicate project</button>
         <button type="button" data-project-action="add-column">Add column</button>
         <button type="button" data-project-action="group">New group</button>
         <button type="button" data-project-action="move">Move to folder</button>
@@ -1098,6 +1217,8 @@
             if (!renamed || !renamed.trim()) return;
             p.name = renamed.trim();
             scheduleSave(); renderAll();
+          } else if (action === "duplicate") {
+            await duplicateProject(p);
           } else if (action === "add-column") {
             await addColumnFlow(p);
           } else if (action === "group") {
@@ -1288,6 +1409,7 @@
   function renderMain(){
     const filterBar = document.getElementById("boardFilterBar");
     const renameBtn = document.getElementById("renameProjectBtn");
+    const duplicateBtn = document.getElementById("duplicateProjectBtn");
     const deleteBtn = document.getElementById("deleteProjectBtn");
     const fieldsBtn = document.getElementById("manageFieldsBtn");
     const addGroupBtn = document.getElementById("addGroupBtn");
@@ -1305,6 +1427,7 @@
       if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
       filterBar.style.display = "none";
       renameBtn.style.display = "none";
+      duplicateBtn.style.display = "none";
       deleteBtn.style.display = "none";
       fieldsBtn.style.display = "none";
       addGroupBtn.style.display = "none";
@@ -1333,6 +1456,7 @@
     topLabel.textContent = project.name;
     filterBar.style.display = "block";
     renameBtn.style.display = "inline-block";
+    duplicateBtn.style.display = "inline-block";
     deleteBtn.style.display = "inline-block";
     fieldsBtn.style.display = "inline-block";
     addGroupBtn.style.display = "inline-block";
@@ -1365,6 +1489,7 @@
       const name = await showDialog({title:"Rename project", fields:[{label:"Project name", value:project.name}], confirmLabel:"Rename"});
       if (name && name.trim()){ project.name = name.trim(); scheduleSave(); renderAll(); }
     };
+    duplicateBtn.onclick = () => duplicateProject(project);
     deleteBtn.onclick = async () => {
       if (await showConfirm(`Delete project ${project.name}`, "This will delete everything in the project.", true)) deleteProject(project.id);
     };
@@ -1581,6 +1706,7 @@
         <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
         <span class="bulkSelectionActions">
           <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
+          <button class="btn btn-sm" id="bulkDuplicate">Duplicate</button>
           <button class="btn btn-sm" id="bulkMove">Move</button>
           <button class="btn btn-sm" id="bulkTag">Tag</button>
           <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
@@ -1624,6 +1750,7 @@
       updateSelection();
     };
     document.getElementById("bulkMove").onclick = () => bulkMove(project);
+    document.getElementById("bulkDuplicate").onclick = () => bulkDuplicate(project);
     document.getElementById("bulkTag").onclick = () => bulkTag(project);
     document.getElementById("bulkDelete").onclick = () => bulkDelete(project);
 
@@ -1719,6 +1846,7 @@
         <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
         <span class="bulkSelectionActions">
           <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
+          <button class="btn btn-sm" id="bulkDuplicate">Duplicate</button>
           <button class="btn btn-sm" id="bulkMove">Move</button>
           <button class="btn btn-sm" id="bulkTag">Tag</button>
           <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
@@ -1760,6 +1888,7 @@
       updateSelection();
     };
     document.getElementById("bulkMove").onclick = () => bulkMove(project);
+    document.getElementById("bulkDuplicate").onclick = () => bulkDuplicate(project);
     document.getElementById("bulkTag").onclick = () => bulkTag(project);
     document.getElementById("bulkDelete").onclick = () => bulkDelete(project);
 
@@ -1914,8 +2043,36 @@
         <div class="modalRow"><label for="standaloneStart">Start time</label><input class="form-control" id="standaloneStart" type="time" value="${escapeHtml(item.startTime||"")}"></div>
         <div class="modalRow"><label for="standaloneEnd">End time</label><input class="form-control" id="standaloneEnd" type="time" value="${escapeHtml(item.endTime||"")}"></div>
       </div>
-      <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button><button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
+      <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button>${isNew ? "" : `<button class="btn" data-calendar-duplicate>Duplicate</button>`}<button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
     modal.querySelectorAll("[data-calendar-close]").forEach(button=>button.onclick=()=>overlay.remove());
+    const duplicateButton = modal.querySelector("[data-calendar-duplicate]");
+    if (duplicateButton) duplicateButton.onclick = () => {
+      const now = Date.now();
+      const copy = {
+        ...item,
+        id:uid(),
+        title:`${modal.querySelector("#standaloneTitle").value.trim()||item.title} (copy)`,
+        description:modal.querySelector("#standaloneDescription").value,
+        endDate:modal.querySelector("#standaloneDate").value,
+        location:modal.querySelector("#standaloneLocation").value.trim(),
+        startTime:modal.querySelector("#standaloneStart").value,
+        endTime:modal.querySelector("#standaloneEnd").value,
+        tagIds:[...(item.tagIds||[])],
+        values:{...(item.values||{})},
+        comments:[],
+        subitems:(item.subitems||[]).map(subitem=>({...subitem,id:uid(),done:false})),
+        archived:false,
+        createdAt:now,
+        updatedAt:now
+      };
+      delete copy.googleEventIds;
+      delete copy.googleSyncMeta;
+      state.calendarItems.push(copy);
+      scheduleSave();
+      overlay.remove();
+      renderAll();
+      openStandaloneCalendarItemModal(copy);
+    };
     modal.querySelector("[data-calendar-save]").onclick = () => {
       const title = modal.querySelector("#standaloneTitle").value.trim();
       const date = modal.querySelector("#standaloneDate").value;
@@ -2476,6 +2633,7 @@
         <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`}</span>
         <div style="display:flex;gap:8px;">
           ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>` : `
+            <button class="btn btn-sm" data-action="duplicateItem">Duplicate</button>
             <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>
             <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>`}
         </div>
@@ -2593,6 +2751,12 @@
       };
     });
     if (!isNew){
+      modal.querySelector('[data-action="duplicateItem"]').onclick = () => {
+        const copy = duplicateItem(projectId, groupId, itemId);
+        if (!copy) return;
+        closeItemModal();
+        openItemModal(projectId, groupId, copy.id);
+      };
       const commentInput = modal.querySelector("#newCommentInput");
       const addCommentBtn = modal.querySelector('[data-action="addComment"]');
       if (addCommentBtn){
