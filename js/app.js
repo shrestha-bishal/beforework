@@ -345,46 +345,96 @@
   }
 
   function defaultState(){
-    const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
-    const due = {id:uid(), label:"Due date", type:"date", options:[]};
-    const t1 = {id:uid(), name:"feature", color:TAG_COLORS[0]};
-    const t2 = {id:uid(), name:"urgent", color:TAG_COLORS[1]};
-    const proj1Views = [
-      {id:uid(), type:"list", name:"List"},
-      {id:uid(), type:"kanban", name:"Board"},
-      {id:uid(), type:"calendar", name:"Calendar"},
+    const now = Date.now();
+    const workFolder = {id:uid(), name:"Work"};
+    const personalFolder = {id:uid(), name:"Personal"};
+    const makeField = (label, type, options=[]) => ({id:uid(), label, type, options});
+    const makeTag = (name, colour) => ({id:uid(), name, color:colour});
+    const makeItem = (title, description, values={}, options={}) => ({
+      id:uid(), title, description, calendarType:options.calendarType || "task",
+      startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "",
+      endDate:options.endDate || "", tagIds:options.tagIds || [], values,
+      subitems:options.subitems || [], comments:options.comments || [], archived:!!options.archived,
+      createdAt:now, updatedAt:now - (options.ageDays || 0) * 86400000
+    });
+    const views = types => types.map(type=>({id:uid(), type, name:viewLabel(type)}));
+
+    const roadmapPriority = makeField("Priority", "priority");
+    const roadmapDue = makeField("Due date", "date");
+    const roadmapStatus = makeField("Status", "select", [
+      {id:uid(), label:"Planned", color:TAG_COLORS[3]},
+      {id:uid(), label:"In progress", color:TAG_COLORS[5]},
+      {id:uid(), label:"Ready to ship", color:TAG_COLORS[6]},
+    ]);
+    const featureTag = makeTag("feature", TAG_COLORS[0]);
+    const urgentTag = makeTag("urgent", TAG_COLORS[1]);
+    const designTag = makeTag("design", TAG_COLORS[2]);
+    const roadmapViews = views(["list", "kanban", "calendar"]);
+    const roadmapGroups = [
+      {id:uid(), name:"To do", items:[]},
+      {id:uid(), name:"Doing", items:[]},
+      {id:uid(), name:"Done", items:[]}
     ];
-    const proj1 = {
-      id:uid(), name:"Product roadmap", createdAt:Date.now(),
-      tags:[t1,t2], fields:[pr,due], views:proj1Views, activeViewId:proj1Views[0].id, itemDefaultType:"task",
-      groups:[
-        {id:uid(), name:"To do", items:[
-          {id:uid(), title:"This is a card - click to open it",
-           description:"Add notes here. Search everything from the sidebar, drag cards between groups, switch between List and Board, and add columns that fit this project from the Columns button above.",
-           calendarType:"task", startTime:"", endTime:"", location:"", endDate:"",
-           tagIds:[t1.id], values:{[pr.id]:"medium",[due.id]:todayStr(2)},
-           subitems:[{id:uid(),title:"Try checking this off",done:false}], comments:[], archived:false,
-           createdAt:Date.now(), updatedAt:Date.now()},
-        ]},
-        {id:uid(), name:"Doing", items:[]},
-        {id:uid(), name:"Done", items:[]}
-      ]
+    const roadmap = {
+      id:uid(), name:"Product roadmap", folderId:workFolder.id, createdAt:now,
+      tags:[featureTag, urgentTag, designTag], fields:[roadmapPriority, roadmapDue, roadmapStatus],
+      views:roadmapViews, activeViewId:roadmapViews[0].id, itemDefaultType:"task", groups:roadmapGroups
     };
-    const status = {id:uid(), label:"Status", type:"select", options:[
+    roadmapGroups[0].items.push(
+      makeItem("Write launch notes", "Capture the key changes and migration notes for the next release.", {[roadmapPriority.id]:"high", [roadmapDue.id]:todayStr(3), [roadmapStatus.id]:roadmapStatus.options[0].id}, {tagIds:[featureTag.id, urgentTag.id], subitems:[{id:uid(), title:"Collect screenshots", done:true}, {id:uid(), title:"Draft release notes", done:false}]}),
+      makeItem("Plan onboarding flow", "Map the first five minutes for a new workspace owner.", {[roadmapPriority.id]:"medium", [roadmapDue.id]:todayStr(7), [roadmapStatus.id]:roadmapStatus.options[0].id}, {tagIds:[designTag.id], ageDays:1})
+    );
+    roadmapGroups[1].items.push(
+      makeItem("Build recurring tasks", "Decide how repeating work should appear in list and calendar views.", {[roadmapPriority.id]:"high", [roadmapDue.id]:todayStr(1), [roadmapStatus.id]:roadmapStatus.options[1].id}, {tagIds:[featureTag.id], startTime:"10:00", endTime:"11:30", endDate:todayStr(1), comments:[{id:uid(), text:"Check the calendar edge cases before merging.", createdAt:now - 3600000}]}),
+      makeItem("Refresh empty states", "Give first-time users a clear next action in each view.", {[roadmapPriority.id]:"low", [roadmapDue.id]:todayStr(5), [roadmapStatus.id]:roadmapStatus.options[1].id}, {tagIds:[designTag.id], ageDays:2})
+    );
+    roadmapGroups[2].items.push(
+      makeItem("Add keyboard shortcuts", "Search, quick add, theme switching, and timer shortcuts are now available.", {[roadmapPriority.id]:"medium", [roadmapDue.id]:todayStr(-2), [roadmapStatus.id]:roadmapStatus.options[2].id}, {tagIds:[featureTag.id], ageDays:4}),
+      makeItem("Connect local JSON storage", "Keep the workspace portable and under the user's control.", {[roadmapPriority.id]:"high", [roadmapDue.id]:todayStr(-6), [roadmapStatus.id]:roadmapStatus.options[2].id}, {tagIds:[featureTag.id, urgentTag.id], ageDays:8})
+    );
+
+    const readingStatus = makeField("Status", "select", [
       {id:uid(), label:"To read", color:TAG_COLORS[2]},
       {id:uid(), label:"Reading", color:TAG_COLORS[3]},
-      {id:uid(), label:"Finished", color:TAG_COLORS[6]},
-    ]};
-    const proj2Views = [
-      {id:uid(), type:"table", name:"Table"},
-      {id:uid(), type:"list", name:"List"},
-    ];
-    const proj2 = {
-      id:uid(), name:"Reading list", createdAt:Date.now(),
-      tags:[], fields:[status], views:proj2Views, activeViewId:proj2Views[0].id, itemDefaultType:"task",
-      groups:[{id:uid(), name:"Books", items:[]}]
+      {id:uid(), label:"Finished", color:TAG_COLORS[6]}
+    ]);
+    const readingRating = makeField("Rating", "select", [
+      {id:uid(), label:"Essential", color:TAG_COLORS[1]},
+      {id:uid(), label:"Useful", color:TAG_COLORS[5]},
+      {id:uid(), label:"Optional", color:TAG_COLORS[7]}
+    ]);
+    const readingViews = views(["table", "list"]);
+    const readingGroup = {id:uid(), name:"Books and essays", items:[]};
+    const reading = {
+      id:uid(), name:"Reading list", folderId:personalFolder.id, createdAt:now,
+      tags:[makeTag("research", TAG_COLORS[0]), makeTag("ideas", TAG_COLORS[6])], fields:[readingStatus, readingRating],
+      views:readingViews, activeViewId:readingViews[0].id, itemDefaultType:"task", groups:[readingGroup]
     };
-    return {schemaVersion:SCHEMA_VERSION, projects:[proj1, proj2], folders:[], calendarItems:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
+    readingGroup.items.push(
+      makeItem("The Design of Everyday Things", "Notes on affordances, feedback, and making complex tools easier to understand.", {[readingStatus.id]:readingStatus.options[2].id, [readingRating.id]:readingRating.options[0].id}, {ageDays:12}),
+      makeItem("Thinking in Systems", "A reference for understanding feedback loops and unintended consequences.", {[readingStatus.id]:readingStatus.options[1].id, [readingRating.id]:readingRating.options[1].id}, {ageDays:3}),
+      makeItem("The Manager's Path", "Keep for the next planning cycle.", {[readingStatus.id]:readingStatus.options[0].id, [readingRating.id]:readingRating.options[2].id})
+    );
+
+    const planningDate = makeField("Date", "date");
+    const planningViews = views(["calendar", "list"]);
+    const planningGroup = {id:uid(), name:"Schedule", items:[]};
+    const planning = {
+      id:uid(), name:"Team planning", folderId:workFolder.id, createdAt:now,
+      tags:[makeTag("meeting", TAG_COLORS[5]), makeTag("milestone", TAG_COLORS[1])], fields:[planningDate],
+      views:planningViews, activeViewId:planningViews[0].id, itemDefaultType:"event", groups:[planningGroup]
+    };
+    planningGroup.items.push(
+      makeItem("Sprint planning", "Set priorities and confirm owners for the coming fortnight.", {[planningDate.id]:todayStr(0)}, {calendarType:"event", startTime:"09:30", endTime:"10:15", location:"Studio meeting room", endDate:todayStr(0), tagIds:[planning.tags[0].id]}),
+      makeItem("Design review", "Review the new project overview and empty states.", {[planningDate.id]:todayStr(2)}, {calendarType:"event", startTime:"14:00", endTime:"15:00", location:"Video call", endDate:todayStr(2), tagIds:[planning.tags[0].id]}),
+      makeItem("Release milestone", "Ship the next stable version to the public repository.", {[planningDate.id]:todayStr(10)}, {calendarType:"event", startTime:"16:00", endTime:"16:30", endDate:todayStr(10), tagIds:[planning.tags[1].id]})
+    );
+
+    const calendarItems = [
+      {id:uid(), title:"Dentist appointment", description:"Routine check-up.", calendarType:"event", startTime:"08:30", endTime:"09:15", location:"Northside Dental", endDate:todayStr(4), tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:now, updatedAt:now},
+      {id:uid(), title:"Weekend hike", description:"Pack water and a rain jacket.", calendarType:"event", startTime:"07:00", endTime:"11:00", location:"Mount Lofty trailhead", endDate:todayStr(6), tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:now, updatedAt:now}
+    ];
+    return {schemaVersion:SCHEMA_VERSION, projects:[roadmap, reading, planning], folders:[workFolder, personalFolder], calendarItems, googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
   }
 
   /* ---------- Schema migrations ----------

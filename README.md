@@ -4,6 +4,12 @@
 
 Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data in a JSON file that you choose on your device.
 
+## Hosted version
+
+If you do not want to host Beforework locally, use the hosted version at [beforework.netlify.app](https://beforework.netlify.app/).
+
+Open it in Chrome or Edge, then create or connect a Beforework JSON file to start using the workspace.
+
 Beforework is open source under the [MIT License](LICENSE). Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Features
