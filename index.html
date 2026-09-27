@@ -173,12 +173,18 @@
         </label>
       </div>
       <div class="filterPanel" id="filterPanel">
-        <div class="filterPanelHeader"><span>Refine this project</span><span class="filterPanelHint">Choose groups, tags or columns</span></div>
+        <div class="filterPanelHeader"><div><strong>Filter this project</strong><span class="filterPanelHint">Combine groups, tags and custom filters</span></div><button class="btn btn-invisible filterPanelClose" id="closeFilters" type="button" aria-label="Close filters">✕</button></div>
         <div class="filterControls">
-          <div id="groupFilters"></div>
-          <div id="boardTagFilters"></div>
-          <div id="fieldFilters"></div>
+          <nav class="filterCategoryList" aria-label="Filter categories">
+            <div id="filterCategoryList"></div>
+          </nav>
+          <div class="filterOptions" id="filterOptions">
+            <div id="groupFilters" class="active"></div>
+            <div id="boardTagFilters"></div>
+            <div id="fieldFilters"></div>
+          </div>
         </div>
+        <div class="filterPanelFooter"><button class="btn btn-sm btn-invisible" id="filterPanelClear" type="button">Clear filters</button><button class="btn btn-sm btn-primary" id="filterPanelDone" type="button">Done</button></div>
       </div>
     </div>
     <div id="board"></div>

@@ -64,6 +64,7 @@
   let boardFilterGroups = new Set();
   let boardFilterTags = new Set();
   let boardFilterFields = new Map(); // fieldId -> "__all__" | "__none__" | optionId
+  let activeFilterCategory = "groupFilters";
   let listSort = {field:"updated", dir:"desc"};
   let openItemRef = null;
   let fileHandle = null;
@@ -1004,8 +1005,12 @@
     if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
     if (boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
-      if (mode==="__all__") continue;
       const val = (item.values||{})[fid] || "";
+      if (Array.isArray(mode)){
+        if (!mode.length || (val && mode.includes(val)) || (!val && mode.includes("__none__"))) continue;
+        return false;
+      }
+      if (mode==="__all__") continue;
       if (mode==="__none__"){ if (val) return false; }
       else {
         const field = project?.fields?.find(candidate=>candidate.id===fid);
@@ -1343,9 +1348,11 @@
     renderViewTabs(project);
 
     document.getElementById("boardSearch").value = boardFilterText;
+    renderFilterCategories(project);
     renderBoardTagFilters(project);
     renderGroupFilters(project);
     renderFieldFilters(project);
+    renderFilterCategoryState(project);
     updateFilterSummary();
 
     fieldsBtn.onclick = () => addColumnFlow(project);
@@ -1399,22 +1406,35 @@
     };
   }
 
+  function renderFilterCategories(project){
+    const wrap = document.getElementById("filterCategoryList");
+    const categories = [
+      {id:"groupFilters", label:"Groups"},
+      {id:"boardTagFilters", label:"Tags"},
+      ...project.fields.map(field=>({id:`field:${field.id}`, label:field.label}))
+    ];
+    if (!categories.some(category=>category.id===activeFilterCategory)) activeFilterCategory = categories[0].id;
+    wrap.innerHTML = categories.map(category=>`<button class="filterCategory" type="button" data-filter-category="${escapeHtml(category.id)}">${escapeHtml(category.label)}</button>`).join("");
+    wrap.querySelectorAll("[data-filter-category]").forEach(button=>{
+      button.onclick = () => {
+        activeFilterCategory = button.dataset.filterCategory;
+        renderFilterCategoryState(project);
+        renderFieldFilters(project);
+      };
+    });
+  }
+
+  function renderFilterCategoryState(project){
+    document.querySelectorAll("[data-filter-category]").forEach(button=>button.classList.toggle("active", button.dataset.filterCategory===activeFilterCategory));
+    document.querySelectorAll("#filterOptions > div").forEach(section=>section.classList.toggle("active", section.id===activeFilterCategory || (activeFilterCategory.startsWith("field:") && section.id==="fieldFilters")));
+  }
+
   function renderBoardTagFilters(project){
     const wrap = document.getElementById("boardTagFilters");
-    const availableTags = project.tags.filter(tag=>!boardFilterTags.has(tag.id));
-    const activeTags = project.tags.filter(tag=>boardFilterTags.has(tag.id));
-    wrap.innerHTML = `<select class="form-control" id="tagFilterPicker" aria-label="Add tag filter">
-      <option value="">Add tag filter...</option>
-      ${availableTags.map(tag=>`<option value="${tag.id}">${escapeHtml(tag.name)}</option>`).join("")}
-    </select>${activeTags.map(tag=>`<span class="tagFilterGroup"><span class="Label Label--secondary"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span><button class="btn btn-invisible removeFieldFilter" data-remove-tag-filter="${tag.id}" title="Remove ${escapeHtml(tag.name)} filter">✕</button></span>`).join("")}`;
-    wrap.querySelector("#tagFilterPicker").addEventListener("change", event=>{
-      if (!event.target.value) return;
-      boardFilterTags.add(event.target.value);
-      renderMain();
-    });
-    wrap.querySelectorAll("[data-remove-tag-filter]").forEach(button=>{
-      button.onclick = () => {
-        boardFilterTags.delete(button.dataset.removeTagFilter);
+    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${project.tags.length ? project.tags.map(tag=>`<label class="filterOptionCheck"><input type="checkbox" data-tag-filter="${tag.id}" ${boardFilterTags.has(tag.id)?"checked":""}><span class="filterValuePill tagPill" style="--pill-color:${tag.color}"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span></label>`).join("") : `<span class="filterEmpty">No tags in this project</span>`}</div>`;
+    wrap.querySelectorAll("[data-tag-filter]").forEach(input=>{
+      input.onchange = () => {
+        if (input.checked) boardFilterTags.add(input.dataset.tagFilter); else boardFilterTags.delete(input.dataset.tagFilter);
         renderMain();
       };
     });
@@ -1422,20 +1442,10 @@
 
   function renderGroupFilters(project){
     const wrap = document.getElementById("groupFilters");
-    const availableGroups = project.groups.filter(group=>!boardFilterGroups.has(group.id));
-    const activeGroups = project.groups.filter(group=>boardFilterGroups.has(group.id));
-    wrap.innerHTML = `<select class="form-control" id="groupFilterPicker" aria-label="Add group filter">
-      <option value="">Add group filter...</option>
-      ${availableGroups.map(group=>`<option value="${group.id}">${escapeHtml(group.name)}</option>`).join("")}
-    </select>${activeGroups.map(group=>`<span class="tagFilterGroup"><span class="Label color-fg-muted">${escapeHtml(group.name)}</span><button class="btn btn-invisible removeFieldFilter" data-remove-group-filter="${group.id}" title="Remove ${escapeHtml(group.name)} filter">✕</button></span>`).join("")}`;
-    wrap.querySelector("#groupFilterPicker").addEventListener("change", event=>{
-      if (!event.target.value) return;
-      boardFilterGroups.add(event.target.value);
-      renderMain();
-    });
-    wrap.querySelectorAll("[data-remove-group-filter]").forEach(button=>{
-      button.onclick = () => {
-        boardFilterGroups.delete(button.dataset.removeGroupFilter);
+    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${project.groups.map(group=>`<label class="filterOptionCheck"><input type="checkbox" data-group-filter="${group.id}" ${boardFilterGroups.has(group.id)?"checked":""}><span class="filterValuePill groupPill">${escapeHtml(group.name)}</span></label>`).join("")}</div>`;
+    wrap.querySelectorAll("[data-group-filter]").forEach(input=>{
+      input.onchange = () => {
+        if (input.checked) boardFilterGroups.add(input.dataset.groupFilter); else boardFilterGroups.delete(input.dataset.groupFilter);
         renderMain();
       };
     });
@@ -1443,45 +1453,30 @@
 
   function renderFieldFilters(project){
     const wrap = document.getElementById("fieldFilters");
-    const filterable = project.fields;
-    const activeFields = filterable.filter(field=>boardFilterFields.has(field.id));
-    const availableFields = filterable.filter(field=>!activeFields.includes(field));
-    const picker = `<select class="form-control" id="fieldFilterPicker" aria-label="Add a filter">
-      <option value="">Add filter...</option>
-      ${availableFields.map(field=>`<option value="${field.id}">${escapeHtml(field.label)}</option>`).join("")}
-    </select>`;
-    const activeControls = activeFields.map(f=>{
+    const selectedField = project.fields.find(field=>`field:${field.id}`===activeFilterCategory);
+    const visibleOptions = selectedField ? [selectedField].map(f=>{
       const opts = f.type==="priority" ? PRIORITY_OPTIONS : (f.options||[]);
-      const current = boardFilterFields.get(f.id) || "__all__";
+      const current = boardFilterFields.get(f.id);
       let control;
-      if (f.type==="date"){
-        control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" title="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      } else if (f.type==="text"){
-        control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${current==="__all__"?"":escapeHtml(current)}" placeholder="Filter ${escapeHtml(f.label)}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      } else {
-        control = `<select class="form-control" data-fieldfilter="${f.id}" aria-label="Filter ${escapeHtml(f.label)}">
-          <option value="__all__" ${current==="__all__"?"selected":""}>All ${escapeHtml(f.label)}</option>
-          ${opts.map(o=>`<option value="${o.id}" ${current===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("")}
-          <option value="__none__" ${current==="__none__"?"selected":""}>No ${escapeHtml(f.label)}</option>
-        </select>`;
+      if (f.type==="date") control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else if (f.type==="text") control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="Enter text" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else {
+        const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
+        control = `<div class="filterOptionList fieldOptionList">${opts.map(o=>`<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="${o.id}" ${selected.includes(o.id)?"checked":""}><span>${escapeHtml(o.label)}</span></label>`).join("")}<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="__none__" ${selected.includes("__none__")?"checked":""}><span>No ${escapeHtml(f.label)}</span></label></div>`;
       }
-      return `<span class="fieldFilterGroup"><span class="Label color-fg-muted">${escapeHtml(f.label)}</span>${control}<button class="btn btn-invisible removeFieldFilter" data-remove-field-filter="${f.id}" title="Remove ${escapeHtml(f.label)} filter">✕</button></span>`;
-    }).join("");
-    wrap.innerHTML = picker + activeControls;
-    wrap.querySelector("#fieldFilterPicker").addEventListener("change", event=>{
-      if (!event.target.value) return;
-      boardFilterFields.set(event.target.value, "__all__");
-      renderMain();
-    });
+      return control;
+    }).join("") : "";
+    wrap.innerHTML = `<div class="filterControlBody">${visibleOptions || `<span class="filterEmpty">Select a field from the left.</span>`}</div>`;
     wrap.querySelectorAll("[data-fieldfilter]").forEach(control=>{
       control.addEventListener("change", e=>{
-        boardFilterFields.set(control.dataset.fieldfilter, e.target.value || "__all__");
+        if (e.target.value) boardFilterFields.set(control.dataset.fieldfilter, e.target.value); else boardFilterFields.delete(control.dataset.fieldfilter);
         renderMain();
       });
     });
-    wrap.querySelectorAll("[data-remove-field-filter]").forEach(button=>{
-      button.onclick = () => {
-        boardFilterFields.delete(button.dataset.removeFieldFilter);
+    wrap.querySelectorAll("[data-field-option]").forEach(control=>{
+      control.onchange = () => {
+        const selected = [...wrap.querySelectorAll(`[data-field-option="${control.dataset.fieldOption}"]:checked`)].map(input=>input.value);
+        if (selected.length) boardFilterFields.set(control.dataset.fieldOption, selected); else boardFilterFields.delete(control.dataset.fieldOption);
         renderMain();
       };
     });
@@ -1489,7 +1484,7 @@
   function updateFilterSummary(){
     const summary = document.getElementById("filterSummary");
     if (!summary) return;
-    const fieldCount = [...boardFilterFields.values()].filter(value=>value!=="__all__").length;
+    const fieldCount = [...boardFilterFields.values()].filter(value=>Array.isArray(value) ? value.length : value!=="__all__").length;
     const count = fieldCount + boardFilterGroups.size + boardFilterTags.size + (boardFilterText ? 1 : 0);
     summary.innerHTML = count ? `<strong>${count}</strong> filter${count===1?"":"s"} applied` : "All items";
   }
@@ -2802,6 +2797,21 @@
       const button = document.getElementById("toggleFilters");
       const isOpen = panel.classList.toggle("open");
       button.classList.toggle("active", isOpen);
+    };
+    document.getElementById("closeFilters").onclick = () => {
+      document.getElementById("filterPanel").classList.remove("open");
+      document.getElementById("toggleFilters").classList.remove("active");
+    };
+    document.querySelectorAll("[data-filter-category]").forEach(button=>{
+      button.onclick = () => {
+        document.querySelectorAll("[data-filter-category]").forEach(item=>item.classList.toggle("active", item===button));
+        document.querySelectorAll("#filterOptions > div").forEach(section=>section.classList.toggle("active", section.id===button.dataset.filterCategory));
+      };
+    });
+    document.getElementById("filterPanelDone").onclick = document.getElementById("closeFilters").onclick;
+    document.getElementById("filterPanelClear").onclick = () => {
+      boardFilterText=""; boardFilterGroups.clear(); boardFilterTags.clear(); boardFilterFields.clear();
+      renderMain();
     };
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
