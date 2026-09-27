@@ -161,7 +161,7 @@
   .projectMenu>button{display:flex;align-items:center;justify-content:flex-start;width:100%;text-align:left;}
   #boardFilterBar{display:block;position:relative;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg-soft);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
-  #boardSearch{width:260px;min-width:180px;border-color:var(--border);background:var(--bg-soft);border-radius:8px;}
+  #boardSearch{flex:1;width:auto;min-width:180px;border-color:var(--border);background:var(--bg-soft);border-radius:8px;}
   #boardSearch:focus{background:var(--bg);}
   .filterSummary{font-size:12px;color:var(--muted);margin-right:auto;}
   .filterSummary strong{color:var(--text);font-weight:600;}
@@ -248,15 +248,29 @@
   #emptyState h2{color:var(--text);font-size:17px;margin-bottom:6px;}
 
   /* List view */
-  .listWrap{padding:18px 24px;overflow:auto;flex:1;min-height:0;height:100%;width:100%;}
+  .listWrap{padding:18px 24px 88px;overflow:auto;flex:1;min-height:0;height:100%;width:100%;}
   .listAddRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
   .listAddRow select{width:auto;min-width:150px;}
   .listAddRow .addListItemBtn{margin-left:auto;}
   .rowTags{display:flex;gap:4px;flex-wrap:wrap;}
-  .bulkBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;
-    border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-soft);}
+  .bulkBar{position:fixed;left:50%;bottom:18px;z-index:50;display:flex;align-items:center;gap:8px;min-height:44px;width:max-content;max-width:calc(100vw - 32px);flex-wrap:wrap;transform:translateX(-50%);padding:8px 10px;
+    border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .bulkBar strong{font-size:12px;margin-right:auto;}
-  .listTable .selectCell{width:34px;text-align:center;padding-left:8px;padding-right:4px;}
+  .bulkSelectionActions{display:flex;align-items:center;gap:8px;overflow:hidden;max-width:0;opacity:0;transform:translateX(8px);transition:max-width .18s ease,opacity .14s ease,transform .18s ease;}
+  .bulkBar[data-selected="true"] .bulkSelectionActions{max-width:520px;opacity:1;transform:translateX(0);}
+  .bulkBar[data-selected="false"]{display:none;}
+  .listTable{border:1px solid var(--border);border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;background:var(--bg);box-shadow:var(--shadow-lift);}
+  .listTable thead th{padding:10px 12px!important;background:var(--bg-soft);border-bottom:1px solid var(--border)!important;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.02em;white-space:nowrap;}
+  .listTable thead th:first-child{border-top-left-radius:11px;}
+  .listTable thead th:last-child{border-top-right-radius:11px;}
+  .listTable tbody td{padding:10px 12px!important;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;vertical-align:middle;}
+  .listTable tbody tr{transition:background-color .12s ease;}
+  .listTable tbody tr:hover{background:var(--accent-soft);}
+  .listTable tbody tr:last-child td{border-bottom:0;}
+  .listTable tbody tr:last-child td:first-child{border-bottom-left-radius:11px;}
+  .listTable tbody tr:last-child td:last-child{border-bottom-right-radius:11px;}
+  .listTable .selectCell{width:42px;text-align:center;padding-left:12px!important;padding-right:6px!important;}
+  .listTable tbody input[type="checkbox"],.listTable thead input[type="checkbox"]{display:block;margin:auto;}
   .listTable th.fieldColumnHeader{position:relative;white-space:nowrap;padding-right:34px!important;}
   .fieldColumnMenuBtn{position:absolute;right:5px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:16px;line-height:1;opacity:0;visibility:hidden;transform:translateY(-50%) translateX(4px);transition:opacity .12s ease,visibility .12s ease,transform .12s ease,background-color .12s ease;}
   .fieldColumnHeader:hover .fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);}
@@ -586,6 +600,7 @@
   @media print{
     #sidebar,#sidebarScrim,.focusTimerPanel,.projectMenuWrap,.viewTabs,
     #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate,#sidebarCollapseHandle{display:none!important;}
+    .bulkBar{position:static;transform:none;box-shadow:none;}
     #app{height:auto;display:block;}
     #main{overflow:visible;}
     #board{overflow:visible;padding:0;flex-wrap:wrap;}
@@ -609,7 +624,8 @@
     .filterControls{min-width:100%;}
     #clearBoardFilters{margin-left:0;}
     #board{padding:14px 16px;}
-    .listWrap,.overviewWrap,.calendarWrap{padding:16px;}
+    .listWrap{padding:16px 16px 88px;}
+    .overviewWrap,.calendarWrap{padding:16px;}
     .overviewStats{grid-template-columns:repeat(2,minmax(0,1fr));}
     .overviewCharts{grid-template-columns:1fr;}
     .overviewStat:nth-child(even){border-right:0;}

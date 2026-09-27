@@ -1578,11 +1578,13 @@
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
       </div>
       <div class="bulkBar">
-        <strong><span id="selectedCount">0</span> selected</strong>
-        <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
-        <button class="btn btn-sm" id="bulkMove">Move</button>
-        <button class="btn btn-sm" id="bulkTag">Tag</button>
-        <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
+        <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
+        <span class="bulkSelectionActions">
+          <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
+          <button class="btn btn-sm" id="bulkMove">Move</button>
+          <button class="btn btn-sm" id="bulkTag">Tag</button>
+          <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
+        </span>
       </div>
       <table class="listTable width-full">
         <thead><tr>
@@ -1605,6 +1607,7 @@
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
     const updateSelection = () => {
       document.getElementById("selectedCount").textContent = selectedItemIds.size;
+      wrap.querySelector(".bulkBar").dataset.selected = selectedItemIds.size ? "true" : "false";
       wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
         input.checked = selectedItemIds.has(input.dataset.itemSelect);
       });
@@ -1710,14 +1713,16 @@
     const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
-        <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add row</button>
+        <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
       </div>
       <div class="bulkBar">
-        <strong><span id="selectedCount">0</span> selected</strong>
-        <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
-        <button class="btn btn-sm" id="bulkMove">Move</button>
-        <button class="btn btn-sm" id="bulkTag">Tag</button>
-        <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
+        <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
+        <span class="bulkSelectionActions">
+          <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
+          <button class="btn btn-sm" id="bulkMove">Move</button>
+          <button class="btn btn-sm" id="bulkTag">Tag</button>
+          <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
+        </span>
       </div>
       <table class="listTable width-full">
         <thead><tr>
@@ -1738,6 +1743,7 @@
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
     const updateSelection = () => {
       document.getElementById("selectedCount").textContent = selectedItemIds.size;
+      wrap.querySelector(".bulkBar").dataset.selected = selectedItemIds.size ? "true" : "false";
       wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
         input.checked = selectedItemIds.has(input.dataset.itemSelect);
       });
