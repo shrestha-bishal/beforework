@@ -2042,6 +2042,40 @@
         </button>`;
       }).join("") || `<div class="overviewQuiet">No projects yet.</div>`;
     }
+    function workloadChartHtml(rows){
+      const counts = rows.map(day=>scheduled.filter(row=>row.date===day.date).length);
+      const max = Math.max(1,...counts);
+      const bars = rows.map((day,index)=>{
+        const x = 46+index*72;
+        const height = counts[index] ? counts[index]/max*104 : 2;
+        const y = 132-height;
+        const label = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined,{weekday:"short"});
+        return `<g class="overviewChartBar"><title>${escapeHtml(label)}: ${counts[index]} item${counts[index]===1?"":"s"}</title>
+          <rect x="${x}" y="${y}" width="34" height="${height}" rx="5" fill="var(--accent)" opacity="${counts[index]?".82":".18"}"></rect>
+          <text x="${x+17}" y="151" text-anchor="middle">${escapeHtml(label)}</text>
+          <text class="overviewChartValue" x="${x+17}" y="${Math.max(18,y-7)}" text-anchor="middle">${counts[index]}</text>
+        </g>`;
+      }).join("");
+      return `<svg viewBox="0 0 560 174" role="img" aria-label="Items due each day over the next seven days">
+        <line class="overviewChartGridline" x1="28" y1="132" x2="548" y2="132"></line>${bars}
+      </svg>`;
+    }
+    function taskStatusChartHtml(){
+      const total = openItems.length+completedItems.length;
+      const circumference = 2*Math.PI*48;
+      const completeLength = total ? completedItems.length/total*circumference : 0;
+      return `<div class="overviewStatusRing" role="img" aria-label="${openItems.length} open and ${completedItems.length} completed items">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="overviewStatusTrack" cx="60" cy="60" r="48"></circle>
+          <circle class="overviewStatusComplete" cx="60" cy="60" r="48" stroke-dasharray="${completeLength} ${circumference}" transform="rotate(-90 60 60)"></circle>
+        </svg>
+        <div class="overviewStatusTotal"><strong>${total}</strong><span>Total</span></div>
+      </div>
+      <div class="overviewStatusLegend">
+        <div><span class="overviewLegendDot open"></span><span>Open</span><strong>${openItems.length}</strong></div>
+        <div><span class="overviewLegendDot complete"></span><span>Completed</span><strong>${completedItems.length}</strong></div>
+      </div>`;
+    }
 
     const view = window.ProjectifyViewTemplates.clone("overview");
     const statRows = [
@@ -2097,6 +2131,8 @@
       </div>`;
     }).join("");
     view.querySelector("[data-overview-timeline]").innerHTML = weekDays;
+    view.querySelector("[data-overview-week-chart]").innerHTML = workloadChartHtml(Array.from({length:7},(_,offset)=>({date:todayStr(offset)})));
+    view.querySelector("[data-overview-status-chart]").innerHTML = taskStatusChartHtml();
     view.querySelector("[data-overview-projects]").innerHTML = projectBreakdownHtml();
     view.querySelector("[data-overview-priorities]").innerHTML = priorityBreakdownHtml();
     view.querySelector("[data-overview-recent]").innerHTML = recent.map(row=>{

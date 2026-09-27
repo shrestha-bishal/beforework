@@ -11,6 +11,16 @@
     </div>
   </header>
   <section class="overviewStats" data-overview-stats aria-label="Workspace summary"></section>
+  <section class="overviewCharts" aria-label="Workspace charts">
+    <section class="overviewPanel overviewChartPanel">
+      <header class="overviewPanelHeader"><div><h3>Workload this week</h3><p>Tasks and calendar items due each day</p></div></header>
+      <div class="overviewWeekChart" data-overview-week-chart></div>
+    </section>
+    <section class="overviewPanel overviewChartPanel">
+      <header class="overviewPanelHeader"><div><h3>Task status</h3><p>Open and completed items</p></div></header>
+      <div class="overviewStatusChart" data-overview-status-chart></div>
+    </section>
+  </section>
   <div class="overviewDashboardGrid">
     <main class="overviewDashboardMain">
       <section class="overviewPanel">

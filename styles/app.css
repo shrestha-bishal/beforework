@@ -267,6 +267,28 @@
   .overviewStatLabel{margin-top:3px;font-size:11px;font-weight:600;color:var(--text);}
   .overviewStatDetail{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--muted);}
   .overviewStat-overdue.has-overdue .overviewStatIcon{color:var(--color-danger-fg);}
+  .overviewCharts{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.8fr);gap:14px;margin-bottom:16px;}
+  .overviewChartPanel{min-width:0;}
+  .overviewChartPanel .overviewPanelHeader{margin-bottom:8px;}
+  .overviewWeekChart{width:100%;min-height:150px;}
+  .overviewWeekChart svg{display:block;width:100%;height:auto;overflow:visible;}
+  .overviewWeekChart text{fill:var(--muted);font-family:inherit;font-size:11px;}
+  .overviewWeekChart .overviewChartValue{fill:var(--text);font-size:10px;font-weight:600;}
+  .overviewChartGridline{stroke:var(--border);stroke-width:1;}
+  .overviewStatusChart{display:flex;align-items:center;justify-content:center;gap:clamp(14px,3vw,32px);min-height:150px;}
+  .overviewStatusRing{position:relative;width:124px;height:124px;flex:none;}
+  .overviewStatusRing svg{width:100%;height:100%;}
+  .overviewStatusTrack,.overviewStatusComplete{fill:none;stroke-width:12;}
+  .overviewStatusTrack{stroke:var(--bg-soft2);}
+  .overviewStatusComplete{stroke:var(--color-success-fg);stroke-linecap:round;}
+  .overviewStatusTotal{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .overviewStatusTotal strong{font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .overviewStatusTotal span{margin-top:3px;font-size:10px;color:var(--muted);}
+  .overviewStatusLegend{display:flex;flex-direction:column;gap:12px;min-width:110px;}
+  .overviewStatusLegend div{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:7px;font-size:11px;color:var(--muted);}
+  .overviewStatusLegend strong{color:var(--text);font-variant-numeric:tabular-nums;}
+  .overviewLegendDot{width:8px;height:8px;border-radius:50%;background:var(--accent);}
+  .overviewLegendDot.complete{background:var(--color-success-fg);}
   .overviewDashboardGrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(270px,.8fr);gap:16px;align-items:start;}
   .overviewDashboardMain,.overviewDashboardAside{display:flex;flex-direction:column;gap:14px;min-width:0;}
   .overviewPanel{min-width:0;padding:17px;border:1px solid var(--border);border-radius:8px;background:var(--bg);}
@@ -561,6 +583,7 @@
     #board{padding:14px 16px;}
     .listWrap,.overviewWrap,.calendarWrap{padding:16px;}
     .overviewStats{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .overviewCharts{grid-template-columns:1fr;}
     .overviewStat:nth-child(even){border-right:0;}
     .overviewStat:nth-child(n+3){border-top:1px solid var(--border);}
     .overviewStat:nth-child(3){padding-left:0;}
@@ -576,5 +599,6 @@
     .overviewQuickActions{width:100%;}
     .overviewQuickActions button{flex:1;justify-content:center;}
     .overviewDashboardAside{grid-template-columns:1fr;}
+    .overviewCharts{grid-template-columns:1fr;}
     .overviewPanel{padding:12px;}
   }
