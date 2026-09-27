@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://beforework.netlify.app/sitemap.xml
