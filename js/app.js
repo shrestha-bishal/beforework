@@ -828,16 +828,47 @@
     project.groups.push({id:uid(), name, items:[]});
     scheduleSave(); renderMain();
   }
-  function deleteGroup(pid, gid){
+  function deleteGroup(pid, gid, targetGroupId){
     const p = getProject(pid);
     if (!p || p.groups.length <= 1){
       showNotice("Group required", "A project needs at least one group.");
       return;
     }
     const group = p.groups.find(candidate=>candidate.id===gid);
-    if (group) group.items.forEach(queueGoogleEventDeletes);
+    if (!group) return;
+    if (group.items.length){
+      const target = p.groups.find(candidate=>candidate.id===targetGroupId && candidate.id!==gid);
+      if (!target) return;
+      const now = Date.now();
+      group.items.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
+    }
     p.groups = p.groups.filter(g=>g.id!==gid);
-    scheduleSave(); renderMain();
+    boardFilterGroups.delete(gid);
+    scheduleSave(); renderMain(); renderProjectList();
+  }
+  async function editGroupName(project, group){
+    const name = await showDialog({title:"Edit group", fields:[{label:"Group name", value:group.name}], confirmLabel:"Save"});
+    if (!name || !name.trim()) return;
+    group.name = name.trim();
+    scheduleSave(); renderAll();
+  }
+  async function confirmDeleteGroup(project, group){
+    if (!project.groups.includes(group)) return;
+    if (project.groups.length<=1){ await showNotice("Group required", "A project needs at least one group."); return; }
+    let targetGroupId = null;
+    if (group.items.length){
+      targetGroupId = await showDialog({
+        title:`Delete group ${group.name}`,
+        message:`Choose where to move its ${group.items.length} item(s). The items and their calendar links will be preserved.`,
+        fields:[{label:"Move items to", type:"select", options:project.groups.filter(candidate=>candidate.id!==group.id).map(candidate=>({value:candidate.id,label:candidate.name})), value:project.groups.find(candidate=>candidate.id!==group.id)?.id}],
+        confirmLabel:"Move items and delete",
+        danger:true
+      });
+      if (!targetGroupId) return;
+    } else if (!await showConfirm(`Delete group ${group.name}`, "This group is empty. Delete it?", true)){
+      return;
+    }
+    deleteGroup(project.id, group.id, targetGroupId);
   }
   function addItem(pid, gid, title){
     const project = getProject(pid);
@@ -1066,6 +1097,33 @@
       menu.classList.remove("open");
       if (await showConfirm(`Delete column ${field.label}`, "This removes its values from every item in this project.", true)) deleteField(project, field.id);
     };
+  }
+  function wireGroupColumnHeader(th, project){
+    const menuButton = th.querySelector(".fieldColumnMenuBtn");
+    const menu = th.querySelector(".fieldColumnMenu");
+    menuButton.onclick = event=>{
+      event.stopPropagation();
+      const shouldOpen = !menu.classList.contains("open");
+      document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
+      menu.classList.toggle("open", shouldOpen);
+    };
+    menu.querySelectorAll("[data-group-action]").forEach(button=>{
+      button.onclick = async event=>{
+        event.stopPropagation();
+        menu.classList.remove("open");
+        const action = button.dataset.groupAction;
+        const groupId = await showDialog({
+          title:action==="edit" ? "Choose group to edit" : "Choose group to delete",
+          fields:[{label:"Group", type:"select", options:project.groups.map(group=>({value:group.id,label:group.name})), value:project.groups[0]?.id}],
+          confirmLabel:"Continue"
+        });
+        if (!groupId) return;
+        const group = project.groups.find(candidate=>candidate.id===groupId);
+        if (!group) return;
+        if (action==="edit") await editGroupName(project, group);
+        else await confirmDeleteGroup(project, group);
+      };
+    });
   }
 
   /* ---------- Shared helpers ---------- */
@@ -1646,7 +1704,8 @@
         <div class="groupHead">
           <input class="form-control groupTitle" value="${escapeHtml(group.name)}">
           <span class="Counter Counter--secondary">${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}</span>
-          <button class="btn btn-invisible btn-sm" data-action="delGroup" title="Delete group">✕</button>
+          <button class="btn btn-invisible btn-sm fieldColumnMenuBtn" data-action="groupMenu" type="button" title="Group actions" aria-label="Group actions for ${escapeHtml(group.name)}">⋮</button>
+          <div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit</button><button type="button" data-group-action="delete" class="danger">Delete</button></div>
         </div>
         <div class="groupBody"></div>
         <button class="btn addItemBtn" data-action="addItem">+ Add item</button>
@@ -1656,8 +1715,23 @@
         group.name = e.target.value.trim() || group.name;
         scheduleSave(); renderProjectList();
       });
-      col.querySelector('[data-action="delGroup"]').onclick = async () => {
-        if (await showConfirm(`Delete group ${group.name}`, `This will delete the group and its ${group.items.length} item(s).`, true)) deleteGroup(project.id, group.id);
+      const groupMenuButton = col.querySelector('[data-action="groupMenu"]');
+      const groupMenu = col.querySelector(".fieldColumnMenu");
+      groupMenuButton.onclick = event=>{
+        event.stopPropagation();
+        const shouldOpen = !groupMenu.classList.contains("open");
+        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
+        groupMenu.classList.toggle("open", shouldOpen);
+      };
+      groupMenu.querySelector('[data-group-action="edit"]').onclick = event=>{
+        event.stopPropagation();
+        groupMenu.classList.remove("open");
+        editGroupName(project, group);
+      };
+      groupMenu.querySelector('[data-group-action="delete"]').onclick = event=>{
+        event.stopPropagation();
+        groupMenu.classList.remove("open");
+        confirmDeleteGroup(project, group);
       };
       col.querySelector('[data-action="addItem"]').onclick = async () => {
         openNewItemModal(project, group);
@@ -1734,7 +1808,7 @@
         <thead><tr>
           <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
           <th class="${TH_CLASS}" data-field="title">Title</th>
-          <th class="${TH_CLASS}" data-field="group">Group</th>
+          <th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>
           ${fieldHeaders}
           <th class="${TH_CLASS}">Tags</th>
           <th class="${TH_CLASS}">Progress</th>
@@ -1776,7 +1850,10 @@
       const field = th.dataset.field;
       const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
       const customField = project.fields.find(candidate=>candidate.id===field);
-      if (customField){
+      if (field==="group"){
+        th.querySelector(".arrow").textContent = arrow;
+        wireGroupColumnHeader(th, project);
+      } else if (customField){
         th.querySelector(".arrow").textContent = arrow;
         wireCustomColumnHeader(th, customField, project);
       } else {
@@ -1873,7 +1950,7 @@
         <thead><tr>
           <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible rows"></th>
           <th class="${TH_CLASS}" data-field="title">Title</th>
-          <th class="${TH_CLASS}" data-field="group">Group</th>
+          <th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>
           ${fieldHeaders}
           <th class="${TH_CLASS}">Tags</th>
         </tr></thead>
@@ -1913,7 +1990,10 @@
       const field = th.dataset.field;
       const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
       const customField = project.fields.find(candidate=>candidate.id===field);
-      if (customField){
+      if (field==="group"){
+        th.querySelector(".arrow").textContent = arrow;
+        wireGroupColumnHeader(th, project);
+      } else if (customField){
         th.querySelector(".arrow").textContent = arrow;
         wireCustomColumnHeader(th, customField, project);
       } else {

@@ -1,3 +1,6 @@
+  .groupHead{position:relative;display:flex;align-items:center;gap:6px;padding:12px 12px 8px;}
+  .groupHead .fieldColumnMenuBtn{position:static;flex:none;width:24px;height:24px;opacity:1;visibility:visible;transform:none;}
+  .groupHead .fieldColumnMenu{top:calc(100% + 2px);right:8px;}
 /* These are just local aliases - every value points straight at a real
      Primer CSS custom property, so Primer's own [data-color-mode] rules
      (toggled in JS - see applyTheme) are what actually drives light/dark,
