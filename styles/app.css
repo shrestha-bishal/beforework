@@ -67,7 +67,7 @@
   #calendarNav:hover{background:var(--bg-soft2);color:var(--text);}
   #overviewNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #calendarNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #overviewNav iconify-icon,#calendarNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon{font-size:16px;flex:none;}
+  #overviewNav iconify-icon,#calendarNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}
@@ -81,9 +81,10 @@
     cursor:pointer;font-size:13.5px;color:var(--muted);margin:0;padding-top:8px;font-weight:500;}
   #settingsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #settingsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #feedbackNav{display:block;width:100%;padding:6px 10px 0;border:0;background:transparent;text-align:left;
-    font-size:11.5px;color:var(--muted);cursor:pointer;line-height:1.3;}
-  #feedbackNav:hover{color:var(--text);}
+  #supportNav,#feedbackNav{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:8px;
+    background:transparent;text-align:left;font-size:13.5px;color:var(--muted);cursor:pointer;line-height:1.3;font-weight:500;}
+  #supportNav{margin-top:6px;padding-top:10px;border-top:1px solid var(--border);border-radius:8px;}
+  #supportNav:hover,#feedbackNav:hover{background:var(--bg-soft2);color:var(--text);}
   .sidebarBottomNav{margin-top:auto;border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:2px;}
   .projectSectionHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
   .projectCreateWrap{position:relative;}
