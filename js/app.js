@@ -2952,6 +2952,11 @@
         document.getElementById("projectMenu").classList.remove("open");
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
+      const filterPanel = document.getElementById("filterPanel");
+      if (filterPanel.classList.contains("open") && !event.target.closest("#filterPanel") && !event.target.closest("#toggleFilters")){
+        filterPanel.classList.remove("open");
+        document.getElementById("toggleFilters").classList.remove("active");
+      }
       if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
       const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
