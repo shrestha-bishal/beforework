@@ -4,6 +4,8 @@
 
 Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data in a JSON file that you choose on your device.
 
+Beforework is open source under the [MIT License](LICENSE). Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Features
 
 - Project, folder, task, and group management
@@ -43,3 +45,7 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 - `pages/` - dashboard and settings page fragments
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
+
+## Licence
+
+This project is available under the MIT License. See [LICENSE](LICENSE) for the full text.
