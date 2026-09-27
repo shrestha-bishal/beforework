@@ -23,6 +23,8 @@
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
+  const GITHUB_SPONSORS_URL = "https://github.com/sponsors/shrestha-bishal";
+  const BUY_ME_A_COFFEE_URL = "https://www.buymeacoffee.com/shresthabishal";
   const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
 
@@ -1262,6 +1264,8 @@
     board.querySelector("#settingsSidebarToggle").onclick = () => { toggleSidebarCollapsed(); renderSettings(board); };
     board.querySelector("#settingsShortcuts").onclick = showShortcutsModal;
     board.querySelector("#settingsContactForm").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
+    board.querySelector("#settingsGithubSponsors").onclick = () => window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer");
+    board.querySelector("#settingsBuyMeCoffee").onclick = () => window.open(BUY_ME_A_COFFEE_URL, "_blank", "noopener,noreferrer");
     board.querySelector("#settingsSwitchFile").onclick = switchFile;
     board.querySelector("#settingsNewFile").onclick = startNewFileFromMenu;
     board.querySelector("#settingsExport").onclick = exportJSON;
@@ -2682,6 +2686,7 @@
       navigateToIntegrations();
     };
     document.getElementById("settingsNav").onclick = navigateToSettings;
+    document.getElementById("supportNav").onclick = () => window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer");
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
     document.getElementById("projectMenuBtn").onclick = event => {
