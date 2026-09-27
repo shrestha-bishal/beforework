@@ -61,6 +61,7 @@
   }
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let boardFilterText = "";
+  let boardFilterGroups = new Set();
   let boardFilterTags = new Set();
   let boardFilterFields = new Map(); // fieldId -> "__all__" | "__none__" | optionId
   let listSort = {field:"updated", dir:"desc"};
@@ -657,6 +658,7 @@
     if (activeProjectId===OVERVIEW) return;
     filterPrefs[activeProjectId] = {
       text: boardFilterText,
+      groups: [...boardFilterGroups],
       tags: [...boardFilterTags],
       fields: Object.fromEntries(boardFilterFields)
     };
@@ -665,6 +667,7 @@
   function restoreProjectFilters(pid){
     const saved = filterPrefs[pid] || {};
     boardFilterText = saved.text || "";
+    boardFilterGroups = new Set(Array.isArray(saved.groups) ? saved.groups : []);
     boardFilterTags = new Set(Array.isArray(saved.tags) ? saved.tags : []);
     boardFilterFields = new Map(Object.entries(saved.fields || {}));
   }
@@ -996,8 +999,9 @@
     return value ? escapeHtml(value) : "-";
   }
 
-  function itemMatchesFilter(project, item){
+  function itemMatchesFilter(project, item, group){
     if (item.archived && !showArchived) return false;
+    if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
     if (boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
       if (mode==="__all__") continue;
@@ -1020,7 +1024,7 @@
   function rowsForSelection(project){
     const rows = [];
     project.groups.forEach(group=> group.items
-      .filter(item=>itemMatchesFilter(project, item))
+      .filter(item=>itemMatchesFilter(project, item, group))
       .forEach(item=>rows.push({item, group})));
     return rows;
   }
@@ -1340,6 +1344,7 @@
 
     document.getElementById("boardSearch").value = boardFilterText;
     renderBoardTagFilters(project);
+    renderGroupFilters(project);
     renderFieldFilters(project);
     updateFilterSummary();
 
@@ -1415,6 +1420,27 @@
     });
   }
 
+  function renderGroupFilters(project){
+    const wrap = document.getElementById("groupFilters");
+    const availableGroups = project.groups.filter(group=>!boardFilterGroups.has(group.id));
+    const activeGroups = project.groups.filter(group=>boardFilterGroups.has(group.id));
+    wrap.innerHTML = `<select class="form-control" id="groupFilterPicker" aria-label="Add group filter">
+      <option value="">Add group filter...</option>
+      ${availableGroups.map(group=>`<option value="${group.id}">${escapeHtml(group.name)}</option>`).join("")}
+    </select>${activeGroups.map(group=>`<span class="tagFilterGroup"><span class="Label color-fg-muted">${escapeHtml(group.name)}</span><button class="btn btn-invisible removeFieldFilter" data-remove-group-filter="${group.id}" title="Remove ${escapeHtml(group.name)} filter">✕</button></span>`).join("")}`;
+    wrap.querySelector("#groupFilterPicker").addEventListener("change", event=>{
+      if (!event.target.value) return;
+      boardFilterGroups.add(event.target.value);
+      renderMain();
+    });
+    wrap.querySelectorAll("[data-remove-group-filter]").forEach(button=>{
+      button.onclick = () => {
+        boardFilterGroups.delete(button.dataset.removeGroupFilter);
+        renderMain();
+      };
+    });
+  }
+
   function renderFieldFilters(project){
     const wrap = document.getElementById("fieldFilters");
     const filterable = project.fields;
@@ -1464,7 +1490,7 @@
     const summary = document.getElementById("filterSummary");
     if (!summary) return;
     const fieldCount = [...boardFilterFields.values()].filter(value=>value!=="__all__").length;
-    const count = fieldCount + boardFilterTags.size + (boardFilterText ? 1 : 0);
+    const count = fieldCount + boardFilterGroups.size + boardFilterTags.size + (boardFilterText ? 1 : 0);
     summary.innerHTML = count ? `<strong>${count}</strong> filter${count===1?"":"s"} applied` : "All items";
   }
 
@@ -1475,7 +1501,7 @@
       col.className = "group Box";
       col.dataset.groupId = group.id;
 
-      const visibleItems = group.items.filter(it=>itemMatchesFilter(project, it));
+      const visibleItems = group.items.filter(it=>itemMatchesFilter(project, it, group));
 
       col.innerHTML = `
         <div class="groupHead">
@@ -1549,13 +1575,11 @@
     const wrap = document.createElement("div");
     wrap.className = "listWrap";
 
-    const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
     const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
-        <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
       </div>
       <div class="bulkBar">
@@ -1581,9 +1605,7 @@
     board.appendChild(wrap);
 
     const doQuickAdd = () => {
-      const gid = document.getElementById("quickAddGroup").value;
-      const group = project.groups.find(candidate=>candidate.id===gid);
-      openNewItemModal(project, group);
+      openNewItemModal(project, project.groups[0]);
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
     const updateSelection = () => {
@@ -1625,7 +1647,7 @@
     });
 
     let rows = [];
-    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it)).forEach(it=> rows.push({item:it, group:g})));
+    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it, g)).forEach(it=> rows.push({item:it, group:g})));
 
     rows.sort((a,b)=>{
       let va, vb;
@@ -1688,13 +1710,11 @@
     const wrap = document.createElement("div");
     wrap.className = "listWrap";
 
-    const groupOptionsHtml = project.groups.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join("");
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
     const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     wrap.innerHTML = `
       <div class="listAddRow">
-        <select class="form-control" id="quickAddGroup">${groupOptionsHtml}</select>
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add row</button>
       </div>
       <div class="bulkBar">
@@ -1718,9 +1738,7 @@
     board.appendChild(wrap);
 
     const doQuickAdd = () => {
-      const gid = document.getElementById("quickAddGroup").value;
-      const group = project.groups.find(candidate=>candidate.id===gid);
-      openNewItemModal(project, group);
+      openNewItemModal(project, project.groups[0]);
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
     const updateSelection = () => {
@@ -1762,7 +1780,7 @@
     });
 
     let rows = [];
-    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it)).forEach(it=> rows.push({item:it, group:g})));
+    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it, g)).forEach(it=> rows.push({item:it, group:g})));
 
     rows.sort((a,b)=>{
       let va, vb;
@@ -1956,7 +1974,7 @@
       const dateNumber = cell.getDate();
       const cellDate = calendarDateKey(cell);
       const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
-      const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item));
+      const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item, entry.group));
       const day = view.querySelector("#calendarDayTemplate").content.firstElementChild.cloneNode(true);
       day.dataset.date = cellDate;
       day.classList.toggle("muted", !inMonth);
@@ -2754,7 +2772,7 @@
       boardFilterText = e.target.value.trim(); renderMain();
     });
     document.getElementById("clearBoardFilters").onclick = () => {
-      boardFilterText=""; boardFilterTags.clear(); boardFilterFields.clear();
+      boardFilterText=""; boardFilterGroups.clear(); boardFilterTags.clear(); boardFilterFields.clear();
       renderMain();
     };
     document.getElementById("showArchivedToggle").addEventListener("change", e=>{
