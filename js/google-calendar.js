@@ -563,7 +563,7 @@
     const links = linkedGoogleCalendarIds();
     const catalog = new Map((state.googleCalendarCatalog||[]).map(calendar=>[calendar.id, calendar]));
     const lastSync = state.googleLastSyncAt ? `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}` : "Not synced yet";
-    const view = window.ProjectifyViewTemplates.clone("integrations");
+    const view = window.BeforeworkViewTemplates.clone("integrations");
     const list = view.querySelector("[data-linked-calendar-list]");
     const rowTemplate = view.querySelector("#linkedCalendarRowTemplate");
     list.querySelector("[data-no-linked-calendars]").hidden = links.length>0;

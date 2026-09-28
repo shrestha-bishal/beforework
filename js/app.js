@@ -1519,7 +1519,7 @@
   /* Integrations view moved to js/google-calendar.js */
 
   function renderSupport(board){
-    board.replaceChildren(window.ProjectifyViewTemplates.clone("support"));
+    board.replaceChildren(window.BeforeworkViewTemplates.clone("support"));
   }
 
   function renderSettings(board){
@@ -1527,7 +1527,7 @@
     const timeFormat = getTimeFormat();
     const sidebarCollapsed = document.getElementById("sidebar").classList.contains("collapsed");
     const accountName = currentAuthUser && activeAuthProvider ? activeAuthProvider.label(currentAuthUser) : "";
-    const view = window.ProjectifyViewTemplates.clone("settings");
+    const view = window.BeforeworkViewTemplates.clone("settings");
     view.querySelector("#settingsThemeToggle").textContent = `${theme} mode`;
     view.querySelector("#settingsTimeFormat").value = timeFormat;
     view.querySelector("#settingsSidebarToggle").textContent = `${sidebarCollapsed ? "Expand" : "Collapse"} sidebar`;
@@ -2289,7 +2289,7 @@
   function renderCalendar(board, scopeProject){
     const wrap = document.createElement("div");
     wrap.className = "calendarWrap";
-    const view = window.ProjectifyViewTemplates.clone("calendar");
+    const view = window.BeforeworkViewTemplates.clone("calendar");
     const entries = calendarEntries(scopeProject);
     const year = calendarCursor.getFullYear();
     const month = calendarCursor.getMonth();
@@ -2511,7 +2511,7 @@
       </div>`;
     }
 
-    const view = window.ProjectifyViewTemplates.clone("overview");
+    const view = window.BeforeworkViewTemplates.clone("overview");
     const statRows = [
       {value:state.projects.length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects"},
       {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open"},
@@ -3613,7 +3613,7 @@
     wireConnectGate();
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     try{
-      await window.ProjectifyViewTemplates.loadAll();
+      await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);
       return;

@@ -1,4 +1,4 @@
-window.ProjectifyViewTemplates = (()=>{
+window.BeforeworkViewTemplates = (()=>{
   const paths = {
     overview:"pages/overview.html",
     calendar:"pages/calendar.html",
