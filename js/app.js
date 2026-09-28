@@ -388,6 +388,7 @@
       <button class="btn btn-invisible closeX" data-close>✕</button>
       <h3>Keyboard shortcuts</h3>
       <div>${rows.map(([key,desc])=>`<div class="shortcutRow"><span>${escapeHtml(desc)}</span><kbd>${escapeHtml(key)}</kbd></div>`).join("")}</div>
+      <div class="uiDivider modalDivider" aria-hidden="true"></div>
       <div class="modalFooter"><button class="btn btn-primary btn-sm" data-close>Got it</button></div>
     </div>`;
     document.body.appendChild(overlay);
@@ -1386,6 +1387,12 @@
     state.folders.forEach(folder=>{
       const heading = document.createElement("li");
       heading.className = "folderHeading";
+      if (ul.children.length){
+        const divider = document.createElement("div");
+        divider.className = "uiDivider folderHeadingDivider";
+        divider.setAttribute("aria-hidden","true");
+        heading.appendChild(divider);
+      }
       const projectCount = state.projects.filter(project=>project.folderId===folder.id).length;
       const icon = document.createElement("iconify-icon");
       icon.className = "folderIcon";
@@ -2218,6 +2225,7 @@
         <div class="modalRow"><label for="standaloneStart">Start time</label><input class="form-control" id="standaloneStart" type="time" value="${escapeHtml(item.startTime||"")}"></div>
         <div class="modalRow"><label for="standaloneEnd">End time</label><input class="form-control" id="standaloneEnd" type="time" value="${escapeHtml(item.endTime||"")}"></div>
       </div>
+      <div class="uiDivider modalDivider" aria-hidden="true"></div>
       <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button>${isNew ? "" : `<button class="btn" data-calendar-duplicate>Duplicate</button>`}<button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
     modal.querySelectorAll("[data-calendar-close]").forEach(button=>button.onclick=()=>overlay.remove());
     const duplicateButton = modal.querySelector("[data-calendar-duplicate]");
@@ -2429,7 +2437,7 @@
         {label:"Low",key:"low",color:"var(--color-attention-fg)"},
         {label:"No priority",key:"none",color:"var(--color-neutral-muted)"},
       ];
-      const body = rows.map(row=>`<div class="overviewPriorityRow">
+      const body = rows.map((row,index)=>`${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<div class="overviewPriorityRow">
         <span class="barLabel">${row.label}</span>
         <div class="barTrack"><div class="barFill" style="width:${(counts[row.key]/max*100)}%;background:${row.color};"></div></div>
         <span class="barCount">${counts[row.key]}</span>
@@ -2437,11 +2445,11 @@
       return body;
     }
     function projectBreakdownHtml(){
-      return state.projects.map(project=>{
+      return state.projects.map((project,index)=>{
         const projectItems = project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
         const complete = projectItems.filter(row=>isDoneGroup(row.group)).length;
         const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
-        return `<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
+        return `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
           <span class="overviewProjectInfo"><strong>${escapeHtml(project.name)}</strong><small>${percent}%</small></span>
           <span class="overviewProjectTrack" role="progressbar" aria-label="${escapeHtml(project.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></span>
           <span class="overviewProjectMeta">${complete} of ${projectItems.length} complete</span>
@@ -2474,8 +2482,8 @@
         const minutes = totalMinutes%60;
         return hours ? `${hours}h${minutes?` ${minutes}m`:""}` : `${totalMinutes}m`;
       };
-      const rows = [...byProject.values()].sort((a,b)=>b.seconds-a.seconds).map(entry=>
-        `<div class="overviewFocusRow"><span>${escapeHtml(entry.name)}</span><strong>${formatDuration(entry.seconds)}</strong><small>${entry.count} focus session${entry.count===1?"":"s"}</small></div>`
+      const rows = [...byProject.values()].sort((a,b)=>b.seconds-a.seconds).map((entry,index)=>
+        `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<div class="overviewFocusRow"><span>${escapeHtml(entry.name)}</span><strong>${formatDuration(entry.seconds)}</strong><small>${entry.count} focus session${entry.count===1?"":"s"}</small></div>`
       ).join("");
       return `<div class="overviewFocusTotal"><strong>${formatDuration(totalSeconds)}</strong><span>${sessions.length} completed session${sessions.length===1?"":"s"}</span></div>${rows||`<div class="overviewQuiet">Completed sessions will appear here.</div>`}`;
     }
@@ -2522,7 +2530,7 @@
       {value:completedItems.length,label:"Completed",detail:"Moved into Done",icon:"mdi:check-circle-outline",tone:"completed"}
     ];
     const stats = view.querySelector("[data-overview-stats]");
-    statRows.forEach(({value,label,detail,icon,tone})=>{
+    statRows.forEach(({value,label,detail,icon,tone},index)=>{
       const row = document.createElement("div");
       row.className = `overviewStat overviewStat-${tone}${tone==="overdue"?(overdue.length?" has-overdue":" is-clear"):""}`;
       const iconWrap = document.createElement("span");
@@ -2545,6 +2553,12 @@
       copy.append(count,name,description);
       row.append(iconWrap,copy);
       stats.appendChild(row);
+      if (index===1){
+        const divider=document.createElement("div");
+        divider.className="uiDivider overviewStatsDivider";
+        divider.setAttribute("aria-hidden","true");
+        stats.appendChild(divider);
+      }
     });
     const scheduled = [];
     openItems.forEach(row=>{
@@ -2573,10 +2587,10 @@
     view.querySelector("[data-overview-projects]").innerHTML = projectBreakdownHtml();
     view.querySelector("[data-overview-priorities]").innerHTML = priorityBreakdownHtml();
     view.querySelector("[data-overview-focus]").innerHTML = focusSummaryHtml();
-    view.querySelector("[data-overview-recent]").innerHTML = recent.map(row=>{
+    view.querySelector("[data-overview-recent]").innerHTML = recent.map((row,index)=>{
       const priority = priorityField(row.project);
       const chip = priority ? fieldChipHtml(priority,priorityOf(row)) : "";
-      return `<button class="overviewRecentRow" type="button" data-pid="${escapeHtml(row.project.id)}" data-gid="${escapeHtml(row.group.id)}" data-iid="${escapeHtml(row.item.id)}">
+      return `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<button class="overviewRecentRow" type="button" data-pid="${escapeHtml(row.project.id)}" data-gid="${escapeHtml(row.group.id)}" data-iid="${escapeHtml(row.item.id)}">
         <span class="overviewRecentMain">${chip}<strong>${escapeHtml(row.item.title)}</strong></span>
         <span class="overviewRecentMeta">${escapeHtml(row.project.name)} / ${escapeHtml(row.group.name)} <span>· ${escapeHtml(formatUpdatedAt(row.item.updatedAt))}</span></span>
       </button>`;
@@ -2951,6 +2965,7 @@
         <h3>${escapeHtml(title)}</h3>
         ${message ? `<p class="dialogMessage">${escapeHtml(message)}</p>` : ""}
         ${fieldsHtml}
+        <div class="uiDivider modalDivider" aria-hidden="true"></div>
         <div class="modalFooter">
           <button class="btn btn-invisible" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
           ${secondaryLabel ? `<button class="btn" data-dialog-secondary>${escapeHtml(secondaryLabel)}</button>` : ""}
@@ -3171,6 +3186,7 @@
             </div>
           </div>` : ""}
         </div>
+        <div class="uiDivider itemModalSidebarDivider" aria-hidden="true"></div>
         <div class="itemModalSidebar">
           ${projectOptions}
           <div class="sideItem">
@@ -3202,6 +3218,7 @@
           </div>
         </div>
       </div>
+      <div class="uiDivider itemModalDivider" aria-hidden="true"></div>
       <div class="itemModalFooter">
         <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`}</span>
         <div style="display:flex;gap:8px;">
