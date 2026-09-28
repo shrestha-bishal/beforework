@@ -3,7 +3,8 @@ window.ProjectifyViewTemplates = (()=>{
     overview:"pages/overview.html",
     calendar:"pages/calendar.html",
     integrations:"pages/integrations.html",
-    settings:"pages/settings.html"
+    settings:"pages/settings.html",
+    support:"pages/support.html"
   };
   const templates = {};
   let loadPromise = null;
