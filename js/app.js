@@ -2668,39 +2668,20 @@
         occupiedRows[rowIndex].push({start,end:start+span-1});
         card.style.gridColumn = `${start} / span ${span}`;
         card.style.gridRow = String(rowIndex+1);
-      });
-    }
-    function packVisibleCards(metrics=getGridMetrics()){
-      const rows = new Map();
-      getOrderedCards().forEach(card=>{
-        card.style.removeProperty("transform");
-        card.style.removeProperty("left");
-        const top = Math.round(card.getBoundingClientRect().top);
-        const row = [...rows.keys()].find(candidate=>Math.abs(candidate-top)<6) ?? top;
-        if (!rows.has(row)) rows.set(row,[]);
-        rows.get(row).push(card);
-      });
-      rows.forEach(rowCards=>{
-        rowCards.sort((a,b)=>a.getBoundingClientRect().left-b.getBoundingClientRect().left);
-        let previousRight = null;
-        rowCards.forEach(card=>{
-          let bounds = card.getBoundingClientRect();
-          if (previousRight!==null){
-            const shift = Math.min(0,previousRight+metrics.gap-bounds.left);
-            if (shift<0){
-              card.style.left = `${shift}px`;
-              bounds = card.getBoundingClientRect();
-            }
-          }
-          previousRight = bounds.right;
-        });
+        const areaWidth = span*metrics.trackWidth+Math.max(0,span-1)*metrics.gap;
+        card.style.width = `${areaWidth}px`;
       });
     }
     function refreshOverviewLayout(){
+      const containerWidth = cardContainer.getBoundingClientRect().width;
+      if (containerWidth>0){
+        const trackCount = Math.max(1,Math.floor(containerWidth/15));
+        cardContainer.style.gridTemplateColumns = `repeat(${trackCount},minmax(1px,1fr))`;
+        cardContainer.style.columnGap = "10px";
+      }
       const metrics = getGridMetrics();
       getOrderedCards().forEach(card=>setCardColumns(card,getCardColumns(card),metrics));
       arrangeCards(metrics);
-      packVisibleCards(metrics);
     }
     function saveCardLayout(card){
       if (!state.overviewCardLayouts || typeof state.overviewCardLayouts!=="object") state.overviewCardLayouts = {};
@@ -2726,7 +2707,6 @@
       const metrics = getGridMetrics();
       cards.forEach(card=>setCardColumns(card,Number(card.style.getPropertyValue("--overview-card-columns"))||1,metrics));
       arrangeCards(metrics);
-      packVisibleCards(metrics);
     };
     if ("ResizeObserver" in window) new ResizeObserver(updateCardColumns).observe(cardContainer);
     else window.addEventListener("resize",updateCardColumns);
@@ -2849,7 +2829,7 @@
         window.removeEventListener("pointerup",currentDrag.windowPointerUp);
         window.removeEventListener("pointercancel",currentDrag.windowPointerCancel);
         if (moved && !cancelled && placeholder && placeholder.isConnected){
-          placeholder.replaceWith(dragged);
+          placeholder.remove();
           if (dropReference && dropReference.isConnected && dropReference!==dragged){
             cardContainer.insertBefore(dragged,dropReference);
           }else if (!dropReference){
@@ -2863,6 +2843,7 @@
         if (moved && !cancelled){
           refreshOverviewLayout();
           wrap.scrollLeft = 0;
+          requestAnimationFrame(refreshOverviewLayout);
         }
         else {
           dragged.style.gridColumn = currentDrag.gridColumn;
@@ -2884,7 +2865,6 @@
         cardContainer.insertBefore(card,step<0 ? next : next.nextSibling);
         state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
         arrangeCards();
-        packVisibleCards();
         scheduleSave();
       });
 
@@ -2908,6 +2888,7 @@
           initialColumns:Number(card.style.getPropertyValue("--overview-card-columns"))||1,
           initialWidth:card.style.getPropertyValue("--overview-card-width"),width:card.getBoundingClientRect().width,
           initialHeight:card.style.getPropertyValue("--overview-card-height"),height:card.getBoundingClientRect().height,gridWidth:metrics.width,changed:false};
+        card.style.removeProperty("width");
         resizeHandle.setPointerCapture(event.pointerId);
       });
       resizeHandle.addEventListener("pointermove",event=>{
@@ -2934,6 +2915,7 @@
           if (initialHeight) card.style.setProperty("--overview-card-height",initialHeight);
           else card.style.removeProperty("--overview-card-height");
         }else if (changed){ saveCardLayout(card); }
+        refreshOverviewLayout();
       };
       resizeHandle.addEventListener("pointerup",finishResize);
       resizeHandle.addEventListener("pointercancel",event=>finishResize(event,true));
@@ -2953,6 +2935,7 @@
         const currentHeight = Number.parseFloat(card.style.getPropertyValue("--overview-card-height"))||card.getBoundingClientRect().height;
         card.style.setProperty("--overview-card-height",`${Math.max(currentHeight+step[1],180)}px`);
         saveCardLayout(card);
+        refreshOverviewLayout();
       });
     });
     wrap.appendChild(view);
@@ -3007,6 +2990,7 @@
       };
     });
     board.appendChild(wrap);
+    requestAnimationFrame(refreshOverviewLayout);
   }
 
   /* ---------- Item modal ---------- */
