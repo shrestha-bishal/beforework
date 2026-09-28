@@ -2,6 +2,11 @@
 
   /* ---------- Constants ---------- */
   const uid = () => crypto.randomUUID();
+  function recordItemActivity(item, type, details={}){
+    if (!item) return;
+    if (!Array.isArray(item.activity)) item.activity = [];
+    item.activity.push({id:uid(), type, at:Date.now(), ...details});
+  }
   // Primer's own semantic fg tokens, not hand-picked hex - these track
   // light/dark theme automatically instead of needing a second palette.
   const TAG_COLORS = [
@@ -432,7 +437,7 @@
       id:uid(), title, description, calendarType:options.calendarType || "task",
       startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "",
       endDate:options.endDate || "", completedAt:options.completedAt || null, tagIds:options.tagIds || [], values,
-      subitems:options.subitems || [], comments:options.comments || [], archived:!!options.archived,
+      subitems:options.subitems || [], comments:options.comments || [], activity:[{id:uid(), type:"created", at:now}], archived:!!options.archived,
       createdAt:now, updatedAt:now - (options.ageDays || 0) * 86400000
     });
     const views = types => types.map(type=>({id:uid(), type, name:viewLabel(type)}));
@@ -509,8 +514,8 @@
     );
 
     const calendarItems = [
-      {id:uid(), title:"Dentist appointment", description:"Routine check-up.", calendarType:"event", startTime:"08:30", endTime:"09:15", location:"Northside Dental", endDate:todayStr(4), tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:now, updatedAt:now},
-      {id:uid(), title:"Weekend hike", description:"Pack water and a rain jacket.", calendarType:"event", startTime:"07:00", endTime:"11:00", location:"Mount Lofty trailhead", endDate:todayStr(6), tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:now, updatedAt:now}
+      {id:uid(), title:"Dentist appointment", description:"Routine check-up.", calendarType:"event", startTime:"08:30", endTime:"09:15", location:"Northside Dental", endDate:todayStr(4), tagIds:[], values:{}, subitems:[], comments:[], activity:[{id:uid(), type:"created", at:now}], archived:false, standalone:true, createdAt:now, updatedAt:now},
+      {id:uid(), title:"Weekend hike", description:"Pack water and a rain jacket.", calendarType:"event", startTime:"07:00", endTime:"11:00", location:"Mount Lofty trailhead", endDate:todayStr(6), tagIds:[], values:{}, subitems:[], comments:[], activity:[{id:uid(), type:"created", at:now}], archived:false, standalone:true, createdAt:now, updatedAt:now}
     ];
     return {schemaVersion:SCHEMA_VERSION, projects:[roadmap, reading, planning], folders:[workFolder, personalFolder], calendarItems, focusSessions:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
   }
@@ -654,7 +659,11 @@
     if (!Number.isFinite(s.googleLastSyncAt)) s.googleLastSyncAt = 0;
     s.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
       if (!Number.isFinite(item.completedAt) || item.completedAt<=0) item.completedAt = null;
+      if (!Array.isArray(item.activity)) item.activity = [{id:uid(), type:"created", at:Number.isFinite(item.createdAt) ? item.createdAt : Date.now()}];
     })));
+    (s.calendarItems||[]).forEach(item=>{
+      if (!Array.isArray(item.activity)) item.activity = [{id:uid(), type:"created", at:Number.isFinite(item.createdAt) ? item.createdAt : Date.now()}];
+    });
     s.schemaVersion = SCHEMA_VERSION;
     if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};
     return s;
@@ -981,7 +990,8 @@
     const project = getProject(pid);
     const it = {id:uid(), title, description:"", calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
       startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[],
-      comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
+      comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
+    recordItemActivity(it, "created");
     getGroup(pid,gid).items.push(it);
     scheduleSave(); render();
     return it;
@@ -991,7 +1001,7 @@
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false, draft:{
       id:uid(), title:"", description:"", calendarType:project.itemDefaultType==="event" ? "event" : "task",
       startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[], comments:[],
-      archived:false, createdAt:Date.now(), updatedAt:Date.now()
+      activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
     overlay.className = "overlay";
@@ -1020,11 +1030,13 @@
       values:{...(source.values||{})},
       subitems:(source.subitems||[]).map(subitem=>({...subitem,id:uid(),done:false})),
       comments:[],
+      activity:[],
       archived:false,
       completedAt:null,
       createdAt:now,
       updatedAt:now
     };
+    recordItemActivity(copy, "created");
     delete copy.googleEventIds;
     delete copy.googleSyncMeta;
     return copy;
@@ -1050,6 +1062,7 @@
     const item = getItem(pid,gid,iid);
     if (!item || !text.trim()) return;
     item.comments.push({id:uid(), text:text.trim(), createdAt:Date.now()});
+    recordItemActivity(item, "commented");
     item.updatedAt = Date.now();
     scheduleSave(); render();
   }
@@ -1095,7 +1108,7 @@
     project.groups.forEach(g=>{
       const moving = g.items.filter(item=>selectedItemIds.has(item.id));
       g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
-      moving.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
+      moving.forEach(item=>{ item.updatedAt = now; if (g.id!==target.id) recordItemActivity(item,"moved",{from:g.name,to:target.name}); target.items.push(item); });
     });
     selectedItemIds.clear(); scheduleSave(); render();
   }
@@ -1141,6 +1154,7 @@
     if (toIndex==null || toIndex>to.items.length) to.items.push(item);
     else to.items.splice(toIndex,0,item);
     item.updatedAt = Date.now();
+    if (fromGid!==toGid) recordItemActivity(item,"moved",{from:from.name,to:to.name});
     scheduleSave(); render();
   }
   function createTag(project, name, color){
@@ -1250,9 +1264,9 @@
     const dayStamp = value => Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
     const daysAgo = Math.round((dayStamp(now) - dayStamp(date)) / 86400000);
     const time = formatTime(date);
-    if (daysAgo===0) return time;
+    if (daysAgo===0) return `Today at ${time}`;
     if (daysAgo===1) return `Yesterday at ${time}`;
-    if (daysAgo>1 && daysAgo<7) return `${daysAgo}d ago at ${time}`;
+    if (daysAgo>1 && daysAgo<7) return `${daysAgo} days ago at ${time}`;
     const dateLabel = date.toLocaleDateString(undefined, {
       day:"numeric", month:"short", ...(date.getFullYear()===now.getFullYear() ? {} : {year:"numeric"})
     });
@@ -2366,7 +2380,11 @@
       item.startTime = modal.querySelector("#standaloneStart").value;
       item.endTime = modal.querySelector("#standaloneEnd").value;
       item.updatedAt = Date.now();
-      if (isNew) state.calendarItems.push(item);
+      if (isNew){
+        item.activity = Array.isArray(item.activity) ? item.activity : [];
+        recordItemActivity(item, "created");
+        state.calendarItems.push(item);
+      }
       scheduleSave();
       overlay.remove();
       renderAll();
@@ -2376,7 +2394,7 @@
   }
   async function openNewCalendarItemModal(scopeProject, date){
     if (!scopeProject){
-      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", calendarType:"event", startTime:"", endTime:"", location:"", startDate:date, endDate:date, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
+      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", calendarType:"event", startTime:"", endTime:"", location:"", startDate:date, endDate:date, tagIds:[], values:{}, subitems:[], comments:[], activity:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
       return;
     }
     const project = scopeProject;
@@ -2386,7 +2404,7 @@
     const group = project.groups[0];
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:!scopeProject, draft:{
       id:uid(), title:"", description:"", calendarType:"event", startTime:"09:00", endTime:"10:00", location:"", endDate:date,
-      tagIds:[], values:{[dateField.id]:date}, subitems:[], comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
+      tagIds:[], values:{[dateField.id]:date}, subitems:[], comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
     overlay.className = "overlay";
@@ -2666,8 +2684,10 @@
             click.stopPropagation();
             const item = getItem(details.projectId,details.groupId,details.itemId);
             if (!item) return;
-            item.completedAt = isItemCompleted(item) ? null : Date.now();
+            const wasCompleted = isItemCompleted(item);
+            item.completedAt = wasCompleted ? null : Date.now();
             item.updatedAt = Date.now();
+            recordItemActivity(item, wasCompleted ? "reopened" : "completed");
             scheduleSave();
             hideCalendarPopover();
             render();
@@ -3573,6 +3593,14 @@
           <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
         </div>`).join("")
       : `<div class="commentEmpty">No comments yet.</div>`;
+    const activityEvents = [...(item.activity||[])].sort((a,b)=>b.at-a.at);
+    const activityHtml = activityEvents.length
+      ? activityEvents.map(event=>{
+          const label = event.type==="created" ? "Created" : event.type==="commented" ? "Commented" : event.type==="completed" ? "Marked complete" : event.type==="reopened" ? "Reopened" : event.type==="moved" ? `Moved${event.from?` from ${event.from}`:""}${event.to?` to ${event.to}`:""}` : "Updated";
+          return `<div class="activityRow"><div class="activityBadge">${escapeHtml(label)}</div><div class="activityMeta">${escapeHtml(formatUpdatedAt(event.at))}</div></div>`;
+        }).join("")
+      : `<div class="commentEmpty">No activity yet.</div>`;
+    const defaultTab = "comments";
 
     modal.innerHTML = `
       ${!isNew ? `<div class="itemModalActions">
@@ -3606,12 +3634,18 @@
           </div>
           ${!isNew ? `
           <div class="mainSection">
-            <div class="mainSectionLabel">Comments</div>
-            <div id="commentsList">${commentsHtml}</div>
-            <div style="display:flex;gap:6px;">
-              <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
-              <button class="btn btn-sm" data-action="addComment">Add</button>
+            <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
+              <button type="button" class="itemDetailTab active" data-item-tab="comments" role="tab" aria-selected="true">Comments</button>
+              <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
             </div>
+            <div class="itemDetailPanel active" data-item-panel="comments">
+              ${commentsHtml}
+              <div style="display:flex;gap:6px;margin-top:10px;">
+                <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
+                <button class="btn btn-sm" data-action="addComment">Add</button>
+              </div>
+            </div>
+            <div class="itemDetailPanel" data-item-panel="activity">${activityHtml}</div>
           </div>` : ""}
         </div>
         <div class="uiDivider itemModalSidebarDivider" aria-hidden="true"></div>
@@ -3818,12 +3852,28 @@
       modal.querySelectorAll('[data-action="delComment"]').forEach(btn=>{
         btn.onclick = () => { deleteComment(projectId, groupId, itemId, btn.dataset.cid); renderItemModal(); };
       });
+      modal.querySelectorAll(".itemDetailTab").forEach(tab=>{
+        tab.onclick = () => {
+          const target = tab.dataset.itemTab;
+          modal.querySelectorAll(".itemDetailTab").forEach(btn=>{
+            const active = btn===tab;
+            btn.classList.toggle("active", active);
+            btn.setAttribute("aria-selected", String(active));
+          });
+          modal.querySelectorAll(".itemDetailPanel").forEach(panel=>{
+            panel.classList.toggle("active", panel.dataset.itemPanel===target);
+            panel.hidden = panel.dataset.itemPanel!==target;
+          });
+        };
+      });
       const archiveBtn = modal.querySelector('[data-action="toggleArchive"]');
       if (archiveBtn) archiveBtn.onclick = () => { toggleArchiveItem(projectId, groupId, itemId); renderItemModal(); };
       const completeBtn = modal.querySelector('[data-action="completeItem"]');
       if (completeBtn) completeBtn.onclick = () => {
-        item.completedAt = isItemCompleted(item) ? null : Date.now();
+        const wasCompleted = isItemCompleted(item);
+        item.completedAt = wasCompleted ? null : Date.now();
         item.updatedAt = Date.now();
+        recordItemActivity(item, wasCompleted ? "reopened" : "completed");
         scheduleSave();
         render();
         renderItemModal();
@@ -3837,6 +3887,7 @@
         if (!title || !targetProject || !targetGroup) return;
         item.title = title;
         item.updatedAt = Date.now();
+        recordItemActivity(item, "created");
         targetGroup.items.push(item);
         scheduleSave();
         closeItemModal();

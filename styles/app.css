@@ -719,6 +719,18 @@
   .commentRow .commentMeta{font-size:10.5px;color:var(--faint);margin-bottom:2px;}
   .commentRow .commentText{color:var(--text);white-space:pre-wrap;word-break:break-word;}
   .commentEmpty{font-size:12px;color:var(--faint);padding:2px 2px 4px 2px;}
+  .itemDetailTabs{display:flex;align-items:flex-end;gap:8px;margin:0 0 10px;padding:0;border-bottom:1px solid var(--border);background:transparent;border-radius:0;}
+  .itemDetailTab{position:relative;flex:none;padding:8px 10px 9px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;line-height:1.2;cursor:pointer;border-radius:0;}
+  .itemDetailTab:hover{color:var(--text);}
+  .itemDetailTab.active{color:var(--text);background:transparent;box-shadow:none;}
+  .itemDetailTab.active::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:999px;background:var(--accent);}
+  .itemDetailPanel{display:none;padding-top:2px;}
+  .itemDetailPanel.active{display:block;}
+  #activityList{display:flex;flex-direction:column;gap:0;margin:2px 0 0 0;}
+  .activityRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border-soft, var(--border));font-size:12px;line-height:1.4;}
+  .activityRow:last-child{border-bottom:none;padding-bottom:0;}
+  .activityMeta{font-size:11px;color:var(--faint);white-space:nowrap;min-width:128px;text-align:right;}
+  .activityBadge{font-weight:500;color:var(--text);line-height:1.4;flex:1;min-width:0;}
 
   /* Focus timer */
   .focusTimerPanel{position:static;width:auto;margin:5px 0 8px;padding:12px;background:var(--bg);
