@@ -44,6 +44,9 @@
   let focusTotal = 25*60;
   let focusDuration = 25*60;
   let breakDuration = 5*60;
+  let focusSessionStartedAt = null;
+  let focusSessionProjectId = null;
+  let focusSessionElapsedSeconds = 0;
   let activeProjectId = OVERVIEW;
   // View type is per-project now (project.views + project.activeViewId), not global.
   const VIEW_DEFS = [
@@ -230,13 +233,41 @@
     disp.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
     document.title = focusInterval ? `${disp.textContent} · Beforework` : "Beforework";
   }
+  function clearFocusSessionTracking(){
+    focusSessionStartedAt = null;
+    focusSessionProjectId = null;
+    focusSessionElapsedSeconds = 0;
+  }
+  function recordCompletedFocusSession(){
+    if (focusSessionElapsedSeconds>0){
+      const completedAt = Date.now();
+      if (!Array.isArray(state.focusSessions)) state.focusSessions = [];
+      state.focusSessions.push({
+        id:uid(),
+        projectId:focusSessionProjectId,
+        startedAt:focusSessionStartedAt || completedAt,
+        completedAt,
+        durationSeconds:focusSessionElapsedSeconds
+      });
+      scheduleSave();
+      if (activeProjectId===OVERVIEW) renderMain();
+    }
+    clearFocusSessionTracking();
+  }
   function startFocusTimer(){
     if (focusInterval || focusSeconds<=0) return;
+    if (focusMode==="focus" && focusSessionStartedAt===null){
+      focusSessionStartedAt = Date.now();
+      focusSessionProjectId = getProject(activeProjectId)?.id || null;
+      focusSessionElapsedSeconds = 0;
+    }
     focusInterval = setInterval(()=>{
       focusSeconds = Math.max(0, focusSeconds-1);
+      if (focusMode==="focus") focusSessionElapsedSeconds++;
       renderFocusTimer();
       if (focusSeconds<=0){
         clearInterval(focusInterval); focusInterval=null;
+        if (focusMode==="focus") recordCompletedFocusSession();
         const startBtn = document.getElementById("focusStartBtn");
         if (startBtn) startBtn.textContent = "Start";
         showNotice(focusMode==="break" ? "Break finished" : "Focus session finished", focusMode==="break" ? "Your break has finished. Start another focus session when you're ready." : "Your focus session has finished. Take a short break or start another session.");
@@ -253,11 +284,13 @@
   }
   function resetFocusTimer(){
     pauseFocusTimer();
+    clearFocusSessionTracking();
     focusSeconds = focusTotal;
     renderFocusTimer();
   }
   function setFocusDuration(minutes){
     pauseFocusTimer();
+    clearFocusSessionTracking();
     focusTotal = minutes * 60;
     if (focusMode==="focus") focusDuration = focusTotal;
     else breakDuration = focusTotal;
@@ -285,6 +318,7 @@
     if (mode!=="focus" && mode!=="break") return;
     if (focusMode===mode) return;
     pauseFocusTimer();
+    clearFocusSessionTracking();
     focusMode = mode;
     focusTotal = mode==="focus" ? focusDuration : breakDuration;
     focusSeconds = focusTotal;
@@ -447,7 +481,7 @@
       {id:uid(), title:"Dentist appointment", description:"Routine check-up.", calendarType:"event", startTime:"08:30", endTime:"09:15", location:"Northside Dental", endDate:todayStr(4), tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:now, updatedAt:now},
       {id:uid(), title:"Weekend hike", description:"Pack water and a rain jacket.", calendarType:"event", startTime:"07:00", endTime:"11:00", location:"Mount Lofty trailhead", endDate:todayStr(6), tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:now, updatedAt:now}
     ];
-    return {schemaVersion:SCHEMA_VERSION, projects:[roadmap, reading, planning], folders:[workFolder, personalFolder], calendarItems, googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
+    return {schemaVersion:SCHEMA_VERSION, projects:[roadmap, reading, planning], folders:[workFolder, personalFolder], calendarItems, focusSessions:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
   }
 
   /* ---------- Schema migrations ----------
@@ -532,6 +566,11 @@
       });
       return s;
     },
+    // v5 -> v6: completed focus sessions are kept in the workspace file.
+    6: s => {
+      if (!Array.isArray(s.focusSessions)) s.focusSessions = [];
+      return s;
+    },
   };
   const SCHEMA_VERSION = Math.max(...Object.keys(MIGRATIONS).map(Number));
   const MIGRATION_BACKUP_KEY = "personal_dashboard_pre_migration_backup_v1";
@@ -564,6 +603,7 @@
     }
     if (!Array.isArray(s.folders)) s.folders = [];
     if (!Array.isArray(s.calendarItems)) s.calendarItems = [];
+    if (!Array.isArray(s.focusSessions)) s.focusSessions = [];
     if (!Array.isArray(s.googleDeletedEventIds)) s.googleDeletedEventIds = [];
     if (!Array.isArray(s.googleCalendarLinks)) s.googleCalendarLinks = [];
     if (!Array.isArray(s.googleCalendarCatalog)) s.googleCalendarCatalog = [];
@@ -2369,6 +2409,37 @@
         </button>`;
       }).join("") || `<div class="overviewQuiet">No projects yet.</div>`;
     }
+    function focusSummaryHtml(){
+      const now = Date.now();
+      const weekStart = new Date(now);
+      weekStart.setHours(0,0,0,0);
+      weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));
+      const sessions = (state.focusSessions||[]).filter(session=>session &&
+        Number.isFinite(session.completedAt) && session.completedAt>=weekStart.getTime() && session.completedAt<=now &&
+        Number.isFinite(session.durationSeconds) && session.durationSeconds>0);
+      const byProject = new Map();
+      let totalSeconds = 0;
+      sessions.forEach(session=>{
+        const project = state.projects.find(candidate=>candidate.id===session.projectId);
+        const key = project ? project.id : (session.projectId ? `deleted:${session.projectId}` : "__unassigned__");
+        const name = project ? project.name : (session.projectId ? "Deleted project" : "Unassigned");
+        const entry = byProject.get(key) || {name, seconds:0, count:0};
+        entry.seconds += session.durationSeconds;
+        entry.count++;
+        totalSeconds += session.durationSeconds;
+        byProject.set(key, entry);
+      });
+      const formatDuration = seconds=>{
+        const totalMinutes = Math.floor(seconds/60);
+        const hours = Math.floor(totalMinutes/60);
+        const minutes = totalMinutes%60;
+        return hours ? `${hours}h${minutes?` ${minutes}m`:""}` : `${totalMinutes}m`;
+      };
+      const rows = [...byProject.values()].sort((a,b)=>b.seconds-a.seconds).map(entry=>
+        `<div class="overviewFocusRow"><span>${escapeHtml(entry.name)}</span><strong>${formatDuration(entry.seconds)}</strong><small>${entry.count} focus session${entry.count===1?"":"s"}</small></div>`
+      ).join("");
+      return `<div class="overviewFocusTotal"><strong>${formatDuration(totalSeconds)}</strong><span>${sessions.length} completed session${sessions.length===1?"":"s"}</span></div>${rows||`<div class="overviewQuiet">Completed sessions will appear here.</div>`}`;
+    }
     function workloadChartHtml(rows){
       const counts = rows.map(day=>scheduled.filter(row=>row.date===day.date).length);
       const max = Math.max(1,...counts);
@@ -2462,6 +2533,7 @@
     view.querySelector("[data-overview-status-chart]").innerHTML = taskStatusChartHtml();
     view.querySelector("[data-overview-projects]").innerHTML = projectBreakdownHtml();
     view.querySelector("[data-overview-priorities]").innerHTML = priorityBreakdownHtml();
+    view.querySelector("[data-overview-focus]").innerHTML = focusSummaryHtml();
     view.querySelector("[data-overview-recent]").innerHTML = recent.map(row=>{
       const priority = priorityField(row.project);
       const chip = priority ? fieldChipHtml(priority,priorityOf(row)) : "";

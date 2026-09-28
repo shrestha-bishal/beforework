@@ -367,6 +367,14 @@
   .overviewRecentMeta span{color:var(--faint);}
   .overviewProjectInfo{justify-content:space-between;}
   .overviewProjectInfo small{flex:none;color:var(--accent-strong);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .overviewFocusTotal{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px;}
+  .overviewFocusTotal strong{font-size:21px;font-weight:650;font-variant-numeric:tabular-nums;}
+  .overviewFocusTotal span{font-size:10px;color:var(--muted);text-align:right;}
+  .overviewFocusRow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 10px;padding:8px 0;border-top:1px solid var(--border);font-size:11px;}
+  .overviewFocusRow:first-child{border-top:0;}
+  .overviewFocusRow>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .overviewFocusRow strong{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .overviewFocusRow small{grid-column:1/-1;color:var(--muted);font-size:10px;}
   .overviewProjectTrack,.overviewProjectTrack span{display:block;height:6px;border-radius:4px;}
   .overviewProjectTrack{overflow:hidden;background:var(--bg-soft2);}
   .overviewProjectTrack span{background:var(--accent);transition:width .25s ease;}
