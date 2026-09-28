@@ -27,6 +27,7 @@
     background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;
     transition:background .15s ease,color .15s ease;line-height:1.4;}
   button{font-family:inherit;cursor:pointer;}
+  #nl-badge-frame{display:none!important;}
 
   input[type="checkbox"], input[type="radio"] {
     min-height: 0;

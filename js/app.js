@@ -181,12 +181,24 @@
 
      then add "myProvider" to AUTH_PROVIDER_ORDER. The first provider in
      that list that reports itself available is the one that's used. */
+  const NETLIFY_IDENTITY_ENABLED = false;
   const AUTH_PROVIDERS = {};
   const AUTH_PROVIDER_ORDER = ["netlify"]; // try in this order; add new provider names here
   let activeAuthProvider = null;
   let currentAuthUser = null;
 
   function registerAuthProvider(name, provider){ AUTH_PROVIDERS[name] = provider; }
+
+  function loadNetlifyIdentity(){
+    if (window.netlifyIdentity) return Promise.resolve();
+    return new Promise((resolve,reject)=>{
+      const script=document.createElement("script");
+      script.src="https://identity.netlify.com/v1/netlify-identity-widget.js";
+      script.onload=resolve;
+      script.onerror=()=>reject(new Error("Netlify Identity failed to load."));
+      document.head.appendChild(script);
+    });
+  }
 
   registerAuthProvider("netlify", {
     isAvailable(){
@@ -201,7 +213,7 @@
       // widget can error out instead of ever firing "init" - treat that as
       // "not configured" and fall back to normal, auth-less operation.
       netlifyIdentity.on("error", () => { if (!settled) disableAuthUI(); });
-      netlifyIdentity.init();
+      netlifyIdentity.init({logo:false});
       // Belt-and-braces: nothing fired after a few seconds → assume this
       // page isn't connected to an Identity instance and stay out of the way.
       setTimeout(()=>{ if (!settled) disableAuthUI(); }, 4000);
@@ -3663,7 +3675,12 @@
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
-    initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
+    if (NETLIFY_IDENTITY_ENABLED){
+      try{
+        await loadNetlifyIdentity();
+        await initAuth();
+      }catch(err){ /* Identity is optional; the workspace runs without it. */ }
+    }
     try{
       const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule] = await Promise.all([
         import("./views/settings-view.js"),
