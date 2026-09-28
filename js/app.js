@@ -1775,7 +1775,7 @@
   function renderFilterCategories(project){
     const wrap = document.getElementById("filterCategoryList");
     const categories = [
-      {id:"groupFilters", label:"Groups"},
+      ...(project.groups.length>1 ? [{id:"groupFilters", label:"Groups"}] : []),
       {id:"boardTagFilters", label:"Tags"},
       ...project.fields.map(field=>({id:`field:${field.id}`, label:field.label}))
     ];
@@ -1950,10 +1950,14 @@
   function renderListView(project, board){
     const wrap = document.createElement("div");
     wrap.className = "listWrap";
+    const showGroupColumn = project.groups.length>1;
+    const showProgressColumn = project.groups.some(group=>group.items.some(item=>
+      itemMatchesFilter(project,item,group) && Array.isArray(item.subitems) && item.subitems.length>0));
 
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
     const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
+    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
@@ -1972,10 +1976,10 @@
         <thead><tr>
           <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
           <th class="${TH_CLASS}" data-field="title">Title</th>
-          <th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>
+          ${groupHeader}
           ${fieldHeaders}
           <th class="${TH_CLASS}">Tags</th>
-          <th class="${TH_CLASS}">Progress</th>
+          ${showProgressColumn ? `<th class="${TH_CLASS}">Progress</th>` : ""}
           <th class="${TH_CLASS}" data-field="updated">Updated</th>
         </tr></thead>
         <tbody id="listTbody"></tbody>
@@ -2053,7 +2057,7 @@
     });
 
     const tbody = document.getElementById("listTbody");
-    const colCount = 6 + project.fields.length;
+    const colCount = 4 + project.fields.length + (showGroupColumn?1:0) + (showProgressColumn?1:0);
     if (!rows.length){
       tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No items match the current filters.</td></tr>`;
       return;
@@ -2067,10 +2071,10 @@
       return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
         <td class="${TD_CLASS}">${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
-        <td class="${TD_CLASS}">${escapeHtml(group.name)}</td>
+        ${showGroupColumn ? `<td class="${TD_CLASS}">${escapeHtml(group.name)}</td>` : ""}
         ${fieldCells}
         <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
-        <td class="${TD_CLASS}">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>
+        ${showProgressColumn ? `<td class="${TD_CLASS}">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>` : ""}
         <td class="${TD_CLASS}">${escapeHtml(formatUpdatedAt(item.updatedAt))}</td>
       </tr>`;
     }).join("");
@@ -2092,10 +2096,12 @@
   function renderTableView(project, board){
     const wrap = document.createElement("div");
     wrap.className = "listWrap";
+    const showGroupColumn = project.groups.length>1;
 
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
     const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
+    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
@@ -2114,7 +2120,7 @@
         <thead><tr>
           <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible rows"></th>
           <th class="${TH_CLASS}" data-field="title">Title</th>
-          <th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>
+          ${groupHeader}
           ${fieldHeaders}
           <th class="${TH_CLASS}">Tags</th>
         </tr></thead>
@@ -2193,7 +2199,7 @@
     });
 
     const tbody = document.getElementById("listTbody");
-    const colCount = 4 + project.fields.length;
+    const colCount = 3 + project.fields.length + (showGroupColumn?1:0);
     if (!rows.length){
       tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No rows match the current filters.</td></tr>`;
       return;
@@ -2220,7 +2226,7 @@
       return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
         <td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
-        <td class="${TD_CLASS}">${escapeHtml(group.name)}</td>
+        ${showGroupColumn ? `<td class="${TD_CLASS}">${escapeHtml(group.name)}</td>` : ""}
         ${fieldCells}
         <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
       </tr>`;
@@ -3453,6 +3459,10 @@
     const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
+    const groupSelector = project.groups.length>1 ? `<div class="sideItem">
+            <div class="sideItemLabel">Group</div>
+            <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
+          </div>` : "";
     const isCompleted = isItemCompleted(item);
 
     const doneSubCount = item.subitems.filter(s=>s.done).length;
@@ -3538,10 +3548,7 @@
         <div class="uiDivider itemModalSidebarDivider" aria-hidden="true"></div>
         <div class="itemModalSidebar">
           ${projectOptions}
-          <div class="sideItem">
-            <div class="sideItemLabel">Group</div>
-            <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
-          </div>
+          ${groupSelector}
           <div class="sideItem">
             <div class="sideItemLabel">Type</div>
             <div class="typeTabs" id="itemCalendarType">
