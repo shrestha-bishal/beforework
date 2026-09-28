@@ -2646,8 +2646,61 @@
       card.style.setProperty("--overview-card-min-width",`${minWidth}px`);
     }
     function getCardColumns(card){
-      const match = getComputedStyle(card).gridColumnStart.match(/span\s+(\d+)/);
-      return match ? Number(match[1]) : 1;
+      return Number(card.style.getPropertyValue("--overview-card-columns"))||1;
+    }
+    function getOrderedCards(){
+      return [...cardContainer.querySelectorAll("[data-overview-card]")];
+    }
+    function arrangeCards(metrics=getGridMetrics()){
+      const occupiedRows = [];
+      getOrderedCards().forEach(card=>{
+        const span = Math.min(getCardColumns(card),metrics.tracks);
+        let rowIndex = 0;
+        let start = 1;
+        while (true){
+          const occupied = occupiedRows[rowIndex]||[];
+          start = 1;
+          while (start+span-1<=metrics.tracks && occupied.some(range=>start<=range.end && start+span-1>=range.start)) start++;
+          if (start+span-1<=metrics.tracks) break;
+          rowIndex++;
+        }
+        if (!occupiedRows[rowIndex]) occupiedRows[rowIndex]=[];
+        occupiedRows[rowIndex].push({start,end:start+span-1});
+        card.style.gridColumn = `${start} / span ${span}`;
+        card.style.gridRow = String(rowIndex+1);
+      });
+    }
+    function packVisibleCards(metrics=getGridMetrics()){
+      const rows = new Map();
+      getOrderedCards().forEach(card=>{
+        card.style.removeProperty("transform");
+        card.style.removeProperty("left");
+        const top = Math.round(card.getBoundingClientRect().top);
+        const row = [...rows.keys()].find(candidate=>Math.abs(candidate-top)<6) ?? top;
+        if (!rows.has(row)) rows.set(row,[]);
+        rows.get(row).push(card);
+      });
+      rows.forEach(rowCards=>{
+        rowCards.sort((a,b)=>a.getBoundingClientRect().left-b.getBoundingClientRect().left);
+        let previousRight = null;
+        rowCards.forEach(card=>{
+          let bounds = card.getBoundingClientRect();
+          if (previousRight!==null){
+            const shift = Math.min(0,previousRight+metrics.gap-bounds.left);
+            if (shift<0){
+              card.style.left = `${shift}px`;
+              bounds = card.getBoundingClientRect();
+            }
+          }
+          previousRight = bounds.right;
+        });
+      });
+    }
+    function refreshOverviewLayout(){
+      const metrics = getGridMetrics();
+      getOrderedCards().forEach(card=>setCardColumns(card,getCardColumns(card),metrics));
+      arrangeCards(metrics);
+      packVisibleCards(metrics);
     }
     function saveCardLayout(card){
       if (!state.overviewCardLayouts || typeof state.overviewCardLayouts!=="object") state.overviewCardLayouts = {};
@@ -2668,9 +2721,12 @@
       setCardColumns(card,initialColumns);
       if (saved && Number.isFinite(saved.height)) card.style.setProperty("--overview-card-height",`${Math.max(saved.height,180)}px`);
     });
+    refreshOverviewLayout();
     const updateCardColumns = ()=>{
       const metrics = getGridMetrics();
       cards.forEach(card=>setCardColumns(card,Number(card.style.getPropertyValue("--overview-card-columns"))||1,metrics));
+      arrangeCards(metrics);
+      packVisibleCards(metrics);
     };
     if ("ResizeObserver" in window) new ResizeObserver(updateCardColumns).observe(cardContainer);
     else window.addEventListener("resize",updateCardColumns);
@@ -2693,7 +2749,7 @@
         event.preventDefault();
         const bounds = card.getBoundingClientRect();
         dragState = {card,handle:dragHandle,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
-          offsetX:event.clientX-bounds.left,offsetY:event.clientY-bounds.top,bounds,placeholder:null,moved:false};
+          offsetX:event.clientX-bounds.left,offsetY:event.clientY-bounds.top,bounds,gridColumn:card.style.gridColumn,gridRow:card.style.gridRow,placeholder:null,dropPreview:null,dropReference:null,moved:false};
         const currentDrag = dragState;
         currentDrag.windowPointerUp = pointerEvent=>{
           if (dragState===currentDrag && currentDrag.pointerId===pointerEvent.pointerId) finishDrag(pointerEvent);
@@ -2718,7 +2774,8 @@
           placeholder.className = "overviewDropPlaceholder";
           placeholder.style.setProperty("--overview-card-columns",dragged.style.getPropertyValue("--overview-card-columns"));
           placeholder.style.setProperty("--overview-card-min-width",dragged.style.getPropertyValue("--overview-card-min-width"));
-          placeholder.style.gridColumn = getComputedStyle(dragged).gridColumnStart;
+          placeholder.style.gridColumn = dragged.style.gridColumn;
+          placeholder.style.gridRow = dragged.style.gridRow;
           placeholder.style.boxSizing = "border-box";
           placeholder.style.alignSelf = "start";
           placeholder.style.minWidth = `${dragState.bounds.width}px`;
@@ -2729,6 +2786,13 @@
           placeholder.style.height = `${dragState.bounds.height}px`;
           dragged.after(placeholder);
           dragState.placeholder = placeholder;
+          const dropPreview = document.createElement("div");
+          dropPreview.className = "overviewDropPreview";
+          dropPreview.style.width = "4px";
+          dropPreview.style.height = `${dragState.bounds.height}px`;
+          document.body.appendChild(dropPreview);
+          dragState.dropPreview = dropPreview;
+          dragged.style.removeProperty("transform");
           dragged.classList.add("dragging");
           dragged.style.position = "fixed";
           dragged.style.boxSizing = "border-box";
@@ -2765,25 +2829,45 @@
         cards.forEach(candidate=>candidate.classList.remove("dropTarget"));
         const placeholder = dragState.placeholder;
         if (reference) reference.classList.add("dropTarget");
-        if (reference!==placeholder && placeholder.nextElementSibling!==reference){
-          cardContainer.insertBefore(placeholder,reference);
-        }else if (!reference && placeholder.nextElementSibling){
-          cardContainer.appendChild(placeholder);
+        dragState.dropReference = reference;
+        const previewTarget = reference || row?.cards[row.cards.length-1]?.card;
+        const dropPreview = dragState.dropPreview;
+        if (dropPreview && previewTarget){
+          const previewBounds = previewTarget.getBoundingClientRect();
+          dropPreview.style.left = `${reference ? previewBounds.left-7 : previewBounds.right+7}px`;
+          dropPreview.style.top = `${previewBounds.top}px`;
+          dropPreview.hidden = false;
+        }else if (dropPreview){
+          dropPreview.hidden = true;
         }
       });
       const finishDrag = (event,cancelled=false)=>{
         if (!dragState || dragState.handle!==dragHandle || (event && dragState.pointerId!==event.pointerId)) return;
         const currentDrag = dragState;
-        const {card:dragged,placeholder,moved} = currentDrag;
+        const {card:dragged,placeholder,dropPreview,dropReference,moved} = currentDrag;
         dragState = null;
         window.removeEventListener("pointerup",currentDrag.windowPointerUp);
         window.removeEventListener("pointercancel",currentDrag.windowPointerCancel);
         if (moved && !cancelled && placeholder && placeholder.isConnected){
           placeholder.replaceWith(dragged);
+          if (dropReference && dropReference.isConnected && dropReference!==dragged){
+            cardContainer.insertBefore(dragged,dropReference);
+          }else if (!dropReference){
+            cardContainer.appendChild(dragged);
+          }
           state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
           scheduleSave();
         }else if (placeholder && placeholder.isConnected){ placeholder.remove(); }
-        ["position","left","top","width","height","min-width","max-width","min-height","max-height","box-sizing","z-index","pointer-events","grid-column","margin"].forEach(property=>dragged.style.removeProperty(property));
+        if (dropPreview && dropPreview.isConnected) dropPreview.remove();
+        ["position","left","top","width","height","min-width","max-width","min-height","max-height","box-sizing","z-index","pointer-events","margin"].forEach(property=>dragged.style.removeProperty(property));
+        if (moved && !cancelled){
+          refreshOverviewLayout();
+          wrap.scrollLeft = 0;
+        }
+        else {
+          dragged.style.gridColumn = currentDrag.gridColumn;
+          dragged.style.gridRow = currentDrag.gridRow;
+        }
         cards.forEach(candidate=>candidate.classList.remove("dragging","dropTarget"));
       };
       dragHandle.addEventListener("pointerup",finishDrag);
@@ -2799,6 +2883,8 @@
         if (!next) return;
         cardContainer.insertBefore(card,step<0 ? next : next.nextSibling);
         state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
+        arrangeCards();
+        packVisibleCards();
         scheduleSave();
       });
 
