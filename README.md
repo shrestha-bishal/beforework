@@ -4,12 +4,13 @@
 
 Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data in a JSON file that you choose on your device.
 
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/ed124e84-f4ce-4571-8f19-c64a65199f32" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/2fbdfe1b-64fc-4b15-b12d-61fb6fa58473" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/b42a10c6-2906-424b-af09-f874bb7fe188" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/9cd9e30b-33ae-4040-8fea-6dc10094bdda" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/116de677-6106-4f03-8300-caebfcb62f54" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/4aa7c0fd-d1e8-4285-9c84-0145ddf899b8" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/6a5005cf-4e61-4456-bd9f-49eb4ca18256" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/05f8a8a5-53bb-40f5-8fc5-8427badab956" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/ab26f04b-9236-49fd-a55b-d183fe553278" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/bf9229ad-f267-421d-b514-139704477777" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/52effdaa-c990-4eda-9d89-c088f99f4579" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/151aa227-eb34-4d16-8e98-11858205a2b2" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/14f423b5-7c68-4b95-8e43-e7b6f26509a1" />
 
 ## Hosted version
 
