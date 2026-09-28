@@ -87,6 +87,7 @@
   let boardFilterTags = new Set();
   let boardFilterFields = new Map(); // fieldId -> "__all__" | "__none__" | optionId
   let activeFilterCategory = "groupFilters";
+  let completionFilter = "open";
   let listSort = {field:"updated", dir:"desc"};
   let openItemRef = null;
   let fileHandle = null;
@@ -754,7 +755,8 @@
       text: boardFilterText,
       groups: [...boardFilterGroups],
       tags: [...boardFilterTags],
-      fields: Object.fromEntries(boardFilterFields)
+      fields: Object.fromEntries(boardFilterFields),
+      completion: completionFilter
     };
     saveFilterPrefs();
   }
@@ -764,6 +766,7 @@
     boardFilterGroups = new Set(Array.isArray(saved.groups) ? saved.groups : []);
     boardFilterTags = new Set(Array.isArray(saved.tags) ? saved.tags : []);
     boardFilterFields = new Map(Object.entries(saved.fields || {}));
+    completionFilter = saved.completion==="completed" ? "completed" : "open";
   }
 
   /* ---------- Model helpers ---------- */
@@ -1302,6 +1305,7 @@
 
   function itemMatchesFilter(project, item, group){
     if (item.archived && !showArchived) return false;
+    if (project && project.id===activeProjectId && isItemCompleted(item)!==(completionFilter==="completed")) return false;
     if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
     if (boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
@@ -1614,8 +1618,12 @@
     const moveFolderBtn = document.getElementById("moveProjectFolderBtn");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
     const viewTabs = document.getElementById("viewTabs");
+    const completionTabs = document.getElementById("completionTabs");
     const topLabel = document.getElementById("projectTitleLabel");
     const board = document.getElementById("board");
+    if (completionTabs && !filterBar.contains(completionTabs)){
+      filterBar.insertBefore(completionTabs,filterBar.querySelector(".filterMainRow"));
+    }
     board.innerHTML = "";
 
     if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
@@ -1635,6 +1643,7 @@
       document.getElementById("projectMenu").classList.remove("open");
       document.getElementById("projectMenuBtn").classList.remove("active");
       viewTabs.style.display = "none";
+      completionTabs.style.display = "none";
       if (activeProjectId===CALENDAR) renderCalendar(board, null);
       else if (activeProjectId===INTEGRATIONS) renderIntegrations(board);
       else if (activeProjectId===SETTINGS) renderSettings(board);
@@ -1674,6 +1683,8 @@
     }
     viewTabs.style.display = "flex";
     renderViewTabs(project);
+    completionTabs.style.display = "flex";
+    renderCompletionTabs(project);
 
     document.getElementById("boardSearch").value = boardFilterText;
     renderFilterCategories(project);
@@ -1700,6 +1711,16 @@
     else if (activeView.type === "table") renderTableView(project, board);
     else if (activeView.type === "calendar") renderCalendar(board, project);
     else renderKanban(project, board);
+    if (activeView.type==="list" || activeView.type==="table"){
+      const addRow = board.querySelector(".listAddRow");
+      if (addRow){
+        completionTabs.classList.add("completionTabsInList");
+        addRow.prepend(completionTabs);
+      }
+    } else {
+      completionTabs.classList.remove("completionTabsInList");
+      filterBar.insertBefore(completionTabs,filterBar.querySelector(".filterMainRow"));
+    }
   }
 
   function renderViewTabs(project){
@@ -1730,6 +1751,25 @@
       const type = await showDialog({title:"Add a view", fields:[{label:"View type", type:"select", options:missing.map(m=>({value:m.type,label:m.label}))}], confirmLabel:"Add view"});
       if (type) addView(project, type);
     };
+  }
+
+  function renderCompletionTabs(project){
+    const wrap = document.getElementById("completionTabs");
+    const items = project.groups.flatMap(group=>group.items).filter(item=>showArchived || !item.archived);
+    const completedCount = items.filter(isItemCompleted).length;
+    const openCount = items.length-completedCount;
+    wrap.innerHTML = `<div class="completionTabList" role="group" aria-label="Filter items by completion">
+      <button type="button" class="completionTab ${completionFilter==="open"?"active":""}" aria-pressed="${completionFilter==="open"}" data-completion-filter="open"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Open</span><span class="completionTabCount">${openCount}</span></button>
+      <button type="button" class="completionTab ${completionFilter==="completed"?"active":""}" aria-pressed="${completionFilter==="completed"}" data-completion-filter="completed"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Completed</span><span class="completionTabCount">${completedCount}</span></button>
+    </div>`;
+    wrap.querySelectorAll("[data-completion-filter]").forEach(button=>{
+      button.onclick = () => {
+        const nextFilter = button.dataset.completionFilter;
+        if (completionFilter===nextFilter) return;
+        completionFilter = nextFilter;
+        render();
+      };
+    });
   }
 
   function renderFilterCategories(project){
