@@ -2439,9 +2439,11 @@
       dayEntries.forEach(entry=>{
         const event = view.querySelector("#calendarEventTemplate").content.firstElementChild.cloneNode(true);
         const isEvent = entry.item.calendarType==="event";
+        const isCompleted = isItemCompleted(entry.item);
         const isMultiDay = entry.endDate>entry.date;
         event.classList.toggle("event", isEvent);
         event.classList.toggle("task", !isEvent);
+        event.classList.toggle("completed", isCompleted);
         event.classList.toggle("multiDay", isMultiDay);
         if (isMultiDay){
           const startsSegment = cellDate===entry.date || index%7===0;
@@ -2460,6 +2462,8 @@
         const startTime = formatTimeValue(entry.item.startTime);
         const endTime = formatTimeValue(entry.item.endTime);
         const timeRange = startTime && endTime ? `${startTime} – ${endTime}` : startTime || endTime;
+        const openButton = event.querySelector(".calendarEventOpen");
+        openButton.setAttribute("aria-label",`Open ${entry.item.title||"Untitled item"} details`);
         event.querySelector(".eventTitle").textContent = `${timeRange ? timeRange+" " : ""}${entry.item.title}`;
         const startDateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
         const endDateLabel = entry.endDate===entry.date ? "" : new Date(`${entry.endDate}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
@@ -2483,7 +2487,11 @@
           project:entry.project?.name||"",
           group:entry.group?.name||"",
           location:entry.item.location||"",
-          description
+          description,
+          projectId:entry.project?.id||"",
+          groupId:entry.group?.id||"",
+          itemId:entry.item.id,
+          isCompleted
         };
         const projectName = event.querySelector(".eventProject");
         if (scopeProject || !entry.project) projectName.remove();
@@ -2542,10 +2550,16 @@
     });
     let activeCalendarPopover = null;
     let calendarPopoverHideTimer = 0;
+    let suppressCalendarPopoverFocus = false;
     const hideCalendarPopover = () => {
       clearTimeout(calendarPopoverHideTimer);
       if (!activeCalendarPopover) return;
-      activeCalendarPopover.anchor.removeAttribute("aria-describedby");
+      activeCalendarPopover.trigger.removeAttribute("aria-describedby");
+      if (activeCalendarPopover.type==="Task"){
+        activeCalendarPopover.trigger.removeAttribute("aria-controls");
+        activeCalendarPopover.trigger.removeAttribute("aria-haspopup");
+        activeCalendarPopover.trigger.setAttribute("aria-expanded","false");
+      }
       activeCalendarPopover.element.remove();
       activeCalendarPopover = null;
     };
@@ -2564,13 +2578,11 @@
     };
     wrap.addEventListener("scroll",hideCalendarPopover,{passive:true});
     wrap.querySelectorAll(".calendarEvent").forEach(event=>{
-      event.tabIndex = 0;
-      event.setAttribute("role","button");
       const schedulePopoverHide = () => {
         clearTimeout(calendarPopoverHideTimer);
         calendarPopoverHideTimer = window.setTimeout(()=>{
           if (activeCalendarPopover?.anchor!==event) return;
-          if (event.matches(":hover,:focus-within") || activeCalendarPopover.element.matches(":hover")) return;
+          if (event.matches(":hover,:focus-within") || activeCalendarPopover.element.matches(":hover") || activeCalendarPopover.element.contains(document.activeElement)) return;
           hideCalendarPopover();
         },160);
       };
@@ -2579,14 +2591,14 @@
         if (activeCalendarPopover?.anchor===event) return;
         hideCalendarPopover();
         const details = event.calendarTooltipDetails;
+        const trigger = event.querySelector(".calendarEventOpen");
         const popover = document.createElement("div");
         popover.className = "calendarContextPopover";
         popover.id = `calendar-context-${uid()}`;
-        popover.setAttribute("role","tooltip");
+        popover.setAttribute("role",details.type==="Task" ? "dialog" : "tooltip");
+        popover.setAttribute("aria-label",`${details.type} details`);
         const header = document.createElement("div");
         header.className = "calendarContextHeader";
-        const marker = document.createElement("span");
-        marker.className = `calendarContextMarker ${details.type.toLowerCase()}`;
         const heading = document.createElement("div");
         heading.className = "calendarContextHeading";
         const type = document.createElement("span");
@@ -2596,7 +2608,7 @@
         title.className = "calendarContextTitle";
         title.textContent = details.title;
         heading.append(type,title);
-        header.append(marker,heading);
+        header.appendChild(heading);
         popover.appendChild(header);
         const facts = document.createElement("div");
         facts.className = "calendarContextFacts";
@@ -2615,6 +2627,7 @@
         };
         addFact("Date",details.date);
         addFact("Time",details.time);
+        if (details.type==="Task") addFact("Status",details.isCompleted ? "Completed" : "Open");
         addFact("Project",details.project);
         addFact("Group",details.group);
         addFact("Location",details.location);
@@ -2625,22 +2638,67 @@
           description.textContent = details.description;
           popover.appendChild(description);
         }
+        if (details.type==="Task"){
+          trigger.setAttribute("aria-haspopup","dialog");
+          const footer = document.createElement("div");
+          footer.className = "calendarContextFooter";
+          const completeButton = document.createElement("button");
+          completeButton.type = "button";
+          completeButton.className = `btn btn-sm calendarContextCompleteBtn${details.isCompleted?" isCompleted":" btn-primary"}`;
+          completeButton.setAttribute("aria-label",details.isCompleted ? "Reopen task" : "Mark task complete");
+          const completeIcon = document.createElement("iconify-icon");
+          completeIcon.setAttribute("icon",details.isCompleted ? "mdi:check-circle" : "mdi:check-circle-outline");
+          completeIcon.setAttribute("aria-hidden","true");
+          const completeLabel = document.createElement("span");
+          completeLabel.textContent = details.isCompleted ? "Reopen" : "Mark complete";
+          completeButton.append(completeIcon,completeLabel);
+          completeButton.onclick = click=>{
+            click.stopPropagation();
+            const item = getItem(details.projectId,details.groupId,details.itemId);
+            if (!item) return;
+            item.completedAt = isItemCompleted(item) ? null : Date.now();
+            item.updatedAt = Date.now();
+            scheduleSave();
+            hideCalendarPopover();
+            render();
+          };
+          footer.appendChild(completeButton);
+          popover.appendChild(footer);
+        }
         document.body.appendChild(popover);
-        activeCalendarPopover = {anchor:event,element:popover};
-        event.setAttribute("aria-describedby",popover.id);
+        activeCalendarPopover = {anchor:event,element:popover,type:details.type};
+        activeCalendarPopover.trigger = trigger;
+        trigger.setAttribute("aria-describedby",popover.id);
+        if (details.type==="Task"){
+          trigger.setAttribute("aria-controls",popover.id);
+          trigger.setAttribute("aria-expanded","true");
+        }
         positionCalendarPopover(event,popover);
         popover.addEventListener("pointerenter",()=>clearTimeout(calendarPopoverHideTimer));
         popover.addEventListener("pointerleave",schedulePopoverHide);
+        popover.addEventListener("keydown",keyEvent=>{
+          if (keyEvent.key!=="Escape") return;
+          hideCalendarPopover();
+          suppressCalendarPopoverFocus = true;
+          trigger.focus();
+          suppressCalendarPopoverFocus = false;
+        });
       };
       event.addEventListener("pointerenter",showCalendarPopover);
       event.addEventListener("pointerleave",schedulePopoverHide);
-      event.addEventListener("focus",showCalendarPopover);
-      event.addEventListener("blur",schedulePopoverHide);
+      event.addEventListener("focusin",()=>{ if (!suppressCalendarPopoverFocus) showCalendarPopover(); });
+      event.addEventListener("focusout",focusEvent=>{
+        if (!event.contains(focusEvent.relatedTarget)) schedulePopoverHide();
+      });
       event.addEventListener("keydown",keyEvent=>{
-        if (keyEvent.key==="Escape") hideCalendarPopover();
-        else if (!keyEvent.target.closest("a") && (keyEvent.key==="Enter" || keyEvent.key===" ")){
-          keyEvent.preventDefault();
-          event.click();
+        if (keyEvent.key==="ArrowDown" && activeCalendarPopover?.anchor===event){
+          const actionButton = activeCalendarPopover.element.querySelector(".calendarContextCompleteBtn");
+          if (actionButton){ actionButton.focus(); keyEvent.preventDefault(); }
+        } else if (keyEvent.key==="Escape" && activeCalendarPopover?.anchor===event){
+          hideCalendarPopover();
+          suppressCalendarPopoverFocus = true;
+          event.querySelector(".calendarEventOpen").focus();
+          suppressCalendarPopoverFocus = false;
         }
       });
       event.addEventListener("dragstart", dragEvent=>{

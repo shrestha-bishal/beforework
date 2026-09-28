@@ -453,9 +453,11 @@
   .calendarDayNumber{font-size:12px;font-weight:600;margin-bottom:7px;}
   .calendarEvent{display:flex;align-items:center;gap:5px;width:100%;min-width:0;margin-bottom:5px;padding:4px 6px;border-radius:5px;background:var(--bg-soft);color:var(--text);font-size:11px;text-align:left;cursor:pointer;}
   .calendarEvent:hover{background:var(--accent-soft);}
+  .calendarEventOpen{display:flex;align-items:center;gap:5px;flex:1;min-width:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;}
   .calendarEvent .eventDot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;}
   .calendarEvent.event{background:var(--accent-soft);}
   .calendarEvent.event .eventDot{background:var(--color-accent-fg);}
+  .calendarEvent.completed .eventTitle{color:var(--muted);text-decoration:line-through;}
   .calendarEvent .eventTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
   .calendarEvent .eventProject{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-size:10px;color:var(--muted);}
   .calendarEvent .gcalLink{font-size:10px;color:var(--accent-strong);text-decoration:none;flex:none;}
@@ -466,9 +468,7 @@
   .calendarEvent.multiDay:not(.multiDayLabel) .eventTitle,.calendarEvent.multiDay:not(.multiDayLabel) .eventProject{visibility:hidden;}
   .calendarEvent.multiDay:not(.multiDayOrigin) .eventDot,.calendarEvent.multiDay:not(.multiDayOrigin) .gcalLink{visibility:hidden;}
   .calendarContextPopover{position:fixed;top:0;left:0;z-index:60;width:min(340px,calc(100vw - 24px));max-height:min(360px,calc(100vh - 24px));overflow:auto;padding:14px 16px;border:1px solid var(--border);border-radius:8px;background:var(--color-canvas-overlay);color:var(--text);box-shadow:0 14px 36px rgba(31,35,40,.2);}
-  .calendarContextHeader{display:flex;align-items:flex-start;gap:9px;margin-bottom:12px;}
-  .calendarContextMarker{width:8px;height:8px;flex:none;margin-top:5px;border-radius:50%;background:var(--accent);}
-  .calendarContextMarker.event{background:var(--color-accent-fg);}
+  .calendarContextHeader{display:flex;align-items:flex-start;margin-bottom:12px;}
   .calendarContextHeading{display:flex;min-width:0;flex-direction:column;gap:3px;}
   .calendarContextType{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;}
   .calendarContextTitle{font-size:14px;line-height:1.35;overflow-wrap:anywhere;}
@@ -477,6 +477,11 @@
   .calendarContextFactLabel{color:var(--muted);}
   .calendarContextFactValue{min-width:0;color:var(--text);overflow-wrap:anywhere;}
   .calendarContextDescription{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--border);font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;}
+  .calendarContextFooter{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .calendarContextCompleteBtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:34px;font-size:12px;font-weight:600;}
+  .calendarContextCompleteBtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .calendarContextCompleteBtn.isCompleted{border-color:var(--color-success-fg);background:var(--color-success-subtle);color:var(--color-success-fg);}
+  .calendarContextCompleteBtn iconify-icon{font-size:15px;}
   .calendarEmpty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);}
   .calendarSyncStatus{font-size:11.5px;color:var(--muted);white-space:nowrap;}
   .calendarSyncProgress{width:110px;height:8px;accent-color:var(--accent);}

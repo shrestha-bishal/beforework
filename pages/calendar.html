@@ -17,10 +17,12 @@
   </div>
 </template>
 <template id="calendarEventTemplate">
-  <div class="calendarEvent" draggable="true">
-    <span class="eventDot"></span>
-    <span class="eventTitle"></span>
-    <span class="eventProject" hidden></span>
+  <div class="calendarEvent" draggable="true" role="group">
+    <button class="calendarEventOpen" type="button">
+      <span class="eventDot"></span>
+      <span class="eventTitle"></span>
+      <span class="eventProject" hidden></span>
+    </button>
     <a class="gcalLink" target="_blank" rel="noopener" title="Add to Google Calendar">GCal</a>
   </div>
 </template>
