@@ -3395,6 +3395,8 @@
     const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
+    const doneGroup = project.groups.find(candidate=>candidate.name.trim().toLowerCase()==="done");
+    const isCompleted = doneGroup?.id===groupId;
 
     const doneSubCount = item.subitems.filter(s=>s.done).length;
     const subPct = item.subitems.length ? Math.round(doneSubCount/item.subitems.length*100) : 0;
@@ -3438,6 +3440,15 @@
       : `<div class="commentEmpty">No comments yet.</div>`;
 
     modal.innerHTML = `
+      ${!isNew ? `<div class="itemModalActions">
+        <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+        <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+          <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
+          <div class="itemModalActionSeparator" role="separator"></div>
+          <button type="button" role="menuitem" class="danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
+        </div>
+      </div>` : ""}
       <button class="btn btn-invisible closeX" data-action="close">✕</button>
       <div class="itemModalHeader">
         <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="${escapeHtml(item.title)}">
@@ -3502,16 +3513,42 @@
       <div class="uiDivider itemModalDivider" aria-hidden="true"></div>
       <div class="itemModalFooter">
         <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`}</span>
-        <div style="display:flex;gap:8px;">
+        <div class="itemModalFooterActions">
           ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>` : `
-            <button class="btn btn-sm" data-action="duplicateItem">Duplicate</button>
-            <button class="btn btn-invisible btn-sm" data-action="toggleArchive">${item.archived ? "Unarchive" : "Archive"}</button>
-            <button class="btn btn-danger btn-sm" data-action="deleteItem">Delete item</button>`}
+            ${item.calendarType!=="event" ? `<button class="btn ${isCompleted?"btn-invisible":"btn-primary"} btn-sm" data-action="completeItem" ${isCompleted?"disabled":""}>${isCompleted?"Completed":"Mark complete"}</button>` : ""}`}
         </div>
       </div>
     `;
 
     modal.querySelector('[data-action="close"]').onclick = closeItemModal;
+    const actionMenu = modal.querySelector("#itemModalActionMenu");
+    const actionMenuButton = modal.querySelector('[data-action="toggleItemMenu"]');
+    if (actionMenu && actionMenuButton){
+      const closeActionMenu = () => {
+        actionMenu.hidden = true;
+        actionMenuButton.setAttribute("aria-expanded","false");
+      };
+      actionMenuButton.onclick = () => {
+        actionMenu.hidden = !actionMenu.hidden;
+        actionMenuButton.setAttribute("aria-expanded",String(!actionMenu.hidden));
+        if (!actionMenu.hidden) actionMenu.querySelector('[role="menuitem"]')?.focus();
+      };
+      modal.addEventListener("click", event=>{
+        if (!event.target.closest(".itemModalActions")) closeActionMenu();
+      });
+      actionMenu.addEventListener("keydown", event=>{
+        if (event.key==="Escape"){
+          closeActionMenu();
+          actionMenuButton.focus();
+        } else if (event.key==="ArrowDown" || event.key==="ArrowUp"){
+          const menuItems = [...actionMenu.querySelectorAll('[role="menuitem"]')];
+          const currentIndex = menuItems.indexOf(document.activeElement);
+          const direction = event.key==="ArrowDown" ? 1 : -1;
+          menuItems[(currentIndex+direction+menuItems.length)%menuItems.length].focus();
+          event.preventDefault();
+        }
+      });
+    }
     if (isNew && openItemRef.globalNew){
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
@@ -3648,6 +3685,18 @@
       });
       const archiveBtn = modal.querySelector('[data-action="toggleArchive"]');
       if (archiveBtn) archiveBtn.onclick = () => { toggleArchiveItem(projectId, groupId, itemId); renderItemModal(); };
+      const completeBtn = modal.querySelector('[data-action="completeItem"]');
+      if (completeBtn) completeBtn.onclick = () => {
+        let targetGroup = project.groups.find(candidate=>candidate.name.trim().toLowerCase()==="done");
+        if (!targetGroup){
+          targetGroup = {id:uid(),name:"Done",items:[]};
+          project.groups.push(targetGroup);
+        }
+        if (targetGroup.id===groupId) return;
+        openItemRef.groupId = targetGroup.id;
+        moveItem(projectId,groupId,targetGroup.id,itemId,null);
+        renderItemModal();
+      };
     }
     if (isNew){
       modal.querySelector('[data-action="saveItem"]').onclick = () => {
