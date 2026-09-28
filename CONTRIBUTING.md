@@ -14,6 +14,10 @@ Thanks for your interest in Beforework.
 
 Please include screenshots for visible interface changes. Avoid committing workspace JSON files, credentials, build output, or personal data.
 
+## Tests
+
+Run the schema migration tests with `node --test tests/schema-migration.test.js`.
+
 ## Issues
 
 For bugs, include the browser and operating system, steps to reproduce, expected behaviour, and actual behaviour. Do not include private workspace files or access tokens in an issue.

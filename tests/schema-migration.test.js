@@ -1,0 +1,109 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const vm = require("node:vm");
+
+const moduleSource = fs.readFileSync(path.join(__dirname, "../js/schema-migration.js"), "utf8");
+
+function createStorage(){
+  const values = new Map();
+  return {
+    values,
+    localStorage:{
+      setItem(key, value){ values.set(key, String(value)); },
+      getItem(key){ return values.get(key) || null; }
+    }
+  };
+}
+
+function loadMigration(storage=createStorage()){
+  const sandbox = {window:{localStorage:storage.localStorage}};
+  let nextId = 0;
+  vm.runInNewContext(moduleSource, sandbox, {filename:"schema-migration.js"});
+  return {
+    migration:sandbox.window.BeforeworkSchemaMigration.create({uid:()=>`generated-${++nextId}`}),
+    storage
+  };
+}
+
+test("upgrades a legacy workspace through schema version 7 and saves a backup", ()=>{
+  const {migration} = loadMigration();
+  const legacy = {
+    tags:[{id:"legacy-tag", name:"Research", color:"blue"}],
+    projects:[{
+      id:"project-1",
+      name:"Legacy project",
+      groups:[{id:"done-group", name:"Done", items:[
+        {id:"done-task", title:"Completed task", priority:"high", dueDate:"2026-10-01", updatedAt:123},
+        {id:"event", title:"Calendar event", calendarType:"event"}
+      ]}]
+    }],
+    calendarItems:[{id:"standalone-event", createdAt:456}]
+  };
+
+  const upgraded = migration.migrate(legacy, ()=>({projects:[]}));
+  const project = upgraded.projects[0];
+  const [completedTask, event] = project.groups[0].items;
+  const priorityField = project.fields.find(field=>field.type==="priority");
+  const dueDateField = project.fields.find(field=>field.type==="date");
+
+  assert.equal(upgraded.schemaVersion, 7);
+  assert.equal(project.tags[0].name, "Research");
+  assert.equal(completedTask.values[priorityField.id], "high");
+  assert.equal(completedTask.values[dueDateField.id], "2026-10-01");
+  assert.equal(completedTask.completedAt, 123);
+  assert.equal(event.completedAt, null);
+  assert.ok(Array.isArray(completedTask.subitems));
+  assert.ok(Array.isArray(completedTask.comments));
+  assert.ok(Array.isArray(completedTask.activity));
+  assert.ok(project.views.length > 0);
+  assert.equal(project.folderId, null);
+  assert.deepEqual(JSON.parse(JSON.stringify(upgraded.focusSessions)), []);
+  assert.ok(Array.isArray(upgraded.calendarItems[0].activity));
+  assert.equal(migration.readBackup().fromVersion, 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:0, toVersion:7});
+  assert.equal(migration.takeMigrationInfo(), null);
+});
+
+test("does not create a backup or migration notice for current data", ()=>{
+  const {migration} = loadMigration();
+  const current = {schemaVersion:7, projects:[], folders:[], calendarItems:[], focusSessions:[]};
+
+  const migrated = migration.migrate(current, ()=>({projects:[]}));
+
+  assert.equal(migrated, current);
+  assert.equal(migration.hasBackup(), false);
+  assert.equal(migration.readBackup(), null);
+  assert.equal(migration.takeMigrationInfo(), null);
+});
+
+test("uses the supplied default factory for invalid input", ()=>{
+  const {migration} = loadMigration();
+  let called = false;
+  const fallback = {projects:[]};
+
+  assert.equal(migration.migrate(null, ()=>{ called = true; return fallback; }), fallback);
+  assert.equal(called, true);
+  assert.equal(migration.hasBackup(), false);
+});
+
+test("continues upgrading when browser backup storage is unavailable", ()=>{
+  const unavailableStorage = {
+    localStorage:{
+      setItem(){ throw new Error("storage unavailable"); },
+      getItem(){ throw new Error("storage unavailable"); }
+    }
+  };
+  const {migration} = loadMigration(unavailableStorage);
+  const currentBeforeLastStep = {schemaVersion:6, projects:[], folders:[], calendarItems:[]};
+
+  const upgraded = migration.migrate(currentBeforeLastStep, ()=>({projects:[]}));
+
+  assert.equal(upgraded.schemaVersion, 7);
+  assert.equal(migration.hasBackup(), false);
+  assert.equal(migration.readBackup(), null);
+  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:6, toVersion:7});
+});

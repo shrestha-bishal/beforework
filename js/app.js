@@ -445,173 +445,28 @@
     return window.BeforeworkDemoSeeder.create({schemaVersion:SCHEMA_VERSION, uid, viewLabel, tagColors:TAG_COLORS, todayStr});
   }
 
-  /* ---------- Schema migrations ----------
-     Every saved file carries a schemaVersion. On load we walk it forward
-     one step at a time through MIGRATIONS until it reaches SCHEMA_VERSION.
-     Each step assumes its input is exactly the previous version's shape -
-     rules:
-       1. Never delete a property here. If a field is retired, just stop
-          reading it in the app; leave it sitting in the JSON so an
-          incorrect migration can still be recovered from.
-       2. Keep steps small and defensive (Array.isArray / ?? guards) so a
-          hand-edited or partially-corrupt import doesn't throw.
-       3. Once shipped, a step's body doesn't change - add a new step
-          instead of editing an old one. */
-  const MIGRATIONS = {
-    // v0 (unversioned / legacy) -> v1: global tags + fixed priority/dueDate
-    // become per-project tags and a per-project fields array.
-    1: s => {
-      const globalTags = s.tags || [];
-      s.projects.forEach(p=>{
-        if (!Array.isArray(p.tags)) p.tags = globalTags.map(t=>({id:t.id, name:t.name, color:t.color}));
-        if (!Array.isArray(p.fields)){
-          const pr = {id:uid(), label:"Priority", type:"priority", options:[]};
-          const due = {id:uid(), label:"Due date", type:"date", options:[]};
-          p.fields = [pr, due];
-          p.groups.forEach(g=>g.items.forEach(it=>{
-            it.values = it.values || {};
-            if (it.priority) it.values[pr.id] = it.priority;
-            if (it.dueDate) it.values[due.id] = it.dueDate;
-            delete it.priority; delete it.dueDate;
-          }));
-        }
-      });
-      delete s.tags;
-      return s;
-    },
-    // v1 -> v2: subitems, tag links and calendar scheduling fields on items.
-    2: s => {
-      s.projects.forEach(p=>p.groups.forEach(g=>g.items.forEach(it=>{
-        it.values = it.values || {};
-        it.subitems = Array.isArray(it.subitems) ? it.subitems : [];
-        it.tagIds = Array.isArray(it.tagIds) ? it.tagIds : [];
-        it.calendarType = it.calendarType === "event" ? "event" : "task";
-        it.startTime = it.startTime || "";
-        it.endTime = it.endTime || "";
-        it.location = it.location || "";
-        it.endDate = it.endDate || "";
-      })));
-      return s;
-    },
-    // v2 -> v3: comment threads and archiving.
-    3: s => {
-      s.projects.forEach(p=>p.groups.forEach(g=>g.items.forEach(it=>{
-        it.comments = Array.isArray(it.comments) ? it.comments : [];
-        it.archived = !!it.archived;
-      })));
-      return s;
-    },
-    // v3 -> v4: projects gain their own set of views (list/table/kanban/
-    // calendar tabs) instead of one global List/Board/Calendar toggle that
-    // applied to every project. Existing projects keep the full set they
-    // already behaved like, so nothing they had access to disappears.
-    4: s => {
-      s.projects.forEach(p=>{
-        if (!Array.isArray(p.views) || !p.views.length){
-          p.views = [
-            {id:uid(), type:"list", name:"List"},
-            {id:uid(), type:"kanban", name:"Board"},
-            {id:uid(), type:"calendar", name:"Calendar"},
-          ];
-        }
-        if (!p.activeViewId || !p.views.some(v=>v.id===p.activeViewId)) p.activeViewId = p.views[0].id;
-        if (p.itemDefaultType !== "event") p.itemDefaultType = "task";
-      });
-      return s;
-    },
-    // v4 -> v5: projects may belong to one optional folder.
-    5: s => {
-      if (!Array.isArray(s.folders)) s.folders = [];
-      s.projects.forEach(project=>{
-        if (!Object.prototype.hasOwnProperty.call(project, "folderId")) project.folderId = null;
-      });
-      return s;
-    },
-    // v5 -> v6: completed focus sessions are kept in the workspace file.
-    6: s => {
-      if (!Array.isArray(s.focusSessions)) s.focusSessions = [];
-      return s;
-    },
-    // v6 -> v7: completion is stored on each task instead of inferred from
-    // its group name. Preserve the previous Done-group state once on upgrade.
-    7: s => {
-      s.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
-        if (Object.prototype.hasOwnProperty.call(item,"completedAt")) return;
-        const wasInDoneGroup = item.calendarType!=="event" && String(group.name||"").trim().toLowerCase()==="done";
-        item.completedAt = wasInDoneGroup
-          ? (Number.isFinite(item.updatedAt) ? item.updatedAt : Date.now())
-          : null;
-      })));
-      return s;
-    },
-  };
-  const SCHEMA_VERSION = Math.max(...Object.keys(MIGRATIONS).map(Number));
-  const MIGRATION_BACKUP_KEY = "personal_dashboard_pre_migration_backup_v1";
-  // Set by migrateState() whenever it actually upgrades something, so the
-  // caller can surface a one-time notice instead of leaving the upgrade
-  // silent. Cleared by maybeShowMigrationNotice() once shown.
-  let lastMigrationInfo = null;
-
+  const schemaMigration = window.BeforeworkSchemaMigration.create({uid});
+  const SCHEMA_VERSION = schemaMigration.version;
   function migrateState(raw){
-    if (!raw || !Array.isArray(raw.projects)) return defaultState();
-    let version = Number.isInteger(raw.schemaVersion) ? raw.schemaVersion : 0;
-    const fromVersion = version;
-    if (version < SCHEMA_VERSION){
-      // One safety-net backup per load, taken before any step runs, so a
-      // bad migration can always be undone from the sync menu.
-      try{ localStorage.setItem(MIGRATION_BACKUP_KEY, JSON.stringify({savedAt:Date.now(), fromVersion:version, data:raw})); }catch(err){/* storage full - proceed anyway */}
-    }
-    let s = raw;
-    s.projects = s.projects.filter(Boolean).map(project=>({
-      ...project,
-      groups:(Array.isArray(project.groups) ? project.groups : [{id:uid(), name:"Items", items:[]}])
-        .filter(Boolean)
-        .map(group=>({...group, items:Array.isArray(group.items) ? group.items.filter(Boolean) : []}))
-    }));
-    while (version < SCHEMA_VERSION){
-      version += 1;
-      const step = MIGRATIONS[version];
-      if (!step) break; // no step registered for this gap - leave state as-is rather than throw
-      s = step(s);
-    }
-    if (!Array.isArray(s.folders)) s.folders = [];
-    if (!Array.isArray(s.calendarItems)) s.calendarItems = [];
-    if (!Array.isArray(s.focusSessions)) s.focusSessions = [];
-    if (!Array.isArray(s.googleDeletedEventIds)) s.googleDeletedEventIds = [];
-    if (!Array.isArray(s.googleCalendarLinks)) s.googleCalendarLinks = [];
-    if (!Array.isArray(s.googleCalendarCatalog)) s.googleCalendarCatalog = [];
-    if (!s.googleCalendarSyncTokens || typeof s.googleCalendarSyncTokens!=="object" || Array.isArray(s.googleCalendarSyncTokens)) s.googleCalendarSyncTokens = {};
-    if (!Number.isFinite(s.googleLastSyncAt)) s.googleLastSyncAt = 0;
-    s.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
-      if (!Number.isFinite(item.completedAt) || item.completedAt<=0) item.completedAt = null;
-      if (!Array.isArray(item.activity)) item.activity = [{id:uid(), type:"created", at:Number.isFinite(item.createdAt) ? item.createdAt : Date.now()}];
-    })));
-    (s.calendarItems||[]).forEach(item=>{
-      if (!Array.isArray(item.activity)) item.activity = [{id:uid(), type:"created", at:Number.isFinite(item.createdAt) ? item.createdAt : Date.now()}];
-    });
-    s.schemaVersion = SCHEMA_VERSION;
-    if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};
-    return s;
+    return schemaMigration.migrate(raw, defaultState);
   }
   async function maybeShowMigrationNotice(){
-    if (!lastMigrationInfo) return;
-    const info = lastMigrationInfo;
-    lastMigrationInfo = null;
+    const info = schemaMigration.takeMigrationInfo();
+    if (!info) return;
     await showNotice("Beforework data upgraded",
-      `This file was saved by an older version of Beforework (format v${info.fromVersion}) and has been upgraded to the current format (v${info.toVersion}). `+
-      `A copy of the pre-upgrade data was saved automatically - use "Restore pre-upgrade backup" in the storage menu (⋮ at the bottom) if anything looks off.`);
+      "This file was saved by an older version of Beforework (format v" + info.fromVersion + ") and has been upgraded to the current format (v" + info.toVersion + "). " +
+      "A copy of the pre-upgrade data was saved automatically. Use 'Restore pre-upgrade backup' in the storage menu at the bottom if anything looks off.");
   }
 
   function hasMigrationBackup(){
-    try{ return !!localStorage.getItem(MIGRATION_BACKUP_KEY); }catch(err){ return false; }
+    return schemaMigration.hasBackup();
   }
   async function restoreMigrationBackup(){
-    let saved = null;
-    try{ saved = JSON.parse(localStorage.getItem(MIGRATION_BACKUP_KEY) || "null"); }catch(err){ saved = null; }
+    const saved = schemaMigration.readBackup();
     if (!saved){ showNotice("No backup found", "There is no pre-migration backup saved in this browser."); return; }
     const when = new Date(saved.savedAt).toLocaleString();
-    if (!await showConfirm("Restore pre-migration data", `This replaces your current data with the version saved automatically on ${when}, just before it was last upgraded (from schema v${saved.fromVersion}). This cannot be undone with Ctrl+Z.`, true)) return;
-    state = { ...saved.data, schemaVersion: saved.fromVersion };
+    if (!await showConfirm("Restore pre-migration data", "This replaces your current data with the version saved automatically on " + when + ", just before it was last upgraded (from schema v" + saved.fromVersion + "). This cannot be undone with Ctrl+Z.", true)) return;
+    state = {...saved.data, schemaVersion:saved.fromVersion};
     lastSavedState = null;
     undoStack.length = 0;
     scheduleSave();
