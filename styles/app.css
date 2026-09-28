@@ -314,7 +314,9 @@
   .overviewStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px;padding:2px 0 14px;border-bottom:1px solid var(--border);}
   .overviewStatsDivider{display:none;}
   .overviewStat{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-width:0;min-height:64px;padding:8px 16px;
-    border:0;border-right:1px solid var(--border);border-radius:0;background:transparent;}
+    border:0;border-right:1px solid var(--border);border-radius:0;background:transparent;font:inherit;text-align:left;cursor:pointer;transition:background-color .12s ease;}
+  .overviewStat:hover .overviewStatLabel{color:var(--accent-strong);}
+  .overviewStat:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .overviewStat:first-child{padding-left:0;}
   .overviewStat:last-child{border-right:0;}
   .overviewStatIcon{display:grid;place-items:center;width:24px;height:24px;flex:none;color:var(--muted);}
@@ -324,6 +326,14 @@
   .overviewStatLabel{margin-top:3px;font-size:11px;font-weight:600;color:var(--text);}
   .overviewStatDetail{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--muted);}
   .overviewStat-overdue.has-overdue .overviewStatIcon{color:var(--color-danger-fg);}
+  .overviewDetailsDialog{max-height:90vh;}
+  .overviewDetailsDialog h3{margin-bottom:14px;}
+  .overviewDetailsList{display:flex;flex-direction:column;gap:3px;max-height:60vh;overflow:auto;}
+  .overviewDetailsRow{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:10px 12px;border:0;border-radius:6px;background:transparent;text-align:left;color:var(--text);cursor:pointer;}
+  .overviewDetailsRow:hover,.overviewDetailsRow:focus-visible{background:var(--bg-soft);}
+  .overviewDetailsRow:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .overviewDetailsRow strong{font-size:13px;font-weight:600;}
+  .overviewDetailsRow span,.overviewDetailsEmpty{margin:0;color:var(--muted);font-size:11px;}
   .overviewChartPanel{min-width:0;}
   .overviewChartPanel .overviewPanelHeader{margin-bottom:8px;}
   .overviewWeekChart{width:100%;min-height:150px;}

@@ -47,6 +47,7 @@
 
   let state = null;                 // { projects:[] }
   let settingsView = null;
+  let overviewDetailsView = null;
   let showArchived = false;
   let focusInterval = null;
   let focusMode = "focus";
@@ -2529,10 +2530,21 @@
       {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue"},
       {value:completedItems.length,label:"Completed",detail:"Moved into Done",icon:"mdi:check-circle-outline",tone:"completed"}
     ];
+    function openOverviewStatDetails(tone){
+      overviewDetailsView.open({
+        tone,
+        stats:statRows,
+        data:{projects:state.projects,openItems,overdueItems:overdue,completedItems,isDoneGroup,dueOf,priorityOf},
+        actions:{openProject:selectProject,openItem:openItemModal}
+      });
+    }
     const stats = view.querySelector("[data-overview-stats]");
     statRows.forEach(({value,label,detail,icon,tone},index)=>{
-      const row = document.createElement("div");
+      const row = document.createElement("button");
+      row.type="button";
       row.className = `overviewStat overviewStat-${tone}${tone==="overdue"?(overdue.length?" has-overdue":" is-clear"):""}`;
+      row.dataset.overviewStat=tone;
+      row.setAttribute("aria-label",`${value} ${label}. Show details`);
       const iconWrap = document.createElement("span");
       iconWrap.className = "overviewStatIcon";
       const iconElement = document.createElement("iconify-icon");
@@ -2862,6 +2874,9 @@
     });
     wrap.querySelectorAll("[data-overview-project]").forEach(el=>{
       el.onclick = () => selectProject(el.dataset.overviewProject);
+    });
+    wrap.querySelectorAll("[data-overview-stat]").forEach(button=>{
+      button.onclick=()=>openOverviewStatDetails(button.dataset.overviewStat);
     });
     wrap.querySelectorAll("[data-overview-action]").forEach(button=>{
       button.onclick = async () => {
@@ -3650,8 +3665,13 @@
     wireConnectGate();
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     try{
-      const settingsModule = await import("./views/settings-view.js");
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule] = await Promise.all([
+        import("./views/settings-view.js"),
+        import("./views/overview-details-view.js"),
+        import("./models/overview-details-model.js")
+      ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
+      overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({model:new overviewDetailsModelModule.OverviewDetailsModel()});
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);
