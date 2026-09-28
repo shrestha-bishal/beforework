@@ -70,7 +70,7 @@
   const PROJECT_TEMPLATES = {
     simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:["Items"]},
     table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:["Rows"]},
-    taskboard:{label:"Project / task management",  views:["list","kanban","calendar"], fields:["priority","due"], groups:["To do","Doing","Done"]},
+    taskboard:{label:"Project / task management",  views:["list","kanban","calendar"], fields:["priority","due"], groups:["To do","In progress","Review"]},
     calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:["Items"], itemDefaultType:"event"},
     blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:["Items"]},
   };
@@ -430,7 +430,7 @@
     const makeItem = (title, description, values={}, options={}) => ({
       id:uid(), title, description, calendarType:options.calendarType || "task",
       startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "",
-      endDate:options.endDate || "", tagIds:options.tagIds || [], values,
+      endDate:options.endDate || "", completedAt:options.completedAt || null, tagIds:options.tagIds || [], values,
       subitems:options.subitems || [], comments:options.comments || [], archived:!!options.archived,
       createdAt:now, updatedAt:now - (options.ageDays || 0) * 86400000
     });
@@ -449,8 +449,8 @@
     const roadmapViews = views(["list", "kanban", "calendar"]);
     const roadmapGroups = [
       {id:uid(), name:"To do", items:[]},
-      {id:uid(), name:"Doing", items:[]},
-      {id:uid(), name:"Done", items:[]}
+      {id:uid(), name:"In progress", items:[]},
+      {id:uid(), name:"Review", items:[]}
     ];
     const roadmap = {
       id:uid(), name:"Product roadmap", folderId:workFolder.id, createdAt:now,
@@ -601,6 +601,18 @@
       if (!Array.isArray(s.focusSessions)) s.focusSessions = [];
       return s;
     },
+    // v6 -> v7: completion is stored on each task instead of inferred from
+    // its group name. Preserve the previous Done-group state once on upgrade.
+    7: s => {
+      s.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
+        if (Object.prototype.hasOwnProperty.call(item,"completedAt")) return;
+        const wasInDoneGroup = item.calendarType!=="event" && String(group.name||"").trim().toLowerCase()==="done";
+        item.completedAt = wasInDoneGroup
+          ? (Number.isFinite(item.updatedAt) ? item.updatedAt : Date.now())
+          : null;
+      })));
+      return s;
+    },
   };
   const SCHEMA_VERSION = Math.max(...Object.keys(MIGRATIONS).map(Number));
   const MIGRATION_BACKUP_KEY = "personal_dashboard_pre_migration_backup_v1";
@@ -639,6 +651,9 @@
     if (!Array.isArray(s.googleCalendarCatalog)) s.googleCalendarCatalog = [];
     if (!s.googleCalendarSyncTokens || typeof s.googleCalendarSyncTokens!=="object" || Array.isArray(s.googleCalendarSyncTokens)) s.googleCalendarSyncTokens = {};
     if (!Number.isFinite(s.googleLastSyncAt)) s.googleLastSyncAt = 0;
+    s.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
+      if (!Number.isFinite(item.completedAt) || item.completedAt<=0) item.completedAt = null;
+    })));
     s.schemaVersion = SCHEMA_VERSION;
     if (fromVersion < s.schemaVersion) lastMigrationInfo = {fromVersion, toVersion:s.schemaVersion};
     return s;
@@ -755,6 +770,9 @@
   function getProject(pid){ return state.projects.find(p=>p.id===pid); }
   function getGroup(pid,gid){ return getProject(pid)?.groups.find(g=>g.id===gid); }
   function getItem(pid,gid,iid){ return getGroup(pid,gid)?.items.find(i=>i.id===iid); }
+  function isItemCompleted(item){
+    return !!item && item.calendarType!=="event" && Number.isFinite(item.completedAt) && item.completedAt>0;
+  }
   function tagById(project,tid){ return project.tags.find(t=>t.id===tid); }
   function priorityField(project){ return project.fields.find(f=>f.type==="priority"); }
   function dateFields(project){ return project.fields.filter(f=>f.type==="date"); }
@@ -959,7 +977,7 @@
   function addItem(pid, gid, title){
     const project = getProject(pid);
     const it = {id:uid(), title, description:"", calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
-      startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[],
+      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[],
       comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     getGroup(pid,gid).items.push(it);
     scheduleSave(); render();
@@ -969,7 +987,7 @@
     if (!project || !group) return;
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false, draft:{
       id:uid(), title:"", description:"", calendarType:project.itemDefaultType==="event" ? "event" : "task",
-      startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[], comments:[],
+      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[], comments:[],
       archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
@@ -1000,6 +1018,7 @@
       subitems:(source.subitems||[]).map(subitem=>({...subitem,id:uid(),done:false})),
       comments:[],
       archived:false,
+      completedAt:null,
       createdAt:now,
       updatedAt:now
     };
@@ -2600,10 +2619,9 @@
     const wrap = document.createElement("div");
     wrap.className = "overviewWrap";
     const flat = allItemsFlat();
-    const isDoneGroup = group => group.name.trim().toLowerCase()==="done";
     const activeItems = flat.filter(row=>!row.item.archived);
-    const openItems = activeItems.filter(row=>!isDoneGroup(row.group));
-    const completedItems = activeItems.filter(row=>isDoneGroup(row.group));
+    const openItems = activeItems.filter(row=>!isItemCompleted(row.item));
+    const completedItems = activeItems.filter(row=>isItemCompleted(row.item));
     function dueOf(row){
       const field = dateFields(row.project).find(candidate=>row.item.values[candidate.id]);
       return field ? row.item.values[field.id] : row.item.endDate||"";
@@ -2638,7 +2656,7 @@
     function projectBreakdownHtml(){
       return state.projects.map((project,index)=>{
         const projectItems = project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
-        const complete = projectItems.filter(row=>isDoneGroup(row.group)).length;
+        const complete = projectItems.filter(row=>isItemCompleted(row.item)).length;
         const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
         return `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
           <span class="overviewProjectInfo"><strong>${escapeHtml(project.name)}</strong><small>${percent}%</small></span>
@@ -2718,13 +2736,13 @@
       {value:state.projects.length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects"},
       {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open"},
       {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue"},
-      {value:completedItems.length,label:"Completed",detail:"Moved into Done",icon:"mdi:check-circle-outline",tone:"completed"}
+      {value:completedItems.length,label:"Completed",detail:"Marked complete",icon:"mdi:check-circle-outline",tone:"completed"}
     ];
     function openOverviewStatDetails(tone){
       overviewDetailsView.open({
         tone,
         stats:statRows,
-        data:{projects:state.projects,openItems,overdueItems:overdue,completedItems,isDoneGroup,dueOf,priorityOf},
+        data:{projects:state.projects,openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
         actions:{openProject:selectProject,openItem:openItemModal}
       });
     }
@@ -3395,8 +3413,7 @@
     const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
-    const doneGroup = project.groups.find(candidate=>candidate.name.trim().toLowerCase()==="done");
-    const isCompleted = doneGroup?.id===groupId;
+    const isCompleted = isItemCompleted(item);
 
     const doneSubCount = item.subitems.filter(s=>s.done).length;
     const subPct = item.subitems.length ? Math.round(doneSubCount/item.subitems.length*100) : 0;
@@ -3515,7 +3532,7 @@
         <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`}</span>
         <div class="itemModalFooterActions">
           ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>` : `
-            ${item.calendarType!=="event" ? `<button class="btn ${isCompleted?"btn-invisible":"btn-primary"} btn-sm" data-action="completeItem" ${isCompleted?"disabled":""}>${isCompleted?"Completed":"Mark complete"}</button>` : ""}`}
+            ${item.calendarType!=="event" ? `<button class="btn ${isCompleted?"btn-invisible":"btn-primary"} btn-sm" data-action="completeItem">${isCompleted?"Reopen":"Mark complete"}</button>` : ""}`}
         </div>
       </div>
     `;
@@ -3687,14 +3704,10 @@
       if (archiveBtn) archiveBtn.onclick = () => { toggleArchiveItem(projectId, groupId, itemId); renderItemModal(); };
       const completeBtn = modal.querySelector('[data-action="completeItem"]');
       if (completeBtn) completeBtn.onclick = () => {
-        let targetGroup = project.groups.find(candidate=>candidate.name.trim().toLowerCase()==="done");
-        if (!targetGroup){
-          targetGroup = {id:uid(),name:"Done",items:[]};
-          project.groups.push(targetGroup);
-        }
-        if (targetGroup.id===groupId) return;
-        openItemRef.groupId = targetGroup.id;
-        moveItem(projectId,groupId,targetGroup.id,itemId,null);
+        item.completedAt = isItemCompleted(item) ? null : Date.now();
+        item.updatedAt = Date.now();
+        scheduleSave();
+        render();
         renderItemModal();
       };
     }

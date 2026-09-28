@@ -1,11 +1,11 @@
 export class OverviewDetailsModel {
-  getEntries(tone,{projects,openItems,overdueItems,completedItems,isDoneGroup,dueOf,priorityOf}){
+  getEntries(tone,{projects,openItems,overdueItems,completedItems,isItemCompleted,dueOf,priorityOf}){
     if (tone==="projects"){
       return projects.map(project=>{
         const items=(project.groups||[]).flatMap(group=>(group.items||[])
           .filter(item=>!item.archived)
           .map(item=>({item,group})));
-        const completed=items.filter(row=>isDoneGroup(row.group)).length;
+        const completed=items.filter(row=>isItemCompleted(row.item)).length;
         return {kind:"project",id:project.id,title:project.name,meta:`${items.length-completed} open / ${completed} completed`};
       });
     }
