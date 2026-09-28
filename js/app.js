@@ -20,6 +20,7 @@
   const CALENDAR = "__calendar__";
   const INTEGRATIONS = "__integrations__";
   const SETTINGS = "__settings__";
+  const SUPPORT = "__support__";
   const DEFAULT_PROJECT_ICON = "mdi:clipboard-text-outline";
   const PROJECT_DEFAULT_ICONS = [
     "mdi:clipboard-text-outline","mdi:folder-outline","mdi:briefcase-outline","mdi:rocket-launch-outline",
@@ -1305,6 +1306,7 @@
     document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
     document.getElementById("integrationsNav").className = activeProjectId===INTEGRATIONS ? "active" : "";
     document.getElementById("settingsNav").className = activeProjectId===SETTINGS ? "active" : "";
+    document.getElementById("supportNav").classList.toggle("active",activeProjectId===SUPPORT);
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
     const appendProject = (p, inFolder=false) => {
@@ -1480,13 +1482,19 @@
     renderAll();
     closeSidebarOnMobile();
   }
+  function navigateToSupport(){
+    activeProjectId = SUPPORT;
+    persistActiveLocation();
+    renderAll();
+    closeSidebarOnMobile();
+  }
 
   function restoreActiveLocation(){
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
-    if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || getProject(saved)) activeProjectId = saved;
+    if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
-    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR) restoreProjectFilters(activeProjectId);
+    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== SUPPORT) restoreProjectFilters(activeProjectId);
   }
 
   function renderSidebarTags(){
@@ -1509,6 +1517,54 @@
   }
 
   /* Integrations view moved to js/google-calendar.js */
+
+  function renderSupport(board){
+    const page = document.createElement("div");
+    page.className = "supportWrap";
+    page.innerHTML = `
+      <div class="supportPage">
+        <div class="supportEyebrow"><iconify-icon icon="mdi:heart-outline" aria-hidden="true"></iconify-icon><span>Made carefully, maintained independently</span></div>
+        <section class="supportIntro">
+          <h3>Made carefully, maintained independently</h3>
+          <p class="supportLead">Beforework began with a simple belief: getting organized should make life feel lighter, not louder.</p>
+          <p>I wanted to build a quieter place to gather the moving pieces of a day, find the next step, and get back to the work that matters. If Beforework has helped you do that, thank you. Knowing it has become part of someone's day means a great deal.</p>
+        </section>
+        <div class="supportDetails">
+          <section class="supportStory">
+            <div class="supportSectionIcon"><iconify-icon icon="mdi:lock-outline" aria-hidden="true"></iconify-icon></div>
+            <h4>Your work stays yours</h4>
+            <p>Beforework is open source and local-first. Your workspace lives in a JSON file you choose and keep on your device. Support helps keep Beforework free of ads and subscriptions; a donation is never required to use the app.</p>
+          </section>
+          <section class="supportImpact">
+            <div class="supportSectionIcon"><iconify-icon icon="mdi:sprout-outline" aria-hidden="true"></iconify-icon></div>
+            <h4>What your support helps sustain</h4>
+            <ul>
+              <li><iconify-icon icon="mdi:tools" aria-hidden="true"></iconify-icon><span>File handling and compatibility fixes as browsers evolve</span></li>
+              <li><iconify-icon icon="mdi:human-wheelchair" aria-hidden="true"></iconify-icon><span>Keyboard access, screen-reader labels, and clear documentation</span></li>
+              <li><iconify-icon icon="mdi:shield-lock-outline" aria-hidden="true"></iconify-icon><span>Privacy-focused features and ongoing maintenance</span></li>
+            </ul>
+          </section>
+        </div>
+        <section class="supportOffer">
+          <div class="supportOfferCopy">
+            <h4>If Beforework has been useful to you</h4>
+            <p>Your support helps me keep caring for this project and make it better, one considered improvement at a time.</p>
+          </div>
+          <div class="supportActions">
+            <div class="supportActionOption">
+              <small id="supportSponsorCadence">Monthly or one-time</small>
+              <a class="btn btn-primary" href="${GITHUB_SPONSORS_URL}" aria-describedby="supportSponsorCadence" target="_blank" rel="noopener noreferrer"><iconify-icon icon="mdi:heart-plus-outline" aria-hidden="true"></iconify-icon> Sponsor on GitHub</a>
+            </div>
+            <div class="supportActionOption">
+              <small id="supportCoffeeCadence">One-time support</small>
+              <a class="btn" href="${BUY_ME_A_COFFEE_URL}" aria-describedby="supportCoffeeCadence" target="_blank" rel="noopener noreferrer"><iconify-icon icon="mdi:coffee-outline" aria-hidden="true"></iconify-icon> Buy me a coffee</a>
+            </div>
+          </div>
+          <p class="supportThanks">Contributing is completely optional. A kind note, <a href="${FEEDBACK_URL}" target="_blank" rel="noopener noreferrer">a bug report</a>, or sharing Beforework with someone who might find it useful also means a lot.</p>
+        </section>
+      </div>`;
+    board.replaceChildren(page);
+  }
 
   function renderSettings(board){
     const theme = document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
@@ -1558,13 +1614,14 @@
     const board = document.getElementById("board");
     board.innerHTML = "";
 
-    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS){
+    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
       topLabel.textContent = "Overview";
       if (activeProjectId===CALENDAR) topLabel.textContent = "Calendar";
       if (activeProjectId===INTEGRATIONS) topLabel.textContent = "Integrations";
       if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
+      if (activeProjectId===SUPPORT) topLabel.textContent = "Support Beforework";
       filterBar.style.display = "none";
-      renameBtn.style.display = "none";
+      editBtn.style.display = "none";
       duplicateBtn.style.display = "none";
       deleteBtn.style.display = "none";
       fieldsBtn.style.display = "none";
@@ -1577,6 +1634,7 @@
       if (activeProjectId===CALENDAR) renderCalendar(board, null);
       else if (activeProjectId===INTEGRATIONS) renderIntegrations(board);
       else if (activeProjectId===SETTINGS) renderSettings(board);
+      else if (activeProjectId===SUPPORT) renderSupport(board);
       else renderOverview(board);
       return;
     }
@@ -3411,7 +3469,7 @@
       navigateToIntegrations();
     };
     document.getElementById("settingsNav").onclick = navigateToSettings;
-    document.getElementById("supportNav").onclick = () => window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer");
+    document.getElementById("supportNav").onclick = navigateToSupport;
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
     document.getElementById("projectMenuBtn").onclick = event => {
