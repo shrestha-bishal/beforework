@@ -2398,17 +2398,28 @@
         event.querySelector(".eventTitle").textContent = `${timeRange ? timeRange+" " : ""}${entry.item.title}`;
         const startDateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
         const endDateLabel = entry.endDate===entry.date ? "" : new Date(`${entry.endDate}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
+        const dateRange = `${startDateLabel}${endDateLabel ? ` – ${endDateLabel}` : ""}`;
+        const description = String(entry.item.description||"").trim();
         const eventDetails = [
           entry.item.title,
-          `Date: ${startDateLabel}${endDateLabel ? ` – ${endDateLabel}` : ""}`,
+          `Date: ${dateRange}`,
           timeRange ? `Time: ${timeRange}` : "All day",
           entry.project ? `Project: ${entry.project.name}` : "",
           entry.group ? `Group: ${entry.group.name}` : "",
           entry.item.location ? `Location: ${entry.item.location}` : "",
-          String(entry.item.description||"").trim()
+          description
         ].filter(Boolean).join("\n");
-        event.title = eventDetails;
         event.setAttribute("aria-label",eventDetails.replace(/\n/g,". "));
+        event.calendarTooltipDetails = {
+          type:isEvent ? "Event" : "Task",
+          title:entry.item.title||"Untitled item",
+          date:dateRange,
+          time:timeRange||"All day",
+          project:entry.project?.name||"",
+          group:entry.group?.name||"",
+          location:entry.item.location||"",
+          description
+        };
         const projectName = event.querySelector(".eventProject");
         if (scopeProject || !entry.project) projectName.remove();
         else {
@@ -2464,12 +2475,115 @@
         scheduleSave(); render();
       });
     });
+    let activeCalendarPopover = null;
+    let calendarPopoverHideTimer = 0;
+    const hideCalendarPopover = () => {
+      clearTimeout(calendarPopoverHideTimer);
+      if (!activeCalendarPopover) return;
+      activeCalendarPopover.anchor.removeAttribute("aria-describedby");
+      activeCalendarPopover.element.remove();
+      activeCalendarPopover = null;
+    };
+    const positionCalendarPopover = (anchor,popover) => {
+      const anchorRect = anchor.getBoundingClientRect();
+      const popoverRect = popover.getBoundingClientRect();
+      const margin = 12;
+      let left = anchorRect.left;
+      if (left+popoverRect.width>window.innerWidth-margin) left = anchorRect.right-popoverRect.width;
+      left = Math.max(margin,Math.min(left,window.innerWidth-popoverRect.width-margin));
+      let top = anchorRect.bottom+8;
+      if (top+popoverRect.height>window.innerHeight-margin) top = anchorRect.top-popoverRect.height-8;
+      top = Math.max(margin,Math.min(top,window.innerHeight-popoverRect.height-margin));
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    };
+    wrap.addEventListener("scroll",hideCalendarPopover,{passive:true});
     wrap.querySelectorAll(".calendarEvent").forEach(event=>{
+      event.tabIndex = 0;
+      event.setAttribute("role","button");
+      const schedulePopoverHide = () => {
+        clearTimeout(calendarPopoverHideTimer);
+        calendarPopoverHideTimer = window.setTimeout(()=>{
+          if (activeCalendarPopover?.anchor!==event) return;
+          if (event.matches(":hover,:focus-within") || activeCalendarPopover.element.matches(":hover")) return;
+          hideCalendarPopover();
+        },160);
+      };
+      const showCalendarPopover = () => {
+        clearTimeout(calendarPopoverHideTimer);
+        if (activeCalendarPopover?.anchor===event) return;
+        hideCalendarPopover();
+        const details = event.calendarTooltipDetails;
+        const popover = document.createElement("div");
+        popover.className = "calendarContextPopover";
+        popover.id = `calendar-context-${uid()}`;
+        popover.setAttribute("role","tooltip");
+        const header = document.createElement("div");
+        header.className = "calendarContextHeader";
+        const marker = document.createElement("span");
+        marker.className = `calendarContextMarker ${details.type.toLowerCase()}`;
+        const heading = document.createElement("div");
+        heading.className = "calendarContextHeading";
+        const type = document.createElement("span");
+        type.className = "calendarContextType";
+        type.textContent = details.type;
+        const title = document.createElement("strong");
+        title.className = "calendarContextTitle";
+        title.textContent = details.title;
+        heading.append(type,title);
+        header.append(marker,heading);
+        popover.appendChild(header);
+        const facts = document.createElement("div");
+        facts.className = "calendarContextFacts";
+        const addFact = (label,value) => {
+          if (!value) return;
+          const row = document.createElement("div");
+          row.className = "calendarContextFact";
+          const factLabel = document.createElement("span");
+          factLabel.className = "calendarContextFactLabel";
+          factLabel.textContent = label;
+          const factValue = document.createElement("span");
+          factValue.className = "calendarContextFactValue";
+          factValue.textContent = value;
+          row.append(factLabel,factValue);
+          facts.appendChild(row);
+        };
+        addFact("Date",details.date);
+        addFact("Time",details.time);
+        addFact("Project",details.project);
+        addFact("Group",details.group);
+        addFact("Location",details.location);
+        popover.appendChild(facts);
+        if (details.description){
+          const description = document.createElement("p");
+          description.className = "calendarContextDescription";
+          description.textContent = details.description;
+          popover.appendChild(description);
+        }
+        document.body.appendChild(popover);
+        activeCalendarPopover = {anchor:event,element:popover};
+        event.setAttribute("aria-describedby",popover.id);
+        positionCalendarPopover(event,popover);
+        popover.addEventListener("pointerenter",()=>clearTimeout(calendarPopoverHideTimer));
+        popover.addEventListener("pointerleave",schedulePopoverHide);
+      };
+      event.addEventListener("pointerenter",showCalendarPopover);
+      event.addEventListener("pointerleave",schedulePopoverHide);
+      event.addEventListener("focus",showCalendarPopover);
+      event.addEventListener("blur",schedulePopoverHide);
+      event.addEventListener("keydown",keyEvent=>{
+        if (keyEvent.key==="Escape") hideCalendarPopover();
+        else if (!keyEvent.target.closest("a") && (keyEvent.key==="Enter" || keyEvent.key===" ")){
+          keyEvent.preventDefault();
+          event.click();
+        }
+      });
       event.addEventListener("dragstart", dragEvent=>{
         dragEvent.dataTransfer.setData("text/plain", JSON.stringify({pid:event.dataset.pid,gid:event.dataset.gid,iid:event.dataset.iid,fid:event.dataset.fid,start:event.dataset.start,end:event.dataset.end}));
       });
       event.onclick = click => {
         if (click.target.closest("a")) return;
+        hideCalendarPopover();
         if (event.dataset.pid) openItemModal(event.dataset.pid,event.dataset.gid,event.dataset.iid);
         else {
           const item = (state.calendarItems||[]).find(candidate=>candidate.id===event.dataset.iid);
