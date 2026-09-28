@@ -294,7 +294,7 @@
   .bulkSelectionActions{display:flex;align-items:center;gap:8px;overflow:hidden;max-width:0;opacity:0;transform:translateX(8px);transition:max-width .18s ease,opacity .14s ease,transform .18s ease;}
   .bulkBar[data-selected="true"] .bulkSelectionActions{max-width:520px;opacity:1;transform:translateX(0);}
   .bulkBar[data-selected="false"]{display:none;}
-  .listTable{border:1px solid var(--border);border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;background:var(--bg);box-shadow:var(--shadow-lift);}
+  .listTable{border:1px solid var(--border);border-radius:12px;border-collapse:separate;border-spacing:0;background:var(--bg);box-shadow:var(--shadow-lift);}
   .listTable thead th{padding:10px 12px!important;background:var(--bg-soft);border-bottom:1px solid var(--border)!important;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.02em;white-space:nowrap;}
   .listTable thead th:first-child{border-top-left-radius:11px;}
   .listTable thead th:last-child{border-top-right-radius:11px;}
