@@ -43,9 +43,25 @@ python3 -m http.server 8000
 
 Then open <http://localhost:8000/> in Chrome or Edge and create a new workspace file, or open an existing Beforework JSON file.
 
+Local hosting starts with an empty workspace by default. To explore the sample workspace without building anything locally, visit the [Beforework demo](https://beforework-demo.netlify.app/).
+
+For development, if you need to run the demo data locally, build and serve the generated site with demo mode enabled:
+
+```powershell
+$env:BEFOREWORK_MODE = "demo"
+node scripts/build-site.js
+python -m http.server 8000 --directory dist
+```
+
+On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
+
 ## Deploy
 
-This is a static site. Publish the repository root with any static hosting provider such as Netlify, GitHub Pages, or Cloudflare Pages. No build command or server runtime is required.
+This is a static site. Netlify runs `node scripts/build-site.js` and publishes `dist`. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspace files with sample projects and calendar items. The default is `clean`, which creates an empty workspace.
+
+To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Changes to an existing workspace file are unaffected by this setting.
+
+The source config defaults to `clean`. The build script writes the selected mode into `dist/js/site-config.js` without changing the source config.
 
 For production use, serve the site over HTTPS. Users still retain their data locally or in a synced folder such as OneDrive or Google Drive; the application does not upload workspace data to a project server.
 

@@ -428,6 +428,24 @@
   }
 
   function defaultState(){
+    if (window.BEFOREWORK_CONFIG?.initialWorkspace === "clean"){
+      return {
+        schemaVersion:SCHEMA_VERSION,
+        projects:[],
+        folders:[],
+        calendarItems:[],
+        focusSessions:[],
+        googleDeletedEventIds:[],
+        googleCalendarLinks:[],
+        googleCalendarCatalog:[],
+        googleCalendarSyncTokens:{},
+        googleLastSyncAt:0
+      };
+    }
+    return demoState();
+  }
+
+  function demoState(){
     const now = Date.now();
     const workFolder = {id:uid(), name:"Work"};
     const personalFolder = {id:uid(), name:"Personal"};
