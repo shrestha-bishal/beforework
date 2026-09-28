@@ -46,6 +46,7 @@
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
 
   let state = null;                 // { projects:[] }
+  let settingsView = null;
   let showArchived = false;
   let focusInterval = null;
   let focusMode = "focus";
@@ -1523,37 +1524,39 @@
   }
 
   function renderSettings(board){
-    const theme = document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light";
-    const timeFormat = getTimeFormat();
-    const sidebarCollapsed = document.getElementById("sidebar").classList.contains("collapsed");
     const accountName = currentAuthUser && activeAuthProvider ? activeAuthProvider.label(currentAuthUser) : "";
-    const view = window.BeforeworkViewTemplates.clone("settings");
-    view.querySelector("#settingsThemeToggle").textContent = `${theme} mode`;
-    view.querySelector("#settingsTimeFormat").value = timeFormat;
-    view.querySelector("#settingsSidebarToggle").textContent = `${sidebarCollapsed ? "Expand" : "Collapse"} sidebar`;
-    view.querySelector("#settingsStorageStatus").textContent = getSyncStatusText();
-    view.querySelector("#settingsBackupRow").hidden = !hasMigrationBackup();
-    view.querySelector("#settingsAccountName").textContent = accountName;
-    view.querySelector("#settingsAccountSection").hidden = !accountName;
-    board.replaceChildren(view);
-    board.querySelector("#settingsThemeToggle").onclick = () => { toggleTheme(); renderSettings(board); };
-    board.querySelector("#settingsTimeFormat").onchange = event => {
-      try{ localStorage.setItem(TIME_FORMAT_KEY, event.target.value); }catch(err){/* ignore */}
-      renderAll();
-    };
-    board.querySelector("#settingsSidebarToggle").onclick = () => { toggleSidebarCollapsed(); renderSettings(board); };
-    board.querySelector("#settingsShortcuts").onclick = showShortcutsModal;
-    board.querySelector("#settingsContactForm").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    board.querySelector("#settingsGithubSponsors").onclick = () => window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer");
-    board.querySelector("#settingsBuyMeCoffee").onclick = () => window.open(BUY_ME_A_COFFEE_URL, "_blank", "noopener,noreferrer");
-    board.querySelector("#settingsSwitchFile").onclick = switchFile;
-    board.querySelector("#settingsNewFile").onclick = startNewFileFromMenu;
-    board.querySelector("#settingsExport").onclick = exportJSON;
-    board.querySelector("#settingsImport").onclick = () => document.getElementById("fileImportInput").click();
-    const restoreBackupButton = board.querySelector("#settingsRestoreBackup");
-    if (restoreBackupButton) restoreBackupButton.onclick = restoreMigrationBackup;
-    const logoutButton = board.querySelector("#settingsLogout");
-    if (logoutButton) logoutButton.onclick = () => activeAuthProvider.logout();
+    settingsView.render(board, {
+      theme:document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light",
+      timeFormat:getTimeFormat(),
+      sidebarCollapsed:document.getElementById("sidebar").classList.contains("collapsed"),
+      storageStatus:getSyncStatusText(),
+      hasBackup:hasMigrationBackup(),
+      accountName
+    });
+  }
+
+  function createSettingsView(SettingsView){
+    return new SettingsView({
+      cloneTemplate:()=>window.BeforeworkViewTemplates.clone("settings"),
+      actions:{
+      toggleTheme(board){ toggleTheme(); renderSettings(board); },
+      setTimeFormat(value){
+        try{ localStorage.setItem(TIME_FORMAT_KEY, value); }catch(err){/* ignore */}
+        renderAll();
+      },
+      toggleSidebar(board){ toggleSidebarCollapsed(); renderSettings(board); },
+      showShortcuts:showShortcutsModal,
+      openIssues(){ window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer"); },
+      openSponsors(){ window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer"); },
+      openCoffee(){ window.open(BUY_ME_A_COFFEE_URL, "_blank", "noopener,noreferrer"); },
+      switchFile,
+      createFile:startNewFileFromMenu,
+      exportJSON,
+      importJSON(){ document.getElementById("fileImportInput").click(); },
+      restoreBackup:restoreMigrationBackup,
+      logout(){ if (activeAuthProvider) activeAuthProvider.logout(); }
+      }
+    });
   }
 
   function render(){
@@ -3613,6 +3616,8 @@
     wireConnectGate();
     initAuth(); // no-op / stays hidden if no provider is available - see "Auth" section above
     try{
+      const settingsModule = await import("./views/settings-view.js");
+      settingsView = createSettingsView(settingsModule.SettingsView);
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);
