@@ -2488,6 +2488,7 @@
           group:entry.group?.name||"",
           location:entry.item.location||"",
           description,
+          googleUrl:googleCalendarUrl(entry),
           projectId:entry.project?.id||"",
           groupId:entry.group?.id||"",
           itemId:entry.item.id,
@@ -2500,7 +2501,6 @@
           projectName.title = entry.project.name;
           projectName.hidden = false;
         }
-        event.querySelector(".gcalLink").href = googleCalendarUrl(entry);
         day.appendChild(event);
       });
       cells.push(day);
@@ -2555,11 +2555,9 @@
       clearTimeout(calendarPopoverHideTimer);
       if (!activeCalendarPopover) return;
       activeCalendarPopover.trigger.removeAttribute("aria-describedby");
-      if (activeCalendarPopover.type==="Task"){
-        activeCalendarPopover.trigger.removeAttribute("aria-controls");
-        activeCalendarPopover.trigger.removeAttribute("aria-haspopup");
-        activeCalendarPopover.trigger.setAttribute("aria-expanded","false");
-      }
+      activeCalendarPopover.trigger.removeAttribute("aria-controls");
+      activeCalendarPopover.trigger.removeAttribute("aria-haspopup");
+      activeCalendarPopover.trigger.setAttribute("aria-expanded","false");
       activeCalendarPopover.element.remove();
       activeCalendarPopover = null;
     };
@@ -2595,7 +2593,7 @@
         const popover = document.createElement("div");
         popover.className = "calendarContextPopover";
         popover.id = `calendar-context-${uid()}`;
-        popover.setAttribute("role",details.type==="Task" ? "dialog" : "tooltip");
+        popover.setAttribute("role","dialog");
         popover.setAttribute("aria-label",`${details.type} details`);
         const header = document.createElement("div");
         header.className = "calendarContextHeader";
@@ -2609,6 +2607,19 @@
         title.textContent = details.title;
         heading.append(type,title);
         header.appendChild(heading);
+        const googleLink = document.createElement("a");
+        googleLink.className = "calendarContextGoogleLink";
+        googleLink.href = details.googleUrl;
+        googleLink.target = "_blank";
+        googleLink.rel = "noopener";
+        googleLink.title = "Add to Google Calendar";
+        const googleIcon = document.createElement("iconify-icon");
+        googleIcon.setAttribute("icon","mdi:open-in-new");
+        googleIcon.setAttribute("aria-hidden","true");
+        const googleLabel = document.createElement("span");
+        googleLabel.textContent = "Google Calendar";
+        googleLink.append(googleIcon,googleLabel);
+        header.appendChild(googleLink);
         popover.appendChild(header);
         const facts = document.createElement("div");
         facts.className = "calendarContextFacts";
@@ -2639,7 +2650,6 @@
           popover.appendChild(description);
         }
         if (details.type==="Task"){
-          trigger.setAttribute("aria-haspopup","dialog");
           const footer = document.createElement("div");
           footer.className = "calendarContextFooter";
           const completeButton = document.createElement("button");
@@ -2669,10 +2679,9 @@
         activeCalendarPopover = {anchor:event,element:popover,type:details.type};
         activeCalendarPopover.trigger = trigger;
         trigger.setAttribute("aria-describedby",popover.id);
-        if (details.type==="Task"){
-          trigger.setAttribute("aria-controls",popover.id);
-          trigger.setAttribute("aria-expanded","true");
-        }
+        trigger.setAttribute("aria-haspopup","dialog");
+        trigger.setAttribute("aria-controls",popover.id);
+        trigger.setAttribute("aria-expanded","true");
         positionCalendarPopover(event,popover);
         popover.addEventListener("pointerenter",()=>clearTimeout(calendarPopoverHideTimer));
         popover.addEventListener("pointerleave",schedulePopoverHide);
@@ -2692,7 +2701,7 @@
       });
       event.addEventListener("keydown",keyEvent=>{
         if (keyEvent.key==="ArrowDown" && activeCalendarPopover?.anchor===event){
-          const actionButton = activeCalendarPopover.element.querySelector(".calendarContextCompleteBtn");
+          const actionButton = activeCalendarPopover.element.querySelector(".calendarContextCompleteBtn,.calendarContextGoogleLink");
           if (actionButton){ actionButton.focus(); keyEvent.preventDefault(); }
         } else if (keyEvent.key==="Escape" && activeCalendarPopover?.anchor===event){
           hideCalendarPopover();
