@@ -11,40 +11,34 @@
     </div>
   </header>
   <section class="overviewStats" data-overview-stats aria-label="Workspace summary"></section>
-  <section class="overviewCharts" aria-label="Workspace charts">
-    <section class="overviewPanel overviewChartPanel">
+  <div class="overviewDashboardGrid" data-overview-reorder-container aria-label="Overview cards">
+    <section class="overviewPanel overviewChartPanel" data-overview-card="workloadChart" data-overview-min-width="360" style="--overview-card-columns:2">
       <header class="overviewPanelHeader"><div><h3>Workload this week</h3><p>Tasks and calendar items due each day</p></div></header>
-      <div class="overviewWeekChart" data-overview-week-chart></div>
+      <div class="overviewPanelBody"><div class="overviewWeekChart" data-overview-week-chart></div></div>
     </section>
-    <section class="overviewPanel overviewChartPanel">
+    <section class="overviewPanel overviewChartPanel" data-overview-card="statusChart" data-overview-min-width="340" style="--overview-card-columns:2">
       <header class="overviewPanelHeader"><div><h3>Task status</h3><p>Open and completed items</p></div></header>
-      <div class="overviewStatusChart" data-overview-status-chart></div>
+      <div class="overviewPanelBody"><div class="overviewStatusChart" data-overview-status-chart></div></div>
     </section>
-  </section>
-  <div class="overviewDashboardGrid">
-    <main class="overviewDashboardMain">
-      <section class="overviewPanel">
-        <header class="overviewPanelHeader"><div><h3>Next 7 days</h3><p>Scheduled project work and calendar items</p></div><button class="btn btn-sm btn-invisible" type="button" data-overview-action="calendar">Open calendar</button></header>
-        <div class="overviewTimelineScroll"><div class="overviewTimeline" data-overview-timeline></div></div>
-      </section>
-      <section class="overviewPanel">
-        <header class="overviewPanelHeader"><div><h3>Recently updated</h3><p>Latest changes across your projects</p></div></header>
-        <div class="overviewRecentList" data-overview-recent></div>
-      </section>
-    </main>
-    <aside class="overviewDashboardAside">
-      <section class="overviewPanel">
-        <header class="overviewPanelHeader"><div><h3>Project progress</h3><p>Open and completed work by project</p></div></header>
-        <div class="overviewProjectList" data-overview-projects></div>
-      </section>
-      <section class="overviewPanel">
-        <header class="overviewPanelHeader"><div><h3>Focus this week</h3><p>Completed sessions since Monday</p></div></header>
-        <div class="overviewFocusSummary" data-overview-focus></div>
-      </section>
-      <section class="overviewPanel">
-        <header class="overviewPanelHeader"><div><h3>Open items by priority</h3><p>Active tasks across all projects</p></div></header>
-        <div class="overviewPriorityList" data-overview-priorities></div>
-      </section>
-    </aside>
+    <section class="overviewPanel overviewWideCard" data-overview-card="timeline" data-overview-min-width="650" style="--overview-card-columns:3">
+      <header class="overviewPanelHeader"><div><h3>Next 7 days</h3><p>Scheduled project work and calendar items</p></div><button class="btn btn-sm btn-invisible" type="button" data-overview-action="calendar">Open calendar</button></header>
+      <div class="overviewPanelBody"><div class="overviewTimelineScroll"><div class="overviewTimeline" data-overview-timeline></div></div></div>
+    </section>
+    <section class="overviewPanel overviewNarrowCard" data-overview-card="projects" data-overview-min-width="280" style="--overview-card-columns:2">
+      <header class="overviewPanelHeader"><div><h3>Project progress</h3><p>Open and completed work by project</p></div></header>
+      <div class="overviewPanelBody"><div class="overviewProjectList" data-overview-projects></div></div>
+    </section>
+    <section class="overviewPanel overviewWideCard" data-overview-card="recent" data-overview-min-width="360" style="--overview-card-columns:2">
+      <header class="overviewPanelHeader"><div><h3>Recently updated</h3><p>Latest changes across your projects</p></div></header>
+      <div class="overviewPanelBody"><div class="overviewRecentList" data-overview-recent></div></div>
+    </section>
+    <section class="overviewPanel overviewNarrowCard" data-overview-card="focus" data-overview-min-width="300" style="--overview-card-columns:2">
+      <header class="overviewPanelHeader"><div><h3>Focus this week</h3><p>Completed sessions since Monday</p></div></header>
+      <div class="overviewPanelBody"><div class="overviewFocusSummary" data-overview-focus></div></div>
+    </section>
+    <section class="overviewPanel overviewNarrowCard" data-overview-card="priorities" data-overview-min-width="320" style="--overview-card-columns:2">
+      <header class="overviewPanelHeader"><div><h3>Open items by priority</h3><p>Active tasks across all projects</p></div></header>
+      <div class="overviewPanelBody"><div class="overviewPriorityList" data-overview-priorities></div></div>
+    </section>
   </div>
 </div>

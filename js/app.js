@@ -2542,6 +2542,239 @@
         <span class="overviewRecentMeta">${escapeHtml(row.project.name)} / ${escapeHtml(row.group.name)} <span>· ${escapeHtml(formatUpdatedAt(row.item.updatedAt))}</span></span>
       </button>`;
     }).join("") || `<div class="overviewQuiet">No project activity yet.</div>`;
+    const cardContainer = view.querySelector("[data-overview-reorder-container]");
+    const cardOrder = Array.isArray(state.overviewCardOrder) ? state.overviewCardOrder : [];
+    const cards = [...cardContainer.querySelectorAll("[data-overview-card]")];
+    cards.sort((a,b)=>{
+      const aIndex = cardOrder.indexOf(a.dataset.overviewCard);
+      const bIndex = cardOrder.indexOf(b.dataset.overviewCard);
+      return (aIndex<0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex<0 ? Number.MAX_SAFE_INTEGER : bIndex);
+    }).forEach(card=>cardContainer.appendChild(card));
+    const cardLayouts = state.overviewCardLayouts && typeof state.overviewCardLayouts==="object" ? state.overviewCardLayouts : {};
+    const clamp = (value,min,max)=>Math.max(min,Math.min(max,value));
+    function setCardColumns(card,columns){
+      const minWidth = Number(card.dataset.overviewMinWidth)||260;
+      const savedWidth = Number.parseFloat(card.style.getPropertyValue("--overview-card-width"))||0;
+      const requiredWidth = Math.max(minWidth,savedWidth);
+      const safeColumns = clamp(Math.max(Math.round(columns),Math.ceil(requiredWidth/260)),1,4);
+      card.style.setProperty("--overview-card-columns",String(safeColumns));
+      card.style.setProperty("--overview-card-min-width",`${minWidth}px`);
+      card.style.setProperty("--overview-card-tablet-columns",String(clamp(Math.max(Math.round(safeColumns*3/4),Math.ceil(requiredWidth/260)),1,3)));
+      card.style.setProperty("--overview-card-compact-columns",String(clamp(Math.max(Math.round(safeColumns/2),Math.ceil(requiredWidth/320)),1,2)));
+    }
+    function getCardColumns(card){
+      const match = getComputedStyle(card).gridColumnStart.match(/span\s+(\d+)/);
+      return match ? Number(match[1]) : 1;
+    }
+    function saveCardLayout(card){
+      if (!state.overviewCardLayouts || typeof state.overviewCardLayouts!=="object") state.overviewCardLayouts = {};
+      state.overviewCardLayouts[card.dataset.overviewCard] = {
+        columns:clamp(Number(card.style.getPropertyValue("--overview-card-columns"))||1,1,4),
+        width:Number.parseFloat(card.style.getPropertyValue("--overview-card-width"))||null,
+        height:Number.parseFloat(card.style.getPropertyValue("--overview-card-height"))||null
+      };
+      scheduleSave();
+    }
+    cards.forEach(card=>{
+      const saved = cardLayouts[card.dataset.overviewCard];
+      const savedColumns = saved && Number.isFinite(saved.columns) ? (saved.columns>4 ? Math.round(saved.columns/6) : saved.columns) : null;
+      const initialColumns = savedColumns || Number(card.style.getPropertyValue("--overview-card-columns"))||1;
+      const minWidth = Number(card.dataset.overviewMinWidth)||260;
+      if (saved && Number.isFinite(saved.width)) card.style.setProperty("--overview-card-width",`${Math.max(saved.width,minWidth)}px`);
+      setCardColumns(card,initialColumns);
+      if (saved && Number.isFinite(saved.height)) card.style.setProperty("--overview-card-height",`${Math.max(saved.height,180)}px`);
+    });
+    let dragState = null;
+    cards.forEach(card=>{
+      const header = card.querySelector(".overviewPanelHeader");
+      const dragHandle = document.createElement("span");
+      dragHandle.className = "overviewDragHandle";
+      dragHandle.setAttribute("role","button");
+      dragHandle.setAttribute("aria-label","Drag to rearrange");
+      dragHandle.title = "Drag to rearrange";
+      dragHandle.tabIndex = 0;
+      const dragIcon = document.createElement("iconify-icon");
+      dragIcon.setAttribute("icon","mdi:drag-vertical");
+      dragIcon.setAttribute("aria-hidden","true");
+      dragHandle.appendChild(dragIcon);
+      header.appendChild(dragHandle);
+      dragHandle.addEventListener("pointerdown",event=>{
+        if (event.button!==0 || dragState) return;
+        event.preventDefault();
+        const bounds = card.getBoundingClientRect();
+        dragState = {card,handle:dragHandle,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
+          offsetX:event.clientX-bounds.left,offsetY:event.clientY-bounds.top,bounds,placeholder:null,moved:false};
+        dragHandle.setPointerCapture(event.pointerId);
+      });
+      dragHandle.addEventListener("pointermove",event=>{
+        if (!dragState || dragState.handle!==dragHandle || dragState.pointerId!==event.pointerId) return;
+        const deltaX = event.clientX-dragState.startX;
+        const deltaY = event.clientY-dragState.startY;
+        if (!dragState.moved && Math.hypot(deltaX,deltaY)<5) return;
+        event.preventDefault();
+        const dragged = dragState.card;
+        if (!dragState.moved){
+          dragState.moved = true;
+          const placeholder = document.createElement("div");
+          placeholder.className = "overviewDropPlaceholder";
+          placeholder.style.setProperty("--overview-card-columns",dragged.style.getPropertyValue("--overview-card-columns"));
+          placeholder.style.setProperty("--overview-card-tablet-columns",dragged.style.getPropertyValue("--overview-card-tablet-columns"));
+          placeholder.style.setProperty("--overview-card-compact-columns",dragged.style.getPropertyValue("--overview-card-compact-columns"));
+          placeholder.style.setProperty("--overview-card-min-width",dragged.style.getPropertyValue("--overview-card-min-width"));
+          placeholder.style.gridColumn = getComputedStyle(dragged).gridColumnStart;
+          placeholder.style.boxSizing = "border-box";
+          placeholder.style.alignSelf = "start";
+          placeholder.style.minWidth = `${dragState.bounds.width}px`;
+          placeholder.style.maxWidth = "none";
+          placeholder.style.width = `${dragState.bounds.width}px`;
+          placeholder.style.minHeight = `${dragState.bounds.height}px`;
+          placeholder.style.maxHeight = `${dragState.bounds.height}px`;
+          placeholder.style.height = `${dragState.bounds.height}px`;
+          dragged.after(placeholder);
+          dragState.placeholder = placeholder;
+          dragged.classList.add("dragging");
+          dragged.style.position = "fixed";
+          dragged.style.boxSizing = "border-box";
+          dragged.style.minWidth = `${dragState.bounds.width}px`;
+          dragged.style.maxWidth = "none";
+          dragged.style.width = `${dragState.bounds.width}px`;
+          dragged.style.minHeight = `${dragState.bounds.height}px`;
+          dragged.style.maxHeight = `${dragState.bounds.height}px`;
+          dragged.style.height = `${dragState.bounds.height}px`;
+          dragged.style.zIndex = "100";
+          dragged.style.pointerEvents = "none";
+          dragged.style.gridColumn = "auto";
+          dragged.style.margin = "0";
+        }
+        dragged.style.left = `${event.clientX-dragState.offsetX}px`;
+        dragged.style.top = `${event.clientY-dragState.offsetY}px`;
+        let nearest = null;
+        let nearestDistance = Infinity;
+        cards.forEach(candidate=>{
+          if (candidate===dragged) return;
+          const bounds = candidate.getBoundingClientRect();
+          const centerX = bounds.left+bounds.width/2;
+          const centerY = bounds.top+bounds.height/2;
+          const distance = ((event.clientX-centerX)/Math.max(bounds.width,1))**2 + ((event.clientY-centerY)/Math.max(bounds.height,1))**2;
+          if (distance<nearestDistance){ nearestDistance=distance; nearest={card:candidate,bounds,centerX,centerY}; }
+        });
+        cards.forEach(candidate=>candidate.classList.remove("dropTarget"));
+        if (!nearest) return;
+        nearest.card.classList.add("dropTarget");
+        const horizontal = Math.abs((event.clientX-nearest.centerX)/Math.max(nearest.bounds.width,1)) >
+          Math.abs((event.clientY-nearest.centerY)/Math.max(nearest.bounds.height,1));
+        const before = horizontal ? event.clientX<nearest.centerX : event.clientY<nearest.centerY;
+        const placeholder = dragState.placeholder;
+        const reference = before ? nearest.card : nearest.card.nextElementSibling;
+        if (reference!==placeholder && placeholder.nextElementSibling!==reference){
+          cardContainer.insertBefore(placeholder,reference);
+        }
+      });
+      const finishDrag = (event,cancelled=false)=>{
+        if (!dragState || dragState.handle!==dragHandle || (event && dragState.pointerId!==event.pointerId)) return;
+        const {card:dragged,placeholder,moved} = dragState;
+        dragState = null;
+        if (moved && !cancelled && placeholder && placeholder.isConnected){
+          placeholder.replaceWith(dragged);
+          state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
+          scheduleSave();
+        }else if (placeholder && placeholder.isConnected){ placeholder.remove(); }
+        ["position","left","top","width","height","min-width","max-width","min-height","max-height","box-sizing","z-index","pointer-events","grid-column","margin"].forEach(property=>dragged.style.removeProperty(property));
+        cards.forEach(candidate=>candidate.classList.remove("dragging","dropTarget"));
+      };
+      dragHandle.addEventListener("pointerup",finishDrag);
+      dragHandle.addEventListener("pointercancel",event=>finishDrag(event,true));
+      dragHandle.addEventListener("lostpointercapture",event=>finishDrag(event,true));
+      dragHandle.addEventListener("keydown",event=>{
+        const step = {ArrowLeft:-1,ArrowUp:-1,ArrowRight:1,ArrowDown:1}[event.key];
+        if (!step) return;
+        event.preventDefault();
+        const siblings = [...cardContainer.querySelectorAll("[data-overview-card]")];
+        const index = siblings.indexOf(card);
+        const next = siblings[index+step];
+        if (!next) return;
+        cardContainer.insertBefore(card,step<0 ? next : next.nextSibling);
+        state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
+        scheduleSave();
+      });
+
+      const resizeHandle = document.createElement("span");
+      resizeHandle.className = "overviewResizeHandle";
+      resizeHandle.setAttribute("role","button");
+      resizeHandle.setAttribute("aria-label",`Resize ${card.querySelector("h3")?.textContent||"overview card"}`);
+      resizeHandle.setAttribute("aria-keyshortcuts","ArrowLeft ArrowRight ArrowUp ArrowDown");
+      resizeHandle.title = "Drag to resize; use arrow keys when focused";
+      resizeHandle.tabIndex = 0;
+      card.appendChild(resizeHandle);
+      let resizeState = null;
+      resizeHandle.addEventListener("pointerdown",event=>{
+        if (event.button!==0 || resizeState || dragState) return;
+        event.preventDefault();
+        const gridBounds = cardContainer.getBoundingClientRect();
+        const gridStyle = getComputedStyle(cardContainer);
+        const trackSizes = gridStyle.gridTemplateColumns.trim().split(/\s+/).map(parseFloat);
+        const tracks = trackSizes.length;
+        const minWidth = Math.min(Number(card.dataset.overviewMinWidth)||260,gridBounds.width);
+        resizeState = {pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
+          columns:getCardColumns(card),tracks,trackWidth:trackSizes[0]||gridBounds.width,gridGap:parseFloat(gridStyle.columnGap)||0,
+          minWidth,
+          initialColumns:Number(card.style.getPropertyValue("--overview-card-columns"))||1,
+          initialWidth:card.style.getPropertyValue("--overview-card-width"),width:card.getBoundingClientRect().width,
+          initialHeight:card.style.getPropertyValue("--overview-card-height"),height:card.getBoundingClientRect().height,gridWidth:gridBounds.width,changed:false};
+        resizeHandle.setPointerCapture(event.pointerId);
+      });
+      resizeHandle.addEventListener("pointermove",event=>{
+        if (!resizeState || resizeState.pointerId!==event.pointerId) return;
+        event.preventDefault();
+        const tracks = resizeState.tracks;
+        const widthStep = resizeState.trackWidth+resizeState.gridGap;
+        const width = clamp(resizeState.width+(event.clientX-resizeState.startX),resizeState.minWidth,resizeState.gridWidth);
+        const columns = clamp(Math.ceil((width+resizeState.gridGap)/Math.max(widthStep,1)),1,tracks);
+        const savedColumns = tracks===4 ? columns : tracks===3 ? Math.round(columns*4/3) : tracks===2 ? columns*2 : resizeState.initialColumns;
+        const height = resizeState.height+(event.clientY-resizeState.startY);
+        card.style.setProperty("--overview-card-width",`${width}px`);
+        setCardColumns(card,savedColumns);
+        card.style.setProperty("--overview-card-height",`${Math.max(height,180)}px`);
+        resizeState.changed = Math.abs(width-resizeState.width)>=1 || Math.abs(height-resizeState.height)>=1;
+      });
+      const finishResize = (event,cancelled=false)=>{
+        if (!resizeState || (event && resizeState.pointerId!==event.pointerId)) return;
+        const {changed,initialColumns,initialWidth,initialHeight} = resizeState;
+        resizeState = null;
+        if (cancelled){
+          if (initialWidth) card.style.setProperty("--overview-card-width",initialWidth);
+          else card.style.removeProperty("--overview-card-width");
+          setCardColumns(card,initialColumns);
+          if (initialHeight) card.style.setProperty("--overview-card-height",initialHeight);
+          else card.style.removeProperty("--overview-card-height");
+        }else if (changed){ saveCardLayout(card); }
+      };
+      resizeHandle.addEventListener("pointerup",finishResize);
+      resizeHandle.addEventListener("pointercancel",event=>finishResize(event,true));
+      resizeHandle.addEventListener("lostpointercapture",event=>finishResize(event,true));
+      resizeHandle.addEventListener("keydown",event=>{
+        const step = {ArrowLeft:[-20,0],ArrowRight:[20,0],ArrowUp:[0,-40],ArrowDown:[0,40]}[event.key];
+        if (!step) return;
+        event.preventDefault();
+        if (step[0]){
+          const gridBounds = cardContainer.getBoundingClientRect();
+          const gridStyle = getComputedStyle(cardContainer);
+          const trackSizes = gridStyle.gridTemplateColumns.trim().split(/\s+/).map(parseFloat);
+          const tracks = trackSizes.length;
+          const minWidth = Math.min(Number(card.dataset.overviewMinWidth)||260,gridBounds.width);
+          const width = clamp(card.getBoundingClientRect().width+step[0],minWidth,gridBounds.width);
+          const trackWidth = trackSizes[0]||gridBounds.width;
+          const gridGap = parseFloat(gridStyle.columnGap)||0;
+          const nextColumns = clamp(Math.ceil((width+gridGap)/(trackWidth+gridGap)),1,tracks);
+          const savedColumns = tracks===4 ? nextColumns : tracks===3 ? Math.round(nextColumns*4/3) : nextColumns*2;
+          card.style.setProperty("--overview-card-width",`${width}px`);
+          setCardColumns(card,savedColumns);
+        }
+        const currentHeight = Number.parseFloat(card.style.getPropertyValue("--overview-card-height"))||card.getBoundingClientRect().height;
+        card.style.setProperty("--overview-card-height",`${Math.max(currentHeight+step[1],180)}px`);
+        saveCardLayout(card);
+      });
+    });
     wrap.appendChild(view);
     wrap.querySelectorAll(".overviewRecentRow[data-iid]").forEach(el=>{
       el.onclick = () => {
