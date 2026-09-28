@@ -82,7 +82,7 @@ New schema changes should add a new migration step rather than changing an exist
 ## Project structure
 
 - `index.html` - application shell
-- `js/` - application logic, persistence, integrations, and view templates
+- `js/` - application logic, persistence, integrations, view templates, and the isolated `demo-seeder.js` sample workspace
 - `pages/` - dashboard and settings page fragments
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
