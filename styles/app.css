@@ -296,7 +296,7 @@
   .fieldFilterGroup .removeFieldFilter:hover,.tagFilterGroup .removeFieldFilter:hover{background:rgba(31,111,84,.12);color:var(--accent-strong);}
 
   /* Overview */
-  .overviewWrap{container-type:inline-size;container-name:overview; padding:20px clamp(18px,3vw,32px);overflow:auto;flex:1;width:100%;max-width:1440px;}
+  .overviewWrap{container-type:inline-size;container-name:overview; padding:20px clamp(18px,3vw,32px);overflow:auto;flex:1;width:100%;max-width:1680px;margin-inline:auto;}
   #board:has(.overviewWrap){overflow-x:hidden;overflow-y:auto;}
   .overviewDashboard{width:100%;}
   .overviewDashHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;padding:3px 0 18px;border-bottom:1px solid var(--border);}
