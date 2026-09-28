@@ -3519,6 +3519,7 @@
     const {projectId,groupId,itemId} = openItemRef;
     const isNew = !!openItemRef.isNew;
     const project = getProject(projectId);
+    const group = project.groups.find(candidate=>candidate.id===groupId);
     const item = isNew ? openItemRef.draft : getItem(projectId, groupId, itemId);
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
@@ -3585,6 +3586,7 @@
       </div>` : ""}
       <button class="btn btn-invisible closeX" data-action="close">✕</button>
       <div class="itemModalHeader">
+        <div class="itemModalBreadcrumb">${escapeHtml(project.name)} <span aria-hidden="true">/</span> ${escapeHtml(group?.name||"")}</div>
         <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="${escapeHtml(item.title)}">
       </div>
       <div class="itemModalBody">
@@ -3699,6 +3701,8 @@
     });
     modal.querySelector("#itemGroupSelect").addEventListener("change", e=>{
       const newGid = e.target.value;
+      const nextGroup = project.groups.find(candidate=>candidate.id===newGid);
+      modal.querySelector(".itemModalBreadcrumb").textContent = `${project.name} / ${nextGroup?.name||""}`;
       if (isNew){ openItemRef.groupId = newGid; return; }
       if (newGid !== groupId){
         moveItem(projectId, groupId, newGid, itemId, null);
