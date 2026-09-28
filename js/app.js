@@ -213,10 +213,10 @@
 
   function disableAuthUI(){
     activeAuthProvider = null;
-    if (activeProjectId===SETTINGS) renderMain();
+    if (activeProjectId===SETTINGS) render();
   }
   function renderAuthUI(){
-    if (activeProjectId===SETTINGS) renderMain();
+    if (activeProjectId===SETTINGS) render();
   }
   async function initAuth(){
     for (const name of AUTH_PROVIDER_ORDER){
@@ -259,7 +259,7 @@
         durationSeconds:focusSessionElapsedSeconds
       });
       scheduleSave();
-      if (activeProjectId===OVERVIEW) renderMain();
+      if (activeProjectId===OVERVIEW) render();
     }
     clearFocusSessionTracking();
   }
@@ -793,13 +793,13 @@
     const v = {id:uid(), type, name:viewLabel(type)};
     project.views.push(v);
     project.activeViewId = v.id;
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   function removeView(project, viewId){
     if (project.views.length <= 1) return;
     project.views = project.views.filter(v=>v.id!==viewId);
     if (project.activeViewId===viewId) project.activeViewId = project.views[0].id;
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   function deleteProject(pid){
     const project = getProject(pid);
@@ -891,7 +891,7 @@
     const project = getProject(pid);
     if (!project) return;
     project.groups.push({id:uid(), name, items:[]});
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   function deleteGroup(pid, gid, targetGroupId){
     const p = getProject(pid);
@@ -909,7 +909,7 @@
     }
     p.groups = p.groups.filter(g=>g.id!==gid);
     boardFilterGroups.delete(gid);
-    scheduleSave(); renderMain(); renderProjectList();
+    scheduleSave(); render(); renderProjectList();
   }
   async function editGroupName(project, group){
     const name = await showDialog({title:"Edit group", fields:[{label:"Group name", value:group.name}], confirmLabel:"Save"});
@@ -941,7 +941,7 @@
       startTime:"", endTime:"", location:"", endDate:"", tagIds:[], values:{}, subitems:[],
       comments:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     getGroup(pid,gid).items.push(it);
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
     return it;
   }
   function openNewItemModal(project, group){
@@ -966,7 +966,7 @@
     const item = g.items.find(candidate=>candidate.id===iid);
     queueGoogleEventDeletes(item);
     g.items = g.items.filter(i=>i.id!==iid);
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   function makeDuplicateItem(source){
     const now = Date.now();
@@ -993,7 +993,7 @@
     const copy = makeDuplicateItem(group.items[index]);
     group.items.splice(index+1,0,copy);
     scheduleSave();
-    renderMain();
+    render();
     return copy;
   }
   function toggleArchiveItem(pid,gid,iid){
@@ -1001,21 +1001,21 @@
     if (!item) return;
     item.archived = !item.archived;
     item.updatedAt = Date.now();
-    scheduleSave(); renderMain(); renderProjectList();
+    scheduleSave(); render(); renderProjectList();
   }
   function addComment(pid,gid,iid,text){
     const item = getItem(pid,gid,iid);
     if (!item || !text.trim()) return;
     item.comments.push({id:uid(), text:text.trim(), createdAt:Date.now()});
     item.updatedAt = Date.now();
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   function deleteComment(pid,gid,iid,cid){
     const item = getItem(pid,gid,iid);
     if (!item) return;
     item.comments = item.comments.filter(c=>c.id!==cid);
     item.updatedAt = Date.now();
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   async function quickAddViaShortcut(){
     const project = getProject(activeProjectId);
@@ -1041,7 +1041,7 @@
       g.items.forEach(item=>{ if (selectedItemIds.has(item.id)) queueGoogleEventDeletes(item); });
       g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
     });
-    selectedItemIds.clear(); scheduleSave(); renderMain(); renderProjectList();
+    selectedItemIds.clear(); scheduleSave(); render(); renderProjectList();
   }
   async function bulkMove(project){
     if (!selectedItemIds.size) return;
@@ -1054,7 +1054,7 @@
       g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
       moving.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
     });
-    selectedItemIds.clear(); scheduleSave(); renderMain();
+    selectedItemIds.clear(); scheduleSave(); render();
   }
   async function bulkTag(project){
     if (!selectedItemIds.size) return;
@@ -1087,7 +1087,7 @@
       group.items = items;
     });
     selectedItemIds.clear();
-    scheduleSave(); renderMain(); renderProjectList();
+    scheduleSave(); render(); renderProjectList();
   }
   function moveItem(pid, fromGid, toGid, iid, toIndex){
     const from = getGroup(pid, fromGid);
@@ -1098,7 +1098,7 @@
     if (toIndex==null || toIndex>to.items.length) to.items.push(item);
     else to.items.splice(toIndex,0,item);
     item.updatedAt = Date.now();
-    scheduleSave(); renderMain();
+    scheduleSave(); render();
   }
   function createTag(project, name, color){
     const t = {id:uid(), name, color: color || TAG_COLOR_OPTIONS[project.tags.length % TAG_COLOR_OPTIONS.length].value};
@@ -1298,7 +1298,7 @@
   function renderAll(){
     renderProjectList();
     renderSidebarTags();
-    renderMain();
+    render();
   }
 
   function renderProjectList(){
@@ -1511,7 +1511,7 @@
       el.onclick = () => {
         const tid = el.dataset.tagfilter;
         if (boardFilterTags.has(tid)) boardFilterTags.delete(tid); else boardFilterTags.add(tid);
-        renderMain(); renderSidebarTags();
+        render(); renderSidebarTags();
       };
     });
   }
@@ -1556,7 +1556,7 @@
     if (logoutButton) logoutButton.onclick = () => activeAuthProvider.logout();
   }
 
-  function renderMain(){
+  function render(){
     const filterBar = document.getElementById("boardFilterBar");
     const editBtn = document.getElementById("editProjectBtn");
     const duplicateBtn = document.getElementById("duplicateProjectBtn");
@@ -1599,7 +1599,7 @@
     if (!project){
       activeProjectId = OVERVIEW;
       renderProjectList();
-      renderMain();
+      render();
       return;
     }
 
@@ -1668,7 +1668,7 @@
         if (e.target.closest(".tabClose")) return;
         if (project.activeViewId === tab.dataset.viewId) return;
         project.activeViewId = tab.dataset.viewId;
-        scheduleSave(); renderMain();
+        scheduleSave(); render();
       });
     });
     wrap.querySelectorAll("[data-remove-view]").forEach(x=>{
@@ -1713,7 +1713,7 @@
     wrap.querySelectorAll("[data-tag-filter]").forEach(input=>{
       input.onchange = () => {
         if (input.checked) boardFilterTags.add(input.dataset.tagFilter); else boardFilterTags.delete(input.dataset.tagFilter);
-        renderMain();
+        render();
       };
     });
   }
@@ -1724,7 +1724,7 @@
     wrap.querySelectorAll("[data-group-filter]").forEach(input=>{
       input.onchange = () => {
         if (input.checked) boardFilterGroups.add(input.dataset.groupFilter); else boardFilterGroups.delete(input.dataset.groupFilter);
-        renderMain();
+        render();
       };
     });
   }
@@ -1748,14 +1748,14 @@
     wrap.querySelectorAll("[data-fieldfilter]").forEach(control=>{
       control.addEventListener("change", e=>{
         if (e.target.value) boardFilterFields.set(control.dataset.fieldfilter, e.target.value); else boardFilterFields.delete(control.dataset.fieldfilter);
-        renderMain();
+        render();
       });
     });
     wrap.querySelectorAll("[data-field-option]").forEach(control=>{
       control.onchange = () => {
         const selected = [...wrap.querySelectorAll(`[data-field-option="${control.dataset.fieldOption}"]:checked`)].map(input=>input.value);
         if (selected.length) boardFilterFields.set(control.dataset.fieldOption, selected); else boardFilterFields.delete(control.dataset.fieldOption);
-        renderMain();
+        render();
       };
     });
   }
@@ -1938,7 +1938,7 @@
       th.onclick = () => {
         if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
         else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
-        renderMain();
+        render();
       };
     });
 
@@ -2078,7 +2078,7 @@
       th.onclick = () => {
         if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
         else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
-        renderMain();
+        render();
       };
     });
 
@@ -2342,9 +2342,9 @@
     cells.forEach(day=>grid.appendChild(day));
     wrap.appendChild(view);
     updateGoogleCalendarButtons();
-    wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); renderMain(); };
-    wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); renderMain(); };
-    wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); renderMain(); };
+    wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { calendarCursor = new Date(year, month-1, 1); render(); };
+    wrap.querySelector('[data-calendar-action="next"]').onclick = () => { calendarCursor = new Date(year, month+1, 1); render(); };
+    wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); calendarCursor = new Date(now.getFullYear(), now.getMonth(), 1); render(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
     const integrationsButton = wrap.querySelector('[data-calendar-action="integrations"]');
@@ -2373,7 +2373,7 @@
         const duration = Math.max(0, Math.round((end-start)/86400000));
         item.endDate = calendarDateKey(new Date(new Date(`${day.dataset.date}T00:00:00`).getTime() + duration*86400000));
         item.updatedAt = Date.now();
-        scheduleSave(); renderMain();
+        scheduleSave(); render();
       });
     });
     wrap.querySelectorAll(".calendarEvent").forEach(event=>{
@@ -3209,7 +3209,7 @@
     modal.querySelector("#itemTitleInput").addEventListener("change", e=>{
       item.title = e.target.value.trim() || item.title;
       if (isNew) return;
-      item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+      item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
     });
     modal.querySelector("#itemGroupSelect").addEventListener("change", e=>{
       const newGid = e.target.value;
@@ -3231,7 +3231,7 @@
         item.calendarType = button.dataset.calendarType;
         modal.querySelectorAll("[data-calendar-type]").forEach(tab=>tab.classList.toggle("active", tab===button));
         if (isNew) return;
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       };
     });
     ["itemLocationInput","itemStartTimeInput","itemEndTimeInput","itemEndDateInput"].forEach(id=>{
@@ -3247,7 +3247,7 @@
           item.endDate = e.target.value;
         }
         if (isNew){ renderItemModal(); return; }
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       });
     });
     modal.querySelectorAll(".fieldInput").forEach(el=>{
@@ -3256,20 +3256,20 @@
         if (field?.type==="date" && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
         item.values[el.dataset.fieldid] = e.target.value;
         if (isNew){ renderItemModal(); return; }
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       });
     });
     modal.querySelector("#itemDescInput").addEventListener("change", e=>{
       item.description = e.target.value;
       if (isNew) return;
-      item.updatedAt = Date.now(); scheduleSave(); renderMain();
+      item.updatedAt = Date.now(); scheduleSave(); render();
     });
     modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
       chip.onclick = () => {
         const tid = chip.dataset.tagfilter;
         if (item.tagIds.includes(tid)) item.tagIds = item.tagIds.filter(id=>id!==tid);
         else item.tagIds.push(tid);
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       };
     });
     modal.querySelector('[data-action="newTagFromItem"]').onclick = async () => {
@@ -3280,14 +3280,14 @@
       if (result && result[0] && result[0].trim()){
         const t = createTag(project, result[0].trim(), result[1]);
         item.tagIds.push(t.id);
-        scheduleSave(); renderSidebarTags(); renderMain(); renderItemModal();
+        scheduleSave(); renderSidebarTags(); render(); renderItemModal();
       }
     };
     modal.querySelector('[data-action="addSub"]').onclick = async () => {
       const title = await showDialog({title:"New subitem", fields:[{label:"Subitem", placeholder:"Break this item into a step"}], confirmLabel:"Add subitem"});
       if (title && title.trim()){
         item.subitems.push({id:uid(), title:title.trim(), done:false});
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       }
     };
     modal.querySelectorAll(".subitemRow").forEach(row=>{
@@ -3295,15 +3295,15 @@
       const sub = item.subitems.find(s=>s.id===sid);
       row.querySelector('[data-action="toggleSub"]').addEventListener("change", e=>{
         sub.done = e.target.checked;
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       });
       row.querySelector('[data-action="editSub"]').addEventListener("blur", e=>{
         sub.title = e.target.textContent.trim() || sub.title;
-        item.updatedAt = Date.now(); scheduleSave(); renderMain();
+        item.updatedAt = Date.now(); scheduleSave(); render();
       });
       row.querySelector('[data-action="delSub"]').onclick = () => {
         item.subitems = item.subitems.filter(s=>s.id!==sid);
-        item.updatedAt = Date.now(); scheduleSave(); renderMain(); renderItemModal();
+        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       };
     });
     if (!isNew){
@@ -3511,15 +3511,15 @@
       if (!e.target.closest("#sidebarWrap")) document.getElementById("searchResults").style.display="none";
     });
     document.getElementById("boardSearch").addEventListener("input", e=>{
-      boardFilterText = e.target.value.trim(); renderMain();
+      boardFilterText = e.target.value.trim(); render();
     });
     document.getElementById("clearBoardFilters").onclick = () => {
       boardFilterText=""; boardFilterGroups.clear(); boardFilterTags.clear(); boardFilterFields.clear();
-      renderMain();
+      render();
     };
     document.getElementById("showArchivedToggle").addEventListener("change", e=>{
       showArchived = e.target.checked;
-      renderMain();
+      render();
     });
     document.getElementById("printViewBtn").onclick = () => {
       document.getElementById("projectMenu").classList.remove("open");
@@ -3558,7 +3558,7 @@
     document.getElementById("filterPanelDone").onclick = document.getElementById("closeFilters").onclick;
     document.getElementById("filterPanelClear").onclick = () => {
       boardFilterText=""; boardFilterGroups.clear(); boardFilterTags.clear(); boardFilterFields.clear();
-      renderMain();
+      render();
     };
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;

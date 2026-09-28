@@ -41,7 +41,7 @@
           catch(err){ googleSilentAuth = false; }
         }, refreshDelay);
         updateGoogleCalendarButtons();
-        if (resumedSilently) renderMain();
+        if (resumedSilently) render();
         if (googleTokenPurpose==="sync") syncGoogleCalendar(googleSyncScopeProject).then(startGoogleCalendarPolling);
         if (googleTokenPurpose==="manage") { openGoogleCalendarManager(); startGoogleCalendarPolling(); }
       }
@@ -81,7 +81,7 @@
     if (googlePollTimer){ clearInterval(googlePollTimer); googlePollTimer = null; }
     updateGoogleCalendarButtons();
     updateGoogleCalendarStatus("Google connection expired - reconnect in Integrations");
-    if (activeProjectId===INTEGRATIONS || activeProjectId===CALENDAR) renderMain();
+    if (activeProjectId===INTEGRATIONS || activeProjectId===CALENDAR) render();
   }
   async function googleCalendarRequest(path, options={}){
     const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
@@ -176,7 +176,7 @@
           shouldSync = state.googleCalendarLinks.length > 0;
           scheduleSave();
           await flushSave();
-          renderMain();
+          render();
         }
         overlay.remove();
         if (shouldSync) syncGoogleCalendar(null);
@@ -594,7 +594,7 @@
         state.googleCalendarLinks = linkedGoogleCalendarIds().filter(id=>id!==button.dataset.unlinkCalendar);
         scheduleSave();
         if (fileHandle){ clearTimeout(saveTimer); saveTimer = null; writeToFile(); }
-        renderMain();
+        render();
       };
     });
   }
