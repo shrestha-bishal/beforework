@@ -20,6 +20,14 @@
   const CALENDAR = "__calendar__";
   const INTEGRATIONS = "__integrations__";
   const SETTINGS = "__settings__";
+  const DEFAULT_PROJECT_ICON = "mdi:clipboard-text-outline";
+  const PROJECT_DEFAULT_ICONS = [
+    "mdi:clipboard-text-outline","mdi:folder-outline","mdi:briefcase-outline","mdi:rocket-launch-outline",
+    "mdi:code-tags","mdi:chart-box-outline","mdi:calendar-month-outline","mdi:lightbulb-outline",
+    "mdi:palette-outline","mdi:book-open-variant","mdi:target","mdi:toolbox-outline",
+    "mdi:account-group-outline","mdi:file-document-outline","mdi:flag-outline","mdi:puzzle-outline",
+    "mdi:school-outline","mdi:bank-outline"
+  ];
   const PRIORITY_OPTIONS = [
     {id:"high",label:"High",color:"var(--color-danger-fg)",rank:3},
     {id:"medium",label:"Medium",color:"var(--color-attention-fg)",rank:2},
@@ -752,6 +760,22 @@
     persistActiveLocation();
     scheduleSave(); renderAll();
   }
+  async function editProject(project){
+    const result = await showDialog({title:"Edit project", fields:[
+      {label:"Project name", value:project.name},
+      {label:"Project icon", type:"iconPicker", value:project.icon || DEFAULT_PROJECT_ICON}
+    ], confirmLabel:"Save"});
+    if (!result) return;
+    const [name,icon] = result;
+    if (!name.trim()){
+      await showNotice("Project name required", "Enter a name for this project.");
+      return;
+    }
+    project.name = name.trim();
+    project.icon = icon || DEFAULT_PROJECT_ICON;
+    scheduleSave();
+    renderAll();
+  }
   async function createFolder(){
     const name = await showDialog({title:"New folder", fields:[{label:"Folder name", placeholder:"e.g. Personal"}], confirmLabel:"Create folder"});
     if (!name || !name.trim()) return;
@@ -1289,7 +1313,7 @@
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
       const icon = document.createElement("iconify-icon");
       icon.className = "projectIcon";
-      icon.setAttribute("icon", "mdi:clipboard-text-outline");
+      icon.setAttribute("icon", p.icon || DEFAULT_PROJECT_ICON);
       icon.setAttribute("aria-hidden", "true");
       const name = document.createElement("span");
       name.className = "projectName";
@@ -1308,7 +1332,7 @@
       const menu = document.createElement("div");
       menu.className = "projectQuickMenu";
       menu.innerHTML = `
-        <button type="button" data-project-action="rename">Rename</button>
+        <button type="button" data-project-action="edit">Edit</button>
         <button type="button" data-project-action="duplicate">Duplicate project</button>
         <button type="button" data-project-action="add-column">Add column</button>
         <button type="button" data-project-action="group">New group</button>
@@ -1329,11 +1353,8 @@
           event.stopPropagation();
           closeMenu();
           const action = button.dataset.projectAction;
-          if (action === "rename") {
-            const renamed = await showDialog({title:"Rename project", fields:[{label:"Project name", value:p.name}], confirmLabel:"Save"});
-            if (!renamed || !renamed.trim()) return;
-            p.name = renamed.trim();
-            scheduleSave(); renderAll();
+          if (action === "edit") {
+            await editProject(p);
           } else if (action === "duplicate") {
             await duplicateProject(p);
           } else if (action === "add-column") {
@@ -1525,7 +1546,7 @@
 
   function renderMain(){
     const filterBar = document.getElementById("boardFilterBar");
-    const renameBtn = document.getElementById("renameProjectBtn");
+    const editBtn = document.getElementById("editProjectBtn");
     const duplicateBtn = document.getElementById("duplicateProjectBtn");
     const deleteBtn = document.getElementById("deleteProjectBtn");
     const fieldsBtn = document.getElementById("manageFieldsBtn");
@@ -1570,9 +1591,13 @@
 
     persistActiveFilters();
 
-    topLabel.textContent = project.name;
+    const titleIcon = document.createElement("iconify-icon");
+    titleIcon.className = "projectTitleIcon";
+    titleIcon.setAttribute("icon", project.icon || DEFAULT_PROJECT_ICON);
+    titleIcon.setAttribute("aria-hidden", "true");
+    topLabel.replaceChildren(titleIcon, document.createTextNode(project.name));
     filterBar.style.display = "block";
-    renameBtn.style.display = "inline-block";
+    editBtn.style.display = "inline-block";
     duplicateBtn.style.display = "inline-block";
     deleteBtn.style.display = "inline-block";
     fieldsBtn.style.display = "inline-block";
@@ -1602,10 +1627,7 @@
       const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
       if (name && name.trim()) addGroup(project.id, name.trim());
     };
-    renameBtn.onclick = async () => {
-      const name = await showDialog({title:"Rename project", fields:[{label:"Project name", value:project.name}], confirmLabel:"Rename"});
-      if (name && name.trim()){ project.name = name.trim(); scheduleSave(); renderAll(); }
-    };
+    editBtn.onclick = () => editProject(project);
     duplicateBtn.onclick = () => duplicateProject(project);
     deleteBtn.onclick = async () => {
       if (await showConfirm(`Delete project ${project.name}`, "This will delete everything in the project.", true)) deleteProject(project.id);
@@ -2848,10 +2870,22 @@
       const overlay = document.createElement("div");
       overlay.className = "overlay";
       overlay.id = "dialogOverlay";
+      const selectedIconValues = fields.map(field=>field.type==="iconPicker" ? (field.value || DEFAULT_PROJECT_ICON) : null);
       const fieldsHtml = fields.map((field,index)=>{
         const id = `dialogField${index}`;
         const labelFor = field.type === "tagColor" ? `${id}Color0` : id;
         const label = field.label ? `<label for="${labelFor}">${escapeHtml(field.label)}</label>` : "";
+        if (field.type === "iconPicker"){
+          return `<div class="modalRow">${label}
+            <div class="projectIconResults" id="projectIconDefaults${index}" role="radiogroup" aria-label="Default project icons"></div>
+            <button class="btn btn-sm projectIconMore" id="projectIconMore${index}" type="button" aria-expanded="false">More icons</button>
+            <div class="projectIconSearchPanel" id="projectIconSearchPanel${index}" hidden>
+              <input class="form-control projectIconSearch" id="${id}" type="search" placeholder="Search icons, e.g. folder or rocket" aria-label="Search Material Design icons">
+              <div class="projectIconResults" id="projectIconSearchResults${index}" role="radiogroup" aria-label="Icon search results"></div>
+              <p class="projectIconSearchStatus" id="projectIconStatus${index}" role="status">Search Material Design Icons to browse more.</p>
+            </div>
+          </div>`;
+        }
         if (field.type === "tagColor"){
           const selectedIndex = TAG_COLOR_OPTIONS.findIndex(option=>option.value===field.value);
           const customValue = /^#[0-9a-f]{6}$/i.test(field.value||"") ? field.value : "#0969da";
@@ -2897,6 +2931,74 @@
       };
       showDialog.finishActive = finish;
       fields.forEach((field,index)=>{
+        if (field.type === "iconPicker"){
+          const defaults = overlay.querySelector(`#projectIconDefaults${index}`);
+          const moreButton = overlay.querySelector(`#projectIconMore${index}`);
+          const searchPanel = overlay.querySelector(`#projectIconSearchPanel${index}`);
+          const search = overlay.querySelector(`#dialogField${index}`);
+          const results = overlay.querySelector(`#projectIconSearchResults${index}`);
+          const status = overlay.querySelector(`#projectIconStatus${index}`);
+          let matches = [];
+          let searchTimer = null;
+          let searchSequence = 0;
+          const renderOptions = (container,icons)=>{
+            container.innerHTML = icons.map(iconName=>`<label class="projectIconOption" title="${escapeHtml(iconName)}">
+              <input type="radio" name="dialogIcon${index}" value="${escapeHtml(iconName)}" ${selectedIconValues[index]===iconName?"checked":""}>
+              <iconify-icon icon="${escapeHtml(iconName)}" aria-hidden="true"></iconify-icon><span>${escapeHtml(iconName.slice(4))}</span>
+            </label>`).join("");
+          };
+          const renderIconChoices = ()=>{
+            const defaultIcons = [...PROJECT_DEFAULT_ICONS];
+            if (!defaultIcons.includes(selectedIconValues[index])) defaultIcons.unshift(selectedIconValues[index]);
+            const defaultIconSet = new Set(defaultIcons);
+            renderOptions(defaults,defaultIcons);
+            renderOptions(results,matches.filter(iconName=>!defaultIconSet.has(iconName)));
+          };
+          const selectIcon = event=>{
+            const radio = event.target.closest('input[type="radio"]');
+            if (!radio) return;
+            selectedIconValues[index] = radio.value;
+            renderIconChoices();
+          };
+          renderIconChoices();
+          defaults.addEventListener("change",selectIcon);
+          results.addEventListener("change",selectIcon);
+          moreButton.addEventListener("click",()=>{
+            searchPanel.hidden = !searchPanel.hidden;
+            moreButton.setAttribute("aria-expanded",String(!searchPanel.hidden));
+            moreButton.textContent = searchPanel.hidden ? "More icons" : "Hide search";
+            if (!searchPanel.hidden) search.focus();
+          });
+          search.addEventListener("input",()=>{
+            clearTimeout(searchTimer);
+            const query = search.value.trim();
+            const sequence = ++searchSequence;
+            if (query.length<2){
+              matches = [];
+              renderIconChoices();
+              status.textContent = query ? "Type at least 2 characters to search." : "Search Material Design Icons to browse more.";
+              return;
+            }
+            status.textContent = "Searching icons...";
+            searchTimer = setTimeout(async()=>{
+              try{
+                const response = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&prefix=mdi&limit=48`);
+                if (!response.ok) throw new Error("Icon search unavailable");
+                const payload = await response.json();
+                if (sequence!==searchSequence) return;
+                matches = (Array.isArray(payload.icons) ? payload.icons : []).filter(iconName=>typeof iconName==="string" && /^mdi:[a-z0-9-]+$/i.test(iconName));
+                renderIconChoices();
+                status.textContent = matches.length ? `${matches.length} icons found.` : "No matching icons.";
+              }catch(err){
+                if (sequence!==searchSequence) return;
+                matches = [];
+                renderIconChoices();
+                status.textContent = "Icon search unavailable. Your selected icon is unchanged.";
+              }
+            },250);
+          });
+          return;
+        }
         if (field.type !== "tagColor") return;
         const customRadio = overlay.querySelector(`input[name="dialogField${index}"][value="__custom__"]`);
         const picker = overlay.querySelector(`#dialogColor${index}`);
@@ -2916,6 +3018,7 @@
       if (secondary) secondary.onclick = () => finish("__secondary__");
       overlay.querySelector("[data-dialog-confirm]").onclick = () => {
         const values = fields.map((field,index)=>{
+          if (field.type === "iconPicker") return selectedIconValues[index];
           if (field.type !== "tagColor") return overlay.querySelector(`#dialogField${index}`).value;
           const selected = overlay.querySelector(`input[name="dialogField${index}"]:checked`);
           return selected?.value === "__custom__" ? overlay.querySelector(`#dialogColor${index}`).value : selected?.value;

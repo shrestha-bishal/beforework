@@ -156,6 +156,7 @@
   #topbar{display:flex;align-items:center;gap:8px;padding:16px 20px 14px; border-bottom:1px solid var(--border);position:relative;background:var(--bg);}
   @media (min-width:861px){#sidebar.collapsed~#main #topbar{padding-left:40px;}}
   #topbar h2{font-size:18px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .projectTitleIcon{font-size:17px;margin-right:8px;vertical-align:-2px;color:var(--muted);}
   #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
   .projectMenuWrap{position:relative;display:none;flex:none;}
   .projectMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;font-size:18px;line-height:1;}
@@ -512,6 +513,17 @@
   .tagColorOption:has(input:checked),.tagColorCustomOption:has(input[type="radio"]:checked){outline:2px solid var(--accent);outline-offset:2px;}
   .tagColorOption:focus-within,.tagColorCustomOption:focus-within{outline:2px solid var(--accent);outline-offset:2px;}
   .tagColorPicker{position:absolute;inset:-1px;z-index:2;width:auto;height:auto;padding:0;border:0;border-radius:7px;opacity:0;cursor:pointer;}
+  .projectIconSearch{margin-bottom:10px;}
+  .projectIconSearchPanel{margin-top:12px;}
+  .projectIconMore{margin-top:10px;}
+  .projectIconResults{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:8px;max-height:230px;overflow:auto;padding:3px;}
+  .projectIconOption{position:relative;display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:5px;height:66px;padding:6px 3px;border:1px solid var(--border);border-radius:7px;background:var(--bg);cursor:pointer;}
+  .projectIconOption:hover{border-color:var(--border-strong);background:var(--bg-soft);}
+  .projectIconOption:has(input:checked),.projectIconOption:focus-within{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent;}
+  .projectIconOption input{position:absolute;width:1px;height:1px;margin:0;opacity:0;}
+  .projectIconOption iconify-icon{font-size:21px;color:var(--text);}
+  .projectIconOption span{width:100%;overflow:hidden;text-align:center;text-overflow:ellipsis;white-space:nowrap;font-size:9px;color:var(--muted);}
+  .projectIconSearchStatus{min-height:16px;margin:8px 0 0;color:var(--muted);font-size:11px;}
   .dialogMessage{margin:-8px 0 22px;color:var(--muted);font-size:13px;line-height:1.5;}
   .googleCalendarChoices{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto;}
   .googleCalendarChoice{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;}
