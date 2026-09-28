@@ -676,8 +676,30 @@
   .sideItemRow2{display:flex;gap:10px;}
   .sideItemRow2 .sideItem{flex:1;min-width:0;}
   .scheduleAddBtn{align-self:flex-start;padding-left:0;padding-right:0;}
-  .scheduleEditor{display:flex;flex-direction:column;gap:14px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);}
+  .scheduleEditor{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-soft);}
   .scheduleEditor .sideItemRow2{gap:10px;}
+  .recurrencePanel{display:flex;flex-direction:column;gap:8px;padding-top:2px;}
+  .recurrenceRow{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;column-gap:10px;}
+  .recurrenceRow[hidden]{display:none;}
+  [data-repeat-field][hidden]{display:none !important;}
+  .recurrenceLabel{font-size:12px;color:var(--muted);font-weight:600;}
+  .recurrenceRuleText{min-height:30px;display:flex;align-items:center;padding:6px 10px;border-radius:8px;background:var(--bg-soft);border:1px solid var(--border);color:var(--text);font-size:12px;line-height:1.35;}
+  .recurrenceIntervalControls{display:flex;gap:6px;min-width:0;}
+  .recurrenceIntervalControls input{flex:1;min-width:0;}
+  .recurrenceIntervalControls select{width:92px;flex:none;}
+  .repeatDayPicker{display:flex;flex-wrap:wrap;gap:6px;min-height:30px;}
+  .repeatDayChip{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:28px;padding:0 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--muted);cursor:pointer;user-select:none;transition:border-color .15s ease,background .15s ease,color .15s ease;}
+  .repeatDayChip input{position:absolute;width:1px;height:1px;opacity:0;}
+  .repeatDayChip:focus-within{outline:2px solid var(--accent);outline-offset:2px;}
+  .repeatDayChip span{font-size:11px;font-weight:600;letter-spacing:.02em;}
+  .repeatDayChip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);}
+  .recurrenceRuleRow{margin-top:2px;}
+  @media (max-width:560px){
+    .recurrenceRow{grid-template-columns:1fr;align-items:stretch;row-gap:6px;}
+    .recurrenceLabel{display:block;}
+    .repeatDayPicker{width:100%;}
+    .repeatDayChip{flex:1 1 38px;min-width:38px;}
+  }
   .itemModalFooter{flex:none;padding:14px 20px;
     display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-soft);}
   .itemModalFooterActions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
