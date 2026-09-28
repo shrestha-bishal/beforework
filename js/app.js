@@ -135,6 +135,12 @@
   function formatTime(date){
     return date.toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit", hour12:getTimeFormat()==="12"});
   }
+  function formatTimeValue(value){
+    if (!value) return "";
+    const [hours,minutes] = value.split(":").map(Number);
+    if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return value;
+    return formatTime(new Date(2000,0,1,hours,minutes));
+  }
   function formatDateTime(timestamp){
     const date = new Date(timestamp);
     return date.toLocaleString(undefined, {dateStyle:"medium", timeStyle:"short", hour12:getTimeFormat()==="12"});
@@ -2192,7 +2198,8 @@
     const entries = [];
     if (!scopeProject){
       (state.calendarItems||[]).forEach(item=>{
-        if (item.endDate) entries.push({project:null, group:null, item, field:{id:"__standalone__", label:"Calendar", type:"date"}, date:item.endDate, endDate:item.endDate});
+        const date = item.startDate || item.endDate;
+        if (date) entries.push({project:null, group:null, item, field:{id:"__standalone__", label:"Calendar", type:"date"}, date, endDate:item.endDate && item.endDate>=date ? item.endDate : date});
       });
     }
     const projects = scopeProject ? [scopeProject] : state.projects;
@@ -2232,15 +2239,26 @@
       <h3>${isNew ? "New calendar item" : "Edit calendar item"}</h3>
       <div class="modalRow"><label for="standaloneTitle">Title</label><input class="form-control" id="standaloneTitle" value="${escapeHtml(item.title||"")}" placeholder="Calendar item title"></div>
       <div class="modalRow"><label for="standaloneDescription">Description</label><textarea class="form-control" id="standaloneDescription" placeholder="Add notes...">${escapeHtml(item.description||"")}</textarea></div>
-      <div class="modalGrid">
-        <div class="modalRow"><label for="standaloneDate">Date</label><input class="form-control" id="standaloneDate" type="date" value="${escapeHtml(item.endDate||"")}"></div>
-        <div class="modalRow"><label for="standaloneLocation">Location</label><input class="form-control" id="standaloneLocation" value="${escapeHtml(item.location||"")}" placeholder="Optional location"></div>
-        <div class="modalRow"><label for="standaloneStart">Start time</label><input class="form-control" id="standaloneStart" type="time" value="${escapeHtml(item.startTime||"")}"></div>
-        <div class="modalRow"><label for="standaloneEnd">End time</label><input class="form-control" id="standaloneEnd" type="time" value="${escapeHtml(item.endTime||"")}"></div>
+      <div class="modalGrid calendarScheduleGrid">
+        <div class="calendarDateTimeGroup">
+          <div class="modalRow"><label for="standaloneStartDate">Start date</label><input class="form-control" id="standaloneStartDate" type="date" value="${escapeHtml(item.startDate||item.endDate||"")}"></div>
+          <div class="modalRow"><label for="standaloneStart">Start time</label><input class="form-control" id="standaloneStart" type="time" value="${escapeHtml(item.startTime||"")}"></div>
+        </div>
+        <div class="calendarDateTimeGroup">
+          <div class="modalRow"><label for="standaloneEndDate">End date</label><input class="form-control" id="standaloneEndDate" type="date" min="${escapeHtml(item.startDate||item.endDate||"")}" value="${escapeHtml(item.endDate||item.startDate||"")}"></div>
+          <div class="modalRow"><label for="standaloneEnd">End time</label><input class="form-control" id="standaloneEnd" type="time" value="${escapeHtml(item.endTime||"")}"></div>
+        </div>
+        <div class="modalRow calendarLocationRow"><label for="standaloneLocation">Location</label><input class="form-control" id="standaloneLocation" value="${escapeHtml(item.location||"")}" placeholder="Optional location"></div>
       </div>
       <div class="uiDivider modalDivider" aria-hidden="true"></div>
       <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button>${isNew ? "" : `<button class="btn" data-calendar-duplicate>Duplicate</button>`}<button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
     modal.querySelectorAll("[data-calendar-close]").forEach(button=>button.onclick=()=>overlay.remove());
+    const startDateInput = modal.querySelector("#standaloneStartDate");
+    const endDateInput = modal.querySelector("#standaloneEndDate");
+    startDateInput.onchange = () => {
+      endDateInput.min = startDateInput.value;
+      if (endDateInput.value && endDateInput.value < startDateInput.value) endDateInput.value = startDateInput.value;
+    };
     const duplicateButton = modal.querySelector("[data-calendar-duplicate]");
     if (duplicateButton) duplicateButton.onclick = () => {
       const now = Date.now();
@@ -2249,7 +2267,8 @@
         id:uid(),
         title:`${modal.querySelector("#standaloneTitle").value.trim()||item.title} (copy)`,
         description:modal.querySelector("#standaloneDescription").value,
-        endDate:modal.querySelector("#standaloneDate").value,
+        startDate:startDateInput.value,
+        endDate:endDateInput.value,
         location:modal.querySelector("#standaloneLocation").value.trim(),
         startTime:modal.querySelector("#standaloneStart").value,
         endTime:modal.querySelector("#standaloneEnd").value,
@@ -2271,11 +2290,13 @@
     };
     modal.querySelector("[data-calendar-save]").onclick = () => {
       const title = modal.querySelector("#standaloneTitle").value.trim();
-      const date = modal.querySelector("#standaloneDate").value;
-      if (!title || !date) return;
+      const startDate = startDateInput.value;
+      const endDate = endDateInput.value;
+      if (!title || !startDate || !endDate || endDate < startDate) return;
       item.title = title;
       item.description = modal.querySelector("#standaloneDescription").value;
-      item.endDate = date;
+      item.startDate = startDate;
+      item.endDate = endDate;
       item.location = modal.querySelector("#standaloneLocation").value.trim();
       item.startTime = modal.querySelector("#standaloneStart").value;
       item.endTime = modal.querySelector("#standaloneEnd").value;
@@ -2290,7 +2311,7 @@
   }
   async function openNewCalendarItemModal(scopeProject, date){
     if (!scopeProject){
-      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", calendarType:"event", startTime:"", endTime:"", location:"", endDate:date, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
+      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", calendarType:"event", startTime:"", endTime:"", location:"", startDate:date, endDate:date, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
       return;
     }
     const project = scopeProject;
@@ -2321,6 +2342,20 @@
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month+1, 0).getDate();
     const today = todayStr(0);
+    const lanesByWeek = Array.from({length:6},()=>new Map());
+    for (let week=0; week<6; week++){
+      const weekStart = calendarDateKey(new Date(year, month, 1-firstDay+week*7));
+      const weekEnd = calendarDateKey(new Date(year, month, 7-firstDay+week*7));
+      const weekEntries = entries.filter(entry=>entry.date<=weekEnd && entry.endDate>=weekStart && itemMatchesFilter(entry.project, entry.item, entry.group))
+        .sort((a,b)=>a.date.localeCompare(b.date) || b.endDate.localeCompare(a.endDate) || (a.item.title||"").localeCompare(b.item.title||""));
+      const laneEnds = [];
+      weekEntries.forEach(entry=>{
+        let lane = laneEnds.findIndex(endDate=>endDate<entry.date);
+        if (lane===-1) lane = laneEnds.length;
+        laneEnds[lane] = entry.endDate;
+        lanesByWeek[week].set(entry,lane);
+      });
+    }
     const cells = [];
     for (let index=0; index<42; index++){
       const dayOffset = index - firstDay;
@@ -2328,7 +2363,9 @@
       const dateNumber = cell.getDate();
       const cellDate = calendarDateKey(cell);
       const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
-      const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item, entry.group));
+      const weekLanes = lanesByWeek[Math.floor(index/7)];
+      const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item, entry.group))
+        .sort((a,b)=>weekLanes.get(a)-weekLanes.get(b));
       const day = view.querySelector("#calendarDayTemplate").content.firstElementChild.cloneNode(true);
       day.dataset.date = cellDate;
       day.classList.toggle("muted", !inMonth);
@@ -2337,15 +2374,41 @@
       dayEntries.forEach(entry=>{
         const event = view.querySelector("#calendarEventTemplate").content.firstElementChild.cloneNode(true);
         const isEvent = entry.item.calendarType==="event";
+        const isMultiDay = entry.endDate>entry.date;
         event.classList.toggle("event", isEvent);
         event.classList.toggle("task", !isEvent);
+        event.classList.toggle("multiDay", isMultiDay);
+        if (isMultiDay){
+          const startsSegment = cellDate===entry.date || index%7===0;
+          const endsSegment = cellDate===entry.endDate || index%7===6;
+          event.classList.toggle("multiDayStart", startsSegment);
+          event.classList.toggle("multiDayEnd", endsSegment);
+          event.classList.toggle("multiDayLabel", startsSegment);
+          event.classList.toggle("multiDayOrigin", cellDate===entry.date);
+        }
         event.dataset.pid = entry.project ? entry.project.id : "";
         event.dataset.gid = entry.group ? entry.group.id : "";
         event.dataset.iid = entry.item.id;
         event.dataset.fid = entry.field.id;
         event.dataset.start = entry.date;
         event.dataset.end = entry.endDate;
-        event.querySelector(".eventTitle").textContent = `${entry.item.startTime ? entry.item.startTime+" " : ""}${entry.item.title}`;
+        const startTime = formatTimeValue(entry.item.startTime);
+        const endTime = formatTimeValue(entry.item.endTime);
+        const timeRange = startTime && endTime ? `${startTime} – ${endTime}` : startTime || endTime;
+        event.querySelector(".eventTitle").textContent = `${timeRange ? timeRange+" " : ""}${entry.item.title}`;
+        const startDateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
+        const endDateLabel = entry.endDate===entry.date ? "" : new Date(`${entry.endDate}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
+        const eventDetails = [
+          entry.item.title,
+          `Date: ${startDateLabel}${endDateLabel ? ` – ${endDateLabel}` : ""}`,
+          timeRange ? `Time: ${timeRange}` : "All day",
+          entry.project ? `Project: ${entry.project.name}` : "",
+          entry.group ? `Group: ${entry.group.name}` : "",
+          entry.item.location ? `Location: ${entry.item.location}` : "",
+          String(entry.item.description||"").trim()
+        ].filter(Boolean).join("\n");
+        event.title = eventDetails;
+        event.setAttribute("aria-label",eventDetails.replace(/\n/g,". "));
         const projectName = event.querySelector(".eventProject");
         if (scopeProject || !entry.project) projectName.remove();
         else {
@@ -2390,7 +2453,8 @@
           ? getItem(data.pid,data.gid,data.iid)
           : (state.calendarItems||[]).find(candidate=>candidate.id===data.iid);
         if (!item) return;
-        if (data.fid === "__schedule__") item.endDate = day.dataset.date;
+        if (data.fid === "__standalone__") item.startDate = day.dataset.date;
+        else if (data.fid === "__schedule__") item.endDate = day.dataset.date;
         else item.values[data.fid] = day.dataset.date;
         const start = new Date(`${data.start}T00:00:00`);
         const end = new Date(`${data.end}T00:00:00`);
@@ -2589,8 +2653,14 @@
       const date = dueOf(row);
       if (date && date>=today && date<=weekEnd) scheduled.push({...row,date,source:"project"});
     });
-    (state.calendarItems||[]).filter(item=>!item.archived && item.endDate>=today && item.endDate<=weekEnd).forEach(item=>{
-      scheduled.push({item,date:item.endDate,project:null,group:null,source:"calendar"});
+    (state.calendarItems||[]).filter(item=>!item.archived).forEach(item=>{
+      const startDate = item.startDate || item.endDate;
+      const endDate = item.endDate && item.endDate>=startDate ? item.endDate : startDate;
+      if (!startDate || endDate<today || startDate>weekEnd) return;
+      for (let offset=0; offset<7; offset++){
+        const date = todayStr(offset);
+        if (date>=startDate && date<=endDate) scheduled.push({item,date,project:null,group:null,source:"calendar"});
+      }
     });
     scheduled.sort((a,b)=>a.date.localeCompare(b.date) || (a.item.startTime||"").localeCompare(b.item.startTime||""));
     const weekDays = Array.from({length:7},(_,offset)=>{
