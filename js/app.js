@@ -39,7 +39,16 @@
     {id:"medium",label:"Medium",color:"var(--color-attention-fg)",rank:2},
     {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:1},
   ];
-  const FIELD_TYPES = ["priority","select","date","text"];
+  const FIELD_TYPE_OPTIONS = [
+    {value:"priority", label:"Priority", description:"Best for urgency or ranking."},
+    {value:"select", label:"Single select", description:"Pick one answer from a fixed list."},
+    {value:"date", label:"Date", description:"Track due dates or milestones."},
+    {value:"text", label:"Text", description:"Freeform notes or details."},
+    {value:"checkbox", label:"Checkbox", description:"Yes/no or done/not done flag."},
+  ];
+  const FIELD_TYPES = FIELD_TYPE_OPTIONS.map(option=>option.value);
+  function fieldTypeLabel(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.label || "Text"; }
+  function fieldTypeDescription(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.description || ""; }
   const THEME_KEY = "personal_dashboard_theme_v1";
   const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
@@ -1173,7 +1182,7 @@
   async function addColumnFlow(project){
     const details = await showDialog({title:"Add column", fields:[
       {label:"Column name", placeholder:"e.g. Status, Type, Effort"},
-      {label:"Column type", type:"select", options:FIELD_TYPES.map(value=>({value,label:value})), value:"select"}
+      {label:"Column type", type:"select", options:FIELD_TYPE_OPTIONS.map(({value,label,description})=>({value,label,description})), value:"select"}
     ], confirmLabel:"Add column"});
     if (!details) return;
     const [label,type] = details;
@@ -1363,6 +1372,7 @@
       const opt = (field.options||[]).find(o=>o.id===value); if (!opt) return "";
       return `<span class="Label Label--secondary"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>`;
     }
+    if (field.type==="checkbox") return value ? `<span class="Label Label--secondary">✓</span>` : "";
     return `<span class="Label Label--secondary">${escapeHtml(String(value))}</span>`;
   }
   function fieldCellHtml(field, value){
@@ -1375,6 +1385,7 @@
       const opt = (field.options||[]).find(o=>o.id===value);
       return opt ? fieldChipHtml(field,value) : "-";
     }
+    if (field.type==="checkbox") return value ? "Yes" : "No";
     return value ? escapeHtml(value) : "-";
   }
 
@@ -1939,6 +1950,10 @@
       let control;
       if (f.type==="date") control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="text") control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="Enter text" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else if (f.type==="checkbox") {
+        const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
+        control = `<div class="filterOptionList fieldOptionList"><label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="true" ${selected.includes("true")?"checked":""}><span>Yes</span></label><label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="__none__" ${selected.includes("__none__")?"checked":""}><span>No</span></label></div>`;
+      }
       else {
         const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
         control = `<div class="filterOptionList fieldOptionList">${opts.map(o=>`<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="${o.id}" ${selected.includes(o.id)?"checked":""}><span>${escapeHtml(o.label)}</span></label>`).join("")}<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="__none__" ${selected.includes("__none__")?"checked":""}><span>No ${escapeHtml(f.label)}</span></label></div>`;
@@ -2159,6 +2174,8 @@
       else if (f && f.type==="priority"){
         va=(PRIORITY_OPTIONS.find(o=>o.id===a.item.values[f.id])||{rank:0}).rank;
         vb=(PRIORITY_OPTIONS.find(o=>o.id===b.item.values[f.id])||{rank:0}).rank;
+      } else if (f && f.type==="checkbox"){
+        va = a.item.values[f.id] ? 1 : 0; vb = b.item.values[f.id] ? 1 : 0;
       } else if (f && f.type==="date"){
         va=a.item.values[f.id]||"9999-99-99"; vb=b.item.values[f.id]||"9999-99-99";
       } else if (f){
@@ -2301,6 +2318,8 @@
       else if (f && f.type==="priority"){
         va=(PRIORITY_OPTIONS.find(o=>o.id===a.item.values[f.id])||{rank:0}).rank;
         vb=(PRIORITY_OPTIONS.find(o=>o.id===b.item.values[f.id])||{rank:0}).rank;
+      } else if (f && f.type==="checkbox"){
+        va = a.item.values[f.id] ? 1 : 0; vb = b.item.values[f.id] ? 1 : 0;
       } else if (f && f.type==="date"){
         va=a.item.values[f.id]||"9999-99-99"; vb=b.item.values[f.id]||"9999-99-99";
       } else if (f){
@@ -2334,6 +2353,10 @@
         if (f.type==="date"){
           return `<td class="${TD_CLASS}"><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
         }
+        if (f.type==="checkbox"){
+          const checked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
+          return `<td class="${TD_CLASS}"><label class="checkboxTableCell"><input type="checkbox" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="true" ${checked?"checked":""}></label></td>`;
+        }
         return `<td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
       }).join("");
       return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
@@ -2364,7 +2387,9 @@
       control.addEventListener("change", e=>{
         const it = getItem(control.dataset.pid, control.dataset.gid, control.dataset.iid);
         if (!it) return;
-        it.values[control.dataset.fieldid] = e.target.value;
+        const field = project.fields.find(candidate=>candidate.id===control.dataset.fieldid);
+        const nextValue = field?.type === "checkbox" ? (e.target.checked ? "true" : "") : e.target.value;
+        it.values[control.dataset.fieldid] = nextValue;
         it.updatedAt = Date.now();
         scheduleSave();
       });
@@ -3938,8 +3963,10 @@
         }
         if (field.type === "select"){
           const selectedOption=(field.options||[]).find(option=>option.value===field.value)||(field.options||[])[0];
-          const options = (field.options||[]).map((option,optionIndex)=>
-            `<button type="button" class="dialogSelectOption${option.value===selectedOption?.value?" selected":""}" role="option" aria-selected="${option.value===selectedOption?.value}" data-value="${escapeHtml(option.value)}" data-index="${optionIndex}">${escapeHtml(option.label)}</button>`).join("");
+          const options = (field.options||[]).map((option,optionIndex)=>{
+            const meta = option.description ? `<small class="dialogSelectOptionMeta">${escapeHtml(option.description)}</small>` : "";
+            return `<button type="button" class="dialogSelectOption${option.value===selectedOption?.value?" selected":""}" role="option" aria-selected="${option.value===selectedOption?.value}" data-value="${escapeHtml(option.value)}" data-index="${optionIndex}"><span class="dialogSelectOptionText"><span class="dialogSelectOptionLabel">${escapeHtml(option.label)}</span>${meta}</span></button>`;
+          }).join("");
           return `<div class="modalRow">${label}<div class="dialogSelectWrap"><input type="hidden" id="${id}" value="${escapeHtml(selectedOption?.value||"")}"><button type="button" class="dialogSelectButton" id="${id}Button" aria-haspopup="listbox" aria-expanded="false"><span>${escapeHtml(selectedOption?.label||"")}</span><iconify-icon icon="mdi:chevron-down" aria-hidden="true"></iconify-icon></button><div class="dialogSelectMenu" role="listbox" aria-label="${escapeHtml(field.label||"Select an option")}" hidden>${options}</div></div></div>`;
         }
         const type = field.type === "textarea" ? "textarea" : "input";
@@ -3981,7 +4008,8 @@
           };
           options.forEach(option=>option.onclick=()=>{
             input.value=option.dataset.value;
-            button.querySelector("span").textContent=option.textContent;
+            const label = option.querySelector(".dialogSelectOptionLabel")?.textContent || option.textContent;
+            button.querySelector("span").textContent = label;
             options.forEach(candidate=>{ candidate.classList.toggle("selected",candidate===option); candidate.setAttribute("aria-selected",String(candidate===option)); });
             close(); button.focus();
           });
@@ -4100,6 +4128,7 @@
   }
   function fieldInputHtml(field, item){
     const val = item.values[field.id] || "";
+    const isChecked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
     if (field.type==="priority"){
       const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
         `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
@@ -4112,6 +4141,9 @@
     }
     if (field.type==="date"){
       return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
+    }
+    if (field.type==="checkbox"){
+      return `<div class="sideItem sideItemCheckbox"><div class="sideItemLabel">${escapeHtml(field.label)}</div><label class="checkboxFieldControl"><input type="checkbox" class="fieldInput" data-fieldid="${field.id}" value="true" ${isChecked?"checked":""}><span class="checkboxFieldValue">${isChecked ? "Yes" : "No"}</span></label></div>`;
     }
     return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
   }
@@ -4440,7 +4472,8 @@
       el.addEventListener("change", e=>{
         const field = project.fields.find(candidate=>candidate.id===el.dataset.fieldid);
         if (field?.type==="date" && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
-        item.values[el.dataset.fieldid] = e.target.value;
+        const nextValue = field?.type === "checkbox" ? (e.target.checked ? "true" : "") : e.target.value;
+        item.values[el.dataset.fieldid] = nextValue;
         if (isNew){ renderItemModal(); return; }
         item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       });

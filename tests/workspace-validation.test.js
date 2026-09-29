@@ -71,3 +71,18 @@ test("accepts the application's seeded workspace shape", ()=>{
 
   assert.equal(validate(workspace,7).valid,true);
 });
+
+test("renders checkbox custom fields as boolean controls", ()=>{
+  const appSource = fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start = appSource.indexOf("function fieldInputHtml");
+  const end = appSource.indexOf("function renderItemModal");
+  const snippet = appSource.slice(start, end);
+  const context = {
+    escapeHtml: value => String(value).replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]))
+  };
+  const html = vm.runInNewContext(`${snippet}; const result = fieldInputHtml({id:"field-checkbox",label:"Approved",type:"checkbox"},{values:{}}); result;`, context);
+  assert.match(html, /type="checkbox"/i);
+  assert.match(html, /data-fieldid="field-checkbox"/i);
+  assert.match(html, /sideItemCheckbox/i);
+  assert.match(html, /checkboxFieldValue/i);
+});
