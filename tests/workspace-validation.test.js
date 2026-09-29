@@ -86,3 +86,28 @@ test("renders checkbox custom fields as boolean controls", ()=>{
   assert.match(html, /sideItemCheckbox/i);
   assert.match(html, /checkboxFieldValue/i);
 });
+
+test("bulk completion updates selected items consistently", ()=>{
+  const appSource = fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start = appSource.indexOf("function bulkSetCompleted");
+  const end = appSource.indexOf("async function bulkDelete");
+  const snippet = appSource.slice(start, end);
+  const context = {
+    selectedItemIds: new Set(["a","b"]),
+    isItemCompleted: item => !!item && Number.isFinite(item.completedAt) && item.completedAt > 0,
+    recordItemActivity: () => {},
+    scheduleSave: () => {},
+    renderAll: () => {}
+  };
+  const result = vm.runInNewContext(`${snippet}; const project = {groups:[{items:[{id:"a",completedAt:null,updatedAt:0},{id:"b",completedAt:123,updatedAt:0},{id:"c",completedAt:null,updatedAt:0}]}]}; bulkSetCompleted(project, true); JSON.stringify(project.groups[0].items.map(item => ({id:item.id, completedAt:item.completedAt})));`, context);
+  const completedRows = JSON.parse(result);
+  assert.ok(completedRows.find(item => item.id === "a").completedAt > 0);
+  assert.equal(completedRows.find(item => item.id === "b").completedAt, 123);
+  assert.equal(completedRows.find(item => item.id === "c").completedAt, null);
+
+  const reopened = vm.runInNewContext(`${snippet}; const project = {groups:[{items:[{id:"a",completedAt:999,updatedAt:0},{id:"b",completedAt:123,updatedAt:0},{id:"c",completedAt:null,updatedAt:0}]}]}; bulkSetCompleted(project, false); JSON.stringify(project.groups[0].items.map(item => ({id:item.id, completedAt:item.completedAt})));`, { ...context, selectedItemIds: new Set(["a","b"]) });
+  const reopenedRows = JSON.parse(reopened);
+  assert.equal(reopenedRows.find(item => item.id === "a").completedAt, null);
+  assert.equal(reopenedRows.find(item => item.id === "b").completedAt, null);
+  assert.equal(reopenedRows.find(item => item.id === "c").completedAt, null);
+});

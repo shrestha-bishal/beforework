@@ -1082,6 +1082,20 @@
       scheduleSave(); renderAll();
     }catch(err){ showNotice("Undo failed", "Could not undo that change: " + err.message); }
   }
+  function bulkSetCompleted(project, completed){
+    if (!selectedItemIds.size) return;
+    const now = Date.now();
+    project.groups.forEach(group=>{
+      group.items.forEach(item=>{
+        if (!selectedItemIds.has(item.id)) return;
+        const wasCompleted = isItemCompleted(item);
+        item.completedAt = completed ? (wasCompleted ? item.completedAt || now : now) : null;
+        item.updatedAt = now;
+        recordItemActivity(item, completed ? "completed" : "reopened");
+      });
+    });
+    selectedItemIds.clear(); scheduleSave(); renderAll();
+  }
   async function bulkDelete(project){
     if (!selectedItemIds.size) return;
     if (!await showConfirm("Delete selected items", `Delete ${selectedItemIds.size} selected item(s)?`, true)) return;
@@ -2093,11 +2107,13 @@
       <div class="bulkBar">
         <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
         <span class="bulkSelectionActions">
-          <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
-          <button class="btn btn-sm" id="bulkDuplicate">Duplicate</button>
-          <button class="btn btn-sm" id="bulkMove">Move</button>
-          <button class="btn btn-sm" id="bulkTag">Tag</button>
-          <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
+          <button class="btn btn-sm bulkAction" id="bulkSelectAll">Select all</button>
+          <button class="btn btn-sm bulkAction" id="bulkComplete">Mark complete</button>
+          <button class="btn btn-sm bulkAction" id="bulkIncomplete">Mark incomplete</button>
+          <button class="btn btn-sm bulkAction" id="bulkDuplicate">Duplicate</button>
+          <button class="btn btn-sm bulkAction" id="bulkMove">Move</button>
+          <button class="btn btn-sm bulkAction" id="bulkTag">Tag</button>
+          <button class="btn btn-sm btn-danger bulkAction" id="bulkDelete">Delete</button>
         </span>
       </div>
       <table class="listTable width-full">
@@ -2120,8 +2136,18 @@
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
     const updateSelection = () => {
-      document.getElementById("selectedCount").textContent = selectedItemIds.size;
-      wrap.querySelector(".bulkBar").dataset.selected = selectedItemIds.size ? "true" : "false";
+      const selected = [...selectedItemIds];
+      const selectedItems = project.groups.flatMap(group => group.items).filter(item => selected.includes(item.id));
+      const allSelectedCompleted = selectedItems.length > 0 && selectedItems.every(isItemCompleted);
+      const allSelectedIncomplete = selectedItems.length > 0 && selectedItems.every(item => !isItemCompleted(item));
+      const completeBtn = document.getElementById("bulkComplete");
+      const incompleteBtn = document.getElementById("bulkIncomplete");
+      document.getElementById("selectedCount").textContent = selected.length;
+      wrap.querySelector(".bulkBar").dataset.selected = selected.length ? "true" : "false";
+      completeBtn.disabled = selected.length === 0 || allSelectedCompleted;
+      incompleteBtn.disabled = selected.length === 0 || allSelectedIncomplete;
+      completeBtn.classList.toggle("is-hidden", selected.length === 0 || allSelectedCompleted);
+      incompleteBtn.classList.toggle("is-hidden", selected.length === 0 || allSelectedIncomplete);
       wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
         input.checked = selectedItemIds.has(input.dataset.itemSelect);
       });
@@ -2137,6 +2163,8 @@
       });
       updateSelection();
     };
+    document.getElementById("bulkComplete").onclick = () => bulkSetCompleted(project, true);
+    document.getElementById("bulkIncomplete").onclick = () => bulkSetCompleted(project, false);
     document.getElementById("bulkMove").onclick = () => bulkMove(project);
     document.getElementById("bulkDuplicate").onclick = () => bulkDuplicate(project);
     document.getElementById("bulkTag").onclick = () => bulkTag(project);
@@ -2239,11 +2267,13 @@
       <div class="bulkBar">
         <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
         <span class="bulkSelectionActions">
-          <button class="btn btn-sm" id="bulkSelectAll">Select all</button>
-          <button class="btn btn-sm" id="bulkDuplicate">Duplicate</button>
-          <button class="btn btn-sm" id="bulkMove">Move</button>
-          <button class="btn btn-sm" id="bulkTag">Tag</button>
-          <button class="btn btn-sm btn-danger" id="bulkDelete">Delete</button>
+          <button class="btn btn-sm bulkAction" id="bulkSelectAll">Select all</button>
+          <button class="btn btn-sm bulkAction" id="bulkComplete">Mark complete</button>
+          <button class="btn btn-sm bulkAction" id="bulkIncomplete">Mark incomplete</button>
+          <button class="btn btn-sm bulkAction" id="bulkDuplicate">Duplicate</button>
+          <button class="btn btn-sm bulkAction" id="bulkMove">Move</button>
+          <button class="btn btn-sm bulkAction" id="bulkTag">Tag</button>
+          <button class="btn btn-sm btn-danger bulkAction" id="bulkDelete">Delete</button>
         </span>
       </div>
       <table class="listTable width-full">
@@ -2264,8 +2294,18 @@
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
     const updateSelection = () => {
-      document.getElementById("selectedCount").textContent = selectedItemIds.size;
-      wrap.querySelector(".bulkBar").dataset.selected = selectedItemIds.size ? "true" : "false";
+      const selected = [...selectedItemIds];
+      const selectedItems = project.groups.flatMap(group => group.items).filter(item => selected.includes(item.id));
+      const allSelectedCompleted = selectedItems.length > 0 && selectedItems.every(isItemCompleted);
+      const allSelectedIncomplete = selectedItems.length > 0 && selectedItems.every(item => !isItemCompleted(item));
+      const completeBtn = document.getElementById("bulkComplete");
+      const incompleteBtn = document.getElementById("bulkIncomplete");
+      document.getElementById("selectedCount").textContent = selected.length;
+      wrap.querySelector(".bulkBar").dataset.selected = selected.length ? "true" : "false";
+      completeBtn.disabled = selected.length === 0 || allSelectedCompleted;
+      incompleteBtn.disabled = selected.length === 0 || allSelectedIncomplete;
+      completeBtn.classList.toggle("is-hidden", selected.length === 0 || allSelectedCompleted);
+      incompleteBtn.classList.toggle("is-hidden", selected.length === 0 || allSelectedIncomplete);
       wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
         input.checked = selectedItemIds.has(input.dataset.itemSelect);
       });
@@ -2281,6 +2321,8 @@
       });
       updateSelection();
     };
+    document.getElementById("bulkComplete").onclick = () => bulkSetCompleted(project, true);
+    document.getElementById("bulkIncomplete").onclick = () => bulkSetCompleted(project, false);
     document.getElementById("bulkMove").onclick = () => bulkMove(project);
     document.getElementById("bulkDuplicate").onclick = () => bulkDuplicate(project);
     document.getElementById("bulkTag").onclick = () => bulkTag(project);
