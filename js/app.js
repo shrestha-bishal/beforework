@@ -732,9 +732,10 @@
       id:`calendar:${item.id}`,
       itemId:item.id,
       title:item.title,
+      dueDate:item.startDate||item.endDate||null,
       reminderAt:item.reminderAt || null,
-      isTask:false,
-      completed:false,
+      isTask:item.calendarType!=="event",
+      completed:isItemCompleted(item),
       archived:!!item.archived
     }));
     return entries;
@@ -2478,9 +2479,10 @@
     overlay.addEventListener("click", event=>{ if (event.target===overlay) overlay.remove(); });
     document.body.appendChild(overlay);
     const modal = overlay.querySelector("#standaloneCalendarModal");
+    let selectedType = item.calendarType==="event" ? "event" : "task";
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
     modal.innerHTML = `<button class="btn btn-invisible closeX" data-calendar-close aria-label="Close">✕</button>
-      <h3>${isNew ? "New calendar item" : "Edit calendar item"}</h3>
+      <div class="standaloneCalendarHeading"><h3>${isNew ? "New calendar item" : "Edit calendar item"}</h3><div class="typeTabs" role="group" aria-label="Calendar item type"><button type="button" data-calendar-type="task" aria-pressed="${selectedType==="task"}">Task</button><button type="button" data-calendar-type="event" aria-pressed="${selectedType==="event"}">Event</button></div></div>
       <div class="modalRow"><label for="standaloneTitle">Title</label><input class="form-control" id="standaloneTitle" value="${escapeHtml(item.title||"")}" placeholder="Calendar item title"></div>
       <div class="modalRow"><label for="standaloneDescription">Description</label><textarea class="form-control" id="standaloneDescription" placeholder="Add notes...">${escapeHtml(item.description||"")}</textarea></div>
       <div class="modalGrid calendarScheduleGrid">
@@ -2531,8 +2533,34 @@
         </div>
       </div>
       <div class="uiDivider modalDivider" aria-hidden="true"></div>
-      <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button>${isNew ? "" : `<button class="btn" data-calendar-duplicate>Duplicate</button>`}<button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
+      <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button>${isNew ? "" : `<button class="btn" data-calendar-duplicate>Duplicate</button><button class="btn ${isItemCompleted(item)?"btn-invisible":"btn-primary"} btn-sm" data-calendar-complete ${item.calendarType==="event"?"hidden":""}>${isItemCompleted(item)?"Reopen":"Mark complete"}</button>`}<button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
     modal.querySelectorAll("[data-calendar-close]").forEach(button=>button.onclick=()=>overlay.remove());
+    const completeButton = modal.querySelector("[data-calendar-complete]");
+    const updateTypeControls = () => {
+      modal.querySelectorAll("[data-calendar-type]").forEach(button=>{
+        const active = button.dataset.calendarType===selectedType;
+        button.classList.toggle("active",active);
+        button.setAttribute("aria-pressed",String(active));
+      });
+      if (completeButton) completeButton.hidden = selectedType==="event";
+    };
+    modal.querySelectorAll("[data-calendar-type]").forEach(button=>button.onclick=()=>{
+      selectedType = button.dataset.calendarType;
+      updateTypeControls();
+    });
+    updateTypeControls();
+    if (completeButton) completeButton.onclick = () => {
+      item.calendarType = selectedType;
+      const wasCompleted = isItemCompleted(item);
+      item.completedAt = wasCompleted ? null : Date.now();
+      item.updatedAt = Date.now();
+      recordItemActivity(item,wasCompleted ? "reopened" : "completed");
+      completeButton.textContent = wasCompleted ? "Mark complete" : "Reopen";
+      completeButton.classList.toggle("btn-primary",wasCompleted);
+      completeButton.classList.toggle("btn-invisible",!wasCompleted);
+      scheduleSave();
+      renderAll();
+    };
     updateRecurrenceSummary(modal, true);
     modal.querySelectorAll(".repeatDayChip input").forEach(input=>{
       input.addEventListener("change", ()=>{
@@ -2558,6 +2586,7 @@
       const copy = {
         ...item,
         id:uid(),
+        calendarType:selectedType,
         title:`${modal.querySelector("#standaloneTitle").value.trim()||item.title} (copy)`,
         description:modal.querySelector("#standaloneDescription").value,
         startDate:startDateInput.value,
@@ -2566,6 +2595,7 @@
         reminderAt:modal.querySelector("#standaloneReminderAt").value ? new Date(modal.querySelector("#standaloneReminderAt").value).toISOString() : null,
         startTime:modal.querySelector("#standaloneStart").value,
         endTime:modal.querySelector("#standaloneEnd").value,
+        completedAt:null,
         recurrence: normaliseRecurrence({
           frequency: modal.querySelector("#standaloneRepeatFrequency").value,
           interval: Number(modal.querySelector("#standaloneRepeatInterval").value || 1),
@@ -2596,6 +2626,8 @@
       const endDate = endDateInput.value;
       if (!title || !startDate || !endDate || endDate < startDate) return;
       item.title = title;
+      item.calendarType = selectedType;
+      if (selectedType==="event") item.completedAt = null;
       item.description = modal.querySelector("#standaloneDescription").value;
       item.startDate = startDate;
       item.endDate = endDate;
