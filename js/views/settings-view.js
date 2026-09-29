@@ -11,6 +11,7 @@ export class SettingsView {
     view.querySelector("#settingsSidebarToggle").textContent = `${settings.sidebarCollapsed ? "Expand" : "Collapse"} sidebar`;
     view.querySelector("#settingsStorageStatus").textContent = settings.storageStatus;
     view.querySelector("#settingsBackupRow").hidden = !settings.hasBackup;
+    view.querySelector("#settingsMigrateLegacyRow").hidden = !settings.isLegacyFile;
     const recoveryStatus=view.querySelector("#settingsRecoveryStatus");
     const recoveryList=view.querySelector("#settingsRecoveryList");
     const snapshots=settings.recoverySnapshots||[];
@@ -56,6 +57,8 @@ export class SettingsView {
     board.querySelector("#settingsSwitchFile").onclick = this.actions.switchFile;
     board.querySelector("#settingsRetrySave").onclick = this.actions.retrySave;
     board.querySelector("#settingsNewFile").onclick = this.actions.createFile;
+    board.querySelector("#settingsOpenLegacy").onclick = this.actions.openLegacy;
+    board.querySelector("#settingsMigrateLegacy").onclick = this.actions.migrateLegacy;
     board.querySelector("#settingsExport").onclick = this.actions.exportJSON;
     board.querySelector("#settingsImport").onclick = this.actions.importJSON;
     const restoreBackupButton = board.querySelector("#settingsRestoreBackup");

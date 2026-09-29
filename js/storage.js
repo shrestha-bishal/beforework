@@ -10,20 +10,41 @@
   const AUTO_BACKUP_INTERVAL_MS = 30 * 60 * 1000;
   let pendingReconnectHandle = null; // a previously-used handle waiting on a user gesture to re-grant permission
   let fileWriteQueue = Promise.resolve();
-  let syncStatusText = "No workspace file connected.";
+  let syncStatusText = "No workspace connected.";
   let latestRecoverySnapshot = null;
   let availableRecoverySnapshots = [];
   let lastAutomaticBackupAt = 0;
   let recoverySnapshotsLoaded = false;
   let fileRevision = null;
+  let folderRevision = null;
+  let folderIndex = null;
   let lastWrittenState = null;
+  let folderWorkspaceService = null;
 
   function getSyncStatusText(){ return syncStatusText; }
+  function refreshWorkspaceCommandIndex(){ window.BeforeworkCommandPaletteInstance?.refreshCommands(); }
+  function getFolderWorkspace(){
+    if (!folderWorkspaceService) folderWorkspaceService=window.BeforeworkFolderWorkspace.create({
+      validate:(workspace,maxVersion)=>window.BeforeworkWorkspaceValidation.validate(workspace,maxVersion),
+      maxSchemaVersion:SCHEMA_VERSION,
+      migrate:migrateState
+    });
+    return folderWorkspaceService;
+  }
   window.BeforeworkStorage=Object.freeze({
     refreshRecoverySnapshots,
     getLatestRecoverySnapshot,
     getRecoverySnapshots,
-    saveRecoverySnapshot
+    saveRecoverySnapshot,
+    isLegacyFile:()=>!!fileHandle && fileHandle.kind!=="directory",
+    async loadFolderIndex(){
+      if (!fileHandle || fileHandle.kind!=="directory") throw new Error("A folder workspace is not connected.");
+      return folderIndex||getFolderWorkspace().loadIndex(fileHandle);
+    },
+    async loadFolderProject(projectId,index){
+      if (!fileHandle || fileHandle.kind!=="directory") throw new Error("A folder workspace is not connected.");
+      return getFolderWorkspace().loadProject(fileHandle,projectId,index||folderIndex);
+    }
   });
 
   function idbOpen(){
@@ -145,6 +166,48 @@
     return saveRecoverySnapshot(fileText,"automatic",fileName);
   }
 
+  async function writeFolderWorkspace(handle){
+    const service=getFolderWorkspace();
+    let revision=folderRevision;
+    const conflict=await service.checkConflict(handle,state,revision);
+    if (conflict.conflict){
+      let external=null;
+      if (conflict.externalValid){
+        try{
+          const index=await service.loadIndex(handle);
+          external={state:folderStateFromIndex(index),revision:index.revision,index};
+        }catch(err){ external=null; }
+      }
+      const choice=await chooseWorkspaceConflict(handle.name,!!external,true);
+      if (choice==="reload" && external){
+        await saveRecoverySnapshot(JSON.stringify(state),"conflict-local");
+        state=external.state;
+        folderRevision=external.revision;
+        folderIndex=external.index;
+        refreshWorkspaceCommandIndex();
+        lastSavedState=JSON.stringify(state);
+        lastWrittenState=lastSavedState;
+        undoStack.length=0;
+        setSyncStatus("Loaded the newer version from " + handle.name + ". Your previous tab state is available in recovery snapshots.");
+        renderAll();
+        return;
+      }
+      setSyncStatus("Conflict not resolved. Your changes remain in this tab; the folder was not overwritten.");
+      return;
+    }
+    let recoveryPoint=null;
+    let recoveryError=null;
+    try{ recoveryPoint=await maybeCreateAutomaticBackup(JSON.stringify(state),handle.name); }
+    catch(err){ recoveryError=err; }
+    folderRevision=await service.save(handle,state,revision);
+    if (state.folderLazy){
+      state.projectSummaries=Object.values(folderRevision.projectSummaries);
+      folderIndex={metadata:state,projects:state.projectSummaries,calendarItems:state.calendarItems,calendarFile:folderRevision.calendarFile,manifest:folderRevision.manifest,manifestText:folderRevision.manifestText,revision:folderRevision,needsSummaryUpgrade:false};
+    }
+    lastWrittenState=JSON.stringify(state);
+    setSyncStatus("Saved workspace folder " + handle.name + " at " + new Date().toLocaleTimeString() + (recoveryPoint ? ". Recovery snapshot saved." : recoveryError ? ". Recovery snapshot unavailable: " + recoveryError.message : "."));
+  }
+
   function workspaceContentRevision(text){
     if (!text.trim()) return "";
     const parsed = JSON.parse(text);
@@ -179,7 +242,16 @@
   // that could silently drift from the file.
   function scheduleSave(){
     if (!fileHandle) return;
-    setSyncStatus("Saving changes to " + fileHandle.name + "...");
+    if (state?.folderLazy){
+      state.projects.forEach(project=>{
+        const summary=window.BeforeworkFolderWorkspace.summarizeProject(project);
+        const index=state.projectSummaries.findIndex(candidate=>candidate.id===project.id);
+        if (index<0) state.projectSummaries.push(summary); else state.projectSummaries[index]=summary;
+      });
+    }
+    window.BeforeworkCommandPaletteInstance?.refreshCommands();
+    const targetLabel=fileHandle.kind==="directory" ? "workspace folder " : "file ";
+    setSyncStatus("Saving changes to " + targetLabel + fileHandle.name + "...");
     const serialized = JSON.stringify(state);
     if (lastSavedState && lastSavedState !== serialized){
       undoStack.push(lastSavedState);
@@ -204,6 +276,10 @@
       const handle = fileHandle;
       if (!handle) return;
       try{
+        if (handle.kind==="directory"){
+          await writeFolderWorkspace(handle);
+          return;
+        }
         const currentFile = await handle.getFile();
         const currentText = await currentFile.text();
         let diskRevision = null;
@@ -215,6 +291,7 @@
           if (choice==="reload"){
             await saveRecoverySnapshot(JSON.stringify(state),"conflict-local");
             state = await loadFromHandle(handle);
+            refreshWorkspaceCommandIndex();
             lastSavedState = JSON.stringify(state);
             lastWrittenState = JSON.stringify(state);
             undoStack.length = 0;
@@ -250,7 +327,7 @@
         }catch(snapshotError){
           recoveryMessage=" A recovery snapshot could not be saved: " + snapshotError.message;
         }
-        setSyncStatus("Couldn't save to file (" + err.message + ") - changes remain in this tab." + recoveryMessage + " Retry the save or export the recovery snapshot.");
+        setSyncStatus("Couldn't save workspace (" + err.message + ") - changes remain in this tab." + recoveryMessage + " Retry the save or export the recovery snapshot.");
       }
     }).catch(()=>{});
     return fileWriteQueue;
@@ -265,6 +342,10 @@
   }
 
   async function loadFromHandle(handle){
+    if (handle.kind==="directory"){
+      return loadFolderState(handle);
+    }
+    folderRevision=null;
     const file = await handle.getFile();
     const text = await file.text();
     if (!text.trim()){
@@ -276,6 +357,18 @@
     if (!result.valid) throw new Error(result.errors.join(" "));
     fileRevision=JSON.stringify(parsed);
     return migrateState(parsed);
+  }
+
+  function folderStateFromIndex(index){
+    return {...index.metadata,projects:[],projectSummaries:index.projects,calendarItems:index.calendarItems,folderLazy:true};
+  }
+
+  async function loadFolderState(handle){
+    const index=await getFolderWorkspace().loadIndex(handle);
+    folderIndex=index;
+    folderRevision=index.revision;
+    fileRevision=null;
+    return folderStateFromIndex(index);
   }
 
   // Called once at boot. Tries to silently resume the last-connected file
@@ -293,6 +386,7 @@
         const loaded = await loadFromHandle(handle);
         fileHandle = handle;
         state = loaded;
+        refreshWorkspaceCommandIndex();
         lastSavedState = JSON.stringify(state);
         lastWrittenState = JSON.stringify(state);
         setSyncStatus("Saved to " + handle.name);
@@ -318,6 +412,7 @@
       const loaded=await loadFromHandle(handle);
       fileHandle=handle;
       state=loaded;
+      refreshWorkspaceCommandIndex();
       lastSavedState = JSON.stringify(state);
       lastWrittenState = JSON.stringify(state);
       setSyncStatus("Saved to " + fileHandle.name);
@@ -332,33 +427,86 @@
     }
   }
 
-  async function createNewFile(){
-    if (!("showSaveFilePicker" in window)) return;
+  async function chooseWorkspaceDirectory(){
+    if (!("showDirectoryPicker" in window)) throw new Error("This browser does not support workspace folders.");
+    const parent=await window.showDirectoryPicker({mode:"readwrite"});
+    const folderName=await showDialog({
+      title:"Name your workspace folder",
+      message:"Beforework will create a manifest and separate project JSON files inside this folder.",
+      fields:[{label:"Folder name",value:"Beforework Workspace"}],
+      confirmLabel:"Create folder"
+    });
+    if (!folderName || !folderName.trim()) return null;
+    if (/[\\/]/.test(folderName.trim())) throw new Error("Enter a folder name without path separators.");
+    const directory=await parent.getDirectoryHandle(folderName.trim(),{create:true});
+    if (await getFolderWorkspace().isWorkspace(directory)) throw new Error("That folder already contains a Beforework workspace. Open it instead of replacing it.");
+    for await (const entry of directory.values()) throw new Error(`The selected folder is not empty (${entry.name}). Choose an empty folder or open the existing workspace.`);
+    return directory;
+  }
+
+  async function createNewWorkspaceFolder(){
+    let directory=null;
+    let initialized=false;
     try{
-      const opts = {types:[{description:"Beforework data", accept:{"application/json":[".json"]}}], suggestedName:"beforework-data.json"};
-      const handle = await window.showSaveFilePicker(opts);
-      const perm = await handle.requestPermission({mode:"readwrite"});
-      if (perm !== "granted") return;
-      const currentFile=await handle.getFile();
-      const existingText=await currentFile.text();
-      const targetRevision=workspaceContentRevision(existingText);
-      if (existingText.trim()) await saveRecoverySnapshot(existingText,"pre-create",handle.name,handle);
-      await idbSet("fileHandle", handle);
-      fileHandle = handle;
-      fileRevision=targetRevision;
-      lastWrittenState=null;
+      directory=await chooseWorkspaceDirectory();
+      if (!directory) return;
+      const initialState=defaultState();
+      await getFolderWorkspace().save(directory,initialState);
+      const lazyState=await loadFolderState(directory);
+      initialized=true;
+      await idbSet("fileHandle",directory);
+      fileHandle=directory;
+      fileRevision=null;
+      state=lazyState;
+      refreshWorkspaceCommandIndex();
+      lastSavedState=JSON.stringify(state);
+      lastWrittenState=lastSavedState;
       await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
-      state = defaultState();
-      lastSavedState = null;
-      await writeToFile();
-      lastSavedState = JSON.stringify(state);
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      setSyncStatus("Saved workspace folder " + directory.name + ".");
       hideConnectGate();
       renderAll();
     }catch(err){
+      if (directory && !initialized) await getFolderWorkspace().clearIncomplete(directory).catch(()=>{});
       if (err.name!=="AbortError"){
-        setSyncStatus("Couldn't create workspace: " + err.message);
-        showNotice("Couldn't create workspace",err.message);
+        setSyncStatus("Couldn't create workspace folder: " + err.message);
+        showNotice("Couldn't create workspace folder",err.message);
+      }
+    }
+  }
+
+  async function openExistingWorkspaceFolder(){
+    if (!("showDirectoryPicker" in window)){
+      showNotice("Folder access unavailable","Use a Chromium-based browser to open a folder workspace.");
+      return;
+    }
+    try{
+      const directory=await window.showDirectoryPicker({mode:"readwrite"});
+      const permission=await directory.requestPermission({mode:"readwrite"});
+      if (permission!=="granted"){ showNotice("Permission needed","Read-write access is required for this workspace folder."); return; }
+      let loaded;
+      try{ loaded=await loadFolderState(directory); }
+      catch(err){
+        setSyncStatus("Couldn't validate workspace folder " + directory.name + ": " + err.message);
+        showNotice("Couldn't open workspace folder",err.message);
+        return;
+      }
+      await idbSet("fileHandle",directory);
+      fileHandle=directory;
+      fileRevision=null;
+      state=loaded;
+      refreshWorkspaceCommandIndex();
+      lastSavedState=JSON.stringify(state);
+      lastWrittenState=lastSavedState;
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      setSyncStatus("Connected to workspace folder " + directory.name + ".");
+      hideConnectGate();
+      renderAll();
+      await maybeShowMigrationNotice();
+      resumeGoogleCalendarSync();
+    }catch(err){
+      if (err.name!=="AbortError"){
+        setSyncStatus("Couldn't open workspace folder: " + err.message);
+        showNotice("Couldn't open workspace folder",err.message);
       }
     }
   }
@@ -382,6 +530,7 @@
       catch(err){ fileRevision=previousRevision; throw err; }
       fileHandle = handle;
       state = loaded;
+      refreshWorkspaceCommandIndex();
       lastSavedState = JSON.stringify(state);
       lastWrittenState = JSON.stringify(state);
       await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
@@ -398,14 +547,49 @@
   }
 
   async function switchFile(){
-    if (!await showConfirm("Open a different file", "This switches the whole workspace to another file. Your current file keeps whatever was last saved to it.")) return;
+    if (!await showConfirm("Open a different workspace", "This switches the whole workspace. Pending changes will be saved first.")) return;
     if (!await flushBeforeLeavingFile()) return;
-    await openExistingFile();
+    await openExistingWorkspaceFolder();
   }
   async function startNewFileFromMenu(){
-    if (!await showConfirm("Create a new file", "This starts a brand-new, empty workspace in a new file. Your current file is left untouched.")) return;
+    if (!await showConfirm("Create a new workspace folder", "This starts a separate empty workspace. Your current workspace remains unchanged.")) return;
     if (!await flushBeforeLeavingFile()) return;
-    await createNewFile();
+    await createNewWorkspaceFolder();
+  }
+
+  async function migrateCurrentFileToFolder(){
+    if (!fileHandle || fileHandle.kind==="directory") return;
+    if (!await showConfirm("Create a folder copy", "Beforework will copy the current workspace into a manifest and project JSON files. The original JSON file will remain unchanged.")) return;
+    if (!await flushSave()){
+      await showNotice("Couldn't prepare the JSON workspace","Resolve the pending save before creating a folder copy.");
+      return;
+    }
+    let directory=null;
+    let initialized=false;
+    try{
+      directory=await chooseWorkspaceDirectory();
+      if (!directory) return;
+      const folderState=JSON.parse(JSON.stringify(state));
+      await getFolderWorkspace().save(directory,folderState);
+      const lazyState=await loadFolderState(directory);
+      initialized=true;
+      await idbSet("fileHandle",directory);
+      fileHandle=directory;
+      fileRevision=null;
+      state=lazyState;
+      refreshWorkspaceCommandIndex();
+      lastSavedState=JSON.stringify(state);
+      lastWrittenState=lastSavedState;
+      setSyncStatus("Created folder copy " + directory.name + ". Original JSON file unchanged.");
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      renderAll();
+    }catch(err){
+      if (directory && !initialized) await getFolderWorkspace().clearIncomplete(directory).catch(()=>{});
+      if (err.name!=="AbortError"){
+        setSyncStatus("Couldn't create folder copy: " + err.message);
+        showNotice("Couldn't create folder copy",err.message);
+      }
+    }
   }
 
   async function flushBeforeLeavingFile(){
@@ -422,7 +606,7 @@
   // storage model (before this version) into a real file, so nobody loses
   // their board when upgrading.
   async function migrateLegacyBrowserData(){
-    if (!("showSaveFilePicker" in window)) return;
+    if (!("showDirectoryPicker" in window)) return;
     const raw = localStorage.getItem(LEGACY_LS_KEY);
     if (!raw) return;
     let parsed;
@@ -433,28 +617,29 @@
       parsed = migrateState(legacyData);
     }
     catch(err){ showNotice("Couldn't read old data", "The data previously saved in this browser looks corrupted: " + err.message); return; }
+    let directory=null;
+    let initialized=false;
     try{
-      const opts = {types:[{description:"Beforework data", accept:{"application/json":[".json"]}}], suggestedName:"beforework-data.json"};
-      const handle = await window.showSaveFilePicker(opts);
-      const perm = await handle.requestPermission({mode:"readwrite"});
-      if (perm !== "granted") return;
-      const currentText=await (await handle.getFile()).text();
-      const targetRevision=workspaceContentRevision(currentText);
-      if (currentText.trim()) await saveRecoverySnapshot(currentText,"pre-legacy-migration",handle.name,handle);
-      await idbSet("fileHandle", handle);
-      fileHandle = handle;
-      fileRevision=targetRevision;
-      lastWrittenState=null;
+      directory=await chooseWorkspaceDirectory();
+      if (!directory) return;
+      await getFolderWorkspace().save(directory,parsed);
+      const lazyState=await loadFolderState(directory);
+      initialized=true;
+      await idbSet("fileHandle",directory);
+      fileHandle=directory;
+      fileRevision=null;
+      state=lazyState;
+      refreshWorkspaceCommandIndex();
+      lastSavedState=JSON.stringify(state);
+      lastWrittenState=lastSavedState;
       await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
-      state = parsed;
-      lastSavedState = null;
-      await writeToFile();
-      lastSavedState = JSON.stringify(state);
       localStorage.removeItem(LEGACY_LS_KEY);
+      setSyncStatus("Moved browser data into " + directory.name + ".");
       hideConnectGate();
       renderAll();
       await maybeShowMigrationNotice();
     }catch(err){
+      if (directory && !initialized) await getFolderWorkspace().clearIncomplete(directory).catch(()=>{});
       if (err.name!=="AbortError"){
         setSyncStatus("Couldn't migrate browser data: " + err.message);
         showNotice("Couldn't migrate browser data",err.message);

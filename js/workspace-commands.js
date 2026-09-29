@@ -19,11 +19,15 @@
       const state = getState?.();
       if (!state) return commands;
 
-      (state.projects||[]).forEach(project=>{
+      const projects=state.folderLazy ? (state.projectSummaries||[]) : (state.projects||[]);
+      projects.forEach(project=>{
         commands.push({id:`project:${project.id}`,title:project.name,category:"Projects",subtitle:"Open project",keywords:"project workspace",icon:project.icon||"mdi:clipboard-text-outline",run:()=>actions.openProject(project)});
         (project.groups||[]).forEach(group=>{
           commands.push({id:`group:${project.id}:${group.id}`,title:group.name,category:"Groups",subtitle:project.name,keywords:"group status",icon:"mdi:folder-outline",run:()=>actions.openGroup(project,group)});
-          (group.items||[]).filter(item=>!item.archived).forEach(item=>{
+          const groupItems=state.folderLazy
+            ? (project.itemIndex||[]).filter(item=>item.groupId===group.id)
+            : (group.items||[]);
+          groupItems.filter(item=>!item.archived).forEach(item=>{
             const tagNames=(item.tagIds||[]).map(tagId=>(project.tags||[]).find(tag=>tag.id===tagId)?.name||"").join(" ");
             const fieldValues=(project.fields||[]).map(field=>{
               const value=item.values?.[field.id];

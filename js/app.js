@@ -68,18 +68,18 @@
       toggleTimer:toggleFocusTimer,
       showShortcuts:showShortcutsModal,
       openProject:selectProject,
-      openGroup(project,group){
-        selectProject(project.id);
+      async openGroup(project,group){
+        await selectProject(project.id);
         boardFilterGroups.clear();
         boardFilterGroups.add(group.id);
         render();
       },
-      openProjectItem(project,group,item){
-        selectProject(project.id);
+      async openProjectItem(project,group,item){
+        await selectProject(project.id);
         openItemModal(project.id,group.id,item.id);
       },
-      openTag(project,tag){
-        selectProject(project.id);
+      async openTag(project,tag){
+        await selectProject(project.id);
         boardFilterTags.clear();
         boardFilterTags.add(tag.id);
         render();
@@ -96,6 +96,7 @@
     onQueryChange:value=>{ document.getElementById("globalSearch").value=value; },
     onClose:focusTarget=>{ if (focusTarget?.id==="globalSearch") suppressGlobalSearchFocus=true; }
   });
+  window.BeforeworkCommandPaletteInstance=commandPalette;
   let settingsView = null;
   let overviewDetailsView = null;
   let showArchived = false;
@@ -532,13 +533,17 @@
   /* Persistence moved to js/storage.js */
 
 /* ---------- Connect gate ---------- */
-  // Nothing in the app is usable until a file is connected - there is no
-  // in-memory-only or browser-storage-only mode. This keeps the file the
-  // one and only source of truth at all times.
+  // Nothing in the app is usable until a workspace folder or legacy file is
+  // connected - browser storage is only for recovery and reconnect metadata.
   function showConnectGate(){
     const gate = document.getElementById("connectGate");
-    const supported = "showOpenFilePicker" in window && "showSaveFilePicker" in window;
-    if (getSyncStatusText()==="No workspace file connected.") setSyncStatus("No workspace file connected. Choose an existing file or create one to continue.");
+    const folderSupported = "showDirectoryPicker" in window;
+    const fileSupported = "showOpenFilePicker" in window && "showSaveFilePicker" in window;
+    const supported = folderSupported || fileSupported;
+    document.getElementById("gateNewBtn").hidden = !folderSupported;
+    document.getElementById("gateOpenBtn").hidden = !folderSupported;
+    document.getElementById("gateLegacyFileBtn").hidden = !fileSupported;
+    if (getSyncStatusText()==="No workspace connected.") setSyncStatus("No workspace folder connected. Create or open one, or choose an older JSON workspace.");
     document.getElementById("gateSupportedActions").style.display = supported ? "flex" : "none";
     document.getElementById("gateUnsupported").style.display = supported ? "none" : "block";
     const reconnectRow = document.getElementById("gateReconnectRow");
@@ -581,14 +586,17 @@
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
-  async function chooseWorkspaceConflict(fileName,externalValid){
+  async function chooseWorkspaceConflict(fileName,externalValid,folderMode=false){
     const options=[];
-    if (externalValid) options.push({value:"reload",label:"Load the file version and keep this tab's version in recovery"});
-    options.push({value:"overwrite",label:"Keep this tab's version and overwrite the file"});
+    if (externalValid) options.push({value:"reload",label:"Load the folder version and keep this tab's version in recovery"});
+    if (folderMode) options.push({value:"cancel",label:"Keep working in this tab; do not write to the folder"});
+    else options.push({value:"overwrite",label:"Keep this tab's version and overwrite the file"});
     return showDialog({
-      title:"This workspace file changed elsewhere",
-      message:`Another tab or a synced-folder update changed ${fileName} since it was opened. Your current changes are still in this tab. Choose which version to keep.`,
-      fields:[{label:"Resolution",type:"select",value:externalValid?"reload":"overwrite",options}],
+      title:folderMode?"This workspace folder changed elsewhere":"This workspace file changed elsewhere",
+      message:folderMode
+        ? `Another tab or a synced-folder update changed ${fileName}. To protect the external shards, Beforework will not overwrite this folder in place. Load its version or keep working in this tab.`
+        : `Another tab or a synced-folder update changed ${fileName} since it was opened. Your current changes are still in this tab. Choose which version to keep.`,
+      fields:[{label:"Resolution",type:"select",value:externalValid?"reload":folderMode?"cancel":"overwrite",options}],
       confirmLabel:"Resolve conflict"
     });
   }
@@ -658,7 +666,30 @@
   }
 
   /* ---------- Model helpers ---------- */
-  function getProject(pid){ return state.projects.find(p=>p.id===pid); }
+  function projectRecords(){ return state?.folderLazy ? state.projectSummaries : state?.projects||[]; }
+  function getProjectSummary(pid){ return projectRecords().find(project=>project.id===pid); }
+  function getLoadedProject(pid){ return (state?.projects||[]).find(project=>project.id===pid); }
+  function getProject(pid){ return getLoadedProject(pid)||getProjectSummary(pid); }
+  function registerProjectSummary(project){
+    if (!state.folderLazy) return;
+    const summary=window.BeforeworkFolderWorkspace.summarizeProject(project);
+    const index=state.projectSummaries.findIndex(candidate=>candidate.id===project.id);
+    if (index<0) state.projectSummaries.push(summary); else state.projectSummaries[index]=summary;
+  }
+  async function ensureProjectLoaded(pid){
+    const loaded=getLoadedProject(pid);
+    if (loaded || !state?.folderLazy) return loaded||getProjectSummary(pid);
+    const summary=getProjectSummary(pid);
+    if (!summary) return null;
+    if (state.projects.length){
+      if (!await flushSave()) throw new Error("Resolve the pending save before loading another project.");
+      state.projects=[];
+    }
+    const project=await window.BeforeworkStorage.loadFolderProject(pid);
+    project.folderId=summary.folderId;
+    state.projects.push(project);
+    return project;
+  }
   function getGroup(pid,gid){ return getProject(pid)?.groups.find(g=>g.id===gid); }
   function getItem(pid,gid,iid){ return getGroup(pid,gid)?.items.find(i=>i.id===iid); }
   function isItemCompleted(item){
@@ -670,8 +701,16 @@
   function getReminderEntries(){
     if (!state) return [];
     const entries = [];
-    state.projects.forEach(project=>{
-      project.groups.forEach(group=>group.items.forEach(item=>{
+    projectRecords().forEach(project=>{
+      const groups=state.folderLazy
+        ? project.itemIndex.reduce((result,item)=>{
+          let group=result.find(candidate=>candidate.id===item.groupId);
+          if (!group){ group={id:item.groupId,name:item.groupName,items:[]}; result.push(group); }
+          group.items.push(item);
+          return result;
+        },[])
+        : project.groups;
+      groups.forEach(group=>group.items.forEach(item=>{
         const dueField = dateFields(project).find(field=>item.values[field.id]);
         entries.push({
           id:`project:${project.id}:${item.id}`,
@@ -710,12 +749,26 @@
 
   function allItemsFlat(){
     const out = [];
+    if (state.folderLazy){
+      state.projectSummaries.forEach(project=>project.itemIndex.forEach(item=>{
+        const group=project.groups.find(candidate=>candidate.id===item.groupId)||{id:item.groupId,name:item.groupName};
+        out.push({project,group,item});
+      }));
+      return out;
+    }
     state.projects.forEach(p=> p.groups.forEach(g=> g.items.forEach(it=>
       out.push({project:p, group:g, item:it}))));
     return out;
   }
 
-  function addProject(name, templateKey){
+  async function addProject(name, templateKey){
+    if (state.folderLazy && state.projects.length){
+      if (!await flushSave()){
+        await showNotice("Project creation paused","Resolve the pending save before unloading the open project.");
+        return;
+      }
+      state.projects=[];
+    }
     const tpl = PROJECT_TEMPLATES[templateKey] || PROJECT_TEMPLATES.blank;
     const views = tpl.views.map(type=>({id:uid(), type, name:viewLabel(type)}));
     const p = {
@@ -726,7 +779,8 @@
       views, activeViewId: views[0].id,
       itemDefaultType: tpl.itemDefaultType || "task",
     };
-    state.projects.push(p);
+    if (state.folderLazy) state.projects=[p]; else state.projects.push(p);
+    registerProjectSummary(p);
     activeProjectId = p.id;
     persistActiveLocation();
     scheduleSave(); renderAll();
@@ -771,12 +825,13 @@
     if (project.activeViewId===viewId) project.activeViewId = project.views[0].id;
     scheduleSave(); render();
   }
-  function deleteProject(pid){
-    const project = getProject(pid);
+  async function deleteProject(pid){
+    const project = await ensureProjectLoaded(pid);
     if (project) project.groups.forEach(group=>group.items.forEach(queueGoogleEventDeletes));
     state.projects = state.projects.filter(p=>p.id!==pid);
+    if (state.folderLazy) state.projectSummaries=state.projectSummaries.filter(project=>project.id!==pid);
     if (activeProjectId===pid){
-      activeProjectId = state.projects[0]?.id || OVERVIEW;
+      activeProjectId = projectRecords()[0]?.id || OVERVIEW;
       persistActiveLocation();
     }
     scheduleSave(); renderAll();
@@ -790,6 +845,10 @@
       confirmLabel:"Duplicate"
     });
     if (!name || !name.trim()) return;
+    if (state.folderLazy && !await flushSave()){
+      await showNotice("Project duplication paused","Resolve the pending save before replacing the open project in memory.");
+      return;
+    }
 
     const fieldIds = new Map();
     const optionIds = new Map();
@@ -851,7 +910,8 @@
       views:views.map(view=>({...view,id:viewIds.get(view.id)})),
       activeViewId:viewIds.get(project.activeViewId)||viewIds.get(views[0]?.id)
     };
-    state.projects.push(copy);
+    if (state.folderLazy) state.projects=[copy]; else state.projects.push(copy);
+    registerProjectSummary(copy);
     activeProjectId = copy.id;
     persistActiveLocation();
     scheduleSave();
@@ -1287,7 +1347,7 @@
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
     const appendProject = (p, inFolder=false) => {
-      const count = p.groups.reduce((n,g)=>n+g.items.length,0);
+      const count = Number.isFinite(p.itemCount) ? p.itemCount : (p.groups||[]).reduce((n,g)=>n+(g.items||[]).length,0);
       const li = document.createElement("li");
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
       const icon = document.createElement("iconify-icon");
@@ -1333,16 +1393,19 @@
           closeMenu();
           const action = button.dataset.projectAction;
           if (action === "edit") {
-            await editProject(p);
+            await editProject(await ensureProjectLoaded(p.id));
           } else if (action === "duplicate") {
-            await duplicateProject(p);
+            await duplicateProject(await ensureProjectLoaded(p.id));
           } else if (action === "add-column") {
-            await addColumnFlow(p);
+            await addColumnFlow(await ensureProjectLoaded(p.id));
           } else if (action === "group") {
             const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
-            if (name && name.trim()) addGroup(p.id, name.trim());
+            if (name && name.trim()){
+              await ensureProjectLoaded(p.id);
+              addGroup(p.id, name.trim());
+            }
           } else if (action === "move") {
-            await moveProjectToFolder(p);
+            await moveProjectToFolder(await ensureProjectLoaded(p.id));
           } else if (action === "undo") {
             undoLastChange();
           } else if (action === "print") {
@@ -1357,7 +1420,8 @@
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
     };
-    const unfiled = state.projects.filter(project=>!project.folderId || !state.folders.some(folder=>folder.id===project.folderId));
+    const projects=projectRecords();
+    const unfiled = projects.filter(project=>!project.folderId || !state.folders.some(folder=>folder.id===project.folderId));
     unfiled.forEach(project=>appendProject(project));
     state.folders.forEach(folder=>{
       const heading = document.createElement("li");
@@ -1368,7 +1432,7 @@
         divider.setAttribute("aria-hidden","true");
         heading.appendChild(divider);
       }
-      const projectCount = state.projects.filter(project=>project.folderId===folder.id).length;
+      const projectCount = projects.filter(project=>project.folderId===folder.id).length;
       const icon = document.createElement("iconify-icon");
       icon.className = "folderIcon";
       icon.setAttribute("icon", "mdi:folder-outline");
@@ -1416,15 +1480,19 @@
             folder.name = trimmed;
             scheduleSave(); renderProjectList();
           } else if (action === "delete") {
-            const projectsInFolder = state.projects.filter(project => project.folderId === folder.id);
+            const projectsInFolder = projectRecords().filter(project => project.folderId === folder.id);
             if (!projectsInFolder.length) {
               state.folders = state.folders.filter(f => f.id !== folder.id);
               scheduleSave(); renderProjectList();
               return;
             }
             if (await showConfirm(`Delete folder ${folder.name}`, "This moves all projects in it out of the folder, but does not delete the projects themselves.", true)) {
-              state.projects.forEach(project => {
-                if (project.folderId === folder.id) project.folderId = null;
+              projectRecords().forEach(project => {
+                if (project.folderId === folder.id){
+                  project.folderId = null;
+                  const loaded=getLoadedProject(project.id);
+                  if (loaded) loaded.folderId=null;
+                }
               });
               state.folders = state.folders.filter(f => f.id !== folder.id);
               scheduleSave(); renderProjectList();
@@ -1435,11 +1503,28 @@
       wrap.append(menuBtn, menu);
       heading.append(icon, name, count, wrap);
       ul.appendChild(heading);
-      state.projects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
+      projects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
     });
   }
 
-  function selectProject(pid){
+  async function selectProject(pid){
+    if (state?.folderLazy && ![OVERVIEW,CALENDAR,INTEGRATIONS,SETTINGS,SUPPORT].includes(pid)){
+      if (activeProjectId!==pid && state.projects.length){
+        if (!await flushSave()){
+          await showNotice("Project switch paused","Resolve the current save or conflict before unloading the open project.");
+          return;
+        }
+        state.projects=[];
+      }
+      try{ await ensureProjectLoaded(pid); }
+      catch(err){ await showNotice("Couldn't load project",err.message); return; }
+    }else if(state?.folderLazy && state.projects.length){
+      if (!await flushSave()){
+        await showNotice("Navigation paused","Resolve the pending save before unloading the open project.");
+        return;
+      }
+      state.projects=[];
+    }
     activeProjectId = pid;
     persistActiveLocation();
     restoreProjectFilters(pid);
@@ -1513,6 +1598,7 @@
       sidebarCollapsed:document.getElementById("sidebar").classList.contains("collapsed"),
       storageStatus:getSyncStatusText(),
       hasBackup:hasMigrationBackup(),
+      isLegacyFile:window.BeforeworkStorage.isLegacyFile(),
       recoverySnapshots:window.BeforeworkStorage.getRecoverySnapshots(),
       reminderStatus:reminderService.getStatus(),
       accountName
@@ -1539,6 +1625,8 @@
       openSponsors(){ window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer"); },
       openCoffee(){ window.open(BUY_ME_A_COFFEE_URL, "_blank", "noopener,noreferrer"); },
       switchFile,
+      openLegacy:openExistingFile,
+      migrateLegacy:migrateCurrentFileToFolder,
       retrySave(){ scheduleSave(); },
       createFile:startNewFileFromMenu,
       exportJSON,
@@ -2215,8 +2303,12 @@
         }
       });
     }
-    const projects = scopeProject ? [scopeProject] : state.projects;
-    projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
+    const projects = scopeProject ? [scopeProject] : projectRecords();
+    projects.forEach(project=>{
+      const projectItems=state.folderLazy && !scopeProject
+        ? project.itemIndex.map(item=>({item,group:project.groups.find(group=>group.id===item.groupId)||{id:item.groupId,name:item.groupName}}))
+        : project.groups.flatMap(group=>group.items.map(item=>({item,group})));
+      projectItems.forEach(({group,item})=>{
       const fields = dateFields(project);
       const datedField = fields.find(field=>item.values[field.id]);
       const repeatDates = expandRecurringDates(item.values[datedField?.id] || item.endDate || "", item.endDate || item.values[datedField?.id] || "", normaliseRecurrence(item.recurrence));
@@ -2232,7 +2324,8 @@
           entries.push({project, group, item, field, date, endDate:endDate && endDate>=date ? endDate : date});
         });
       }
-    })));
+      });
+    });
     return entries;
   }
   function calendarDateCode(date, addDays){
@@ -2925,8 +3018,10 @@
       return body;
     }
     function projectBreakdownHtml(){
-      return state.projects.map((project,index)=>{
-        const projectItems = project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
+      return projectRecords().map((project,index)=>{
+        const projectItems = state.folderLazy
+          ? project.itemIndex.filter(item=>!item.archived).map(item=>({group:project.groups.find(group=>group.id===item.groupId)||{name:item.groupName},item}))
+          : project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
         const complete = projectItems.filter(row=>isItemCompleted(row.item)).length;
         const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
         return `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
@@ -2947,7 +3042,7 @@
       const byProject = new Map();
       let totalSeconds = 0;
       sessions.forEach(session=>{
-        const project = state.projects.find(candidate=>candidate.id===session.projectId);
+        const project = projectRecords().find(candidate=>candidate.id===session.projectId);
         const key = project ? project.id : (session.projectId ? `deleted:${session.projectId}` : "__unassigned__");
         const name = project ? project.name : (session.projectId ? "Deleted project" : "Unassigned");
         const entry = byProject.get(key) || {name, seconds:0, count:0};
@@ -3004,7 +3099,7 @@
 
     const view = window.BeforeworkViewTemplates.clone("overview");
     const statRows = [
-      {value:state.projects.length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects"},
+      {value:projectRecords().length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects"},
       {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open"},
       {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue"},
       {value:completedItems.length,label:"Completed",detail:"Marked complete",icon:"mdi:check-circle-outline",tone:"completed"}
@@ -3013,7 +3108,7 @@
       overviewDetailsView.open({
         tone,
         stats:statRows,
-        data:{projects:state.projects,openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
+        data:{projects:projectRecords(),openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
         actions:{openProject:selectProject,openItem:openItemModal}
       });
     }
@@ -3445,17 +3540,17 @@
           openNewCalendarItemModal(null,today);
           return;
         }
-        if (!state.projects.length){
+        if (!projectRecords().length){
           await showNotice("Create a project first","Tasks are organized inside project groups.");
           return;
         }
         const result = await showDialog({title:"New task",fields:[
           {label:"Task name",placeholder:"What needs to get done?"},
-          {label:"Project",type:"select",options:state.projects.map(project=>({value:project.id,label:project.name})),value:state.projects[0].id}
+          {label:"Project",type:"select",options:projectRecords().map(project=>({value:project.id,label:project.name})),value:projectRecords()[0].id}
         ],confirmLabel:"Create task"});
         if (!result) return;
         const [title,projectId] = result;
-        const project = getProject(projectId);
+        const project = await ensureProjectLoaded(projectId);
         const group = project?.groups[0];
         if (!title.trim() || !project || !group) return;
         const item = addItem(project.id,group.id,title.trim());
@@ -3468,6 +3563,10 @@
 
   /* ---------- Item modal ---------- */
   function openItemModal(pid, gid, iid){
+    if (state.folderLazy && !getLoadedProject(pid)){
+      ensureProjectLoaded(pid).then(()=>openItemModal(pid,gid,iid)).catch(err=>showNotice("Couldn't load project item",err.message));
+      return;
+    }
     openItemRef = {projectId:pid, groupId:gid, itemId:iid};
     const overlay = document.createElement("div");
     overlay.className = "overlay";
@@ -3682,7 +3781,7 @@
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
 
-    const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${state.projects.map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
+    const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${projectRecords().map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
     const groupSelector = project.groups.length>1 ? `<div class="sideItem">
@@ -4123,8 +4222,9 @@
 
   /* ---------- Wiring ---------- */
   function wireConnectGate(){
-    document.getElementById("gateNewBtn").onclick = createNewFile;
-    document.getElementById("gateOpenBtn").onclick = openExistingFile;
+    document.getElementById("gateNewBtn").onclick = createNewWorkspaceFolder;
+    document.getElementById("gateOpenBtn").onclick = openExistingWorkspaceFolder;
+    document.getElementById("gateLegacyFileBtn").onclick = openExistingFile;
     document.getElementById("gateReconnectBtn").onclick = reconnectPendingFile;
     document.getElementById("gateLegacyBtn").onclick = migrateLegacyBrowserData;
   }
@@ -4199,7 +4299,7 @@
       ], confirmLabel:"Create project"});
       if (!result) return;
       const [name, templateKey] = result;
-      if (name && name.trim()) addProject(name.trim(), templateKey);
+      if (name && name.trim()) await addProject(name.trim(), templateKey);
     };
     document.getElementById("addFolderBtn").onclick = createFolder;
     document.getElementById("manageTagsBtn").onclick = async () => {
@@ -4367,6 +4467,10 @@
     catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + err.message); }
     if (reconnected){
       restoreActiveLocation();
+      if (state.folderLazy && ![OVERVIEW,CALENDAR,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
+        try{ await ensureProjectLoaded(activeProjectId); }
+        catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + err.message); }
+      }
       renderAll();
       resumeGoogleCalendarSync();
       await maybeShowMigrationNotice();

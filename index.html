@@ -9,10 +9,10 @@
       <meta property="og:site_name" content="Beforework">
       <meta property="og:url" content="https://beforework.netlify.app/">
       <meta property="og:title" content="Beforework | Local-first project management">
-      <meta property="og:description" content="A private workspace for tasks, projects and calendars. Your data stays in a JSON file you control.">
+      <meta property="og:description" content="A private workspace for tasks, projects and calendars. Your JSON workspace folder stays under your control.">
       <meta name="twitter:card" content="summary">
       <meta name="twitter:title" content="Beforework | Local-first project management">
-      <meta name="twitter:description" content="A private workspace for tasks, projects and calendars. Your data stays in a JSON file you control.">
+      <meta name="twitter:description" content="A private workspace for tasks, projects and calendars. Your JSON workspace folder stays under your control.">
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://accounts.google.com https://code.iconify.design https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com https://www.google-analytics.com https://region1.google-analytics.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
       <title>Beforework</title>
       <script async src="https://www.googletagmanager.com/gtag/js?id=G-41XC9VWLWS"></script>
@@ -36,28 +36,29 @@
   <body>
     <div id="connectGate">
       <div class="Overlay Overlay--size-medium position-relative" data-modal>
-        <h3>Connect your Beforework file</h3>
-        <p>Beforework is a serverless, local-first, privacy-first project workspace. Your data is never transmitted to any server or third party - projects are saved directly to a connected JSON file on your device and remains the primary copy and is saved automatically on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
-        <p>Beforework also keeps up to eight recovery snapshots in this browser. Snapshots do not sync to other devices; use JSON export or a synced folder for a portable copy. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
-        <p>For access across multiple devices, the file can be stored in a synced folder such as OneDrive or Google Drive; it will sync using the same mechanism as any other document in that folder, requiring no additional configuration.</p>
+        <h3>Connect your Beforework workspace</h3>
+        <p>Beforework is a serverless, local-first project workspace. A workspace folder contains a manifest and separate JSON files for projects, so changes can be saved per project. Your files stay on your device or in a folder you choose to sync.</p>
+        <p>Beforework also keeps browser-local recovery snapshots. They do not sync with your workspace folder; export a snapshot or keep the folder in a synced location for portable recovery.</p>
+        <p>For access across devices, choose a folder in OneDrive, Google Drive, or another synced location. Sync is handled by that folder provider, not by Beforework.</p>
         <p id="gateRecoveryStatus" role="status" aria-live="polite"></p>
         <p>Each project supports list, table, board, and calendar views, with items organized into groups and tracked by priority, due date, and tags.</p>
-        <p>Choose an existing file or create a new one to get started.</p>
+        <p>Create a workspace folder, open an existing workspace folder, or connect an older single-file workspace.</p>
         <div id="gateReconnectRow" style="display:none;">
           <div>Reconnect to <strong id="gateFileName"></strong>?</div>
           <button class="btn btn-sm btn-primary" id="gateReconnectBtn">Reconnect</button>
         </div>
         <div id="gateSupportedActions">
-          <button class="btn btn-primary" id="gateNewBtn">Create new file</button>
-          <button class="btn" id="gateOpenBtn">Open existing file</button>
+          <button class="btn btn-primary" id="gateNewBtn">Create workspace folder</button>
+          <button class="btn" id="gateOpenBtn">Open workspace folder</button>
+          <button class="btn btn-invisible" id="gateLegacyFileBtn">Open older JSON file</button>
         </div>
         <div id="gateUnsupported" style="display:none;">
-          <p>This browser doesn't support connecting directly to a local file (that needs Chrome, Edge, or another Chromium-based browser). Switch to one of those browsers to use Beforework.</p>
+          <p>This browser doesn't support direct folder access. Use Chrome, Edge, or another Chromium-based browser to connect a workspace folder.</p>
         </div>
         <div id="gateLegacyRow" style="display:none;">
           <div class="uiDivider" aria-hidden="true"></div>
-          <div>Found data saved in this browser from an earlier version. Move it into a file?</div>
-          <button class="btn btn-sm" id="gateLegacyBtn">Migrate into a new file</button>
+          <div>Found data saved in this browser from an earlier version. Move it into a new workspace folder?</div>
+          <button class="btn btn-sm" id="gateLegacyBtn">Create folder from browser data</button>
         </div>
       </div>
     </div>
@@ -197,6 +198,7 @@
     <script src="js/demo-seeder.js"></script>
     <script src="js/view-templates.js"></script>
     <script src="js/workspace-validation.js"></script>
+    <script src="js/folder-workspace.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/google-calendar.js"></script>
     <script src="js/schema-migration.js"></script>

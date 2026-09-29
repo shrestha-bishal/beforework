@@ -37,6 +37,30 @@
     }
     return total;
   }
+  function createSearchIndex(commands){
+    const postings = new Map();
+    commands.forEach((command,index)=>{
+      const text=normalize([command.title,command.subtitle,command.category,command.keywords].filter(Boolean).join(" "));
+      for (const character of new Set(text)){
+        if (!postings.has(character)) postings.set(character,new Set());
+        postings.get(character).add(index);
+      }
+    });
+    return Object.freeze({
+      candidates(query){
+        const characters=new Set(Array.from(normalize(query).trim().replace(/\s+/g,"")));
+        if (!characters.size) return commands.slice();
+        const lists=[];
+        for (const character of characters){
+          const matches=postings.get(character);
+          if (!matches) return [];
+          lists.push(matches);
+        }
+        lists.sort((a,b)=>a.size-b.size);
+        return [...lists[0]].filter(index=>lists.every(matches=>matches.has(index))).map(index=>commands[index]);
+      }
+    });
+  }
   function createCommandPalette({getCommands, canOpen=()=>true, getInitialQuery=()=>"", onQueryChange=()=>{}, onClose=()=>{}, documentRef=global.document, storage=global.localStorage, platform=global.navigator?.platform||""}){
     const previousFocus = {element:null};
     const keyLabel = /Mac|iPhone|iPad/.test(platform) ? "⌘ K" : "Ctrl K";
@@ -56,6 +80,8 @@
     const input = overlay.querySelector(".commandPaletteInput");
     const results = overlay.querySelector(".commandPaletteResults");
     let commands = [];
+    let commandCache = null;
+    let commandSearchIndex = null;
     let rankedResults = [];
     let activeIndex = 0;
     let isOpen = false;
@@ -73,7 +99,10 @@
       }catch(err){ /* Recents are optional. */ }
     }
     function availableCommands(){
-      return (getCommands?.()||[]).filter(command=>command && command.id && command.title && typeof command.run==="function");
+      if (commandCache) return commandCache;
+      commandCache=(getCommands?.()||[]).filter(command=>command && command.id && command.title && typeof command.run==="function");
+      commandSearchIndex=createSearchIndex(commandCache);
+      return commandCache;
     }
     function rankResults(query){
       commands = availableCommands();
@@ -84,7 +113,7 @@
         const pinned = commands.filter(command=>command.pinned && !recentIds.has(command.id)).map(command=>({...command,resultCategory:command.category||"Actions"}));
         return [...recent,...pinned].slice(0,MAX_RESULTS);
       }
-      return commands.map(command=>({
+      return commandSearchIndex.candidates(query).map(command=>({
         command,
         score:fuzzyScore(query,[command.title,command.subtitle,command.category,command.keywords].filter(Boolean).join(" "))
       })).filter(result=>Number.isFinite(result.score))
@@ -187,6 +216,11 @@
       render();
       input.focus();
     }
+    function refreshCommands(){
+      commandCache=null;
+      commandSearchIndex=null;
+      if (isOpen){ activeIndex=0; render(); }
+    }
     function close(){
       if (!isOpen) return;
       overlay.hidden=true;
@@ -225,8 +259,8 @@
     documentRef.addEventListener("keydown",onKeydown,true);
     documentRef.body.appendChild(overlay);
 
-    return Object.freeze({open,close,isOpen:()=>isOpen});
+    return Object.freeze({open,close,isOpen:()=>isOpen,refreshCommands});
   }
 
-  global.BeforeworkCommandPalette = Object.freeze({create:createCommandPalette, fuzzyScore});
+  global.BeforeworkCommandPalette = Object.freeze({create:createCommandPalette, fuzzyScore, createSearchIndex});
 })(window);

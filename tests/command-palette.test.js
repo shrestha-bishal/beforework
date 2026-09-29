@@ -11,6 +11,7 @@ const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"command-palette.js"});
 const fuzzyScore = sandbox.window.BeforeworkCommandPalette.fuzzyScore;
 const createCommandPalette = sandbox.window.BeforeworkCommandPalette.create;
+const createSearchIndex = sandbox.window.BeforeworkCommandPalette.createSearchIndex;
 
 function createDocumentHarness(){
   let input;
@@ -48,6 +49,25 @@ test("matches text without accents", ()=>{
   assert.ok(Number.isFinite(fuzzyScore("resume","Résumé review")));
 });
 
+test("search index retains every fuzzy match while pruning impossible candidates", ()=>{
+  const commands=[
+    {id:"calendar",title:"Open calendar",category:"Navigate"},
+    {id:"customer",title:"Customer onboarding",category:"Projects"},
+    {id:"billing",title:"Billing overview",category:"Projects"},
+    {id:"launch",title:"🚀 Launch",category:"Projects"}
+  ];
+  const index=createSearchIndex(commands);
+
+  for (const query of ["calendar","clndr","cust onb","billing","🚀"]){
+    const indexed=new Set(index.candidates(query).map(command=>command.id));
+    commands.forEach(command=>{
+      const text=[command.title,command.subtitle,command.category,command.keywords].filter(Boolean).join(" ");
+      if (Number.isFinite(fuzzyScore(query,text))) assert.ok(indexed.has(command.id),`${query} should retain ${command.id}`);
+    });
+  }
+  assert.ok(index.candidates("zzz").length<commands.length);
+});
+
 test("opens with the current global search query", ()=>{
   const harness = createDocumentHarness();
   const palette = createCommandPalette({
@@ -62,4 +82,22 @@ test("opens with the current global search query", ()=>{
   palette.close();
   palette.open("review task");
   assert.equal(harness.getInput().value,"review task");
+});
+
+test("caches commands until workspace changes invalidate the index", ()=>{
+  let reads=0;
+  const harness=createDocumentHarness();
+  const palette=createCommandPalette({
+    getCommands:()=>{ reads++; return []; },
+    documentRef:harness.documentRef,
+    storage:null
+  });
+
+  palette.open();
+  palette.close();
+  palette.open();
+  assert.equal(reads,1);
+  palette.refreshCommands();
+  palette.open();
+  assert.equal(reads,2);
 });
