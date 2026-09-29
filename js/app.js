@@ -887,6 +887,7 @@
         ...item,
         id:uid(),
         tagIds:(item.tagIds||[]).map(id=>tagIds.get(id)).filter(Boolean),
+        attachments:(item.attachments||[]).map(attachment=>({...attachment})),
         values,
         subitems:(item.subitems||[]).map(subitem=>({...subitem,id:uid()})),
         comments:[],
@@ -969,7 +970,7 @@
   }
   function addItem(pid, gid, title){
     const project = getProject(pid);
-    const it = {id:uid(), title, description:"", calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
+    const it = {id:uid(), title, description:"", attachments:[], calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
       startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[],
       comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     recordItemActivity(it, "created");
@@ -980,7 +981,7 @@
   function openNewItemModal(project, group){
     if (!project || !group) return;
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false, draft:{
-      id:uid(), title:"", description:"", calendarType:project.itemDefaultType==="event" ? "event" : "task",
+      id:uid(), title:"", description:"", attachments:[], calendarType:project.itemDefaultType==="event" ? "event" : "task",
       startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[], comments:[],
       activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
@@ -1008,6 +1009,7 @@
       id:uid(),
       title:`${source.title} (copy)`,
       tagIds:[...(source.tagIds||[])],
+      attachments:(source.attachments||[]).map(attachment=>({...attachment})),
       values:{...(source.values||{})},
       subitems:(source.subitems||[]).map(subitem=>({...subitem,id:uid(),done:false})),
       comments:[],
@@ -1271,6 +1273,84 @@
   }
   function tagDotHtml(t, selected){
     return tagPillHtml(t, selected, true);
+  }
+  function formatFileSize(bytes){
+    if (bytes<1024) return `${bytes} B`;
+    const units=["KB","MB","GB","TB"];
+    let size=bytes/1024;
+    let unitIndex=0;
+    while (size>=1024 && unitIndex<units.length-1){ size/=1024; unitIndex++; }
+    return `${size<10?size.toFixed(1):Math.round(size)} ${units[unitIndex]}`;
+  }
+  function attachmentListHtml(attachments){
+    return attachments.length ? attachments.map(attachment=>`<div class="itemAttachmentRow">
+      <iconify-icon class="itemAttachmentIcon" icon="mdi:paperclip" aria-hidden="true"></iconify-icon>
+      <span class="itemAttachmentName" title="${escapeHtml(attachment.name)}">${escapeHtml(attachment.name)}</span>
+      <span class="itemAttachmentSize">${formatFileSize(attachment.size)}</span>
+      <button class="btn btn-invisible btn-sm itemAttachmentAction" type="button" data-attachment-action="download" data-attachment-id="${escapeHtml(attachment.id)}" aria-label="Download ${escapeHtml(attachment.name)}" title="Download"><iconify-icon icon="mdi:download" aria-hidden="true"></iconify-icon></button>
+      <button class="btn btn-invisible btn-sm itemAttachmentAction" type="button" data-attachment-action="remove" data-attachment-id="${escapeHtml(attachment.id)}" aria-label="Remove ${escapeHtml(attachment.name)}" title="Remove"><iconify-icon icon="mdi:close" aria-hidden="true"></iconify-icon></button>
+    </div>`).join("") : `<div class="itemAttachmentEmpty">No attachments</div>`;
+  }
+  function attachmentSectionHtml(item,prefix){
+    const attachments=Array.isArray(item.attachments)?item.attachments:[];
+    const available=window.BeforeworkStorage.supportsAttachments();
+    return `<div class="mainSection itemAttachmentsSection">
+      <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">${attachments.length}</span></div>
+      <button class="btn btn-sm itemAttachmentAdd" type="button" data-attachment-add ${available?"":"disabled"}><iconify-icon icon="mdi:paperclip" aria-hidden="true"></iconify-icon><span>Attach files</span></button>
+      <input type="file" id="${prefix}AttachmentInput" multiple hidden>
+      <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(attachments)}</div>
+      ${available?"":`<p class="itemAttachmentNote">Attachments require a folder workspace.</p>`}
+    </div>`;
+  }
+  function wireAttachmentControls(modal,item,{prefix,isNew}){
+    const input=modal.querySelector(`#${prefix}AttachmentInput`);
+    const addButton=modal.querySelector("[data-attachment-add]");
+    const list=modal.querySelector("[data-attachment-list]");
+    const count=modal.querySelector(".itemAttachmentCount");
+    const renderList=()=>{
+      const attachments=item.attachments||[];
+      list.innerHTML=attachmentListHtml(attachments);
+      if (count) count.textContent=String(attachments.length);
+    };
+    addButton.onclick=()=>input.click();
+    input.onchange=async()=>{
+      const files=[...input.files];
+      const errors=[];
+      for (const file of files){
+        const attachment={id:uid(),name:file.name,size:file.size,type:file.type||"application/octet-stream"};
+        try{
+          await window.BeforeworkStorage.writeAttachment(attachment.id,file);
+          if (!Array.isArray(item.attachments)) item.attachments=[];
+          item.attachments.push(attachment);
+        }catch(error){ errors.push(`${file.name}: ${error.message}`); }
+      }
+      input.value="";
+      renderList();
+      if (files.length>errors.length && !isNew){ item.updatedAt=Date.now(); scheduleSave(); }
+      if (errors.length) await showNotice("Some attachments couldn't be added",errors.join(" "));
+    };
+    list.onclick=async event=>{
+      const button=event.target.closest("[data-attachment-action]");
+      if (!button) return;
+      const attachment=(item.attachments||[]).find(entry=>entry.id===button.dataset.attachmentId);
+      if (!attachment) return;
+      if (button.dataset.attachmentAction==="remove"){
+        if (!await showConfirm("Remove attachment",`Remove ${attachment.name} from this item?`,true)) return;
+        item.attachments=item.attachments.filter(entry=>entry.id!==attachment.id);
+        if (!isNew){ item.updatedAt=Date.now(); scheduleSave(); }
+        renderList();
+        return;
+      }
+      try{
+        const file=await window.BeforeworkStorage.readAttachment(attachment.id);
+        const link=document.createElement("a");
+        const url=URL.createObjectURL(file);
+        link.href=url;
+        link.download=attachment.name;
+        link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }catch(error){ await showNotice("Couldn't download attachment",error.message); }
+    };
   }
   function fieldChipHtml(field, value){
     if (!value) return "";
@@ -2485,6 +2565,7 @@
       <div class="standaloneCalendarHeading"><h3>${isNew ? "New calendar item" : "Edit calendar item"}</h3><div class="typeTabs" role="group" aria-label="Calendar item type"><button type="button" data-calendar-type="task" aria-pressed="${selectedType==="task"}">Task</button><button type="button" data-calendar-type="event" aria-pressed="${selectedType==="event"}">Event</button></div></div>
       <div class="modalRow"><label for="standaloneTitle">Title</label><input class="form-control" id="standaloneTitle" value="${escapeHtml(item.title||"")}" placeholder="Calendar item title"></div>
       <div class="modalRow"><label for="standaloneDescription">Description</label><textarea class="form-control" id="standaloneDescription" placeholder="Add notes...">${escapeHtml(item.description||"")}</textarea></div>
+      ${attachmentSectionHtml(item,"standalone")}
       <div class="modalGrid calendarScheduleGrid">
         <div class="calendarDateTimeGroup">
           <div class="modalRow"><label for="standaloneStartDate">Start date</label><input class="form-control" id="standaloneStartDate" type="date" value="${escapeHtml(item.startDate||item.endDate||"")}"></div>
@@ -2535,6 +2616,7 @@
       <div class="uiDivider modalDivider" aria-hidden="true"></div>
       <div class="modalFooter"><button class="btn btn-invisible" data-calendar-close>Cancel</button>${isNew ? "" : `<button class="btn" data-calendar-duplicate>Duplicate</button><button class="btn ${isItemCompleted(item)?"btn-invisible":"btn-primary"} btn-sm" data-calendar-complete ${item.calendarType==="event"?"hidden":""}>${isItemCompleted(item)?"Reopen":"Mark complete"}</button>`}<button class="btn btn-primary btn-sm" data-calendar-save>${isNew ? "Add item" : "Save changes"}</button></div>`;
     modal.querySelectorAll("[data-calendar-close]").forEach(button=>button.onclick=()=>overlay.remove());
+    wireAttachmentControls(modal,item,{prefix:"standalone",isNew});
     const completeButton = modal.querySelector("[data-calendar-complete]");
     const updateTypeControls = () => {
       modal.querySelectorAll("[data-calendar-type]").forEach(button=>{
@@ -2658,7 +2740,7 @@
   }
   async function openNewCalendarItemModal(scopeProject, date){
     if (!scopeProject){
-      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", calendarType:"event", startTime:"", endTime:"", location:"", startDate:date, endDate:date, tagIds:[], values:{}, subitems:[], comments:[], activity:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
+      openStandaloneCalendarItemModal({id:uid(), title:"", description:"", attachments:[], calendarType:"event", startTime:"", endTime:"", location:"", startDate:date, endDate:date, tagIds:[], values:{}, subitems:[], comments:[], activity:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now()}, true);
       return;
     }
     const project = scopeProject;
@@ -2667,7 +2749,7 @@
     if (!dateField){ await showNotice("Date column required", `Add a date column to ${project.name} before creating calendar items.`); return; }
     const group = project.groups[0];
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:!scopeProject, draft:{
-      id:uid(), title:"", description:"", calendarType:"event", startTime:"09:00", endTime:"10:00", location:"", endDate:date,
+      id:uid(), title:"", description:"", attachments:[], calendarType:"event", startTime:"09:00", endTime:"10:00", location:"", endDate:date,
       tagIds:[], values:{[dateField.id]:date}, subitems:[], comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
@@ -4165,6 +4247,7 @@
             <div class="mainSectionLabel">Description</div>
             <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
           </div>
+          ${attachmentSectionHtml(item,"item")}
           <div class="mainSection">
             <div class="mainSectionHead">
               <div class="mainSectionLabel">Subitems</div>
@@ -4367,6 +4450,7 @@
       if (isNew) return;
       item.updatedAt = Date.now(); scheduleSave(); render();
     });
+    wireAttachmentControls(modal,item,{prefix:"item",isNew});
     modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
       chip.onclick = () => {
         const tid = chip.dataset.tagfilter;

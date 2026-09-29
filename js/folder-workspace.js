@@ -4,9 +4,13 @@
   const FORMAT="beforework-folder-workspace";
   const FORMAT_VERSION=1;
   const MANIFEST_FILE="manifest.json";
+  const ATTACHMENTS_DIRECTORY="attachments";
 
   function canonical(value){ return JSON.stringify(value); }
   function isRecord(value){ return value!==null && typeof value==="object" && !Array.isArray(value); }
+  function assertSafeAttachmentId(id){
+    if (typeof id!=="string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(id)) throw new Error("The attachment has an unsafe id.");
+  }
   function assertSafeShardPath(path,kind){
     const pattern=kind==="project" ? /^projects\/[a-zA-Z0-9_-]+\.json$/ : /^calendar\/[a-zA-Z0-9_-]+\.json$/;
     if (typeof path!=="string" || !pattern.test(path)) throw new Error("The workspace manifest contains an unsafe shard path.");
@@ -60,14 +64,21 @@
         }
       }catch(err){/* Orphan cleanup is best-effort. */}
     }
+    const referencedAttachments=new Set(manifest.attachments||[]);
+    try{
+      const child=await directory.getDirectoryHandle(ATTACHMENTS_DIRECTORY);
+      for await (const [name,entry] of child.entries()){
+        if (entry.kind==="file" && /^[a-zA-Z0-9_-]{1,128}$/.test(name) && !referencedAttachments.has(name)) await child.removeEntry(name);
+      }
+    }catch(err){/* Attachment orphan cleanup is best-effort. */}
   }
   async function clearIncomplete(directory){
     try{ await directory.removeEntry(MANIFEST_FILE); }catch(err){/* The manifest may not have been created. */}
-    for (const directoryName of ["projects","calendar"]){
+    for (const directoryName of ["projects","calendar",ATTACHMENTS_DIRECTORY]){
       try{
         const child=await directory.getDirectoryHandle(directoryName);
         for await (const [name,entry] of child.entries()){
-          if (entry.kind==="file" && /^[a-zA-Z0-9_-]+\.json$/.test(name)) await child.removeEntry(name);
+          if (entry.kind==="file" && (directoryName===ATTACHMENTS_DIRECTORY ? /^[a-zA-Z0-9_-]{1,128}$/.test(name) : /^[a-zA-Z0-9_-]+\.json$/.test(name))) await child.removeEntry(name);
         }
       }catch(err){/* Partial setup may not have created this directory. */}
     }
@@ -103,6 +114,7 @@
       startTime:item.startTime||"",
       endTime:item.endTime||"",
       endDate:item.endDate||"",
+      attachments:item.attachments||[],
       recurrence:item.recurrence||null,
       reminderAt:item.reminderAt||null
     })));
@@ -143,6 +155,13 @@
       if (!isRecord(manifest.metadata) || !Array.isArray(manifest.projects) || manifest.projects.length>100000){
         throw new Error("The workspace manifest is malformed.");
       }
+      if (manifest.attachments!==undefined && (!Array.isArray(manifest.attachments) || manifest.attachments.length>1000000)) throw new Error("The workspace manifest has an invalid attachment index.");
+      const seenAttachments=new Set();
+      (manifest.attachments||[]).forEach(id=>{
+        assertSafeAttachmentId(id);
+        if (seenAttachments.has(id)) throw new Error(`Duplicate attachment id in manifest: ${id}`);
+        seenAttachments.add(id);
+      });
       assertSafeShardPath(manifest.calendarFile,"calendar");
       const summaries=[];
       const seenIds=new Set();
@@ -194,6 +213,23 @@
       return project;
     }
 
+    async function writeAttachment(directory,id,file){
+      assertSafeAttachmentId(id);
+      const attachments=await directory.getDirectoryHandle(ATTACHMENTS_DIRECTORY,{create:true});
+      const handle=await attachments.getFileHandle(id,{create:true});
+      const writable=await handle.createWritable();
+      await writable.write(file);
+      await writable.close();
+      return handle.getFile();
+    }
+
+    async function readAttachment(directory,id){
+      assertSafeAttachmentId(id);
+      const attachments=await directory.getDirectoryHandle(ATTACHMENTS_DIRECTORY);
+      const handle=await attachments.getFileHandle(id);
+      return handle.getFile();
+    }
+
     async function load(directory){
       const index=await loadIndex(directory);
       const manifest=index.manifest;
@@ -222,6 +258,17 @@
       const lazyState=Array.isArray(state.projectSummaries);
       const loadedById=new Map((state.projects||[]).map(project=>[project.id,project]));
       const projectEntries=lazyState ? state.projectSummaries : state.projects.map(summarizeProject);
+      const attachmentIds=new Set();
+      const addItemAttachments=item=>(item.attachments||[]).forEach(attachment=>{
+        assertSafeAttachmentId(attachment.id);
+        attachmentIds.add(attachment.id);
+      });
+      projectEntries.forEach(entry=>{
+        const project=loadedById.get(entry.id);
+        const items=project ? project.groups.flatMap(group=>group.items||[]) : entry.itemIndex||[];
+        items.forEach(addItemAttachments);
+      });
+      (state.calendarItems||[]).forEach(addItemAttachments);
       for (const entry of projectEntries){
         const project=loadedById.get(entry.id);
         let file=filesById[entry.id];
@@ -259,7 +306,7 @@
       delete metadata.projectSummaries;
       delete metadata.folderLazy;
       delete metadata.calendarItems;
-      const manifest={format:FORMAT,formatVersion:FORMAT_VERSION,metadata,calendarFile,projects:nextProjects};
+      const manifest={format:FORMAT,formatVersion:FORMAT_VERSION,metadata,calendarFile,projects:nextProjects,attachments:[...attachmentIds].sort()};
       const manifestText=canonical(manifest);
       if (!revision || revision.manifestText!==manifestText){
         await writeText(directory,MANIFEST_FILE,JSON.stringify(manifest,null,2));
@@ -289,7 +336,7 @@
       }catch(err){ return {conflict:true,externalValid:false,error:err}; }
     }
 
-    return Object.freeze({load,loadIndex,loadProject,save,checkConflict,clearIncomplete,isWorkspace:async directory=>{
+    return Object.freeze({load,loadIndex,loadProject,save,checkConflict,clearIncomplete,writeAttachment,readAttachment,isWorkspace:async directory=>{
       try{ const manifest=JSON.parse(await readText(directory,MANIFEST_FILE)); return manifest?.format===FORMAT; }
       catch(err){ return false; }
     }});

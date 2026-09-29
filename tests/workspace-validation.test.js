@@ -39,6 +39,19 @@ test("rejects malformed items and non-array project collections", ()=>{
   assert.ok(result.errors.some(error=>error.includes("items[0].title")));
 });
 
+test("validates optional item attachment metadata", ()=>{
+  const base={projects:[{id:"project-1",name:"Launch",groups:[{id:"group-1",name:"Tasks",items:[{id:"task-1",title:"Prepare release"}]}]}]};
+  const valid=structuredClone(base);
+  valid.projects[0].groups[0].items[0].attachments=[{id:"attachment-1",name:"brief.pdf",size:128,type:"application/pdf"}];
+  assert.equal(validate(valid,7).valid,true);
+
+  const invalid=structuredClone(valid);
+  invalid.projects[0].groups[0].items[0].attachments[0].size=-1;
+  const result=validate(invalid,7);
+  assert.equal(result.valid,false);
+  assert.ok(result.errors.some(error=>error.includes("attachments[0]")));
+});
+
 test("rejects future schema versions instead of downgrading them", ()=>{
   const result = validate({schemaVersion:8,projects:[]},7);
 

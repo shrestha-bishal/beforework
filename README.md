@@ -76,6 +76,8 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 
 Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Existing single-file workspace JSON remains supported and can be copied into a new folder workspace.
 
+Item attachments are stored as separate files under the workspace's `attachments/` directory, with multiple attachments supported per project or calendar item. Attachments require a folder workspace; they are not embedded in legacy single-file JSON. Browser recovery snapshots contain workspace JSON and attachment metadata, not the attachment file contents.
+
 When an older or unversioned workspace is opened or imported, Beforework validates its structure and applies migrations in order until it reaches the current schema. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older data recoverable.
 
 Beforework keeps up to eight rolling recovery snapshots, with a 64 MB total storage limit, in the browser's IndexedDB. It captures the previous workspace before a write at most once every 30 minutes, and creates additional snapshots before imports, restores, file conflicts, and workspace switches with unsaved changes. In **Settings > Storage & Data**, retained snapshots can be restored or exported. Pre-upgrade snapshots remain available separately.

@@ -99,6 +99,60 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.match(directory.writeLog.at(-1),/manifest\.json$/);
 });
 
+test("stores multiple attachment files and cleans up unreferenced files",async()=>{
+  const workspace=createWorkspaceModule();
+  const directory=createMemoryDirectory();
+  const state=stateWithTwoProjects();
+  const attachments=[
+    {id:"attachment-one",name:"brief.txt",size:5,type:"text/plain"},
+    {id:"attachment-two",name:"notes.txt",size:5,type:"text/plain"}
+  ];
+  const calendarAttachment={id:"calendar-attachment",name:"invite.ics",size:5,type:"text/calendar"};
+  state.projects[0].groups.push({id:"group-a",name:"Tasks",items:[{id:"item-a",title:"Prepare release",attachments}]});
+  state.calendarItems.push({id:"event-a",title:"Launch",attachments:[calendarAttachment]});
+  for (const attachment of [...attachments,calendarAttachment]) await workspace.writeAttachment(directory,attachment.id,`data-${attachment.id}`);
+
+  const revision=await workspace.save(directory,state);
+  const manifest=JSON.parse(await (await directory.getFileHandle("manifest.json")).getFile().then(file=>file.text()));
+  const loaded=await workspace.load(directory);
+  const savedAttachment=await workspace.readAttachment(directory,attachments[0].id);
+
+  assert.deepEqual(manifest.attachments,["attachment-one","attachment-two","calendar-attachment"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.state.projects[0].groups[0].items[0].attachments)),attachments);
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.state.calendarItems[0].attachments)),[calendarAttachment]);
+  assert.equal(await savedAttachment.text(),"data-attachment-one");
+
+  loaded.state.projects[0].groups[0].items[0].attachments.pop();
+  await workspace.save(directory,loaded.state,loaded.revision);
+
+  assert.equal(directory.files.has("attachments/attachment-one"),true);
+  assert.equal(directory.files.has("attachments/attachment-two"),false);
+  assert.equal(directory.files.has("attachments/calendar-attachment"),true);
+  assert.equal(revision.manifest.attachments.length,3);
+});
+
+test("retains attachment refs when saving a hydrated lazy project",async()=>{
+  const workspace=createWorkspaceModule();
+  const directory=createMemoryDirectory();
+  const state=stateWithTwoProjects();
+  state.projects[0].groups.push({id:"group-a",name:"Tasks",items:[{id:"item-a",title:"Prepare release",attachments:[{id:"attachment-old",name:"old.txt",size:3,type:"text/plain"}]}]});
+  await workspace.writeAttachment(directory,"attachment-old","old");
+  const revision=await workspace.save(directory,state);
+  const index=await workspace.loadIndex(directory);
+  const project=await workspace.loadProject(directory,"project-a",index);
+  const newAttachment={id:"attachment-new",name:"new.txt",size:3,type:"text/plain"};
+  await workspace.writeAttachment(directory,newAttachment.id,"new");
+  project.groups[0].items[0].attachments.push(newAttachment);
+  const lazyState={...index.metadata,projects:[project],projectSummaries:index.projects,calendarItems:index.calendarItems,folderLazy:true};
+
+  const nextRevision=await workspace.save(directory,lazyState,index.revision);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(nextRevision.manifest.attachments)),["attachment-new","attachment-old"]);
+  assert.equal(directory.files.has("attachments/attachment-old"),true);
+  assert.equal(directory.files.has("attachments/attachment-new"),true);
+  assert.equal(revision.manifest.attachments.length,1);
+});
+
 test("writes only a changed project shard and commits the manifest last",async()=>{
   const workspace=createWorkspaceModule();
   const directory=createMemoryDirectory();

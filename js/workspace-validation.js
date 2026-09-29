@@ -26,6 +26,13 @@
         for (const key of ["tagIds","subitems","comments","activity"]){
           if (item[key]!==undefined && !Array.isArray(item[key])) addError(`${itemPath}.${key} must be an array.`);
         }
+        if (item.attachments!==undefined && !Array.isArray(item.attachments)) addError(`${itemPath}.attachments must be an array.`);
+        (Array.isArray(item.attachments) ? item.attachments : []).forEach((attachment,attachmentIndex)=>{
+          const attachmentPath=`${itemPath}.attachments[${attachmentIndex}]`;
+          if (!isRecord(attachment) || !hasText(attachment.id) || !hasText(attachment.name) || !Number.isSafeInteger(attachment.size) || attachment.size<0 || typeof attachment.type!=="string"){
+            addError(`${attachmentPath} must have an id, name, non-negative integer size, and type.`);
+          }
+        });
         if (item.values!==undefined && !isRecord(item.values)) addError(`${itemPath}.values must be an object.`);
         (Array.isArray(item.subitems) ? item.subitems : []).forEach((subitem,subIndex)=>{
           if (!isRecord(subitem) || !hasText(subitem.title)) addError(`${itemPath}.subitems[${subIndex}] must have a title.`);

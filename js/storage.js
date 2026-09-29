@@ -44,6 +44,15 @@
     async loadFolderProject(projectId,index){
       if (!fileHandle || fileHandle.kind!=="directory") throw new Error("A folder workspace is not connected.");
       return getFolderWorkspace().loadProject(fileHandle,projectId,index||folderIndex);
+    },
+    supportsAttachments:()=>!!fileHandle && fileHandle.kind==="directory",
+    async writeAttachment(id,file){
+      if (!fileHandle || fileHandle.kind!=="directory") throw new Error("Attachments require a folder workspace.");
+      return getFolderWorkspace().writeAttachment(fileHandle,id,file);
+    },
+    async readAttachment(id){
+      if (!fileHandle || fileHandle.kind!=="directory") throw new Error("Attachments require a folder workspace.");
+      return getFolderWorkspace().readAttachment(fileHandle,id);
     }
   });
 

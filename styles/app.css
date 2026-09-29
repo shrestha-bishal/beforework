@@ -762,6 +762,19 @@
   .itemModalSidebar{width:290px;flex:none;border-left:1px solid var(--border);background:var(--bg-soft);
     padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px;}
   .mainSection{display:flex;flex-direction:column;gap:10px;}
+  .itemAttachmentsSection{gap:8px;}
+  .itemAttachmentAdd{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;}
+  .itemAttachmentAdd iconify-icon{font-size:15px;}
+  .itemAttachmentList{display:flex;flex-direction:column;min-width:0;}
+  .itemAttachmentRow{display:flex;align-items:center;gap:8px;min-width:0;min-height:34px;padding:3px 2px;border-bottom:1px solid var(--border-soft,var(--border));}
+  .itemAttachmentRow:last-child{border-bottom:0;}
+  .itemAttachmentIcon{flex:none;color:var(--muted);font-size:15px;}
+  .itemAttachmentName{flex:1;min-width:0;overflow:hidden;color:var(--text);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}
+  .itemAttachmentSize{flex:none;color:var(--faint);font-size:10.5px;white-space:nowrap;}
+  .itemAttachmentAction{display:grid;place-items:center;flex:none;width:26px;height:26px;padding:0;}
+  .itemAttachmentAction iconify-icon{font-size:14px;}
+  .itemAttachmentEmpty,.itemAttachmentNote{margin:0;color:var(--faint);font-size:11px;}
+  .itemAttachmentCount{color:var(--faint);font-size:11px;}
   .mainSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .mainSectionHead .mainSectionLabel{margin:0;}
   .mainSectionLabel{font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:0.02em;}
