@@ -76,6 +76,20 @@
       tx.onerror = () => reject(tx.error);
     });
   }
+  async function rememberWorkspaceSelection(root,workspace){
+    await idbSet("workspaceRootHandle",root||null);
+    await idbSet("fileHandle",workspace||null);
+    await idbSet("workspaceName",workspace?.name||null);
+  }
+  async function findRememberedWorkspace(root){
+    const name=await idbGet("workspaceName");
+    if (!root || !name) return null;
+    if (await getFolderWorkspace().isWorkspace(root)) return root;
+    try{
+      const candidate=await root.getDirectoryHandle(name);
+      return await getFolderWorkspace().isWorkspace(candidate) ? candidate : null;
+    }catch(err){ return null; }
+  }
 
   async function readRecoverySnapshots(){
     const db = await idbOpen();
@@ -383,6 +397,7 @@
     try{
       workspaceRootHandle = await idbGet("workspaceRootHandle");
       handle = await idbGet("fileHandle");
+      if (!handle) handle=await findRememberedWorkspace(workspaceRootHandle);
       if (!handle) return false;
       if (workspaceRootHandle){
         const rootPermission=await workspaceRootHandle.queryPermission({mode:"readwrite"});
@@ -392,6 +407,8 @@
       if (perm === "granted"){
         const loaded = await loadFromHandle(handle);
         fileHandle = handle;
+        await idbSet("fileHandle",handle);
+        await idbSet("workspaceName",handle.kind==="directory" ? handle.name : null);
         state = loaded;
         refreshWorkspaceCommandIndex();
         lastSavedState = JSON.stringify(state);
@@ -407,8 +424,22 @@
       const missingHandle=err?.name==="NotFoundError" || /requested file or directory could not be found/i.test(err?.message||"");
       if (missingHandle){
         pendingReconnectHandle=null;
-        await idbSet("fileHandle",null).catch(()=>{});
-        setSyncStatus("The previous workspace is unavailable. Choose a workspace root or open a different workspace.");
+        const recovered=await findRememberedWorkspace(workspaceRootHandle);
+        if (recovered && recovered!==handle){
+          try{
+            const loaded=await loadFromHandle(recovered);
+            fileHandle=recovered;
+            await rememberWorkspaceSelection(workspaceRootHandle,recovered);
+            state=loaded;
+            refreshWorkspaceCommandIndex();
+            lastSavedState=JSON.stringify(state);
+            lastWrittenState=lastSavedState;
+            setSyncStatus("Saved workspace " + recovered.name);
+            return true;
+          }catch(recoveryError){/* Fall through to the normal connection gate. */}
+        }
+        await rememberWorkspaceSelection(workspaceRootHandle,null).catch(()=>{});
+        setSyncStatus("No workspace folder connected. Choose a workspace root or open a workspace.");
       }else{
         if (handle) pendingReconnectHandle=handle;
         setSyncStatus("Couldn't reconnect to " + (handle?.name||"the previous workspace") + ": " + err.message);
@@ -499,7 +530,7 @@
       await getFolderWorkspace().save(directory,initialState);
       const lazyState=await loadFolderState(directory);
       initialized=true;
-      await idbSet("fileHandle",directory);
+      await rememberWorkspaceSelection(workspaceRootHandle,directory);
       fileHandle=directory;
       fileRevision=null;
       state=lazyState;
@@ -540,7 +571,7 @@
         showNotice("Couldn't open workspace folder",err.message);
         return;
       }
-      await idbSet("fileHandle",directory);
+      await rememberWorkspaceSelection(workspaceRootHandle,directory);
       fileHandle=directory;
       fileRevision=null;
       state=loaded;
@@ -576,7 +607,7 @@
         showNotice("Couldn't read that file", "This doesn't look like an Beforework JSON file: " + err.message);
         return;
       }
-      try{ await idbSet("fileHandle", handle); }
+      try{ await rememberWorkspaceSelection(workspaceRootHandle,handle); }
       catch(err){ fileRevision=previousRevision; throw err; }
       fileHandle = handle;
       state = loaded;
@@ -623,7 +654,7 @@
       await getFolderWorkspace().save(directory,folderState);
       const lazyState=await loadFolderState(directory);
       initialized=true;
-      await idbSet("fileHandle",directory);
+      await rememberWorkspaceSelection(workspaceRootHandle,directory);
       fileHandle=directory;
       fileRevision=null;
       state=lazyState;
@@ -675,7 +706,7 @@
       await getFolderWorkspace().save(directory,parsed);
       const lazyState=await loadFolderState(directory);
       initialized=true;
-      await idbSet("fileHandle",directory);
+      await rememberWorkspaceSelection(workspaceRootHandle,directory);
       fileHandle=directory;
       fileRevision=null;
       state=lazyState;
