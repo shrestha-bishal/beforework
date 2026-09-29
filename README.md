@@ -18,7 +18,7 @@ Beforework is a private, local-first project management workspace for tasks, pro
 
 If you do not want to host Beforework locally, use the hosted version at [beforework.netlify.app](https://beforework.netlify.app/).
 
-Open it in Chrome or Edge, then create or connect a Beforework workspace folder to start using the workspace. Existing single-file JSON workspaces can still be opened and copied into the folder format.
+Open it in Chrome or Edge, then choose a workspace root folder. Beforework creates each workspace as a separate child folder inside that root. Existing single-file JSON workspaces can still be opened and copied into the folder format.
 
 Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). Personal and non-commercial use are permitted. Offering Beforework, or a modified or hosted version of it, as a product or service to third parties requires permission. Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -36,7 +36,7 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 
 ## Run locally
 
-Beforework uses the File System Access API to open and save a workspace folder. Open it from a Chromium-based browser through `localhost` or HTTPS rather than using a `file://` URL.
+Beforework uses the File System Access API to open and save a workspace root and its child workspaces. Open it from a Chromium-based browser through `localhost` or HTTPS rather than using a `file://` URL.
 
 If Python is installed:
 

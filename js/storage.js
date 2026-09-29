@@ -218,6 +218,8 @@
 
   function setSyncStatus(text){
     syncStatusText = text;
+    const workspaceLabel=document.getElementById("workspaceSwitcherLabel");
+    if (workspaceLabel) workspaceLabel.textContent=fileHandle?.name||"Workspace";
     const globalStatus=document.getElementById("globalSaveStatus");
     if (globalStatus){
       globalStatus.textContent=text;
@@ -379,8 +381,13 @@
     if (!("showOpenFilePicker" in window)) return false;
     let handle=null;
     try{
+      workspaceRootHandle = await idbGet("workspaceRootHandle");
       handle = await idbGet("fileHandle");
       if (!handle) return false;
+      if (workspaceRootHandle){
+        const rootPermission=await workspaceRootHandle.queryPermission({mode:"readwrite"});
+        if (rootPermission!=="granted") workspaceRootHandle=null;
+      }
       const perm = await handle.queryPermission({mode:"readwrite"});
       if (perm === "granted"){
         const loaded = await loadFromHandle(handle);
@@ -397,8 +404,15 @@
       return false;
     }catch(err){
       fileHandle=null;
-      if (handle) pendingReconnectHandle=handle;
-      setSyncStatus("Couldn't reconnect to " + (handle?.name||"the previous workspace") + ": " + err.message);
+      const missingHandle=err?.name==="NotFoundError" || /requested file or directory could not be found/i.test(err?.message||"");
+      if (missingHandle){
+        pendingReconnectHandle=null;
+        await idbSet("fileHandle",null).catch(()=>{});
+        setSyncStatus("The previous workspace is unavailable. Choose a workspace root or open a different workspace.");
+      }else{
+        if (handle) pendingReconnectHandle=handle;
+        setSyncStatus("Couldn't reconnect to " + (handle?.name||"the previous workspace") + ": " + err.message);
+      }
       return false;
     }
   }
@@ -429,12 +443,22 @@
 
   async function chooseWorkspaceDirectory(){
     if (!("showDirectoryPicker" in window)) throw new Error("This browser does not support workspace folders.");
-    const parent=await window.showDirectoryPicker({mode:"readwrite"});
+    let parent=workspaceRootHandle;
+    if (parent && await getFolderWorkspace().isWorkspace(parent)){
+      workspaceRootHandle=null;
+      await idbSet("workspaceRootHandle",null);
+      parent=null;
+    }
+    parent=parent || await window.showDirectoryPicker({mode:"readwrite"});
+    const permission=await parent.requestPermission({mode:"readwrite"});
+    if (permission!=="granted") throw new Error("Read-write access is required for the workspace root folder.");
+    workspaceRootHandle=parent;
+    await idbSet("workspaceRootHandle",parent);
     const folderName=await showDialog({
-      title:"Name your workspace folder",
-      message:"Beforework will create a manifest and separate project JSON files inside this folder.",
-      fields:[{label:"Folder name",value:"Beforework Workspace"}],
-      confirmLabel:"Create folder"
+      title:"Create a workspace",
+      message:`Beforework will create a workspace folder inside ${parent.name}. Each project gets its own JSON shard.`,
+      fields:[{label:"Workspace name",value:"Personal Workspace"}],
+      confirmLabel:"Create workspace"
     });
     if (!folderName || !folderName.trim()) return null;
     if (/[\\/]/.test(folderName.trim())) throw new Error("Enter a folder name without path separators.");
@@ -442,6 +466,27 @@
     if (await getFolderWorkspace().isWorkspace(directory)) throw new Error("That folder already contains a Beforework workspace. Open it instead of replacing it.");
     for await (const entry of directory.values()) throw new Error(`The selected folder is not empty (${entry.name}). Choose an empty folder or open the existing workspace.`);
     return directory;
+  }
+
+  async function chooseWorkspaceFromRoot(root){
+    if (await getFolderWorkspace().isWorkspace(root)) return root;
+    const workspaces=[];
+    for await (const [name,entry] of root.entries()){
+      if (entry.kind!=="directory" || !(await getFolderWorkspace().isWorkspace(entry))) continue;
+      workspaces.push({name,handle:entry});
+    }
+    workspaces.sort((left,right)=>left.name.localeCompare(right.name));
+    if (!workspaces.length){
+      await showNotice("No workspaces found",`Create a workspace inside ${root.name} before opening it.`);
+      return null;
+    }
+    const selected=await showDialog({
+      title:`Open a workspace in ${root.name}`,
+      message:"Choose a workspace folder from this root.",
+      fields:[{label:"Workspace",type:"select",value:workspaces[0].name,options:workspaces.map(workspace=>({value:workspace.name,label:workspace.name}))}],
+      confirmLabel:"Open workspace"
+    });
+    return selected ? workspaces.find(workspace=>workspace.name===selected)?.handle||null : null;
   }
 
   async function createNewWorkspaceFolder(){
@@ -480,9 +525,14 @@
       return;
     }
     try{
-      const directory=await window.showDirectoryPicker({mode:"readwrite"});
-      const permission=await directory.requestPermission({mode:"readwrite"});
+      const root=workspaceRootHandle || await window.showDirectoryPicker({mode:"readwrite"});
+      const permission=await root.requestPermission({mode:"readwrite"});
       if (permission!=="granted"){ showNotice("Permission needed","Read-write access is required for this workspace folder."); return; }
+      const rootIsWorkspace=await getFolderWorkspace().isWorkspace(root);
+      workspaceRootHandle=rootIsWorkspace ? null : root;
+      await idbSet("workspaceRootHandle",workspaceRootHandle);
+      const directory=rootIsWorkspace ? root : await chooseWorkspaceFromRoot(root);
+      if (!directory) return;
       let loaded;
       try{ loaded=await loadFolderState(directory); }
       catch(err){
@@ -552,7 +602,7 @@
     await openExistingWorkspaceFolder();
   }
   async function startNewFileFromMenu(){
-    if (!await showConfirm("Create a new workspace folder", "This starts a separate empty workspace. Your current workspace remains unchanged.")) return;
+    if (!await showConfirm("Create a new workspace", "This starts a separate empty workspace inside your workspace root. Your current workspace remains unchanged.")) return;
     if (!await flushBeforeLeavingFile()) return;
     await createNewWorkspaceFolder();
   }

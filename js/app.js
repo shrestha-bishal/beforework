@@ -142,6 +142,7 @@
   let listSort = {field:"updated", dir:"desc"};
   let openItemRef = null;
   let fileHandle = null;
+  let workspaceRootHandle = null;
   let saveTimer = null;
   let lastSavedState = null;
   const undoStack = [];
@@ -4231,6 +4232,12 @@
   function wireStaticControls(){
     const projectCreateMenu = document.getElementById("projectCreateMenu");
     const projectCreateBtn = document.getElementById("projectCreateBtn");
+    const workspaceSwitcherBtn = document.getElementById("workspaceSwitcherBtn");
+    const workspaceSwitcherMenu = document.getElementById("workspaceSwitcherMenu");
+    const closeWorkspaceSwitcher = () => {
+      workspaceSwitcherMenu.classList.remove("open");
+      workspaceSwitcherBtn.setAttribute("aria-expanded", "false");
+    };
     const closeProjectCreateMenu = () => {
       projectCreateMenu.classList.remove("open");
       projectCreateBtn.classList.remove("active");
@@ -4251,6 +4258,19 @@
     document.getElementById("supportNav").onclick = navigateToSupport;
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
+    workspaceSwitcherBtn.onclick = event => {
+      event.stopPropagation();
+      const open = workspaceSwitcherMenu.classList.toggle("open");
+      workspaceSwitcherBtn.setAttribute("aria-expanded", String(open));
+    };
+    document.getElementById("workspaceSwitchBtn").onclick = async () => {
+      closeWorkspaceSwitcher();
+      await switchFile();
+    };
+    document.getElementById("workspaceNewBtn").onclick = async () => {
+      closeWorkspaceSwitcher();
+      await startNewFileFromMenu();
+    };
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
       const menu = document.getElementById("projectMenu");
@@ -4283,6 +4303,7 @@
         document.getElementById("toggleFilters").classList.remove("active");
       }
       if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
+      if (!event.target.closest(".workspaceSwitcher")) closeWorkspaceSwitcher();
       const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
         if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");

@@ -42,14 +42,14 @@
         <p>For access across devices, choose a folder in OneDrive, Google Drive, or another synced location. Sync is handled by that folder provider, not by Beforework.</p>
         <p id="gateRecoveryStatus" role="status" aria-live="polite"></p>
         <p>Each project supports list, table, board, and calendar views, with items organized into groups and tracked by priority, due date, and tags.</p>
-        <p>Create a workspace folder, open an existing workspace folder, or connect an older single-file workspace.</p>
+        <p>Choose a workspace root folder, create or open a workspace inside it, or connect an older single-file workspace.</p>
         <div id="gateReconnectRow" style="display:none;">
           <div>Reconnect to <strong id="gateFileName"></strong>?</div>
           <button class="btn btn-sm btn-primary" id="gateReconnectBtn">Reconnect</button>
         </div>
         <div id="gateSupportedActions">
-          <button class="btn btn-primary" id="gateNewBtn">Create workspace folder</button>
-          <button class="btn" id="gateOpenBtn">Open workspace folder</button>
+          <button class="btn btn-primary" id="gateNewBtn">Create workspace</button>
+          <button class="btn" id="gateOpenBtn">Open workspace</button>
           <button class="btn btn-invisible" id="gateLegacyFileBtn">Open older JSON file</button>
         </div>
         <div id="gateUnsupported" style="display:none;">
@@ -68,6 +68,17 @@
       <div id="sidebar">
         <div id="sidebarWrap">
           <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""></button></h1>
+          <div class="workspaceSwitcher">
+            <button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <iconify-icon icon="mdi:briefcase-outline" aria-hidden="true"></iconify-icon>
+              <span id="workspaceSwitcherLabel">Workspace</span>
+              <iconify-icon class="workspaceSwitcherChevron" icon="mdi:chevron-down" aria-hidden="true"></iconify-icon>
+            </button>
+            <div class="workspaceSwitcherMenu" id="workspaceSwitcherMenu" role="menu">
+              <button class="btn btn-sm btn-invisible" id="workspaceSwitchBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-swap-outline" aria-hidden="true"></iconify-icon><span>Open different workspace</span></button>
+              <button class="btn btn-sm btn-invisible" id="workspaceNewBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>Create new workspace</span></button>
+            </div>
+          </div>
           <div class="searchWrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input class="form-control" id="globalSearch" type="text" placeholder="Search or run a command" aria-label="Search projects, tasks, or actions" readonly>

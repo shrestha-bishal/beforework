@@ -751,6 +751,16 @@
   }
 
   #sidebarWrap{position:relative;}
+  .workspaceSwitcher{position:relative;margin:0 0 8px;}
+  .workspaceSwitcherBtn{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:7px 8px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer;}
+  .workspaceSwitcherBtn:hover,.workspaceSwitcherBtn[aria-expanded="true"]{background:var(--bg-soft2);}
+  .workspaceSwitcherBtn>iconify-icon:first-child{flex:none;color:var(--muted);font-size:16px;}
+  #workspaceSwitcherLabel{overflow:hidden;flex:1;min-width:0;text-overflow:ellipsis;white-space:nowrap;}
+  .workspaceSwitcherChevron{flex:none;color:var(--muted);font-size:15px;}
+  .workspaceSwitcherMenu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:45;display:none;flex-direction:column;gap:2px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-modal);}
+  .workspaceSwitcherMenu.open{display:flex;}
+  .workspaceSwitcherMenu button{display:flex;align-items:center;gap:9px;width:100%;min-width:0;text-align:left;}
+  .workspaceSwitcherMenu button iconify-icon{flex:none;color:var(--muted);font-size:15px;}
 
   #fileImportInput{display:none;}
   #sidebarScrim{display:none;}
