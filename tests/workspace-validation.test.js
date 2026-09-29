@@ -76,9 +76,18 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   assert.equal(validate(workspace,7).valid,true);
   const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
   const checkboxField=onboarding.fields.find(field=>field.type==="checkbox");
+  const urlField=onboarding.fields.find(field=>field.type==="url");
+  const numberField=onboarding.fields.find(field=>field.type==="number");
+  const multiSelectField=onboarding.fields.find(field=>field.type==="multi-select");
   assert.ok(checkboxField);
+  assert.ok(urlField);
+  assert.ok(numberField);
+  assert.ok(multiSelectField);
   assert.ok(onboarding.groups[0].items.some(item=>item.values[checkboxField.id]==="true"));
   assert.ok(onboarding.groups[0].items.some(item=>item.values[checkboxField.id]===""));
+  assert.ok(onboarding.groups[0].items.some(item=>item.values[urlField.id].startsWith("https://")));
+  assert.ok(onboarding.groups[0].items.some(item=>item.values[numberField.id]===0));
+  assert.ok(onboarding.groups[0].items.some(item=>item.values[multiSelectField.id].length>1));
 
   const personal=workspace.projects.find(project=>project.name==="Personal planning");
   const targetDate=personal.fields.find(field=>field.label==="Target date");
@@ -116,6 +125,69 @@ test("renders checkbox custom fields as boolean controls", ()=>{
   assert.match(html, /data-fieldid="field-checkbox"/i);
   assert.match(html, /sideItemCheckbox/i);
   assert.match(html, /checkboxFieldValue/i);
+});
+
+test("renders URL, number, and multi-select field controls", ()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function fieldInputHtml");
+  const end=appSource.indexOf("function renderItemModal");
+  const snippet=appSource.slice(start,end);
+  const context={escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))};
+  const html=JSON.parse(vm.runInNewContext(`${snippet}; JSON.stringify([
+    fieldInputHtml({id:"url-field",label:"Reference",type:"url"},{values:{}}),
+    fieldInputHtml({id:"number-field",label:"Estimate",type:"number"},{values:{"number-field":0}}),
+    fieldInputHtml({id:"multi-field",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},{values:{"multi-field":["design"]}})
+  ]);`,context));
+
+  assert.match(html[0],/type="url"/);
+  assert.match(html[1],/type="number"/);
+  assert.match(html[1],/value="0"/);
+  assert.match(html[2],/value="docs"/);
+  assert.match(html[2],/value="design" checked/);
+});
+
+test("renders safe URL links and searchable multi-select labels", ()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function fieldChipHtml");
+  const end=appSource.indexOf("function itemMatchesFilter");
+  const snippet=appSource.slice(start,end);
+  const context={URL,escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),duePillHtml:()=>""};
+  const result=JSON.parse(vm.runInNewContext(`${snippet}; JSON.stringify({
+    safe:fieldCellHtml({type:"url"},"https://example.com/docs"),
+    unsafe:fieldCellHtml({type:"url"},"javascript:alert(1)"),
+    zero:fieldCellHtml({type:"number"},0),
+    choices:fieldCellHtml({type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},["docs","design"]),
+    numericSort:fieldSortValue({type:"number"},2)<fieldSortValue({type:"number"},10)
+  });`,context));
+
+  assert.match(result.safe,/href="https:\/\/example\.com\/docs"/);
+  assert.match(result.safe,/rel="noopener noreferrer"/);
+  assert.doesNotMatch(result.unsafe,/href=/);
+  assert.equal(result.zero,"0");
+  assert.match(result.choices,/Docs/);
+  assert.match(result.choices,/Design/);
+  assert.equal(result.numericSort,true);
+});
+
+test("filters numeric values and any selected multi-select option", ()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function itemMatchesFilter");
+  const end=appSource.indexOf("function rowsForSelection",start);
+  const snippet=appSource.slice(start,end);
+  const context={showArchived:false,activeProjectId:"project",completionFilter:"open",isItemCompleted:()=>false,
+    boardFilterGroups:new Set(),boardFilterTags:new Set(),boardFilterFields:new Map(),boardFilterText:""};
+  const result=JSON.parse(vm.runInNewContext(`${snippet};
+    const project={id:"project",fields:[{id:"count",type:"number"},{id:"areas",type:"multi-select"}]};
+    const group={id:"group"};
+    boardFilterFields.set("count","0");
+    const zeroMatches=itemMatchesFilter(project,{values:{count:0,areas:["docs","design"]}},group);
+    boardFilterFields.clear();
+    boardFilterFields.set("areas",["design"]);
+    const selectedMatches=itemMatchesFilter(project,{values:{count:5,areas:["docs","design"]}},group);
+    const otherDoesNotMatch=itemMatchesFilter(project,{values:{count:5,areas:["docs"]}},group);
+    JSON.stringify({zeroMatches,selectedMatches,otherDoesNotMatch});`,context));
+
+  assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false});
 });
 
 test("bulk completion updates selected items consistently", ()=>{

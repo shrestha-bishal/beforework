@@ -278,6 +278,13 @@
   .completionTab.active .completionTabCount{color:var(--muted);}
   .listAddRow{border-bottom:1px solid var(--border);}
   .tableCell{width:100%;min-width:110px;min-height:0;padding:6px 8px;border-radius:6px;}
+  .tableMultiSelect{padding:4px!important;}
+  .fieldUrlLink{color:var(--accent-strong);text-decoration:underline;text-underline-offset:2px;}
+  .multiSelectFieldOptions{display:flex;flex-wrap:wrap;gap:6px;}
+  .multiSelectFieldOption{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 7px;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;}
+  .multiSelectFieldOption input{flex:none;width:14px;height:14px;min-height:0;margin:0;}
+  .multiSelectFieldOption span{overflow-wrap:anywhere;}
+  .fieldOptionsEmpty{color:var(--faint);font-size:11px;}
   td .tableCell{background:transparent;border:1px solid transparent;}
   td .tableCell:hover{border-color:var(--border);background:var(--bg-soft);}
   td .tableCell:focus{background:var(--bg);border-color:var(--accent);}

@@ -87,17 +87,24 @@
     const onboardingDate = makeField("Next date", "date");
     const onboardingPriority = makeField("Priority", "priority");
     const onboardingEmailSent = makeField("Welcome email sent", "checkbox");
+    const onboardingReference = makeField("Reference URL", "url");
+    const onboardingSeats = makeField("Seats", "number");
+    const onboardingTopics = makeField("Focus areas", "multi-select", [
+      {id:uid(), label:"Setup", color:TAG_COLORS[0]},
+      {id:uid(), label:"Training", color:TAG_COLORS[5]},
+      {id:uid(), label:"Follow-up", color:TAG_COLORS[6]}
+    ]);
     const onboardingViews = views(["table", "list"]);
     const onboardingGroup = {id:uid(), name:"Customer success", items:[]};
     const onboarding = {
       id:uid(), name:"Customer onboarding", icon:"mdi:account-group-outline", folderId:operationsFolder.id, createdAt:now,
-      tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[onboardingStatus, onboardingDate, onboardingPriority, onboardingEmailSent],
+      tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[onboardingStatus, onboardingDate, onboardingPriority, onboardingEmailSent, onboardingReference, onboardingSeats, onboardingTopics],
       views:onboardingViews, activeViewId:onboardingViews[0].id, itemDefaultType:"task", groups:[onboardingGroup]
     };
     onboardingGroup.items.push(
-      makeItem("Review the first-week setup path", "Walk through account setup as a new customer and note any unclear steps.", {[onboardingStatus.id]:onboardingStatus.options[0].id, [onboardingDate.id]:todayStr(3), [onboardingPriority.id]:"high", [onboardingEmailSent.id]:"true"}, {tagIds:[onboarding.tags[0].id, onboarding.tags[1].id], subitems:[{id:uid(), title:"Create a sample workspace", done:true}, {id:uid(), title:"Check the first project flow", done:false}]}),
-      makeItem("Schedule onboarding check-ins", "Set a short check-in after setup and another after the first week of use.", {[onboardingStatus.id]:onboardingStatus.options[1].id, [onboardingDate.id]:todayStr(1), [onboardingPriority.id]:"medium", [onboardingEmailSent.id]:""}, {tagIds:[onboarding.tags[0].id], ageDays:2}),
-      makeItem("Summarise activation feedback", "Group feedback by setup, navigation, and recurring work so the product team can prioritise follow-up.", {[onboardingStatus.id]:onboardingStatus.options[2].id, [onboardingDate.id]:todayStr(7), [onboardingPriority.id]:"low", [onboardingEmailSent.id]:""}, {tagIds:[onboarding.tags[1].id]})
+      makeItem("Review the first-week setup path", "Walk through account setup as a new customer and note any unclear steps.", {[onboardingStatus.id]:onboardingStatus.options[0].id, [onboardingDate.id]:todayStr(3), [onboardingPriority.id]:"high", [onboardingEmailSent.id]:"true", [onboardingReference.id]:"https://example.com/onboarding/setup", [onboardingSeats.id]:12, [onboardingTopics.id]:[onboardingTopics.options[0].id, onboardingTopics.options[1].id]}, {tagIds:[onboarding.tags[0].id, onboarding.tags[1].id], subitems:[{id:uid(), title:"Create a sample workspace", done:true}, {id:uid(), title:"Check the first project flow", done:false}]}),
+      makeItem("Schedule onboarding check-ins", "Set a short check-in after setup and another after the first week of use.", {[onboardingStatus.id]:onboardingStatus.options[1].id, [onboardingDate.id]:todayStr(1), [onboardingPriority.id]:"medium", [onboardingEmailSent.id]:"", [onboardingReference.id]:"https://example.com/onboarding/check-ins", [onboardingSeats.id]:4, [onboardingTopics.id]:[onboardingTopics.options[2].id]}, {tagIds:[onboarding.tags[0].id], ageDays:2}),
+      makeItem("Summarise activation feedback", "Group feedback by setup, navigation, and recurring work so the product team can prioritise follow-up.", {[onboardingStatus.id]:onboardingStatus.options[2].id, [onboardingDate.id]:todayStr(7), [onboardingPriority.id]:"low", [onboardingEmailSent.id]:"", [onboardingReference.id]:"", [onboardingSeats.id]:0, [onboardingTopics.id]:[]}, {tagIds:[onboarding.tags[1].id]})
     );
 
     const personalStatus = makeField("Status", "select", [
