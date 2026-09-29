@@ -3281,10 +3281,10 @@
 
     const view = window.BeforeworkViewTemplates.clone("overview");
     const statRows = [
-      {value:projectRecords().length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects"},
-      {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open"},
-      {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue"},
-      {value:completedItems.length,label:"Completed",detail:"Marked complete",icon:"mdi:check-circle-outline",tone:"completed"}
+      {value:projectRecords().length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects",searchable:true},
+      {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open",searchable:true},
+      {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue",searchable:true},
+      {value:completedItems.length,label:"Completed",detail:"Marked complete",icon:"mdi:check-circle-outline",tone:"completed",searchable:true}
     ];
     function openOverviewStatDetails(tone){
       overviewDetailsView.open({

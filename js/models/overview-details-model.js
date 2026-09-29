@@ -1,4 +1,13 @@
 export class OverviewDetailsModel {
+  searchEntries(entries,query){
+    const terms=String(query||"").trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return entries;
+    return entries.filter(entry=>{
+      const searchableText=`${entry.title} ${entry.meta}`.toLocaleLowerCase();
+      return terms.every(term=>searchableText.includes(term));
+    });
+  }
+
   getEntries(tone,{projects,openItems,overdueItems,completedItems,isItemCompleted,dueOf,priorityOf}){
     if (tone==="projects"){
       return projects.map(project=>{

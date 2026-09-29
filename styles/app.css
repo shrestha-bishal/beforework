@@ -381,7 +381,8 @@
   .overviewStat-overdue.has-overdue .overviewStatIcon{color:var(--color-danger-fg);}
   .overviewDetailsDialog{max-height:90vh;}
   .overviewDetailsDialog h3{margin-bottom:14px;}
-  .overviewDetailsList{display:flex;flex-direction:column;gap:3px;max-height:60vh;overflow:auto;}
+  .overviewDetailsSearch{margin-bottom:10px;}
+  .overviewDetailsList{display:flex;flex-direction:column;gap:3px;min-height:180px;max-height:60vh;overflow:auto;}
   .overviewDetailsRow{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:10px 12px;border:0;border-radius:6px;background:transparent;text-align:left;color:var(--text);cursor:pointer;}
   .overviewDetailsRow:hover,.overviewDetailsRow:focus-visible{background:var(--bg-soft);}
   .overviewDetailsRow:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
