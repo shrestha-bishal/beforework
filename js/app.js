@@ -52,6 +52,50 @@
 
   let state = null;                 // { projects:[] }
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
+  const workspaceCommands = window.BeforeworkWorkspaceCommands.create({
+    getState:()=>state,
+    actions:{
+      navigate(destination){
+        if (destination==="settings") navigateToSettings();
+        else if (destination==="integrations") navigateToIntegrations();
+        else selectProject(destination==="calendar" ? CALENDAR : OVERVIEW);
+      },
+      addTask:quickAddViaShortcut,
+      createProject(){ document.getElementById("addProjectBtn").click(); },
+      createFolder(){ document.getElementById("addFolderBtn").click(); },
+      createEvent(){ openNewCalendarItemModal(null,todayStr(0)); },
+      toggleTheme,
+      toggleTimer:toggleFocusTimer,
+      showShortcuts:showShortcutsModal,
+      openProject:selectProject,
+      openGroup(project,group){
+        selectProject(project.id);
+        boardFilterGroups.clear();
+        boardFilterGroups.add(group.id);
+        render();
+      },
+      openProjectItem(project,group,item){
+        selectProject(project.id);
+        openItemModal(project.id,group.id,item.id);
+      },
+      openTag(project,tag){
+        selectProject(project.id);
+        boardFilterTags.clear();
+        boardFilterTags.add(tag.id);
+        render();
+        renderSidebarTags();
+      },
+      openCalendarItem:openStandaloneCalendarItemModal
+    }
+  });
+  let suppressGlobalSearchFocus = false;
+  const commandPalette = window.BeforeworkCommandPalette.create({
+    getCommands:workspaceCommands.getCommands,
+    canOpen:()=>!!fileHandle,
+    getInitialQuery:()=>document.getElementById("globalSearch").value,
+    onQueryChange:value=>{ document.getElementById("globalSearch").value=value; },
+    onClose:focusTarget=>{ if (focusTarget?.id==="globalSearch") suppressGlobalSearchFocus=true; }
+  });
   let settingsView = null;
   let overviewDetailsView = null;
   let showArchived = false;
@@ -401,7 +445,8 @@
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     const rows = [
-      ["/", "Focus the global search"],
+      ["/", "Open search and commands"],
+      ["Ctrl/⌘ + K", "Open the command palette"],
       ["n", "Quick-add an item to the open project"],
       ["d", "Toggle dark / light mode"],
       ["[", "Collapse / expand the sidebar"],
@@ -4015,40 +4060,6 @@
     }
   }
 
-  /* ---------- Global search ---------- */
-  function runGlobalSearch(q){
-    const box = document.getElementById("searchResults");
-    if (!q){ box.style.display="none"; box.innerHTML=""; return; }
-    const query = q.toLowerCase();
-    const results = [];
-    state.projects.forEach(p=>{
-      if (p.name.toLowerCase().includes(query)) results.push({type:"Project", label:p.name, path:p.name, pid:p.id});
-      p.groups.forEach(g=>{
-        if (g.name.toLowerCase().includes(query)) results.push({type:"Group", label:g.name, path:p.name, pid:p.id});
-        g.items.forEach(it=>{
-          const tagNames = it.tagIds.map(tid=>tagById(p,tid)?.name||"").join(" ");
-          const hay = [it.title, it.description, tagNames, ...it.subitems.map(s=>s.title), ...Object.values(it.values)].join(" ").toLowerCase();
-          if (hay.includes(query)) results.push({type:"Item", label:it.title, path:`${p.name} / ${g.name}`, pid:p.id, gid:g.id, iid:it.id});
-        });
-      });
-    });
-    if (!results.length){ box.style.display="block"; box.innerHTML = `<div class="res">No matches</div>`; return; }
-    box.style.display = "block";
-    box.innerHTML = results.slice(0,40).map((r,idx)=>
-      `<div class="res" data-idx="${idx}"><div>${escapeHtml(r.label)}</div><div class="path">${escapeHtml(r.path)}</div></div>`
-    ).join("");
-    [...box.querySelectorAll(".res")].forEach((el,idx)=>{
-      el.onclick = () => {
-        const r = results[idx];
-        if (!r.pid) return;
-        selectProject(r.pid);
-        box.style.display = "none";
-        document.getElementById("globalSearch").value = "";
-        if (r.type==="Item") openItemModal(r.pid, r.gid, r.iid);
-      };
-    });
-  }
-
   /* ---------- Mobile sidebar ---------- */
   function toggleSidebar(){
     document.getElementById("sidebar").classList.toggle("open");
@@ -4167,9 +4178,17 @@
         deleteTag(project, tag.id);
       }
     };
-    document.getElementById("globalSearch").addEventListener("input", e=> runGlobalSearch(e.target.value.trim()));
-    document.addEventListener("click", (e)=>{
-      if (!e.target.closest("#sidebarWrap")) document.getElementById("searchResults").style.display="none";
+    const globalSearch = document.getElementById("globalSearch");
+    globalSearch.addEventListener("focus",()=>{
+      if (suppressGlobalSearchFocus){ suppressGlobalSearchFocus=false; return; }
+      commandPalette.open(globalSearch.value);
+    });
+    globalSearch.addEventListener("click",()=>commandPalette.open(globalSearch.value));
+    globalSearch.addEventListener("keydown",event=>{
+      if (event.key==="/"){
+        event.preventDefault();
+        commandPalette.open(globalSearch.value);
+      }
     });
     document.getElementById("boardSearch").addEventListener("input", e=>{
       boardFilterText = e.target.value.trim(); render();

@@ -1,203 +1,205 @@
 <!DOCTYPE html>
 <html lang="en" data-color-mode="light" data-light-theme="light" data-dark-theme="dark">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Beforework is a private, serverless local-first project management workspace for tasks, projects and calendars. Your data stays in your control.">
-<link rel="canonical" href="https://beforework.netlify.app/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Beforework">
-<meta property="og:url" content="https://beforework.netlify.app/">
-<meta property="og:title" content="Beforework | Local-first project management">
-<meta property="og:description" content="A private workspace for tasks, projects and calendars. Your data stays in a JSON file you control.">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Beforework | Local-first project management">
-<meta name="twitter:description" content="A private workspace for tasks, projects and calendars. Your data stays in a JSON file you control.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://accounts.google.com https://code.iconify.design https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com https://www.google-analytics.com https://region1.google-analytics.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
-<title>Beforework</title>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-41XC9VWLWS"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-41XC9VWLWS');
-</script>
-<link rel="icon" href="images/icon.ico" type="image/x-icon" sizes="32x32">
-<!-- Primer CSS (GitHub's design system) - provides the .btn/.form-control/.Box/.Label
-     component classes and the --color-* design tokens the app's own styles map onto below. -->
-<link rel="stylesheet" href="https://unpkg.com/@primer/css@21.0.7/dist/primer.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
-<link rel="stylesheet" href="styles/app.css">
-</head>
-<body>
-<div id="connectGate">
-  <div class="Overlay Overlay--size-medium position-relative" data-modal>
-    <h3>Connect your Beforework file</h3>
-    <p>Beforework is a serverless, local-first, privacy-first project workspace. Your data is never transmitted to a server or third party - projects are saved directly to a JSON file on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
-    <p>Changes are written to the file immediately, with no intermediate save step and no data held outside the file itself. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
-    <p>For access across multiple devices, the file can be stored in a synced folder such as OneDrive or Google Drive; it will sync using the same mechanism as any other document in that folder, requiring no additional configuration.</p>
-    <p>Each project supports list, table, board, and calendar views, with items organized into groups and tracked by priority, due date, and tags.</p>
-    <p>Choose an existing file or create a new one to get started.</p>
-    <div id="gateReconnectRow" style="display:none;">
-      <div>Reconnect to <strong id="gateFileName"></strong>?</div>
-      <button class="btn btn-sm btn-primary" id="gateReconnectBtn">Reconnect</button>
-    </div>
-    <div id="gateSupportedActions">
-      <button class="btn btn-primary" id="gateNewBtn">Create new file</button>
-      <button class="btn" id="gateOpenBtn">Open existing file</button>
-    </div>
-    <div id="gateUnsupported" style="display:none;">
-      <p>This browser doesn't support connecting directly to a local file (that needs Chrome, Edge, or another Chromium-based browser). Switch to one of those browsers to use Beforework.</p>
-    </div>
-    <div id="gateLegacyRow" style="display:none;">
-      <div class="uiDivider" aria-hidden="true"></div>
-      <div>Found data saved in this browser from an earlier version. Move it into a file?</div>
-      <button class="btn btn-sm" id="gateLegacyBtn">Migrate into a new file</button>
-    </div>
-  </div>
-</div>
-
-<div id="app">
-  <div id="sidebarScrim"></div>
-  <div id="sidebar">
-    <div id="sidebarWrap">
-      <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""></button></h1>
-      <div class="searchWrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="form-control" id="globalSearch" type="text" placeholder="Search everything">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Beforework is a private, serverless local-first project management workspace for tasks, projects and calendars. Your data stays in your control.">
+    <link rel="canonical" href="https://beforework.netlify.app/">
+      <meta property="og:type" content="website">
+      <meta property="og:site_name" content="Beforework">
+      <meta property="og:url" content="https://beforework.netlify.app/">
+      <meta property="og:title" content="Beforework | Local-first project management">
+      <meta property="og:description" content="A private workspace for tasks, projects and calendars. Your data stays in a JSON file you control.">
+      <meta name="twitter:card" content="summary">
+      <meta name="twitter:title" content="Beforework | Local-first project management">
+      <meta name="twitter:description" content="A private workspace for tasks, projects and calendars. Your data stays in a JSON file you control.">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://accounts.google.com https://code.iconify.design https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com https://www.google-analytics.com https://region1.google-analytics.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+      <title>Beforework</title>
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-41XC9VWLWS"></script>
+      <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-41XC9VWLWS');
+      </script>
+      <link rel="icon" href="images/icon.ico" type="image/x-icon" sizes="32x32">
+      <!-- Primer CSS (GitHub's design system) - provides the .btn/.form-control/.Box/.Label
+          component classes and the --color-* design tokens the app's own styles map onto below. -->
+      <link rel="stylesheet" href="https://unpkg.com/@primer/css@21.0.7/dist/primer.css">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <script src="https://accounts.google.com/gsi/client" async defer></script>
+      <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+      <link rel="stylesheet" href="styles/app.css">
+  </head>
+  <body>
+    <div id="connectGate">
+      <div class="Overlay Overlay--size-medium position-relative" data-modal>
+        <h3>Connect your Beforework file</h3>
+        <p>Beforework is a serverless, local-first, privacy-first project workspace. Your data is never transmitted to a server or third party - projects are saved directly to a JSON file on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
+        <p>Changes are written to the file immediately, with no intermediate save step and no data held outside the file itself. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
+        <p>For access across multiple devices, the file can be stored in a synced folder such as OneDrive or Google Drive; it will sync using the same mechanism as any other document in that folder, requiring no additional configuration.</p>
+        <p>Each project supports list, table, board, and calendar views, with items organized into groups and tracked by priority, due date, and tags.</p>
+        <p>Choose an existing file or create a new one to get started.</p>
+        <div id="gateReconnectRow" style="display:none;">
+          <div>Reconnect to <strong id="gateFileName"></strong>?</div>
+          <button class="btn btn-sm btn-primary" id="gateReconnectBtn">Reconnect</button>
+        </div>
+        <div id="gateSupportedActions">
+          <button class="btn btn-primary" id="gateNewBtn">Create new file</button>
+          <button class="btn" id="gateOpenBtn">Open existing file</button>
+        </div>
+        <div id="gateUnsupported" style="display:none;">
+          <p>This browser doesn't support connecting directly to a local file (that needs Chrome, Edge, or another Chromium-based browser). Switch to one of those browsers to use Beforework.</p>
+        </div>
+        <div id="gateLegacyRow" style="display:none;">
+          <div class="uiDivider" aria-hidden="true"></div>
+          <div>Found data saved in this browser from an earlier version. Move it into a file?</div>
+          <button class="btn btn-sm" id="gateLegacyBtn">Migrate into a new file</button>
+        </div>
       </div>
-      <div id="searchResults" style="display:none;"></div>
     </div>
 
-    <div id="overviewNav"><iconify-icon icon="mdi:view-dashboard-outline" aria-hidden="true"></iconify-icon><span>Overview</span></div>
-    <div id="calendarNav"><iconify-icon icon="mdi:calendar-month-outline" aria-hidden="true"></iconify-icon><span>Calendar</span></div>
-
-    <div>
-      <div class="projectSectionHeader">
-        <span class="sidebarSectionLabel">Projects</span>
-        <div class="projectCreateWrap">
-          <button class="btn btn-sm btn-invisible projectCreateBtn" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
-          <div class="projectCreateMenu" id="projectCreateMenu" role="menu">
-            <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
-            <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
+    <div id="app">
+      <div id="sidebarScrim"></div>
+      <div id="sidebar">
+        <div id="sidebarWrap">
+          <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""></button></h1>
+          <div class="searchWrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="form-control" id="globalSearch" type="text" placeholder="Search or run a command" aria-label="Search projects, tasks, or actions" readonly>
+            <kbd class="searchShortcut" aria-hidden="true">Ctrl K</kbd>
           </div>
         </div>
-      </div>
-      <ul class="SideNav" id="projectList"></ul>
-    </div>
 
-    <div class="sideSection" id="tagsSection">
-      <div class="uiDivider" aria-hidden="true"></div>
-      <div class="d-flex flex-justify-between flex-items-center mb-2">
-        <span class="sidebarSectionLabel" id="tagsSectionLabel">Tags</span>
-        <button class="btn btn-sm btn-invisible" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
-      </div>
-      <div id="sideTagsList"></div>
-    </div>
-    <div class="sidebarBottomNav">
-      <div class="uiDivider sidebarNavDivider" aria-hidden="true"></div>
-      <button id="focusTimerNav" type="button" title="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Focus timer</span></button>
-      <div class="focusTimerPanel Box" id="focusTimerPanel">
-        <div class="focusTimerHeader"><h4>Timer</h4></div>
-        <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
-          <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
-          <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
+        <div id="overviewNav"><iconify-icon icon="mdi:view-dashboard-outline" aria-hidden="true"></iconify-icon><span>Overview</span></div>
+        <div id="calendarNav"><iconify-icon icon="mdi:calendar-month-outline" aria-hidden="true"></iconify-icon><span>Calendar</span></div>
+
+        <div>
+          <div class="projectSectionHeader">
+            <span class="sidebarSectionLabel">Projects</span>
+            <div class="projectCreateWrap">
+              <button class="btn btn-sm btn-invisible projectCreateBtn" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
+              <div class="projectCreateMenu" id="projectCreateMenu" role="menu">
+                <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
+                <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
+              </div>
+            </div>
+          </div>
+          <ul class="SideNav" id="projectList"></ul>
         </div>
-        <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
-        <div class="focusTimerDurationRow">
-          <label for="focusDurationInput">Duration (minutes)</label>
-          <div class="focusTimerDurationControl">
-            <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
-            <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Set</button>
+
+        <div class="sideSection" id="tagsSection">
+          <div class="uiDivider" aria-hidden="true"></div>
+          <div class="d-flex flex-justify-between flex-items-center mb-2">
+            <span class="sidebarSectionLabel" id="tagsSectionLabel">Tags</span>
+            <button class="btn btn-sm btn-invisible" id="manageTagsBtn" style="padding:2px 6px;font-size:11.5px;">Manage</button>
+          </div>
+          <div id="sideTagsList"></div>
+        </div>
+        <div class="sidebarBottomNav">
+          <div class="uiDivider sidebarNavDivider" aria-hidden="true"></div>
+          <button id="focusTimerNav" type="button" title="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Focus timer</span></button>
+          <div class="focusTimerPanel Box" id="focusTimerPanel">
+            <div class="focusTimerHeader"><h4>Timer</h4></div>
+            <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
+              <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
+              <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
+            </div>
+            <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
+            <div class="focusTimerDurationRow">
+              <label for="focusDurationInput">Duration (minutes)</label>
+              <div class="focusTimerDurationControl">
+                <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
+                <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Set</button>
+              </div>
+            </div>
+            <div class="focusTimerQuickRow">
+              <span>Quick durations</span>
+              <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
+            </div>
+            <div class="focusTimerBtnRow">
+              <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
+              <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
+            </div>
+          </div>
+          <div id="integrationsNav"><iconify-icon icon="mdi:hub-outline" aria-hidden="true"></iconify-icon><span>Integrations</span></div>
+          <div id="settingsNav"><iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon><span>Settings</span></div>
+          <div class="uiDivider supportNavDivider" aria-hidden="true"></div>
+          <button id="supportNav" type="button" title="Support Beforework" aria-label="Support Beforework"><iconify-icon icon="mdi:heart-outline" aria-hidden="true"></iconify-icon><span>Support Beforework</span></button>
+          <button id="feedbackNav" type="button" title="Feature requests and bug reports" aria-label="Feature requests and bug reports"><iconify-icon icon="mdi:message-alert-outline" aria-hidden="true"></iconify-icon><span>Feature requests &amp; bugs</span></button>
+        </div>
+      </div>
+
+      <button id="sidebarCollapseHandle" title="Collapse sidebar" aria-label="Collapse sidebar">‹</button>
+
+      <div id="main">
+        <div id="topbar">
+          <button class="iconBtn btn-octicon" id="sidebarToggle" title="Menu">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <h2 id="projectTitleLabel">Overview</h2>
+          <div class="viewTabs" id="viewTabs" style="display:none;"></div>
+          <div class="projectMenuWrap" id="projectMenuWrap">
+            <button class="btn btn-sm btn-invisible projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
+            <div class="projectMenu" id="projectMenu">
+              <button class="btn btn-sm btn-invisible" id="manageFieldsBtn">Add column</button>
+              <button class="btn btn-sm btn-invisible" id="addGroupBtn">Add Group</button>
+              <button class="btn btn-sm btn-invisible" id="moveProjectFolderBtn">Move to folder</button>
+              <button class="btn btn-sm btn-invisible" id="undoBtn" title="Undo last change">Undo</button>
+              <button class="btn btn-sm btn-invisible" id="printViewBtn">Print / PDF</button>
+              <button class="btn btn-sm btn-invisible" id="editProjectBtn">Edit</button>
+              <button class="btn btn-sm btn-invisible" id="duplicateProjectBtn">Duplicate project</button>
+              <button class="btn btn-sm btn-danger" id="deleteProjectBtn">Delete</button>
+            </div>
           </div>
         </div>
-        <div class="focusTimerQuickRow">
-          <span>Quick durations</span>
-          <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
-        </div>
-        <div class="focusTimerBtnRow">
-          <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
-          <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
-        </div>
-      </div>
-      <div id="integrationsNav"><iconify-icon icon="mdi:hub-outline" aria-hidden="true"></iconify-icon><span>Integrations</span></div>
-      <div id="settingsNav"><iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon><span>Settings</span></div>
-      <div class="uiDivider supportNavDivider" aria-hidden="true"></div>
-      <button id="supportNav" type="button" title="Support Beforework" aria-label="Support Beforework"><iconify-icon icon="mdi:heart-outline" aria-hidden="true"></iconify-icon><span>Support Beforework</span></button>
-      <button id="feedbackNav" type="button" title="Feature requests and bug reports" aria-label="Feature requests and bug reports"><iconify-icon icon="mdi:message-alert-outline" aria-hidden="true"></iconify-icon><span>Feature requests &amp; bugs</span></button>
-    </div>
-  </div>
-
-  <button id="sidebarCollapseHandle" title="Collapse sidebar" aria-label="Collapse sidebar">‹</button>
-
-  <div id="main">
-    <div id="topbar">
-      <button class="iconBtn btn-octicon" id="sidebarToggle" title="Menu">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <h2 id="projectTitleLabel">Overview</h2>
-      <div class="viewTabs" id="viewTabs" style="display:none;"></div>
-      <div class="projectMenuWrap" id="projectMenuWrap">
-        <button class="btn btn-sm btn-invisible projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
-        <div class="projectMenu" id="projectMenu">
-          <button class="btn btn-sm btn-invisible" id="manageFieldsBtn">Add column</button>
-          <button class="btn btn-sm btn-invisible" id="addGroupBtn">Add Group</button>
-          <button class="btn btn-sm btn-invisible" id="moveProjectFolderBtn">Move to folder</button>
-          <button class="btn btn-sm btn-invisible" id="undoBtn" title="Undo last change">Undo</button>
-          <button class="btn btn-sm btn-invisible" id="printViewBtn">Print / PDF</button>
-          <button class="btn btn-sm btn-invisible" id="editProjectBtn">Edit</button>
-          <button class="btn btn-sm btn-invisible" id="duplicateProjectBtn">Duplicate project</button>
-          <button class="btn btn-sm btn-danger" id="deleteProjectBtn">Delete</button>
-        </div>
-      </div>
-    </div>
-    <div id="boardFilterBar" style="display:none;">
-      <div class="completionTabs" id="completionTabs" style="display:none;"></div>
-      <div class="filterMainRow">
-        <input class="form-control" id="boardSearch" type="text" placeholder="Search items">
-        <span class="filterSummary" id="filterSummary">All items</span>
-        <button class="btn btn-sm filterToggle" id="toggleFilters" type="button">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"/></svg>
-          Filters
-        </button>
-        <button class="btn btn-sm btn-invisible" id="clearBoardFilters">Clear</button>
-        <label class="btn btn-sm btn-invisible filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
-          <input type="checkbox" id="showArchivedToggle"> Archived
-        </label>
-      </div>
-      <div class="filterPanel" id="filterPanel">
-        <div class="filterPanelHeader"><div><strong>Filter this project</strong><span class="filterPanelHint">Combine groups, tags and custom filters</span></div><button class="btn btn-invisible filterPanelClose" id="closeFilters" type="button" aria-label="Close filters">✕</button></div>
-        <div class="filterControls">
-          <nav class="filterCategoryList" aria-label="Filter categories">
-            <div id="filterCategoryList"></div>
-          </nav>
-          <div class="filterOptions" id="filterOptions">
-            <div id="groupFilters" class="active"></div>
-            <div id="boardTagFilters"></div>
-            <div id="fieldFilters"></div>
+        <div id="boardFilterBar" style="display:none;">
+          <div class="completionTabs" id="completionTabs" style="display:none;"></div>
+          <div class="filterMainRow">
+            <input class="form-control" id="boardSearch" type="text" placeholder="Search items">
+            <span class="filterSummary" id="filterSummary">All items</span>
+            <button class="btn btn-sm filterToggle" id="toggleFilters" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"/></svg>
+              Filters
+            </button>
+            <button class="btn btn-sm btn-invisible" id="clearBoardFilters">Clear</button>
+            <label class="btn btn-sm btn-invisible filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
+              <input type="checkbox" id="showArchivedToggle"> Archived
+            </label>
+          </div>
+          <div class="filterPanel" id="filterPanel">
+            <div class="filterPanelHeader"><div><strong>Filter this project</strong><span class="filterPanelHint">Combine groups, tags and custom filters</span></div><button class="btn btn-invisible filterPanelClose" id="closeFilters" type="button" aria-label="Close filters">✕</button></div>
+            <div class="filterControls">
+              <nav class="filterCategoryList" aria-label="Filter categories">
+                <div id="filterCategoryList"></div>
+              </nav>
+              <div class="filterOptions" id="filterOptions">
+                <div id="groupFilters" class="active"></div>
+                <div id="boardTagFilters"></div>
+                <div id="fieldFilters"></div>
+              </div>
+            </div>
+              <div class="uiDivider filterFooterDivider" aria-hidden="true"></div>
+            <div class="filterPanelFooter"><button class="btn btn-sm btn-invisible" id="filterPanelClear" type="button">Clear filters</button><button class="btn btn-sm btn-primary" id="filterPanelDone" type="button">Done</button></div>
           </div>
         </div>
-          <div class="uiDivider filterFooterDivider" aria-hidden="true"></div>
-        <div class="filterPanelFooter"><button class="btn btn-sm btn-invisible" id="filterPanelClear" type="button">Clear filters</button><button class="btn btn-sm btn-primary" id="filterPanelDone" type="button">Done</button></div>
+        <div id="board"></div>
       </div>
     </div>
-    <div id="board"></div>
-  </div>
-</div>
 
-<input class="form-control" type="file" id="fileImportInput" accept="application/json">
+    <input class="form-control" type="file" id="fileImportInput" accept="application/json">
 
-<script src="js/site-config.js"></script>
-<script src="js/demo-seeder.js"></script>
-<script src="js/view-templates.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/google-calendar.js"></script>
-<script src="js/schema-migration.js"></script>
-<script src="js/reminders.js"></script>
-<script src="js/app.js"></script>
-</body>
+    <script src="js/site-config.js"></script>
+    <script src="js/demo-seeder.js"></script>
+    <script src="js/view-templates.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/google-calendar.js"></script>
+    <script src="js/schema-migration.js"></script>
+    <script src="js/reminders.js"></script>
+    <script src="js/workspace-commands.js"></script>
+    <script src="js/command-palette.js"></script>
+    <script src="js/app.js"></script>
+  </body>
 </html>
