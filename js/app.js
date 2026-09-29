@@ -3614,6 +3614,49 @@
     if (el) el.remove();
     openItemRef = null;
   }
+  function positionFloatingSelectMenu(button,menu){
+    if (!button?.isConnected || menu.hidden) return;
+    const rect=button.getBoundingClientRect();
+    const naturalHeight=Math.min(menu.scrollHeight,220);
+    const spaceBelow=window.innerHeight-rect.bottom-8;
+    const spaceAbove=rect.top-8;
+    const placeAbove=spaceBelow<naturalHeight && spaceAbove>spaceBelow;
+    const maxHeight=Math.max(40,Math.min(220,placeAbove?spaceAbove:spaceBelow));
+    const width=Math.min(rect.width,window.innerWidth-16);
+    menu.style.maxHeight=`${maxHeight}px`;
+    menu.style.width=`${width}px`;
+    menu.style.left=`${Math.max(8,Math.min(rect.left,window.innerWidth-width-8))}px`;
+    menu.style.top=placeAbove
+      ? `${Math.max(8,rect.top-Math.min(naturalHeight,maxHeight)-4)}px`
+      : `${rect.bottom+4}px`;
+  }
+  function openFloatingSelectMenu(button,menu){
+    menu._selectHome={parent:menu.parentNode,nextSibling:menu.nextSibling};
+    menu._selectAnchor=button;
+    document.body.appendChild(menu);
+    menu.hidden=false;
+    button.setAttribute("aria-expanded","true");
+    positionFloatingSelectMenu(button,menu);
+  }
+  function closeFloatingSelectMenu(menu){
+    menu.hidden=true;
+    menu._selectAnchor?.setAttribute("aria-expanded","false");
+    const home=menu._selectHome;
+    if (home?.parent?.isConnected){
+      home.parent.insertBefore(menu,home.nextSibling?.parentNode===home.parent?home.nextSibling:null);
+    }
+    menu._selectAnchor=null;
+    menu._selectHome=null;
+    menu.style.removeProperty("top");
+    menu.style.removeProperty("left");
+    menu.style.removeProperty("width");
+    menu.style.removeProperty("max-height");
+  }
+  function repositionFloatingSelectMenus(){
+    document.querySelectorAll(".appSelectMenu:not([hidden]),.dialogSelectMenu:not([hidden])").forEach(menu=>{
+      positionFloatingSelectMenu(menu._selectAnchor,menu);
+    });
+  }
   function enhanceSelectControl(select){
     if (select.dataset.appSelectEnhanced || !select.options.length) return;
     select.dataset.appSelectEnhanced="true";
@@ -3658,8 +3701,8 @@
         option.setAttribute("aria-selected",String(active));
       });
     };
-    const close=()=>{ menu.hidden=true; button.setAttribute("aria-expanded","false"); };
-    const open=()=>{ menu.hidden=false; button.setAttribute("aria-expanded","true"); options.find(option=>option.dataset.value===select.value)?.focus(); };
+    const close=()=>closeFloatingSelectMenu(menu);
+    const open=()=>{ openFloatingSelectMenu(button,menu); options.find(option=>option.dataset.value===select.value)?.focus(); };
     button.onclick=event=>{ event.stopPropagation(); menu.hidden ? open() : close(); };
     button.onkeydown=event=>{
       if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
@@ -3848,8 +3891,8 @@
           const input = overlay.querySelector(`#dialogField${index}`);
           const menu = overlay.querySelector(`#dialogField${index}Button + .dialogSelectMenu`);
           const options = [...menu.querySelectorAll(".dialogSelectOption")];
-          const close = () => { menu.hidden=true; button.setAttribute("aria-expanded","false"); };
-          const open = () => { menu.hidden=false; button.setAttribute("aria-expanded","true"); options.find(option=>option.dataset.value===input.value)?.focus(); };
+          const close = () => closeFloatingSelectMenu(menu);
+          const open = () => { openFloatingSelectMenu(button,menu); options.find(option=>option.dataset.value===input.value)?.focus(); };
           button.onclick = event => { event.stopPropagation(); menu.hidden ? open() : close(); };
           button.onkeydown = event => {
             if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
@@ -4232,7 +4275,8 @@
       if (isNew) return;
       item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
     });
-    modal.querySelector("#itemGroupSelect").addEventListener("change", e=>{
+    const groupSelect = modal.querySelector("#itemGroupSelect");
+    if (groupSelect) groupSelect.addEventListener("change", e=>{
       const newGid = e.target.value;
       const nextGroup = project.groups.find(candidate=>candidate.id===newGid);
       modal.querySelector(".itemModalBreadcrumb").textContent = `${project.name} / ${nextGroup?.name||""}`;
@@ -4409,7 +4453,7 @@
     }
     if (isNew){
       modal.querySelector('[data-action="saveItem"]').onclick = () => {
-        const title = item.title.trim();
+        const title = modal.querySelector("#itemTitleInput").value.trim();
         const targetProject = getProject(openItemRef.projectId);
         const targetGroup = getGroup(openItemRef.projectId, openItemRef.groupId) || targetProject.groups[0];
         if (!title || !targetProject || !targetGroup) return;
@@ -4696,11 +4740,16 @@
         enhanceDateInputs(node);
       }
     }))).observe(document.body,{childList:true,subtree:true});
+    window.addEventListener("resize",repositionFloatingSelectMenus);
+    document.addEventListener("scroll",repositionFloatingSelectMenus,true);
     document.addEventListener("click",event=>{
-      if (event.target.closest(".appSelectWrap,.dialogSelectWrap,.datePickerWrap,.datePickerPopover")) return;
+      if (event.target.closest(".appSelectWrap,.dialogSelectWrap,.appSelectMenu,.dialogSelectMenu,.datePickerWrap,.datePickerPopover")) return;
       document.querySelectorAll(".appSelectMenu:not([hidden]),.dialogSelectMenu:not([hidden]),.datePickerPopover:not([hidden])").forEach(menu=>{
-        menu.hidden=true;
-        menu.previousElementSibling?.setAttribute("aria-expanded","false");
+        if (menu.matches(".appSelectMenu,.dialogSelectMenu")) closeFloatingSelectMenu(menu);
+        else {
+          menu.hidden=true;
+          menu.previousElementSibling?.setAttribute("aria-expanded","false");
+        }
       });
     });
     reminderService.start();

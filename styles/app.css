@@ -641,7 +641,7 @@
   .dialogSelectButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
   .dialogSelectButton span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .dialogSelectButton iconify-icon{flex:none;color:var(--muted);font-size:16px;}
-  .dialogSelectMenu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;display:flex;max-height:220px;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .dialogSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .dialogSelectMenu[hidden]{display:none;}
   .dialogSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:13px;text-align:left;cursor:pointer;}
   .dialogSelectOption:hover,.dialogSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
@@ -654,7 +654,7 @@
   .appSelectButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
   .appSelectButton>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .appSelectButton>iconify-icon{flex:none;color:var(--muted);font-size:16px;}
-  .appSelectMenu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;display:flex;max-height:220px;min-width:100%;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .appSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;min-width:100%;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .appSelectMenu[hidden]{display:none;}
   .appSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
   .appSelectOption:hover,.appSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
