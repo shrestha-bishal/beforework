@@ -3649,6 +3649,99 @@
   function enhanceSelectControls(root=document){
     root.querySelectorAll("select:not([data-app-select-enhanced])").forEach(enhanceSelectControl);
   }
+  function enhanceDateInput(input){
+    if (input.dataset.datePickerEnhanced) return;
+    input.dataset.datePickerEnhanced="true";
+    const isDateTime=input.type==="datetime-local";
+    const wrapper=document.createElement("div");
+    wrapper.className="datePickerWrap";
+    const width=input.getBoundingClientRect().width;
+    if (width>0) wrapper.style.width=`${width}px`;
+    input.parentNode.insertBefore(wrapper,input);
+    wrapper.appendChild(input);
+    input.classList.add("datePickerNative");
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="datePickerButton";
+    button.setAttribute("aria-haspopup","dialog");
+    button.setAttribute("aria-expanded","false");
+    if (input.getAttribute("aria-label")) button.setAttribute("aria-label",input.getAttribute("aria-label"));
+    const label=document.createElement("span");
+    const icon=document.createElement("iconify-icon");
+    icon.setAttribute("icon",isDateTime?"mdi:clock-outline":"mdi:calendar-month-outline");
+    icon.setAttribute("aria-hidden","true");
+    button.append(label,icon);
+    const popover=document.createElement("div");
+    popover.className="datePickerPopover";
+    popover.hidden=true;
+    popover.setAttribute("role","dialog");
+    popover.setAttribute("aria-label",input.getAttribute("aria-label")||"Choose date");
+    wrapper.appendChild(button);
+    document.body.appendChild(popover);
+    let month=new Date();
+    const parseDate=()=>{
+      const value=input.value.slice(0,10);
+      const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+      return match ? new Date(Number(match[1]),Number(match[2])-1,Number(match[3])) : null;
+    };
+    const isoDate=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+    const labelDate=()=>{
+      const date=parseDate();
+      if (!date) return isDateTime ? "Choose date and time" : "Choose date";
+      const text=date.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+      return isDateTime && input.value.includes("T") ? `${text} · ${input.value.slice(11,16)}` : text;
+    };
+    const emitChange=()=>input.dispatchEvent(new Event("change",{bubbles:true}));
+    const render=()=>{
+      const selected=parseDate();
+      const today=new Date();
+      const firstDay=new Date(month.getFullYear(),month.getMonth(),1);
+      const start=new Date(month.getFullYear(),month.getMonth(),1-firstDay.getDay());
+      const days=[];
+      for (let index=0;index<42;index++){
+        const date=new Date(start.getFullYear(),start.getMonth(),start.getDate()+index);
+        const currentMonth=date.getMonth()===month.getMonth();
+        const isSelected=selected && date.getTime()===selected.getTime();
+        const isToday=date.toDateString()===today.toDateString();
+        days.push(`<button type="button" class="datePickerDay${currentMonth?"":" is-outside"}${isSelected?" is-selected":""}${isToday?" is-today":""}" data-date="${isoDate(date)}" aria-label="${date.toLocaleDateString()}">${date.getDate()}</button>`);
+      }
+      popover.innerHTML=`<div class="datePickerHeader"><button type="button" class="datePickerNav" data-date-action="previous" aria-label="Previous month">‹</button><strong>${month.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</strong><button type="button" class="datePickerNav" data-date-action="next" aria-label="Next month">›</button></div><div class="datePickerWeekdays">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day=>`<span>${day}</span>`).join("")}</div><div class="datePickerGrid">${days.join("")}</div>${isDateTime?`<label class="datePickerTimeLabel">Time<input class="datePickerTimeInput" type="time" value="${input.value.slice(11,16)}"></label>`:""}<div class="datePickerFooter"><button type="button" data-date-action="clear">Clear</button><button type="button" data-date-action="today">Today</button></div>`;
+      popover.querySelectorAll("[data-date-action]").forEach(control=>control.onclick=()=>{
+        const action=control.dataset.dateAction;
+        if (action==="previous") month=new Date(month.getFullYear(),month.getMonth()-1,1);
+        if (action==="next") month=new Date(month.getFullYear(),month.getMonth()+1,1);
+        if (action==="clear"){ input.value=""; emitChange(); close(); }
+        if (action==="today") chooseDate(new Date());
+        if (action==="previous" || action==="next") render();
+      });
+      popover.querySelectorAll(".datePickerDay").forEach(day=>day.onclick=()=>chooseDate(new Date(`${day.dataset.date}T00:00:00`)));
+      const timeInput=popover.querySelector(".datePickerTimeInput");
+      if (timeInput) timeInput.onchange=()=>{ if (input.value.slice(0,10)) { input.value=`${input.value.slice(0,10)}T${timeInput.value}`; label.textContent=labelDate(); emitChange(); } };
+    };
+    const close=()=>{ popover.hidden=true; button.setAttribute("aria-expanded","false"); };
+    const chooseDate=date=>{
+      const time=isDateTime ? (input.value.slice(11,16)||"09:00") : "";
+      input.value=`${isoDate(date)}${isDateTime?`T${time}`:""}`;
+      label.textContent=labelDate(); emitChange();
+      if (!isDateTime) close(); else { month=new Date(date.getFullYear(),date.getMonth(),1); render(); }
+    };
+    const positionPopover=()=>{
+      const rect=wrapper.getBoundingClientRect();
+      const width=Math.min(278,window.innerWidth-24,rect.width||278);
+      popover.style.width=`${Math.max(1,width)}px`;
+      popover.style.left=`${Math.max(12,Math.min(rect.left,window.innerWidth-width-12))}px`;
+      popover.style.top=`${rect.bottom+6}px`;
+      const popoverRect=popover.getBoundingClientRect();
+      if (popoverRect.bottom>window.innerHeight-12) popover.style.top=`${Math.max(12,rect.top-popoverRect.height-6)}px`;
+    };
+    button.onclick=event=>{ event.stopPropagation(); if (popover.hidden){ const selected=parseDate(); month=selected?new Date(selected.getFullYear(),selected.getMonth(),1):new Date(); render(); popover.hidden=false; button.setAttribute("aria-expanded","true"); positionPopover(); }else close(); };
+    button.onkeydown=event=>{ if (event.key==="Enter" || event.key===" "){ event.preventDefault(); button.click(); } };
+    input.addEventListener("change",()=>{ label.textContent=labelDate(); });
+    label.textContent=labelDate();
+  }
+  function enhanceDateInputs(root=document){
+    root.querySelectorAll("input[type=date]:not([data-date-picker-enhanced]),input[type=datetime-local]:not([data-date-picker-enhanced])").forEach(enhanceDateInput);
+  }
   function showDialog({title, message="", fields=[], confirmLabel="Continue", secondaryLabel="", danger=false, cancelLabel="Cancel"}){
     if (showDialog.finishActive) showDialog.finishActive(null);
     return new Promise(resolve=>{
@@ -4562,12 +4655,16 @@
     wireStaticControls();
     wireConnectGate();
     enhanceSelectControls();
+    enhanceDateInputs();
     new MutationObserver(mutations=>mutations.forEach(mutation=>mutation.addedNodes.forEach(node=>{
-      if (node.nodeType===Node.ELEMENT_NODE) enhanceSelectControls(node);
+      if (node.nodeType===Node.ELEMENT_NODE){
+        enhanceSelectControls(node);
+        enhanceDateInputs(node);
+      }
     }))).observe(document.body,{childList:true,subtree:true});
     document.addEventListener("click",event=>{
-      if (event.target.closest(".appSelectWrap,.dialogSelectWrap")) return;
-      document.querySelectorAll(".appSelectMenu:not([hidden]),.dialogSelectMenu:not([hidden])").forEach(menu=>{
+      if (event.target.closest(".appSelectWrap,.dialogSelectWrap,.datePickerWrap,.datePickerPopover")) return;
+      document.querySelectorAll(".appSelectMenu:not([hidden]),.dialogSelectMenu:not([hidden]),.datePickerPopover:not([hidden])").forEach(menu=>{
         menu.hidden=true;
         menu.previousElementSibling?.setAttribute("aria-expanded","false");
       });
