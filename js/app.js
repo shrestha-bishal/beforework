@@ -4068,19 +4068,21 @@
     const defaultTab = "comments";
 
     modal.innerHTML = `
-      ${!isNew ? `<div class="itemModalActions">
-        <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
-        <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
-          <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
-          <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
-          <div class="itemModalActionSeparator" role="separator"></div>
-          <button type="button" role="menuitem" class="danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
-        </div>
-      </div>` : ""}
       <button class="btn btn-invisible closeX" data-action="close">✕</button>
       <div class="itemModalHeader">
         <div class="itemModalBreadcrumb">${escapeHtml(project.name)} <span aria-hidden="true">/</span> ${escapeHtml(group?.name||"")}</div>
-        <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="${escapeHtml(item.title)}">
+        <div class="itemModalTitleRow">
+          <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="${escapeHtml(item.title)}">
+          ${!isNew ? `<div class="itemModalActions">
+            <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+            <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
+              <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+              <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
+              <div class="itemModalActionSeparator" role="separator"></div>
+              <button type="button" role="menuitem" class="danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
+            </div>
+          </div>` : ""}
+        </div>
       </div>
       <div class="itemModalBody">
         <div class="itemModalMain">

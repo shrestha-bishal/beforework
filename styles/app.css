@@ -734,7 +734,7 @@
      footer, with a scrollable body split into a main column and a metadata sidebar. */
   #itemModal{width:860px;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
-  .itemModalActions{position:absolute;top:14px;right:56px;z-index:3;}
+  .itemModalActions{position:relative;flex:none;z-index:3;}
   .itemModalMenuButton{display:grid;place-items:center;width:32px;height:32px;padding:0;border-radius:7px;color:var(--muted);}
   .itemModalMenuButton:hover,.itemModalMenuButton[aria-expanded="true"]{background:var(--bg-soft2);color:var(--text);}
   .itemModalMenuButton iconify-icon{font-size:18px;}
@@ -745,10 +745,11 @@
   .itemModalActionMenu button iconify-icon{width:16px;color:var(--muted);font-size:15px;}
   .itemModalActionMenu button.danger,.itemModalActionMenu button.danger iconify-icon{color:var(--danger);}
   .itemModalActionSeparator{height:1px;margin:3px 4px;background:var(--border);}
-  .itemModalHeader{flex:none;padding:14px 90px 12px 20px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .itemModalHeader{position:relative;flex:none;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:var(--bg);}
   .itemModalBreadcrumb{overflow:hidden;padding:0 10px;margin-bottom:2px;color:var(--muted);font-size:11px;line-height:1.4;text-overflow:ellipsis;white-space:nowrap;}
   .itemModalBreadcrumb span{padding:0 4px;color:var(--border);}
-  .itemModalHeader #itemTitleInput{width:100%;font-size:17px;font-weight:600;padding:7px 10px;min-height:0;
+  .itemModalTitleRow{display:flex;align-items:center;gap:8px;min-width:0;margin-top:22px;position:relative;}
+  .itemModalHeader #itemTitleInput{flex:1;width:auto;font-size:17px;font-weight:600;padding:7px 10px;min-height:0;
     border:1px solid transparent;border-radius:10px;}
   .itemModalHeader #itemTitleInput:hover{background:var(--bg-soft);}
   .itemModalHeader #itemTitleInput:focus{background:var(--bg-soft);border-color:var(--border);box-shadow:none;}
