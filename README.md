@@ -2,7 +2,7 @@
 
 ![Beforework logo](images/icon-wide.png)
 
-Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data in a JSON file that you choose on your device.
+Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data as user-owned JSON files inside a folder you choose on your device.
 
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/f27b347e-af08-4e8b-a335-67ca0cd799f7" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/1ee74fc4-b7cf-4a70-9efc-f57958458c94" />
@@ -18,9 +18,9 @@ Beforework is a private, local-first project management workspace for tasks, pro
 
 If you do not want to host Beforework locally, use the hosted version at [beforework.netlify.app](https://beforework.netlify.app/).
 
-Open it in Chrome or Edge, then create or connect a Beforework JSON file to start using the workspace.
+Open it in Chrome or Edge, then create or connect a Beforework workspace folder to start using the workspace. Existing single-file JSON workspaces can still be opened and copied into the folder format.
 
-Beforework is open source under the [MIT License](LICENSE). Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Beforework is source-available under the [Business Source License 1.1](LICENSE). Personal and non-commercial use are permitted. Offering Beforework, or a modified or hosted version of it, as a product or service to third parties requires permission. Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Features
 
@@ -32,11 +32,11 @@ Beforework is open source under the [MIT License](LICENSE). Contributions and bu
 - Focus timer
 - Browser notifications for scheduled reminders and due-today tasks while the app is open
 - Optional Google Calendar synchronisation
-- Import and export through the connected JSON workspace file
+- Folder-based JSON workspaces with single-file JSON compatibility
 
 ## Run locally
 
-Beforework uses the File System Access API to open and save its workspace file. Open it from a Chromium-based browser through `localhost` or HTTPS rather than using a `file://` URL.
+Beforework uses the File System Access API to open and save a workspace folder. Open it from a Chromium-based browser through `localhost` or HTTPS rather than using a `file://` URL.
 
 If Python is installed:
 
@@ -44,7 +44,7 @@ If Python is installed:
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000/> in Chrome or Edge and create a new workspace file, or open an existing Beforework JSON file.
+Then open <http://localhost:8000/> in Chrome or Edge and create a workspace folder, open an existing folder workspace, or connect an older single-file JSON workspace.
 
 Local hosting starts with an empty workspace by default. To explore the sample workspace without building anything locally, visit the [Beforework demo](https://beforework-demo.netlify.app/).
 
@@ -74,11 +74,11 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 
 ## Data format and upgrades
 
-Workspace files are versioned JSON documents. Each file includes a `schemaVersion` value so Beforework can recognise its data format. The current format is schema version 7.
+Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Existing single-file workspace JSON remains supported and can be copied into a new folder workspace.
 
-When an older or unversioned file is opened or imported, Beforework validates its structure and applies migrations in order until the file reaches the current version. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older files recoverable.
+When an older or unversioned workspace is opened or imported, Beforework validates its structure and applies migrations in order until it reaches the current schema. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older data recoverable.
 
-Beforework keeps up to eight rolling recovery snapshots, with a 64 MB total storage limit, in the browser's IndexedDB. It captures the previous file before a write at most once every 30 minutes, and creates additional snapshots before imports, restores, file conflicts, and workspace switches with unsaved changes. In **Settings > Storage & Data**, the latest snapshot can be restored or exported. Pre-upgrade snapshots remain available separately.
+Beforework keeps up to eight rolling recovery snapshots, with a 64 MB total storage limit, in the browser's IndexedDB. It captures the previous workspace before a write at most once every 30 minutes, and creates additional snapshots before imports, restores, file conflicts, and workspace switches with unsaved changes. In **Settings > Storage & Data**, retained snapshots can be restored or exported. Pre-upgrade snapshots remain available separately.
 
 Recovery snapshots are local to the current browser profile, do not sync with the workspace file, and may be removed if browser site data is cleared. Export a JSON copy or keep the workspace file in a synced folder for portable recovery. Before each save, Beforework compares the connected file with the revision it last read or wrote. If the file changed elsewhere, choose to load the external version (the tab's version is snapshotted) or overwrite it (both versions are snapshotted); canceling leaves the tab's changes in memory without overwriting the file. Settings shows save progress or failure and offers a retry.
 
@@ -91,14 +91,15 @@ New schema changes should add a new migration step rather than changing an exist
 - `index.html` - application shell
 - `js/` - application logic, persistence, integrations, and view templates
 - `js/demo-seeder.js` - sample personal and professional workspace data
-- `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace files
+- `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace data
 - `js/workspace-validation.js` - validation for imports and connected workspace files
+- `js/folder-workspace.js` - manifest and project/calendar JSON shard storage
 - `pages/` - dashboard and settings page fragments
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
 
 ## Funding & Sponsorship
-Beforework is an open-source, local-first project maintained to give people a private and portable way to manage projects, tasks, and calendars. If you find it useful, sponsorship helps support ongoing maintenance, browser compatibility, accessibility, documentation, and new privacy-focused features.
+Beforework is a source-available, local-first project maintained to give people a private and portable way to manage projects, tasks, and calendars. If you find it useful, sponsorship helps support ongoing maintenance, browser compatibility, accessibility, documentation, and new privacy-focused features.
 
 ### Support Beforework
 
@@ -109,4 +110,4 @@ Beforework is an open-source, local-first project maintained to give people a pr
 
 ## Licence
 
-This project is available under the MIT License. See [LICENSE](LICENSE) for the full text.
+This project is available under the Business Source License 1.1. Personal and non-commercial use are permitted. Offering the software or a modified or hosted version of it as a product or service to third parties requires permission. See [LICENSE](LICENSE) for the full terms.

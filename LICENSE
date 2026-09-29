@@ -1,21 +1,42 @@
-MIT License
+Business Source License 1.1
 
-Copyright (c) 2026 Bishal Shrestha
+Parameters
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Licensor: Bishal Shrestha
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Licensed Work: Beforework
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Change Date: 2029-09-29
+
+Change License: Apache License, Version 2.0
+
+Additional Use Grant: You may use the Licensed Work for personal and
+non-commercial use. Internal business use is not permitted. You may not offer
+the Licensed Work, or a modified or hosted version of it, as a product or
+service to third parties without the Licensor's prior written permission.
+
+Notice: This license applies to the Licensed Work. The Licensed Work is the
+software identified above, together with all source code and documentation
+included in this repository.
+
+Terms
+
+The Business Source License is not an Open Source license. However, the
+Licensed Work will eventually be made available under the Change License.
+
+License Grant. The Licensor hereby grants you the right to copy, modify,
+create derivative works of, redistribute, and make non-production use of the
+Licensed Work, subject to the conditions in this license. The Additional Use
+Grant permits the limited production uses stated above.
+
+Effective Change Date. On the Change Date, the license grant above
+automatically changes to the Change License, and you may use the Licensed Work
+under the terms of that license.
+
+Notice. You must display a copy of this license in any copy or derivative
+work of the Licensed Work that you distribute. You must preserve all copyright,
+trademark, and attribution notices in the Licensed Work.
+
+The Licensed Work is provided "as is", without warranty of any kind, express
+or implied. In no event shall the Licensor be liable for any claim, damages,
+or other liability arising from the Licensed Work or its use.
