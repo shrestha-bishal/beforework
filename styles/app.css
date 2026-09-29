@@ -348,7 +348,7 @@
   .listTable .selectCell{width:42px;text-align:center;padding-left:12px!important;padding-right:6px!important;}
   .listTable tbody input[type="checkbox"],.listTable thead input[type="checkbox"]{display:block;margin:auto;}
   .listTable th.fieldColumnHeader{position:relative;white-space:nowrap;padding-right:34px!important;}
-  .listTable th.fieldColumnHeader[data-custom-field="true"]{padding-right:58px!important;}
+  .listTable th.fieldColumnHeader[data-column-id]{padding-right:58px!important;}
   .fieldColumnDragHandle{position:absolute;right:32px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:22px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--faint);cursor:grab;transform:translateY(-50%);}
   .fieldColumnDragHandle:hover{background:var(--bg-soft2);color:var(--text);}
   .fieldColumnDragHandle:active{cursor:grabbing;}

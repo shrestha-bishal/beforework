@@ -1207,31 +1207,56 @@
     if (!label || !label.trim()) return;
     await addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
   }
-  function reorderProjectField(project,sourceId,targetId,position){
-    const sourceIndex=project.fields.findIndex(field=>field.id===sourceId);
-    const targetIndex=project.fields.findIndex(field=>field.id===targetId);
-    if (sourceIndex<0 || targetIndex<0 || sourceIndex===targetIndex) return false;
-    const [field]=project.fields.splice(sourceIndex,1);
-    const nextTargetIndex=project.fields.findIndex(candidate=>candidate.id===targetId);
-    project.fields.splice(nextTargetIndex+(position==="after"?1:0),0,field);
+  function orderedTableColumns(project,viewType,columnIds){
+    const saved=project.columnOrders?.[viewType]||[];
+    const available=new Set(columnIds);
+    const order=saved.filter(id=>available.has(id));
+    columnIds.forEach(id=>{ if (!order.includes(id)) order.push(id); });
+    return order;
+  }
+  function reorderTableColumn(project,viewType,columnIds,sourceId,targetId,position){
+    if (!columnIds.includes(sourceId) || !columnIds.includes(targetId) || sourceId===targetId) return false;
+    const order=orderedTableColumns(project,viewType,columnIds);
+    const sourceIndex=order.indexOf(sourceId);
+    order.splice(sourceIndex,1);
+    const targetIndex=order.indexOf(targetId);
+    order.splice(targetIndex+(position==="after"?1:0),0,sourceId);
+    if (!project.columnOrders || typeof project.columnOrders!=="object") project.columnOrders={};
+    project.columnOrders[viewType]=order;
     return true;
   }
-  function wireCustomColumnHeader(th, field, project){
-    const menuButton = th.querySelector(".fieldColumnMenuBtn");
-    const menu = th.querySelector(".fieldColumnMenu");
-    const dragHandle = th.querySelector(".fieldColumnDragHandle");
-    if (dragHandle){
-      const clearDragStyles=()=>th.closest("table")?.querySelectorAll(".columnDragging,.columnDropTarget,.columnDropAfter").forEach(header=>header.classList.remove("columnDragging","columnDropTarget","columnDropAfter"));
+  function columnDragHandleHtml(label){
+    return `<button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder ${escapeHtml(label)} column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button>`;
+  }
+  function applyTableColumnOrder(table,project,viewType){
+    const headerRow=table.tHead?.rows[0];
+    if (!headerRow) return;
+    const headers=[...headerRow.cells].filter(cell=>cell.dataset.columnId);
+    const columnIds=headers.map(cell=>cell.dataset.columnId);
+    const order=orderedTableColumns(project,viewType,columnIds);
+    const reorderRow=row=>{
+      const cells=new Map([...row.cells].filter(cell=>cell.dataset.columnId).map(cell=>[cell.dataset.columnId,cell]));
+      order.forEach(id=>{ const cell=cells.get(id); if (cell) row.appendChild(cell); });
+    };
+    reorderRow(headerRow);
+    [...table.tBodies].forEach(body=>[...body.rows].forEach(reorderRow));
+  }
+  function wireTableColumnReordering(table,project,viewType){
+    const getColumnIds=()=>[...table.tHead.rows[0].cells].filter(cell=>cell.dataset.columnId).map(cell=>cell.dataset.columnId);
+    table.querySelectorAll("th[data-column-id]").forEach(th=>{
+      const dragHandle=th.querySelector(".fieldColumnDragHandle");
+      if (!dragHandle) return;
+      const clearDragStyles=()=>table.querySelectorAll(".columnDragging,.columnDropTarget,.columnDropAfter").forEach(header=>header.classList.remove("columnDragging","columnDropTarget","columnDropAfter"));
       dragHandle.addEventListener("click",event=>event.stopPropagation());
       dragHandle.addEventListener("dragstart",event=>{
         event.stopPropagation();
         event.dataTransfer.effectAllowed="move";
-        event.dataTransfer.setData("application/x-beforework-field",field.id);
+        event.dataTransfer.setData("application/x-beforework-column",th.dataset.columnId);
         th.classList.add("columnDragging");
       });
       dragHandle.addEventListener("dragend",clearDragStyles);
       th.addEventListener("dragover",event=>{
-        if (![...event.dataTransfer.types].includes("application/x-beforework-field")) return;
+        if (![...event.dataTransfer.types].includes("application/x-beforework-column")) return;
         event.preventDefault();
         event.dataTransfer.dropEffect="move";
         th.classList.add("columnDropTarget");
@@ -1242,17 +1267,21 @@
         th.classList.remove("columnDropTarget","columnDropAfter");
       });
       th.addEventListener("drop",event=>{
-        const sourceId=event.dataTransfer.getData("application/x-beforework-field");
+        const sourceId=event.dataTransfer.getData("application/x-beforework-column");
         if (!sourceId) return;
         event.preventDefault();
         const position=event.clientX>=th.getBoundingClientRect().left+th.getBoundingClientRect().width/2 ? "after" : "before";
         clearDragStyles();
-        if (reorderProjectField(project,sourceId,field.id,position)){
+        if (reorderTableColumn(project,viewType,getColumnIds(),sourceId,th.dataset.columnId,position)){
           scheduleSave();
           render();
         }
       });
-    }
+    });
+  }
+  function wireCustomColumnHeader(th, field, project){
+    const menuButton = th.querySelector(".fieldColumnMenuBtn");
+    const menu = th.querySelector(".fieldColumnMenu");
     menuButton.onclick = event => {
       event.stopPropagation();
       const shouldOpen = !menu.classList.contains("open");
@@ -2194,8 +2223,8 @@
 
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-custom-field="true"><button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder ${escapeHtml(f.label)} column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
-    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-column-id="field:${f.id}" data-custom-field="true">${columnDragHandleHtml(f.label)}<span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
+    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group">${columnDragHandleHtml("Group")}<span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
@@ -2215,17 +2244,19 @@
       <table class="listTable width-full">
         <thead><tr>
           <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
-          <th class="${TH_CLASS}" data-field="title">Title</th>
+          <th class="${TH_CLASS} fieldColumnHeader" data-field="title" data-column-id="title">${columnDragHandleHtml("Title")}<span class="fieldColumnLabel">Title</span><span class="arrow"></span></th>
           ${groupHeader}
           ${fieldHeaders}
-          <th class="${TH_CLASS}">Tags</th>
-          ${showProgressColumn ? `<th class="${TH_CLASS}">Progress</th>` : ""}
-          <th class="${TH_CLASS}" data-field="updated">Updated</th>
+          <th class="${TH_CLASS} fieldColumnHeader" data-column-id="tags">${columnDragHandleHtml("Tags")}<span class="fieldColumnLabel">Tags</span></th>
+          ${showProgressColumn ? `<th class="${TH_CLASS} fieldColumnHeader" data-column-id="progress">${columnDragHandleHtml("Progress")}<span class="fieldColumnLabel">Progress</span></th>` : ""}
+          <th class="${TH_CLASS} fieldColumnHeader" data-field="updated" data-column-id="updated">${columnDragHandleHtml("Updated")}<span class="fieldColumnLabel">Updated</span><span class="arrow"></span></th>
         </tr></thead>
         <tbody id="listTbody"></tbody>
       </table>
     `;
     board.appendChild(wrap);
+    const table=wrap.querySelector(".listTable");
+    wireTableColumnReordering(table,project,"list");
 
     const doQuickAdd = () => {
       openNewItemModal(project, project.groups[0]);
@@ -2277,7 +2308,7 @@
         th.querySelector(".arrow").textContent = arrow;
         wireCustomColumnHeader(th, customField, project);
       } else {
-        th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+        th.querySelector(".arrow").textContent = arrow;
       }
       th.onclick = () => {
         if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
@@ -2314,6 +2345,7 @@
     const colCount = 4 + project.fields.length + (showGroupColumn?1:0) + (showProgressColumn?1:0);
     if (!rows.length){
       tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No items match the current filters.</td></tr>`;
+      applyTableColumnOrder(table,project,"list");
       return;
     }
     tbody.innerHTML = rows.map(({item,group})=>{
@@ -2321,15 +2353,15 @@
       const tagsHtml = item.tagIds.map(tid=>{
         const tag = tagById(project, tid); return tag ? tagPillHtml(tag) : "";
       }).join("");
-      const fieldCells = project.fields.map(f=>`<td class="${TD_CLASS}">${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
+      const fieldCells = project.fields.map(f=>`<td class="${TD_CLASS}" data-column-id="field:${f.id}">${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
       return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td class="${TD_CLASS}">${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
-        ${showGroupColumn ? `<td class="${TD_CLASS}">${escapeHtml(group.name)}</td>` : ""}
+        <td class="${TD_CLASS}" data-column-id="title">${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
+        ${showGroupColumn ? `<td class="${TD_CLASS}" data-column-id="group">${escapeHtml(group.name)}</td>` : ""}
         ${fieldCells}
-        <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
-        ${showProgressColumn ? `<td class="${TD_CLASS}">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>` : ""}
-        <td class="${TD_CLASS}">${escapeHtml(formatUpdatedAt(item.updatedAt))}</td>
+        <td class="${TD_CLASS}" data-column-id="tags"><div class="rowTags">${tagsHtml||"-"}</div></td>
+        ${showProgressColumn ? `<td class="${TD_CLASS}" data-column-id="progress">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>` : ""}
+        <td class="${TD_CLASS}" data-column-id="updated">${escapeHtml(formatUpdatedAt(item.updatedAt))}</td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll("tr[data-iid]").forEach(tr=>{
@@ -2343,6 +2375,7 @@
         openItemModal(tr.dataset.pid, tr.dataset.gid, tr.dataset.iid);
       };
     });
+    applyTableColumnOrder(table,project,"list");
     updateSelection();
   }
 
@@ -2354,8 +2387,8 @@
 
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-custom-field="true"><button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder ${escapeHtml(f.label)} column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
-    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-column-id="field:${f.id}" data-custom-field="true">${columnDragHandleHtml(f.label)}<span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
+    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group">${columnDragHandleHtml("Group")}<span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
@@ -2375,15 +2408,17 @@
       <table class="listTable width-full">
         <thead><tr>
           <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible rows"></th>
-          <th class="${TH_CLASS}" data-field="title">Title</th>
+          <th class="${TH_CLASS} fieldColumnHeader" data-field="title" data-column-id="title">${columnDragHandleHtml("Title")}<span class="fieldColumnLabel">Title</span><span class="arrow"></span></th>
           ${groupHeader}
           ${fieldHeaders}
-          <th class="${TH_CLASS}">Tags</th>
+          <th class="${TH_CLASS} fieldColumnHeader" data-column-id="tags">${columnDragHandleHtml("Tags")}<span class="fieldColumnLabel">Tags</span></th>
         </tr></thead>
         <tbody id="listTbody"></tbody>
       </table>
     `;
     board.appendChild(wrap);
+    const table=wrap.querySelector(".listTable");
+    wireTableColumnReordering(table,project,"table");
 
     const doQuickAdd = () => {
       openNewItemModal(project, project.groups[0]);
@@ -2435,7 +2470,7 @@
         th.querySelector(".arrow").textContent = arrow;
         wireCustomColumnHeader(th, customField, project);
       } else {
-        th.innerHTML = th.textContent + `<span class="arrow">${arrow}</span>`;
+        th.querySelector(".arrow").textContent = arrow;
       }
       th.onclick = () => {
         if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
@@ -2472,6 +2507,7 @@
     const colCount = 3 + project.fields.length + (showGroupColumn?1:0);
     if (!rows.length){
       tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No rows match the current filters.</td></tr>`;
+      applyTableColumnOrder(table,project,"table");
       return;
     }
     tbody.innerHTML = rows.map(({item,group})=>{
@@ -2482,35 +2518,35 @@
         const val = item.values[f.id] ?? "";
         if (f.type==="priority"){
           const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-          return `<td class="${TD_CLASS}"><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="select"){
           const opts = [{id:"",label:"None"}, ...(f.options||[])].map(o=>`<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-          return `<td class="${TD_CLASS}"><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><select class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="multi-select"){
           const selected=Array.isArray(val) ? val : [];
           const opts=(f.options||[]).map(option=>`<option value="${option.id}" ${selected.includes(option.id)?"selected":""}>${escapeHtml(option.label)}</option>`).join("");
-          return `<td class="${TD_CLASS}"><select multiple size="${Math.max(2,Math.min(3,(f.options||[]).length))}" class="form-control tableCell tableMultiSelect" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
+          return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><select multiple size="${Math.max(2,Math.min(3,(f.options||[]).length))}" class="form-control tableCell tableMultiSelect" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
         if (f.type==="date"){
-          return `<td class="${TD_CLASS}"><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+          return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
         }
         if (f.type==="checkbox"){
           const checked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
-          return `<td class="${TD_CLASS}"><label class="checkboxTableCell"><input type="checkbox" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="true" ${checked?"checked":""}></label></td>`;
+          return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><label class="checkboxTableCell"><input type="checkbox" class="tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="true" ${checked?"checked":""}></label></td>`;
         }
-        if (f.type==="number") return `<td class="${TD_CLASS}"><input type="number" step="any" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
-        if (f.type==="url") return `<td class="${TD_CLASS}"><input type="url" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}" placeholder="https://..."></td>`;
-        if (f.type==="email") return `<td class="${TD_CLASS}"><input type="email" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}" placeholder="name@example.com"></td>`;
-        return `<td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+        if (f.type==="number") return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><input type="number" step="any" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
+        if (f.type==="url") return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><input type="url" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}" placeholder="https://..."></td>`;
+        if (f.type==="email") return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><input type="email" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}" placeholder="name@example.com"></td>`;
+        return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
       }).join("");
       return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
         <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
-        ${showGroupColumn ? `<td class="${TD_CLASS}">${escapeHtml(group.name)}</td>` : ""}
+        <td class="${TD_CLASS}" data-column-id="title"><input type="text" class="form-control tableCell" data-title-cell="1" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" value="${escapeHtml(item.title)}"></td>
+        ${showGroupColumn ? `<td class="${TD_CLASS}" data-column-id="group">${escapeHtml(group.name)}</td>` : ""}
         ${fieldCells}
-        <td class="${TD_CLASS}"><div class="rowTags">${tagsHtml||"-"}</div></td>
+        <td class="${TD_CLASS}" data-column-id="tags"><div class="rowTags">${tagsHtml||"-"}</div></td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll("input[data-item-select]").forEach(input=>{
@@ -2543,6 +2579,7 @@
         scheduleSave();
       });
     });
+    applyTableColumnOrder(table,project,"table");
     updateSelection();
   }
 

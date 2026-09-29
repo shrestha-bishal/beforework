@@ -202,19 +202,29 @@ test("filters numeric values and any selected multi-select option", ()=>{
   assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true});
 });
 
-test("reorders custom fields before and after another column", ()=>{
+test("persists independent List and Table column orders", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start=appSource.indexOf("function reorderProjectField");
-  const end=appSource.indexOf("function wireCustomColumnHeader",start);
+  const start=appSource.indexOf("function orderedTableColumns");
+  const end=appSource.indexOf("function columnDragHandleHtml",start);
   const snippet=appSource.slice(start,end);
   const result=JSON.parse(vm.runInNewContext(`${snippet};
-    const project={fields:[{id:"a"},{id:"b"},{id:"c"},{id:"d"}]};
-    const before=reorderProjectField(project,"c","a","before");
-    const same=reorderProjectField(project,"a","a","after");
-    const after=reorderProjectField(project,"c","d","after");
-    JSON.stringify({before,same,after,order:project.fields.map(field=>field.id)});`));
+    const project={fields:[{id:"a"},{id:"b"}],columnOrders:{}};
+    const listIds=["title","group","field:a","field:b","tags","progress","updated"];
+    const tableIds=["title","group","field:a","field:b","tags"];
+    const before=reorderTableColumn(project,"list",listIds,"field:b","title","before");
+    const same=reorderTableColumn(project,"list",listIds,"title","title","after");
+    const after=reorderTableColumn(project,"list",listIds,"field:b","updated","after");
+    const tableOrder=orderedTableColumns(project,"table",tableIds);
+    JSON.stringify({before,same,after,listOrder:project.columnOrders.list,tableOrder,fields:project.fields.map(field=>field.id)});`));
 
-  assert.deepEqual(result,{before:true,same:false,after:true,order:["a","b","d","c"]});
+  assert.deepEqual(result,{
+    before:true,
+    same:false,
+    after:true,
+    listOrder:["title","group","field:a","tags","progress","updated","field:b"],
+    tableOrder:["title","group","field:a","field:b","tags"],
+    fields:["a","b"]
+  });
 });
 
 test("bulk completion updates selected items consistently", ()=>{
