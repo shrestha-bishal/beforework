@@ -4,7 +4,7 @@
 
 Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data in a JSON file that you choose on your device.
 
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5c6fab1-b17e-493e-9e08-9f352629ff01" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/f27b347e-af08-4e8b-a335-67ca0cd799f7" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/2a5d4e85-39f1-459f-b748-6ed21bce22a4" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/27fc4a37-6195-4407-8996-f38a0786ce48" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/6bedd4ba-bccd-49b7-9e32-fbd587ee5a6b" />
