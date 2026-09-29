@@ -20,7 +20,7 @@ If you do not want to host Beforework locally, use the hosted version at [before
 
 Open it in Chrome or Edge, then create or connect a Beforework workspace folder to start using the workspace. Existing single-file JSON workspaces can still be opened and copied into the folder format.
 
-Beforework is source-available under the [Business Source License 1.1](LICENSE). Personal and non-commercial use are permitted. Offering Beforework, or a modified or hosted version of it, as a product or service to third parties requires permission. Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). Personal and non-commercial use are permitted. Offering Beforework, or a modified or hosted version of it, as a product or service to third parties requires permission. Contributions and bug reports are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Features
 
@@ -108,6 +108,18 @@ Beforework is a source-available, local-first project maintained to give people 
 [![Thanks.dev](https://img.shields.io/badge/Thanks.dev-Appreciate%20Open%20Source-29abe0?logo=github&style=flat-square)](https://thanks.dev/gh/shrestha-bishal)
 
 
-## Licence
+## License
 
-This project is available under the Business Source License 1.1. Personal and non-commercial use are permitted. Offering the software or a modified or hosted version of it as a product or service to third parties requires permission. See [LICENSE](LICENSE) for the full terms.
+## License
+
+Beforework is source-available under the
+[PolyForm Noncommercial License 1.0.0](LICENSE).
+
+The source is public and you're free to use, modify, and
+distribute it for personal or noncommercial purposes. Commercial
+use — including offering Beforework, or a modified or hosted
+version of it, as a product or service — is not permitted
+without a separate agreement with the Licensor.
+
+Contributions and bug reports are welcome; see
+[CONTRIBUTING.md](CONTRIBUTING.md).
