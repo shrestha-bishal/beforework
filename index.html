@@ -37,9 +37,10 @@
     <div id="connectGate">
       <div class="Overlay Overlay--size-medium position-relative" data-modal>
         <h3>Connect your Beforework file</h3>
-        <p>Beforework is a serverless, local-first, privacy-first project workspace. Your data is never transmitted to a server or third party - projects are saved directly to a JSON file on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
-        <p>Changes are written to the file immediately, with no intermediate save step and no data held outside the file itself. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
+        <p>Beforework is a serverless, local-first, privacy-first project workspace. Your data is never transmitted to any server or third party - projects are saved directly to a connected JSON file on your device and remains the primary copy and is saved automatically on your device, which you retain full ownership and control of, the same as any other file on your computer.</p>
+        <p>Beforework also keeps up to eight recovery snapshots in this browser. Snapshots do not sync to other devices; use JSON export or a synced folder for a portable copy. Work is preserved exactly as it was left, whether resumed later, on the same machine, or on another device.</p>
         <p>For access across multiple devices, the file can be stored in a synced folder such as OneDrive or Google Drive; it will sync using the same mechanism as any other document in that folder, requiring no additional configuration.</p>
+        <p id="gateRecoveryStatus" role="status" aria-live="polite"></p>
         <p>Each project supports list, table, board, and calendar views, with items organized into groups and tracked by priority, due date, and tags.</p>
         <p>Choose an existing file or create a new one to get started.</p>
         <div id="gateReconnectRow" style="display:none;">
@@ -141,6 +142,7 @@
           </button>
           <h2 id="projectTitleLabel">Overview</h2>
           <div class="viewTabs" id="viewTabs" style="display:none;"></div>
+          <div id="globalSaveStatus" role="status" aria-live="polite"></div>
           <div class="projectMenuWrap" id="projectMenuWrap">
             <button class="btn btn-sm btn-invisible projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
             <div class="projectMenu" id="projectMenu">
@@ -194,6 +196,7 @@
     <script src="js/site-config.js"></script>
     <script src="js/demo-seeder.js"></script>
     <script src="js/view-templates.js"></script>
+    <script src="js/workspace-validation.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/google-calendar.js"></script>
     <script src="js/schema-migration.js"></script>

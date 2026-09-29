@@ -74,11 +74,15 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 
 ## Data format and upgrades
 
-Workspace files are versioned JSON documents. Each file includes a `schemaVersion` value so Beforework can recognise its data format. The current format is schema version 5.
+Workspace files are versioned JSON documents. Each file includes a `schemaVersion` value so Beforework can recognise its data format. The current format is schema version 7.
 
-When an older or unversioned file is opened or imported, Beforework applies its migrations in order until the file reaches the current version. Migrations add or reshape fields without deleting retired properties, which helps keep older files recoverable. The upgraded data is then saved back to the connected JSON file.
+When an older or unversioned file is opened or imported, Beforework validates its structure and applies migrations in order until the file reaches the current version. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older files recoverable.
 
-Before upgrading, Beforework automatically stores a pre-upgrade snapshot in the browser. If anything looks wrong after an upgrade, use **Settings > Storage & Data > Pre-upgrade backup** to restore it. This safety snapshot is browser-local; keep a normal exported JSON backup as well when making important changes.
+Beforework keeps up to eight rolling recovery snapshots, with a 64 MB total storage limit, in the browser's IndexedDB. It captures the previous file before a write at most once every 30 minutes, and creates additional snapshots before imports, restores, file conflicts, and workspace switches with unsaved changes. In **Settings > Storage & Data**, the latest snapshot can be restored or exported. Pre-upgrade snapshots remain available separately.
+
+Recovery snapshots are local to the current browser profile, do not sync with the workspace file, and may be removed if browser site data is cleared. Export a JSON copy or keep the workspace file in a synced folder for portable recovery. Before each save, Beforework compares the connected file with the revision it last read or wrote. If the file changed elsewhere, choose to load the external version (the tab's version is snapshotted) or overwrite it (both versions are snapshotted); canceling leaves the tab's changes in memory without overwriting the file. Settings shows save progress or failure and offers a retry.
+
+Imports are validated and confirmed before replacing the active workspace. Before import or restore, the current in-memory workspace is snapshotted; if a snapshot cannot be saved, the replacement is blocked.
 
 New schema changes should add a new migration step rather than changing an existing one, so files from every earlier version can continue to upgrade safely.
 
@@ -88,6 +92,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/` - application logic, persistence, integrations, and view templates
 - `js/demo-seeder.js` - sample personal and professional workspace data
 - `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace files
+- `js/workspace-validation.js` - validation for imports and connected workspace files
 - `pages/` - dashboard and settings page fragments
 - `styles/app.css` - application styles
 - `images/` - icons and image assets

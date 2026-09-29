@@ -23,9 +23,10 @@
     </section>
     <section class="Box settingsSection">
       <div class="Box-header settingsSectionHead"><h4>Storage &amp; Data</h4><span>Manage your project file</span></div>
-      <div class="Box-row settingsRow"><div><strong>Connected file</strong><p id="settingsStorageStatus"></p></div><button class="btn btn-sm" id="settingsSwitchFile">Open different file</button></div>
+      <div class="Box-row settingsRow"><div><strong>Connected file</strong><p id="settingsStorageStatus" role="status" aria-live="polite"></p></div><div class="settingsRowActions"><button class="btn btn-sm" id="settingsRetrySave">Retry save</button><button class="btn btn-sm" id="settingsSwitchFile">Open different file</button></div></div>
       <div class="Box-row settingsRow"><div><strong>New file</strong><p>Start a separate project workspace.</p></div><button class="btn btn-sm" id="settingsNewFile">Create file</button></div>
       <div class="Box-row settingsRow"><div><strong>JSON backup</strong><p>Import or export a copy of your project data.</p></div><div class="settingsRowActions"><button class="btn btn-sm" id="settingsExport">Export</button><button class="btn btn-sm" id="settingsImport">Import</button></div></div>
+      <div class="Box-row settingsRow settingsRecoveryRow"><div><strong>Recovery history</strong><p id="settingsRecoveryStatus">Snapshots are stored in this browser and do not sync.</p><div id="settingsRecoveryList" aria-label="Recovery snapshots"></div></div></div>
       <div class="Box-row settingsRow" id="settingsBackupRow" hidden><div><strong>Pre-upgrade backup</strong><p>Restore the snapshot saved before the last data upgrade.</p></div><button class="btn btn-sm" id="settingsRestoreBackup">Restore</button></div>
     </section>
     <section class="Box settingsSection" id="settingsAccountSection" hidden>
