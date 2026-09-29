@@ -1207,9 +1207,52 @@
     if (!label || !label.trim()) return;
     await addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
   }
+  function reorderProjectField(project,sourceId,targetId,position){
+    const sourceIndex=project.fields.findIndex(field=>field.id===sourceId);
+    const targetIndex=project.fields.findIndex(field=>field.id===targetId);
+    if (sourceIndex<0 || targetIndex<0 || sourceIndex===targetIndex) return false;
+    const [field]=project.fields.splice(sourceIndex,1);
+    const nextTargetIndex=project.fields.findIndex(candidate=>candidate.id===targetId);
+    project.fields.splice(nextTargetIndex+(position==="after"?1:0),0,field);
+    return true;
+  }
   function wireCustomColumnHeader(th, field, project){
     const menuButton = th.querySelector(".fieldColumnMenuBtn");
     const menu = th.querySelector(".fieldColumnMenu");
+    const dragHandle = th.querySelector(".fieldColumnDragHandle");
+    if (dragHandle){
+      const clearDragStyles=()=>th.closest("table")?.querySelectorAll(".columnDragging,.columnDropTarget,.columnDropAfter").forEach(header=>header.classList.remove("columnDragging","columnDropTarget","columnDropAfter"));
+      dragHandle.addEventListener("click",event=>event.stopPropagation());
+      dragHandle.addEventListener("dragstart",event=>{
+        event.stopPropagation();
+        event.dataTransfer.effectAllowed="move";
+        event.dataTransfer.setData("application/x-beforework-field",field.id);
+        th.classList.add("columnDragging");
+      });
+      dragHandle.addEventListener("dragend",clearDragStyles);
+      th.addEventListener("dragover",event=>{
+        if (![...event.dataTransfer.types].includes("application/x-beforework-field")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect="move";
+        th.classList.add("columnDropTarget");
+        th.classList.toggle("columnDropAfter",event.clientX>=th.getBoundingClientRect().left+th.getBoundingClientRect().width/2);
+      });
+      th.addEventListener("dragleave",event=>{
+        if (th.contains(event.relatedTarget)) return;
+        th.classList.remove("columnDropTarget","columnDropAfter");
+      });
+      th.addEventListener("drop",event=>{
+        const sourceId=event.dataTransfer.getData("application/x-beforework-field");
+        if (!sourceId) return;
+        event.preventDefault();
+        const position=event.clientX>=th.getBoundingClientRect().left+th.getBoundingClientRect().width/2 ? "after" : "before";
+        clearDragStyles();
+        if (reorderProjectField(project,sourceId,field.id,position)){
+          scheduleSave();
+          render();
+        }
+      });
+    }
     menuButton.onclick = event => {
       event.stopPropagation();
       const shouldOpen = !menu.classList.contains("open");
@@ -2151,7 +2194,7 @@
 
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-custom-field="true"><button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder ${escapeHtml(f.label)} column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
@@ -2311,7 +2354,7 @@
 
     const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
     const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}"><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
+    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-custom-field="true"><button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder ${escapeHtml(f.label)} column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
     const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group"><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">

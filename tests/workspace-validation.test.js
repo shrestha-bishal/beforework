@@ -202,6 +202,21 @@ test("filters numeric values and any selected multi-select option", ()=>{
   assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true});
 });
 
+test("reorders custom fields before and after another column", ()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function reorderProjectField");
+  const end=appSource.indexOf("function wireCustomColumnHeader",start);
+  const snippet=appSource.slice(start,end);
+  const result=JSON.parse(vm.runInNewContext(`${snippet};
+    const project={fields:[{id:"a"},{id:"b"},{id:"c"},{id:"d"}]};
+    const before=reorderProjectField(project,"c","a","before");
+    const same=reorderProjectField(project,"a","a","after");
+    const after=reorderProjectField(project,"c","d","after");
+    JSON.stringify({before,same,after,order:project.fields.map(field=>field.id)});`));
+
+  assert.deepEqual(result,{before:true,same:false,after:true,order:["a","b","d","c"]});
+});
+
 test("bulk completion updates selected items consistently", ()=>{
   const appSource = fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   const start = appSource.indexOf("function bulkSetCompleted");

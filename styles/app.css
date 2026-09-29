@@ -348,6 +348,14 @@
   .listTable .selectCell{width:42px;text-align:center;padding-left:12px!important;padding-right:6px!important;}
   .listTable tbody input[type="checkbox"],.listTable thead input[type="checkbox"]{display:block;margin:auto;}
   .listTable th.fieldColumnHeader{position:relative;white-space:nowrap;padding-right:34px!important;}
+  .listTable th.fieldColumnHeader[data-custom-field="true"]{padding-right:58px!important;}
+  .fieldColumnDragHandle{position:absolute;right:32px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:22px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--faint);cursor:grab;transform:translateY(-50%);}
+  .fieldColumnDragHandle:hover{background:var(--bg-soft2);color:var(--text);}
+  .fieldColumnDragHandle:active{cursor:grabbing;}
+  .fieldColumnDragHandle iconify-icon{font-size:15px;}
+  .listTable th.columnDragging{opacity:.45;}
+  .listTable th.columnDropTarget{box-shadow:inset 2px 0 var(--accent);}
+  .listTable th.columnDropTarget.columnDropAfter{box-shadow:inset -2px 0 var(--accent);}
   .fieldColumnMenuBtn{position:absolute;right:5px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:16px;line-height:1;opacity:0;visibility:hidden;transform:translateY(-50%) translateX(4px);transition:opacity .12s ease,visibility .12s ease,transform .12s ease,background-color .12s ease;}
   .fieldColumnHeader:hover .fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);}
   .fieldColumnMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
