@@ -4,13 +4,15 @@
 
 Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data in a JSON file that you choose on your device.
 
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/6a5005cf-4e61-4456-bd9f-49eb4ca18256" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/05f8a8a5-53bb-40f5-8fc5-8427badab956" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/ab26f04b-9236-49fd-a55b-d183fe553278" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/bf9229ad-f267-421d-b514-139704477777" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/52effdaa-c990-4eda-9d89-c088f99f4579" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/151aa227-eb34-4d16-8e98-11858205a2b2" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/14f423b5-7c68-4b95-8e43-e7b6f26509a1" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5c6fab1-b17e-493e-9e08-9f352629ff01" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/e1c32c8a-a80c-40dc-8814-1c7e9475f69f" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/2a5d4e85-39f1-459f-b748-6ed21bce22a4" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/27fc4a37-6195-4407-8996-f38a0786ce48" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/6bedd4ba-bccd-49b7-9e32-fbd587ee5a6b" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/1ee74fc4-b7cf-4a70-9efc-f57958458c94" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/1c8fba5f-0b4a-46f0-aaf3-db3c60306493" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/38ba3c75-6ef6-40ba-83d4-bc2c01029470" />
+
 
 ## Hosted version
 
