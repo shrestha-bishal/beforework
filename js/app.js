@@ -4270,7 +4270,14 @@
         renderItemModal();
       });
     }
-    modal.querySelector("#itemTitleInput").addEventListener("change", e=>{
+    const titleInput = modal.querySelector("#itemTitleInput");
+    titleInput.addEventListener("keydown",event=>{
+      if (event.key!=="Enter" || event.isComposing) return;
+      event.preventDefault();
+      if (isNew) modal.querySelector('[data-action="saveItem"]').click();
+      else titleInput.blur();
+    });
+    titleInput.addEventListener("change", e=>{
       item.title = e.target.value.trim() || item.title;
       if (isNew) return;
       item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
