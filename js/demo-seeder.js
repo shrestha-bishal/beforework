@@ -1,6 +1,22 @@
 (function(global){
   "use strict";
 
+  const SAMPLE_ATTACHMENT={
+    id:"demo-release-brief",
+    name:"release-brief.txt",
+    type:"text/plain",
+    content:[
+      "Beforework v2.1.0 release brief",
+      "",
+      "Highlights:",
+      "- Attach multiple files to project and calendar items.",
+      "- Track yes/no details with checkbox fields.",
+      "- Search projects and items from overview statistics.",
+      "",
+      "Next step: review the release notes and confirm the publish date."
+    ].join("\n")
+  };
+
   function createDemoWorkspace({schemaVersion, uid, viewLabel, tagColors, todayStr}){
     const SCHEMA_VERSION = schemaVersion;
     const TAG_COLORS = tagColors;
@@ -11,7 +27,7 @@
     const makeField = (label, type, options=[]) => ({id:uid(), label, type, options});
     const makeTag = (name, colour) => ({id:uid(), name, color:colour});
     const makeItem = (title, description, values={}, options={}) => ({
-      id:uid(), title, description, calendarType:options.calendarType || "task",
+      id:uid(), title, description, attachments:options.attachments || [], calendarType:options.calendarType || "task",
       startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "",
       endDate:options.endDate || "", recurrence:options.recurrence || null, completedAt:options.completedAt || null, tagIds:options.tagIds || [], values,
       subitems:options.subitems || [], comments:options.comments || [], activity:[{id:uid(), type:"created", at:now}], archived:!!options.archived,
@@ -45,7 +61,7 @@
       views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", groups:launchGroups
     };
     launchGroups[0].items.push(
-      makeItem("Publish the release overview", "Summarise what is changing, who it helps, and where to find the updated workflows.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(5), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}]}),
+      makeItem("Publish the release overview", "Summarise what is changing, who it helps, and where to find the updated workflows.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(5), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], attachments:[{id:SAMPLE_ATTACHMENT.id,name:SAMPLE_ATTACHMENT.name,size:SAMPLE_ATTACHMENT.content.length,type:SAMPLE_ATTACHMENT.type}], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}]}),
       makeItem("Prepare the onboarding guide", "Create a concise guide that helps new teams set up projects, groups, and their first workspace file.", {[priorityField.id]:"low", [dueDateField.id]:todayStr(8), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id, designTag.id]})
     );
     launchGroups[1].items.push(
@@ -67,17 +83,18 @@
     ]);
     const onboardingDate = makeField("Next date", "date");
     const onboardingPriority = makeField("Priority", "priority");
+    const onboardingEmailSent = makeField("Welcome email sent", "checkbox");
     const onboardingViews = views(["table", "list"]);
     const onboardingGroup = {id:uid(), name:"Customer success", items:[]};
     const onboarding = {
       id:uid(), name:"Customer onboarding", icon:"mdi:account-group-outline", folderId:operationsFolder.id, createdAt:now,
-      tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[onboardingStatus, onboardingDate, onboardingPriority],
+      tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[onboardingStatus, onboardingDate, onboardingPriority, onboardingEmailSent],
       views:onboardingViews, activeViewId:onboardingViews[0].id, itemDefaultType:"task", groups:[onboardingGroup]
     };
     onboardingGroup.items.push(
-      makeItem("Review the first-week setup path", "Walk through account setup as a new customer and note any unclear steps.", {[onboardingStatus.id]:onboardingStatus.options[0].id, [onboardingDate.id]:todayStr(3), [onboardingPriority.id]:"high"}, {tagIds:[onboarding.tags[0].id, onboarding.tags[1].id], subitems:[{id:uid(), title:"Create a sample workspace", done:true}, {id:uid(), title:"Check the first project flow", done:false}]}),
-      makeItem("Schedule onboarding check-ins", "Set a short check-in after setup and another after the first week of use.", {[onboardingStatus.id]:onboardingStatus.options[1].id, [onboardingDate.id]:todayStr(1), [onboardingPriority.id]:"medium"}, {tagIds:[onboarding.tags[0].id], ageDays:2}),
-      makeItem("Summarise activation feedback", "Group feedback by setup, navigation, and recurring work so the product team can prioritise follow-up.", {[onboardingStatus.id]:onboardingStatus.options[2].id, [onboardingDate.id]:todayStr(7), [onboardingPriority.id]:"low"}, {tagIds:[onboarding.tags[1].id]})
+      makeItem("Review the first-week setup path", "Walk through account setup as a new customer and note any unclear steps.", {[onboardingStatus.id]:onboardingStatus.options[0].id, [onboardingDate.id]:todayStr(3), [onboardingPriority.id]:"high", [onboardingEmailSent.id]:"true"}, {tagIds:[onboarding.tags[0].id, onboarding.tags[1].id], subitems:[{id:uid(), title:"Create a sample workspace", done:true}, {id:uid(), title:"Check the first project flow", done:false}]}),
+      makeItem("Schedule onboarding check-ins", "Set a short check-in after setup and another after the first week of use.", {[onboardingStatus.id]:onboardingStatus.options[1].id, [onboardingDate.id]:todayStr(1), [onboardingPriority.id]:"medium", [onboardingEmailSent.id]:""}, {tagIds:[onboarding.tags[0].id], ageDays:2}),
+      makeItem("Summarise activation feedback", "Group feedback by setup, navigation, and recurring work so the product team can prioritise follow-up.", {[onboardingStatus.id]:onboardingStatus.options[2].id, [onboardingDate.id]:todayStr(7), [onboardingPriority.id]:"low", [onboardingEmailSent.id]:""}, {tagIds:[onboarding.tags[1].id]})
     );
 
     const personalStatus = makeField("Status", "select", [
@@ -107,7 +124,8 @@
     );
     personalGroups[1].items.push(
       makeItem("Plan the week ahead", "Review upcoming commitments and choose a few realistic priorities.", {[personalStatus.id]:personalStatus.options[1].id, [personalPriority.id]:"medium", [personalDate.id]:todayStr(1)}, {tagIds:[wellbeingTag.id], recurrence:{frequency:"weekly", interval:1, byDay:[], until:todayStr(57)}}),
-      makeItem("Organise household documents", "Move current warranties, service records, and key receipts into one place.", {[personalStatus.id]:personalStatus.options[1].id, [personalPriority.id]:"low", [personalDate.id]:todayStr(5)}, {tagIds:[homeTag.id], ageDays:2})
+      makeItem("Organise household documents", "Move current warranties, service records, and key receipts into one place.", {[personalStatus.id]:personalStatus.options[1].id, [personalPriority.id]:"low", [personalDate.id]:todayStr(5)}, {tagIds:[homeTag.id], ageDays:2}),
+      makeItem("Renew the home insurance policy", "Confirm the renewal before the current policy lapses.", {[personalStatus.id]:personalStatus.options[1].id, [personalPriority.id]:"high", [personalDate.id]:todayStr(-3)}, {tagIds:[homeTag.id], ageDays:5})
     );
     personalGroups[2].items.push(
       makeItem("Complete the first-aid refresher", "Finish the annual refresher and save the updated completion record.", {[personalStatus.id]:personalStatus.options[2].id, [personalPriority.id]:"high", [personalDate.id]:todayStr(-2)}, {tagIds:[learningTag.id], completedAt:now - 86400000, ageDays:3})
@@ -138,6 +156,17 @@
     return {schemaVersion:SCHEMA_VERSION, projects:[launch, onboarding, teamCalendar, personalPlanning], folders:[productFolder, operationsFolder, personalFolder], calendarItems, focusSessions:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
   }
 
-  global.BeforeworkDemoSeeder = Object.freeze({create:createDemoWorkspace});
+  async function writeAttachments(workspace,writeAttachment){
+    const items=[...(workspace.projects||[]).flatMap(project=>(project.groups||[]).flatMap(group=>group.items||[])),...(workspace.calendarItems||[])];
+    for (const item of items){
+      for (const attachment of item.attachments||[]){
+        if (attachment.id===SAMPLE_ATTACHMENT.id){
+          await writeAttachment(attachment.id,new Blob([SAMPLE_ATTACHMENT.content],{type:SAMPLE_ATTACHMENT.type}));
+        }
+      }
+    }
+  }
+
+  global.BeforeworkDemoSeeder = Object.freeze({create:createDemoWorkspace,writeAttachments});
 })(window);
 

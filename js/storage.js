@@ -536,6 +536,7 @@
       directory=await chooseWorkspaceDirectory();
       if (!directory) return;
       const initialState=defaultState();
+      await window.BeforeworkDemoSeeder.writeAttachments(initialState,(id,file)=>getFolderWorkspace().writeAttachment(directory,id,file));
       await getFolderWorkspace().save(directory,initialState);
       const lazyState=await loadFolderState(directory);
       initialized=true;

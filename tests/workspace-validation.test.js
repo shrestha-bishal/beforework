@@ -10,7 +10,7 @@ const source = fs.readFileSync(path.join(__dirname,"../js/workspace-validation.j
 const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"workspace-validation.js"});
 const validate = sandbox.window.BeforeworkWorkspaceValidation.validate;
-const seederSandbox = {window:{}};
+const seederSandbox = {window:{},Blob};
 const seederSource = fs.readFileSync(path.join(__dirname,"../js/demo-seeder.js"),"utf8");
 vm.runInNewContext(seederSource,seederSandbox,{filename:"demo-seeder.js"});
 
@@ -59,17 +59,47 @@ test("rejects future schema versions instead of downgrading them", ()=>{
   assert.match(result.errors[0],/newer than the supported version/);
 });
 
-test("accepts the application's seeded workspace shape", ()=>{
+test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>{
   let nextId=0;
   const workspace=seederSandbox.window.BeforeworkDemoSeeder.create({
     schemaVersion:7,
     uid:()=>`demo-${++nextId}`,
     viewLabel:type=>type,
     tagColors:Array(8).fill("#0969da"),
-    todayStr:()=>"2026-09-29"
+    todayStr:offsetDays=>{
+      const date=new Date("2026-09-29T00:00:00");
+      date.setDate(date.getDate()+(offsetDays||0));
+      return date.toISOString().slice(0,10);
+    }
   });
 
   assert.equal(validate(workspace,7).valid,true);
+  const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
+  const checkboxField=onboarding.fields.find(field=>field.type==="checkbox");
+  assert.ok(checkboxField);
+  assert.ok(onboarding.groups[0].items.some(item=>item.values[checkboxField.id]==="true"));
+  assert.ok(onboarding.groups[0].items.some(item=>item.values[checkboxField.id]===""));
+
+  const personal=workspace.projects.find(project=>project.name==="Personal planning");
+  const targetDate=personal.fields.find(field=>field.label==="Target date");
+  const overdueOpenItems=personal.groups.flatMap(group=>group.items).filter(item=>
+    item.values[targetDate.id]<"2026-09-29" && !item.completedAt
+  );
+  assert.ok(overdueOpenItems.length>0);
+  const seededItems=workspace.projects.flatMap(project=>project.groups.flatMap(group=>group.items));
+  assert.ok(seededItems.every(item=>Array.isArray(item.attachments)));
+  const releaseItem=seededItems.find(item=>item.title==="Publish the release overview");
+  const [attachment]=releaseItem.attachments;
+  assert.equal(attachment.name,"release-brief.txt");
+  const written=[];
+  await seederSandbox.window.BeforeworkDemoSeeder.writeAttachments(workspace,async(id,file)=>{
+    written.push({id,size:file.size,type:file.type,content:await file.text()});
+  });
+  assert.equal(written.length,1);
+  assert.equal(written[0].id,attachment.id);
+  assert.equal(written[0].size,attachment.size);
+  assert.equal(written[0].type,attachment.type);
+  assert.match(written[0].content,/Beforework v2\.1\.0 release brief/);
 });
 
 test("renders checkbox custom fields as boolean controls", ()=>{
