@@ -2107,13 +2107,13 @@
       <div class="bulkBar">
         <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
         <span class="bulkSelectionActions">
-          <button class="btn btn-sm bulkAction" id="bulkSelectAll">Select all</button>
-          <button class="btn btn-sm bulkAction" id="bulkComplete">Mark complete</button>
-          <button class="btn btn-sm bulkAction" id="bulkIncomplete">Mark incomplete</button>
-          <button class="btn btn-sm bulkAction" id="bulkDuplicate">Duplicate</button>
-          <button class="btn btn-sm bulkAction" id="bulkMove">Move</button>
-          <button class="btn btn-sm bulkAction" id="bulkTag">Tag</button>
-          <button class="btn btn-sm btn-danger bulkAction" id="bulkDelete">Delete</button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkSelectAll"><iconify-icon icon="mdi:checkbox-multiple-marked-outline" aria-hidden="true"></iconify-icon><span>Select all</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkComplete"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Mark complete</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkIncomplete"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Mark incomplete</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkDuplicate"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkMove"><iconify-icon icon="mdi:folder-move-outline" aria-hidden="true"></iconify-icon><span>Move</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkTag"><iconify-icon icon="mdi:tag-outline" aria-hidden="true"></iconify-icon><span>Tag</span></button>
+          <button class="btn btn-sm btn-danger bulkAction bulkActionWithIcon" id="bulkDelete"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete</span></button>
         </span>
       </div>
       <table class="listTable width-full">
@@ -2267,13 +2267,13 @@
       <div class="bulkBar">
         <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
         <span class="bulkSelectionActions">
-          <button class="btn btn-sm bulkAction" id="bulkSelectAll">Select all</button>
-          <button class="btn btn-sm bulkAction" id="bulkComplete">Mark complete</button>
-          <button class="btn btn-sm bulkAction" id="bulkIncomplete">Mark incomplete</button>
-          <button class="btn btn-sm bulkAction" id="bulkDuplicate">Duplicate</button>
-          <button class="btn btn-sm bulkAction" id="bulkMove">Move</button>
-          <button class="btn btn-sm bulkAction" id="bulkTag">Tag</button>
-          <button class="btn btn-sm btn-danger bulkAction" id="bulkDelete">Delete</button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkSelectAll"><iconify-icon icon="mdi:checkbox-multiple-marked-outline" aria-hidden="true"></iconify-icon><span>Select all</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkComplete"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Mark complete</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkIncomplete"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Mark incomplete</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkDuplicate"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkMove"><iconify-icon icon="mdi:folder-move-outline" aria-hidden="true"></iconify-icon><span>Move</span></button>
+          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkTag"><iconify-icon icon="mdi:tag-outline" aria-hidden="true"></iconify-icon><span>Tag</span></button>
+          <button class="btn btn-sm btn-danger bulkAction bulkActionWithIcon" id="bulkDelete"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete</span></button>
         </span>
       </div>
       <table class="listTable width-full">
