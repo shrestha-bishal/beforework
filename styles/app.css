@@ -763,7 +763,7 @@
   .itemModalSidebar{width:290px;flex:none;border-left:1px solid var(--border);background:var(--bg-soft);
     padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px;}
   .mainSection{display:flex;flex-direction:column;gap:10px;}
-  .itemAttachmentsSection{gap:8px;}
+  .itemAttachmentsSection{gap:8px;margin-bottom:8px;}
   .itemAttachmentAdd{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;}
   .itemAttachmentAdd iconify-icon{font-size:15px;}
   .itemAttachmentList{display:flex;flex-direction:column;min-width:0;}
