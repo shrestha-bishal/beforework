@@ -30,6 +30,7 @@ Beforework is open source under the [MIT License](LICENSE). Contributions and bu
 - Tags, priorities, due dates, custom fields, and archived items
 - Overview dashboard with workload and progress summaries
 - Focus timer
+- Browser notifications for scheduled reminders and due-today tasks while the app is open
 - Optional Google Calendar synchronisation
 - Import and export through the connected JSON workspace file
 

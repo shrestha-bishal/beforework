@@ -51,6 +51,7 @@
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
 
   let state = null;                 // { projects:[] }
+  const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
   let settingsView = null;
   let overviewDetailsView = null;
   let showArchived = false;
@@ -426,6 +427,12 @@
     d.setDate(d.getDate() + (offsetDays||0));
     return d.toISOString().slice(0,10);
   }
+  function dateTimeLocalValue(value){
+    if (!value) return "";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
+    return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  }
 
   function defaultState(){
     if (window.BEFOREWORK_CONFIG?.initialWorkspace === "clean"){
@@ -568,6 +575,46 @@
   function tagById(project,tid){ return project.tags.find(t=>t.id===tid); }
   function priorityField(project){ return project.fields.find(f=>f.type==="priority"); }
   function dateFields(project){ return project.fields.filter(f=>f.type==="date"); }
+  function getReminderEntries(){
+    if (!state) return [];
+    const entries = [];
+    state.projects.forEach(project=>{
+      project.groups.forEach(group=>group.items.forEach(item=>{
+        const dueField = dateFields(project).find(field=>item.values[field.id]);
+        entries.push({
+          id:`project:${project.id}:${item.id}`,
+          itemId:item.id,
+          projectId:project.id,
+          groupId:group.id,
+          projectName:project.name,
+          title:item.title,
+          dueDate:dueField ? item.values[dueField.id] : null,
+          reminderAt:item.reminderAt || null,
+          isTask:item.calendarType!=="event",
+          completed:isItemCompleted(item),
+          archived:!!item.archived
+        });
+      }));
+    });
+    (state.calendarItems||[]).forEach(item=>entries.push({
+      id:`calendar:${item.id}`,
+      itemId:item.id,
+      title:item.title,
+      reminderAt:item.reminderAt || null,
+      isTask:false,
+      completed:false,
+      archived:!!item.archived
+    }));
+    return entries;
+  }
+  function openReminderItem(entry){
+    if (entry.projectId){
+      openItemModal(entry.projectId,entry.groupId,entry.itemId);
+      return;
+    }
+    const item = (state.calendarItems||[]).find(candidate=>candidate.id===entry.itemId);
+    if (item) openStandaloneCalendarItemModal(item);
+  }
 
   function allItemsFlat(){
     const out = [];
@@ -1374,6 +1421,7 @@
       sidebarCollapsed:document.getElementById("sidebar").classList.contains("collapsed"),
       storageStatus:getSyncStatusText(),
       hasBackup:hasMigrationBackup(),
+      reminderStatus:reminderService.getStatus(),
       accountName
     });
   }
@@ -1388,6 +1436,11 @@
         renderAll();
       },
       toggleSidebar(board){ toggleSidebarCollapsed(); renderSettings(board); },
+      async toggleReminders(board){
+        if (reminderService.getStatus().enabled) reminderService.disable();
+        else await reminderService.enable();
+        renderSettings(board);
+      },
       showShortcuts:showShortcutsModal,
       openIssues(){ window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer"); },
       openSponsors(){ window.open(GITHUB_SPONSORS_URL, "_blank", "noopener,noreferrer"); },
@@ -2250,6 +2303,7 @@
           <div class="modalRow"><label for="standaloneEnd">End time</label><input class="form-control" id="standaloneEnd" type="time" value="${escapeHtml(item.endTime||"")}"></div>
         </div>
         <div class="modalRow calendarLocationRow"><label for="standaloneLocation">Location</label><input class="form-control" id="standaloneLocation" value="${escapeHtml(item.location||"")}" placeholder="Optional location"></div>
+        <div class="modalRow calendarLocationRow"><label for="standaloneReminderAt">Reminder</label><input class="form-control" id="standaloneReminderAt" type="datetime-local" value="${escapeHtml(dateTimeLocalValue(item.reminderAt))}"></div>
       </div>
       <div class="recurrencePanel">
         <div class="recurrenceRow">
@@ -2319,6 +2373,7 @@
         startDate:startDateInput.value,
         endDate:endDateInput.value,
         location:modal.querySelector("#standaloneLocation").value.trim(),
+        reminderAt:modal.querySelector("#standaloneReminderAt").value ? new Date(modal.querySelector("#standaloneReminderAt").value).toISOString() : null,
         startTime:modal.querySelector("#standaloneStart").value,
         endTime:modal.querySelector("#standaloneEnd").value,
         recurrence: normaliseRecurrence({
@@ -2355,6 +2410,7 @@
       item.startDate = startDate;
       item.endDate = endDate;
       item.location = modal.querySelector("#standaloneLocation").value.trim();
+      item.reminderAt = modal.querySelector("#standaloneReminderAt").value ? new Date(modal.querySelector("#standaloneReminderAt").value).toISOString() : null;
       item.startTime = modal.querySelector("#standaloneStart").value;
       item.endTime = modal.querySelector("#standaloneEnd").value;
       item.recurrence = normaliseRecurrence({
@@ -3550,7 +3606,7 @@
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
     const fieldsHtml = project.fields.map(f=>fieldInputHtml(f, item)).join("");
-    const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence);
+    const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
     const recurrence = normaliseRecurrence(item.recurrence);
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
     const scheduleHtml = hasSchedule || openItemRef.scheduleOpen ? `
@@ -3568,6 +3624,10 @@
         <div class="sideItem">
           <div class="sideItemLabel">End date</div>
           <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}" aria-label="End date">
+        </div>
+        <div class="sideItem">
+          <label class="sideItemLabel" for="itemReminderAt">Reminder</label>
+          <input class="form-control" type="datetime-local" id="itemReminderAt" value="${escapeHtml(dateTimeLocalValue(item.reminderAt))}" aria-label="Reminder date and time">
         </div>
         <div class="recurrencePanel">
           <div class="recurrenceRow">
@@ -3781,7 +3841,7 @@
         item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       };
     });
-    ["itemLocationInput","itemStartTimeInput","itemEndTimeInput","itemEndDateInput","itemRepeatFrequency","itemRepeatInterval","itemRepeatUnit","itemRepeatUntil"].forEach(id=>{
+    ["itemLocationInput","itemStartTimeInput","itemEndTimeInput","itemEndDateInput","itemReminderAt","itemRepeatFrequency","itemRepeatInterval","itemRepeatUnit","itemRepeatUntil"].forEach(id=>{
       const input = modal.querySelector("#"+id);
       if (!input) return;
       if (id==="itemRepeatInterval" || id==="itemRepeatUntil"){
@@ -3795,6 +3855,7 @@
           if (item.endDate && !e.target.value) queueGoogleEventDeletes(item);
           item.endDate = e.target.value;
         }
+        if (id==="itemReminderAt") item.reminderAt = e.target.value ? new Date(e.target.value).toISOString() : null;
         if (id==="itemRepeatFrequency" || id==="itemRepeatInterval" || id==="itemRepeatUnit" || id==="itemRepeatUntil"){
           const frequency = modal.querySelector("#itemRepeatFrequency")?.value || "none";
           const interval = Number(modal.querySelector("#itemRepeatInterval")?.value || 1);
@@ -3806,6 +3867,7 @@
         }
         if (isNew){ renderItemModal(); return; }
         item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
+        if (id==="itemReminderAt") reminderService.check();
       });
     });
     updateRecurrenceSummary(modal);
@@ -4210,6 +4272,7 @@
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
+    reminderService.start();
     if (NETLIFY_IDENTITY_ENABLED){
       try{
         await loadNetlifyIdentity();

@@ -16,7 +16,7 @@ Please include screenshots for visible interface changes. Avoid committing works
 
 ## Tests
 
-Run the schema migration tests with `node --test tests/schema-migration.test.js`.
+Run all automated tests with `node --test`.
 
 ## Issues
 

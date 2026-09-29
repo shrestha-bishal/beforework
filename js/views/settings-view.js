@@ -13,10 +13,15 @@ export class SettingsView {
     view.querySelector("#settingsBackupRow").hidden = !settings.hasBackup;
     view.querySelector("#settingsAccountName").textContent = settings.accountName;
     view.querySelector("#settingsAccountSection").hidden = !settings.accountName;
+    view.querySelector("#settingsReminderStatus").textContent = settings.reminderStatus.label;
+    view.querySelector("#settingsReminderToggle").textContent = settings.reminderStatus.actionLabel;
+    view.querySelector("#settingsReminderToggle").disabled = !settings.reminderStatus.enabled && !settings.reminderStatus.canEnable;
+    view.querySelector("#settingsReminderToggle").setAttribute("aria-pressed",String(settings.reminderStatus.enabled));
     board.replaceChildren(view);
     board.querySelector("#settingsThemeToggle").onclick = () => this.actions.toggleTheme(board);
     board.querySelector("#settingsTimeFormat").onchange = event=>this.actions.setTimeFormat(event.target.value);
     board.querySelector("#settingsSidebarToggle").onclick = () => this.actions.toggleSidebar(board);
+    board.querySelector("#settingsReminderToggle").onclick = () => this.actions.toggleReminders(board);
     board.querySelector("#settingsShortcuts").onclick = this.actions.showShortcuts;
     board.querySelector("#settingsContactForm").onclick = this.actions.openIssues;
     board.querySelector("#settingsGithubSponsors").onclick = this.actions.openSponsors;
