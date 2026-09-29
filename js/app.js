@@ -4223,9 +4223,14 @@
 
   /* ---------- Wiring ---------- */
   function wireConnectGate(){
-    document.getElementById("gateNewBtn").onclick = createNewWorkspaceFolder;
-    document.getElementById("gateOpenBtn").onclick = openExistingWorkspaceFolder;
-    document.getElementById("gateLegacyFileBtn").onclick = openExistingFile;
+    const runFromGate = async action => {
+      hideConnectGate();
+      await action();
+      if (!fileHandle) showConnectGate();
+    };
+    document.getElementById("gateNewBtn").onclick = () => runFromGate(createNewWorkspaceFolder);
+    document.getElementById("gateOpenBtn").onclick = () => runFromGate(openExistingWorkspaceFolder);
+    document.getElementById("gateLegacyFileBtn").onclick = () => runFromGate(openExistingFile);
     document.getElementById("gateReconnectBtn").onclick = reconnectPendingFile;
     document.getElementById("gateLegacyBtn").onclick = migrateLegacyBrowserData;
   }
