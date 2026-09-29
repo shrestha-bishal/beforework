@@ -90,7 +90,7 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   assert.ok(seededItems.every(item=>Array.isArray(item.attachments)));
   const releaseItem=seededItems.find(item=>item.title==="Publish the release overview");
   const [attachment]=releaseItem.attachments;
-  assert.equal(attachment.name,"release-brief.txt");
+  assert.equal(attachment.name,"project-notes.txt");
   const written=[];
   await seederSandbox.window.BeforeworkDemoSeeder.writeAttachments(workspace,async(id,file)=>{
     written.push({id,size:file.size,type:file.type,content:await file.text()});
@@ -99,7 +99,8 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   assert.equal(written[0].id,attachment.id);
   assert.equal(written[0].size,attachment.size);
   assert.equal(written[0].type,attachment.type);
-  assert.match(written[0].content,/Beforework v2\.1\.0 release brief/);
+  assert.match(written[0].content,/Project planning notes/);
+  assert.match(written[0].content,/Spreadsheets, images, reports, and more/);
 });
 
 test("renders checkbox custom fields as boolean controls", ()=>{

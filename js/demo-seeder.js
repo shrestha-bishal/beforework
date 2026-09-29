@@ -2,18 +2,21 @@
   "use strict";
 
   const SAMPLE_ATTACHMENT={
-    id:"demo-release-brief",
-    name:"release-brief.txt",
+    id:"demo-project-notes",
+    name:"project-notes.txt",
     type:"text/plain",
     content:[
-      "Beforework v2.1.0 release brief",
+      "Project planning notes",
       "",
-      "Highlights:",
-      "- Attach multiple files to project and calendar items.",
-      "- Track yes/no details with checkbox fields.",
-      "- Search projects and items from overview statistics.",
+      "Purpose",
+      "Keep useful reference material alongside the work it supports.",
       "",
-      "Next step: review the release notes and confirm the publish date."
+      "Useful attachments might include:",
+      "- Meeting notes and project briefs",
+      "- Spreadsheets, images, reports, and more",
+      "- Drafts, reference documents, and other project files",
+      "",
+      "Add more than one file whenever a project needs them."
     ].join("\n")
   };
 
