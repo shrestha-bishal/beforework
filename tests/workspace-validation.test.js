@@ -202,6 +202,46 @@ test("filters numeric values and any selected multi-select option", ()=>{
   assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true});
 });
 
+test("exports filtered view columns in saved order as safe CSV", ()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function csvFieldValue");
+  const end=appSource.indexOf("function exportProjectCsv",start);
+  const snippet=appSource.slice(start,end);
+  const context={
+    PRIORITY_OPTIONS:[{id:"high",label:"High"},{id:"medium",label:"Medium"},{id:"low",label:"Low"}],
+    csvTestValue:"Comma, quote \" and newline\nnext",
+    orderedTableColumns:(project,viewType,columnIds)=>{
+      const saved=project.columnOrders?.[viewType]||[];
+      return [...saved.filter(id=>columnIds.includes(id)),...columnIds.filter(id=>!saved.includes(id))];
+    },
+    formatUpdatedAt:()=>"Today at 9:00 AM"
+  };
+  const result=vm.runInNewContext(`${snippet};
+    const project={
+      groups:[{id:"g1"},{id:"g2"}],
+      fields:[
+        {id:"status",label:"Status",type:"select",options:[{id:"blocked",label:"Blocked"}]},
+        {id:"areas",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},
+        {id:"cost",label:"Cost",type:"number"}
+      ],
+      tags:[{id:"tag1",name:"release"}],
+      columnOrders:{table:["tags","title","group","field:status","field:areas","field:cost"]}
+    };
+    const rows=[{item:{title:"=1+1",values:{status:"blocked",areas:["docs","design"],cost:-12},tagIds:["tag1"],updatedAt:1,subitems:[]},group:{name:"Planning"}}];
+    JSON.stringify({
+      table:buildProjectCsv(project,"table",false,rows),
+      list:buildProjectCsv(project,"list",true,rows),
+      escaped:serializeCsvRows([["Header"],[csvTestValue],["=SUM(A1)"]])
+    });`,context);
+  const resultObject=JSON.parse(result);
+
+  assert.match(resultObject.table,/^"Tags","Title","Group","Status","Areas","Cost"/);
+  assert.match(resultObject.table,/"release","'=1\+1","Planning","Blocked","Docs; Design","-12"/);
+  assert.match(resultObject.list,/"Progress","Updated"/);
+  assert.ok(resultObject.escaped.includes("\"Comma, quote \"\" and newline\nnext\""));
+  assert.match(resultObject.escaped,/"'=SUM\(A1\)"/);
+});
+
 test("persists independent List and Table column orders", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   const start=appSource.indexOf("function orderedTableColumns");

@@ -1562,6 +1562,84 @@
     return rows;
   }
 
+  function sortProjectRows(project,rows){
+    return [...rows].sort((first,second)=>{
+      let firstValue,secondValue;
+      const field=project.fields.find(candidate=>candidate.id===listSort.field);
+      if (listSort.field==="title"){
+        firstValue=first.item.title.toLowerCase(); secondValue=second.item.title.toLowerCase();
+      } else if (listSort.field==="group"){
+        firstValue=first.group.name.toLowerCase(); secondValue=second.group.name.toLowerCase();
+      } else if (listSort.field==="updated"){
+        firstValue=first.item.updatedAt; secondValue=second.item.updatedAt;
+      } else if (field?.type==="priority"){
+        firstValue=(PRIORITY_OPTIONS.find(option=>option.id===first.item.values[field.id])||{rank:0}).rank;
+        secondValue=(PRIORITY_OPTIONS.find(option=>option.id===second.item.values[field.id])||{rank:0}).rank;
+      } else if (field?.type==="checkbox"){
+        firstValue=first.item.values[field.id] ? 1 : 0;
+        secondValue=second.item.values[field.id] ? 1 : 0;
+      } else if (field?.type==="date"){
+        firstValue=first.item.values[field.id]||"9999-99-99";
+        secondValue=second.item.values[field.id]||"9999-99-99";
+      } else if (field){
+        firstValue=fieldSortValue(field,first.item.values[field.id]);
+        secondValue=fieldSortValue(field,second.item.values[field.id]);
+      } else {
+        firstValue=first.item.updatedAt; secondValue=second.item.updatedAt;
+      }
+      if (firstValue<secondValue) return listSort.dir==="asc" ? -1 : 1;
+      if (firstValue>secondValue) return listSort.dir==="asc" ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function csvFieldValue(field,value){
+    if (value==null || value==="") return "";
+    if (field.type==="priority") return PRIORITY_OPTIONS.find(option=>option.id===value)?.label||String(value);
+    if (field.type==="select") return (field.options||[]).find(option=>option.id===value)?.label||String(value);
+    if (field.type==="multi-select") return (Array.isArray(value)?value:[]).map(id=>(field.options||[]).find(option=>option.id===id)?.label||"").filter(Boolean).join("; ");
+    if (field.type==="checkbox") return value===true || ["true","1","yes"].includes(String(value).toLowerCase()) ? "Yes" : "No";
+    return String(value);
+  }
+
+  function serializeCsvRows(rows){
+    return rows.map(row=>row.map(value=>{
+      let text=String(value??"");
+      const leading=text.trimStart();
+      const isNumber=/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(leading);
+      if (/^[=+@\-\t\r]/.test(leading) && !isNumber) text="'"+text;
+      return `"${text.replace(/"/g,'""')}"`;
+    }).join(",")).join("\r\n");
+  }
+
+  function buildProjectCsv(project,viewType,showProgressColumn,rows){
+    const showGroupColumn=project.groups.length>1;
+    const columns=[
+      {id:"title",label:"Title",value:row=>row.item.title},
+      ...(showGroupColumn?[{id:"group",label:"Group",value:row=>row.group.name}]:[]),
+      ...project.fields.map(field=>({id:`field:${field.id}`,label:field.label,value:row=>csvFieldValue(field,row.item.values[field.id])})),
+      {id:"tags",label:"Tags",value:row=>(row.item.tagIds||[]).map(id=>project.tags.find(tag=>tag.id===id)?.name||"").filter(Boolean).join("; ")},
+      ...(viewType==="list" && showProgressColumn?[{id:"progress",label:"Progress",value:row=>row.item.subitems.length?`${row.item.subitems.filter(subitem=>subitem.done).length}/${row.item.subitems.length}`:""}]:[]),
+      ...(viewType==="list"?[{id:"updated",label:"Updated",value:row=>formatUpdatedAt(row.item.updatedAt)}]:[])
+    ];
+    const byId=new Map(columns.map(column=>[column.id,column]));
+    const ordered=orderedTableColumns(project,viewType,columns.map(column=>column.id)).map(id=>byId.get(id)).filter(Boolean);
+    return serializeCsvRows([ordered.map(column=>column.label),...rows.map(row=>ordered.map(column=>column.value(row)))]);
+  }
+
+  function exportProjectCsv(project,viewType,showProgressColumn=false){
+    const rows=sortProjectRows(project,rowsForSelection(project));
+    const csv=buildProjectCsv(project,viewType,showProgressColumn,rows);
+    const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    const safeName=project.name.trim().replace(/[<>:"/\\|?*\x00-\x1f]/g,"-")||"beforework";
+    link.href=url;
+    link.download=`${safeName}.csv`;
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
   /* ---------- Rendering: shell ---------- */
   function renderAll(){
     renderProjectList();
@@ -2227,6 +2305,7 @@
     const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group">${columnDragHandleHtml("Group")}<span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
+        <button class="btn btn-sm exportCsvBtn" id="exportCsvBtn" type="button"><iconify-icon icon="mdi:download" aria-hidden="true"></iconify-icon><span>Export CSV</span></button>
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
       </div>
       <div class="bulkBar">
@@ -2262,6 +2341,7 @@
       openNewItemModal(project, project.groups[0]);
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
+    document.getElementById("exportCsvBtn").onclick = () => exportProjectCsv(project,"list",showProgressColumn);
     const updateSelection = () => {
       const selected = [...selectedItemIds];
       const selectedItems = project.groups.flatMap(group => group.items).filter(item => selected.includes(item.id));
@@ -2317,29 +2397,7 @@
       };
     });
 
-    let rows = [];
-    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it, g)).forEach(it=> rows.push({item:it, group:g})));
-
-    rows.sort((a,b)=>{
-      let va, vb;
-      const f = project.fields.find(x=>x.id===listSort.field);
-      if (listSort.field==="title"){ va=a.item.title.toLowerCase(); vb=b.item.title.toLowerCase(); }
-      else if (listSort.field==="group"){ va=a.group.name.toLowerCase(); vb=b.group.name.toLowerCase(); }
-      else if (listSort.field==="updated"){ va=a.item.updatedAt; vb=b.item.updatedAt; }
-      else if (f && f.type==="priority"){
-        va=(PRIORITY_OPTIONS.find(o=>o.id===a.item.values[f.id])||{rank:0}).rank;
-        vb=(PRIORITY_OPTIONS.find(o=>o.id===b.item.values[f.id])||{rank:0}).rank;
-      } else if (f && f.type==="checkbox"){
-        va = a.item.values[f.id] ? 1 : 0; vb = b.item.values[f.id] ? 1 : 0;
-      } else if (f && f.type==="date"){
-        va=a.item.values[f.id]||"9999-99-99"; vb=b.item.values[f.id]||"9999-99-99";
-      } else if (f){
-        va=fieldSortValue(f,a.item.values[f.id]); vb=fieldSortValue(f,b.item.values[f.id]);
-      } else { va=a.item.updatedAt; vb=b.item.updatedAt; }
-      if (va<vb) return listSort.dir==="asc" ? -1 : 1;
-      if (va>vb) return listSort.dir==="asc" ? 1 : -1;
-      return 0;
-    });
+    const rows=sortProjectRows(project,rowsForSelection(project));
 
     const tbody = document.getElementById("listTbody");
     const colCount = 4 + project.fields.length + (showGroupColumn?1:0) + (showProgressColumn?1:0);
@@ -2391,6 +2449,7 @@
     const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group">${columnDragHandleHtml("Group")}<span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
     wrap.innerHTML = `
       <div class="listAddRow">
+        <button class="btn btn-sm exportCsvBtn" id="exportCsvBtn" type="button"><iconify-icon icon="mdi:download" aria-hidden="true"></iconify-icon><span>Export CSV</span></button>
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
       </div>
       <div class="bulkBar">
@@ -2424,6 +2483,7 @@
       openNewItemModal(project, project.groups[0]);
     };
     document.getElementById("quickAddBtn").onclick = doQuickAdd;
+    document.getElementById("exportCsvBtn").onclick = () => exportProjectCsv(project,"table");
     const updateSelection = () => {
       const selected = [...selectedItemIds];
       const selectedItems = project.groups.flatMap(group => group.items).filter(item => selected.includes(item.id));
@@ -2479,29 +2539,7 @@
       };
     });
 
-    let rows = [];
-    project.groups.forEach(g=> g.items.filter(it=>itemMatchesFilter(project, it, g)).forEach(it=> rows.push({item:it, group:g})));
-
-    rows.sort((a,b)=>{
-      let va, vb;
-      const f = project.fields.find(x=>x.id===listSort.field);
-      if (listSort.field==="title"){ va=a.item.title.toLowerCase(); vb=b.item.title.toLowerCase(); }
-      else if (listSort.field==="group"){ va=a.group.name.toLowerCase(); vb=b.group.name.toLowerCase(); }
-      else if (listSort.field==="updated"){ va=a.item.updatedAt; vb=b.item.updatedAt; }
-      else if (f && f.type==="priority"){
-        va=(PRIORITY_OPTIONS.find(o=>o.id===a.item.values[f.id])||{rank:0}).rank;
-        vb=(PRIORITY_OPTIONS.find(o=>o.id===b.item.values[f.id])||{rank:0}).rank;
-      } else if (f && f.type==="checkbox"){
-        va = a.item.values[f.id] ? 1 : 0; vb = b.item.values[f.id] ? 1 : 0;
-      } else if (f && f.type==="date"){
-        va=a.item.values[f.id]||"9999-99-99"; vb=b.item.values[f.id]||"9999-99-99";
-      } else if (f){
-        va=fieldSortValue(f,a.item.values[f.id]); vb=fieldSortValue(f,b.item.values[f.id]);
-      } else { va=a.item.updatedAt; vb=b.item.updatedAt; }
-      if (va<vb) return listSort.dir==="asc" ? -1 : 1;
-      if (va>vb) return listSort.dir==="asc" ? 1 : -1;
-      return 0;
-    });
+    const rows=sortProjectRows(project,rowsForSelection(project));
 
     const tbody = document.getElementById("listTbody");
     const colCount = 3 + project.fields.length + (showGroupColumn?1:0);
