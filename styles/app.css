@@ -761,7 +761,7 @@
   .mainSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .mainSectionHead .mainSectionLabel{margin:0;}
   .mainSectionLabel{font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:0.02em;}
-  #itemDescInput{min-height:120px;max-height:220px;height:140px;padding:12px 12px;border-radius:10px;resize:none;overflow-y:auto;}
+  textarea{min-height:120px;max-height:220px;height:140px;padding:12px 12px;border-radius:10px;resize:none;overflow-y:auto;}
   .subitemsProgress{display:flex;align-items:center;gap:8px;}
   .subitemsProgress .progressTrack{flex:1;}
   .subitemsProgressCount{font-size:11.5px;color:var(--faint);flex:none;}
