@@ -3876,8 +3876,10 @@
     select.dataset.appSelectEnhanced="true";
     const wrapper=document.createElement("div");
     wrapper.className="appSelectWrap";
+    const isTableSelect=!!select.closest(".listTable");
     const width=select.getBoundingClientRect().width;
-    if (width>0) wrapper.style.width=`${width}px`;
+    if (isTableSelect) wrapper.style.width="100%";
+    else if (width>0) wrapper.style.width=`${width}px`;
     select.parentNode.insertBefore(wrapper,select);
     wrapper.appendChild(select);
     select.classList.add("appSelectNative");
@@ -4016,7 +4018,7 @@
     };
     const positionPopover=()=>{
       const rect=wrapper.getBoundingClientRect();
-      const width=Math.min(278,window.innerWidth-24,rect.width||278);
+      const width=Math.min(278,window.innerWidth-24);
       popover.style.width=`${Math.max(1,width)}px`;
       popover.style.left=`${Math.max(12,Math.min(rect.left,window.innerWidth-width-12))}px`;
       popover.style.top=`${rect.bottom+6}px`;

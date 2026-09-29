@@ -663,13 +663,15 @@
   .dialogSelectOptionLabel{display:block;line-height:1.4;}
   .dialogSelectOptionMeta{display:block;color:var(--fg-muted);font-size:11px;line-height:1.4;}
   .appSelectWrap{position:relative;display:inline-flex;min-width:0;}
+  .listTable .appSelectWrap{display:flex;width:100%!important;min-width:0;}
   .appSelectNative{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;}
   .appSelectButton{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-width:112px;min-height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
+  .listTable .appSelectButton{min-width:0;}
   .appSelectButton:hover,.appSelectButton[aria-expanded="true"]{border-color:var(--border-strong);background:var(--bg-soft);}
   .appSelectButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
   .appSelectButton>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .appSelectButton>iconify-icon{flex:none;color:var(--muted);font-size:16px;}
-  .appSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;min-width:100%;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .appSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .appSelectMenu[hidden]{display:none;}
   .appSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
   .appSelectOption:hover,.appSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
@@ -708,8 +710,10 @@
   input[type="date"]::-webkit-calendar-picker-indicator,input[type="time"]::-webkit-calendar-picker-indicator,input[type="datetime-local"]::-webkit-calendar-picker-indicator{margin-left:6px;opacity:.65;cursor:pointer;}
   input[type="date"]::-webkit-calendar-picker-indicator:hover,input[type="time"]::-webkit-calendar-picker-indicator:hover,input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
   .datePickerWrap{position:relative;display:inline-flex;min-width:0;}
+  .listTable .datePickerWrap{display:flex;width:180px!important;max-width:100%;min-width:0;}
   .datePickerNative{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;}
   .datePickerButton{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:34px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font:inherit;font-size:13px;text-align:left;cursor:pointer;}
+  .listTable .datePickerButton{min-width:0;}
   .datePickerButton:hover,.datePickerButton[aria-expanded="true"]{border-color:var(--border-strong);background:var(--bg-soft);}
   .datePickerButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
   .datePickerButton span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
