@@ -3819,11 +3819,12 @@
   function positionFloatingSelectMenu(button,menu){
     if (!button?.isConnected || menu.hidden) return;
     const rect=button.getBoundingClientRect();
-    const naturalHeight=Math.min(menu.scrollHeight,220);
+    const menuMaxHeight=Math.min(360,window.innerHeight-16);
+    const naturalHeight=Math.min(menu.scrollHeight,menuMaxHeight);
     const spaceBelow=window.innerHeight-rect.bottom-8;
     const spaceAbove=rect.top-8;
     const placeAbove=spaceBelow<naturalHeight && spaceAbove>spaceBelow;
-    const maxHeight=Math.max(40,Math.min(220,placeAbove?spaceAbove:spaceBelow));
+    const maxHeight=Math.max(40,Math.min(menuMaxHeight,placeAbove?spaceAbove:spaceBelow));
     const width=Math.min(rect.width,window.innerWidth-16);
     menu.style.maxHeight=`${maxHeight}px`;
     menu.style.width=`${width}px`;
