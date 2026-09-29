@@ -2,7 +2,7 @@
 
 ![Beforework logo](images/icon-wide.png)
 
-Beforework is a private, local-first project management workspace for tasks, projects, calendars, and focus sessions. It runs as a static site and stores workspace data as user-owned JSON files inside a folder you choose on your device.
+Beforework is a serverless local-first project management workspace for projects, tasks, calendars, and focus sessions. Work across List, Table, Board, and Calendar views, and add custom fields, comments, checklists, reminders, and multiple file attachments to items. The static app stores workspace data in folders you choose on your device rather than any server. Optional Google Calendar integration connects to Google separately.
 
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/f27b347e-af08-4e8b-a335-67ca0cd799f7" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/1ee74fc4-b7cf-4a70-9efc-f57958458c94" />
@@ -24,15 +24,18 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 
 ## Features
 
-- Project, folder, task, and group management
-- Duplicate projects, project tasks, and standalone calendar items
+- Projects, folders, groups, tasks, and standalone calendar items
 - List, table, board, and calendar views
-- Tags, priorities, due dates, custom fields, and archived items
-- Overview dashboard with workload and progress summaries
-- Focus timer
-- Browser notifications for scheduled reminders and due-today tasks while the app is open
-- Optional Google Calendar synchronisation
-- Folder-based JSON workspaces with single-file JSON compatibility
+- Custom fields for text, dates, checkboxes, priority, single- and multi-selects, URLs, email addresses, and numbers
+- Tags, subtasks, comments, activity history, archiving, recurring schedules, and reminders
+- Multiple file attachments per item in folder workspaces
+- Drag-and-drop data-column ordering saved independently for List and Table views
+- CSV export of the current filtered List or Table view, in visible column and row order
+- Searchable overview statistics, workload and progress summaries, and a focus timer
+- Keyboard shortcuts and a command palette for common actions
+- Browser notifications for reminders and tasks due today while the app is open
+- Optional Google Calendar integration
+- Folder-based JSON workspaces with legacy single-file JSON import and migration support
 
 ## Run locally
 
@@ -46,7 +49,7 @@ python3 -m http.server 8000
 
 Then open <http://localhost:8000/> in Chrome or Edge and create a workspace folder, open an existing folder workspace, or connect an older single-file JSON workspace.
 
-Local hosting starts with an empty workspace by default. To explore the sample workspace without building anything locally, visit the [Beforework demo](https://beforework-demo.netlify.app/).
+Local hosting starts with an empty workspace by default. To explore a sample workspace without building anything locally, visit the [Beforework demo](https://beforework-demo.netlify.app/).
 
 For development, if you need to run the demo data locally, build and serve the generated site with demo mode enabled:
 
@@ -60,7 +63,7 @@ On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-s
 
 ## Deploy
 
-This is a static site. Netlify runs `node scripts/build-site.js` and publishes `dist`. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspace files with sample projects and calendar items. The default is `clean`, which creates an empty workspace.
+This is a static site. Netlify runs `node scripts/build-site.js` and publishes `dist`. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspaces with sample projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which starts with an empty workspace.
 
 To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Changes to an existing workspace file are unaffected by this setting.
 
@@ -74,9 +77,9 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 
 ## Data format and upgrades
 
-Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Existing single-file workspace JSON remains supported and can be copied into a new folder workspace.
+Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Existing single-file workspace JSON remains supported and can be opened or migrated into a folder workspace. List and Table column arrangements are saved per project and view.
 
-Item attachments are stored as separate files under the workspace's `attachments/` directory, with multiple attachments supported per project or calendar item. Attachments require a folder workspace; they are not embedded in legacy single-file JSON. Browser recovery snapshots contain workspace JSON and attachment metadata, not the attachment file contents.
+Item attachments are stored as separate files under the workspace's `attachments/` directory, with multiple attachments supported per project or calendar item. Attachments require a folder workspace; they are not embedded in legacy single-file JSON. Browser recovery snapshots contain workspace JSON and attachment metadata, not the attachment file contents. The demo workspace includes a downloadable plain-text project-notes attachment. CSV exports contain the current filtered rows and visible columns; values are escaped for CSV and spreadsheet formula safety.
 
 When an older or unversioned workspace is opened or imported, Beforework validates its structure and applies migrations in order until it reaches the current schema. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older data recoverable.
 
@@ -91,14 +94,18 @@ New schema changes should add a new migration step rather than changing an exist
 ## Project structure
 
 - `index.html` - application shell
-- `js/` - application logic, persistence, integrations, and view templates
-- `js/demo-seeder.js` - sample personal and professional workspace data
+- `js/app.js` - application behavior, rendering, column controls, and CSV export
+- `js/storage.js` and `js/folder-workspace.js` - local workspace persistence and attachments
+- `js/demo-seeder.js` - sample projects, items, fields, and demo attachment
+- `js/models/` and `js/views/` - overview details and settings views
+- `js/google-calendar.js` - optional Google Calendar integration
 - `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace data
 - `js/workspace-validation.js` - validation for imports and connected workspace files
-- `js/folder-workspace.js` - manifest and project/calendar JSON shard storage
 - `pages/` - dashboard and settings page fragments
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
+- `scripts/build-site.js` - static production build
+- `tests/` - Node.js regression tests
 
 ## Funding & Sponsorship
 Beforework is a source-available, local-first project maintained to give people a private and portable way to manage projects, tasks, and calendars. If you find it useful, sponsorship helps support ongoing maintenance, browser compatibility, accessibility, documentation, and new privacy-focused features.
@@ -109,8 +116,6 @@ Beforework is a source-available, local-first project maintained to give people 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20Developer-yellow?logo=buymeacoffee&style=flat-square)](https://www.buymeacoffee.com/shresthabishal)
 [![Thanks.dev](https://img.shields.io/badge/Thanks.dev-Appreciate%20Open%20Source-29abe0?logo=github&style=flat-square)](https://thanks.dev/gh/shrestha-bishal)
 
-
-## License
 
 ## License
 
