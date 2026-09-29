@@ -3582,6 +3582,73 @@
     if (el) el.remove();
     openItemRef = null;
   }
+  function enhanceSelectControl(select){
+    if (select.dataset.appSelectEnhanced || !select.options.length) return;
+    select.dataset.appSelectEnhanced="true";
+    const wrapper=document.createElement("div");
+    wrapper.className="appSelectWrap";
+    const width=select.getBoundingClientRect().width;
+    if (width>0) wrapper.style.width=`${width}px`;
+    select.parentNode.insertBefore(wrapper,select);
+    wrapper.appendChild(select);
+    select.classList.add("appSelectNative");
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="appSelectButton";
+    button.setAttribute("aria-haspopup","listbox");
+    button.setAttribute("aria-expanded","false");
+    const label=document.createElement("span");
+    const chevron=document.createElement("iconify-icon");
+    chevron.setAttribute("icon","mdi:chevron-down");
+    chevron.setAttribute("aria-hidden","true");
+    button.append(label,chevron);
+    const menu=document.createElement("div");
+    menu.className="appSelectMenu";
+    menu.setAttribute("role","listbox");
+    menu.hidden=true;
+    const options=[...select.options].map(option=>{
+      const item=document.createElement("button");
+      item.type="button";
+      item.className="appSelectOption";
+      item.setAttribute("role","option");
+      item.dataset.value=option.value;
+      item.textContent=option.textContent;
+      menu.appendChild(item);
+      return item;
+    });
+    wrapper.append(button,menu);
+    const sync=()=>{
+      const selected=select.options[select.selectedIndex]||select.options[0];
+      label.textContent=selected.textContent;
+      options.forEach((option,index)=>{
+        const active=select.options[index]===selected;
+        option.classList.toggle("selected",active);
+        option.setAttribute("aria-selected",String(active));
+      });
+    };
+    const close=()=>{ menu.hidden=true; button.setAttribute("aria-expanded","false"); };
+    const open=()=>{ menu.hidden=false; button.setAttribute("aria-expanded","true"); options.find(option=>option.dataset.value===select.value)?.focus(); };
+    button.onclick=event=>{ event.stopPropagation(); menu.hidden ? open() : close(); };
+    button.onkeydown=event=>{
+      if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
+    };
+    options.forEach(option=>option.onclick=()=>{
+      select.value=option.dataset.value;
+      select.dispatchEvent(new Event("change",{bubbles:true}));
+      sync(); close(); button.focus();
+    });
+    menu.onkeydown=event=>{
+      const current=Math.max(0,options.indexOf(document.activeElement));
+      if (event.key==="ArrowDown"){ event.preventDefault(); options[Math.min(options.length-1,current+1)]?.focus(); }
+      if (event.key==="ArrowUp"){ event.preventDefault(); options[Math.max(0,current-1)]?.focus(); }
+      if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
+    };
+    select.addEventListener("change",sync);
+    sync();
+  }
+  function enhanceSelectControls(root=document){
+    root.querySelectorAll("select:not([data-app-select-enhanced])").forEach(enhanceSelectControl);
+  }
   function showDialog({title, message="", fields=[], confirmLabel="Continue", secondaryLabel="", danger=false, cancelLabel="Cancel"}){
     if (showDialog.finishActive) showDialog.finishActive(null);
     return new Promise(resolve=>{
@@ -3620,9 +3687,10 @@
           </div></div>`;
         }
         if (field.type === "select"){
-          const options = (field.options||[]).map(option=>
-            `<option value="${escapeHtml(option.value)}" ${option.value===field.value?"selected":""}>${escapeHtml(option.label)}</option>`).join("");
-          return `<div class="modalRow">${label}<select class="form-control" id="${id}">${options}</select></div>`;
+          const selectedOption=(field.options||[]).find(option=>option.value===field.value)||(field.options||[])[0];
+          const options = (field.options||[]).map((option,optionIndex)=>
+            `<button type="button" class="dialogSelectOption${option.value===selectedOption?.value?" selected":""}" role="option" aria-selected="${option.value===selectedOption?.value}" data-value="${escapeHtml(option.value)}" data-index="${optionIndex}">${escapeHtml(option.label)}</button>`).join("");
+          return `<div class="modalRow">${label}<div class="dialogSelectWrap"><input type="hidden" id="${id}" value="${escapeHtml(selectedOption?.value||"")}"><button type="button" class="dialogSelectButton" id="${id}Button" aria-haspopup="listbox" aria-expanded="false"><span>${escapeHtml(selectedOption?.label||"")}</span><iconify-icon icon="mdi:chevron-down" aria-hidden="true"></iconify-icon></button><div class="dialogSelectMenu" role="listbox" aria-label="${escapeHtml(field.label||"Select an option")}" hidden>${options}</div></div></div>`;
         }
         const type = field.type === "textarea" ? "textarea" : "input";
         const control = type === "textarea"
@@ -3650,6 +3718,31 @@
       };
       showDialog.finishActive = finish;
       fields.forEach((field,index)=>{
+        if (field.type === "select"){
+          const button = overlay.querySelector(`#dialogField${index}Button`);
+          const input = overlay.querySelector(`#dialogField${index}`);
+          const menu = overlay.querySelector(`#dialogField${index}Button + .dialogSelectMenu`);
+          const options = [...menu.querySelectorAll(".dialogSelectOption")];
+          const close = () => { menu.hidden=true; button.setAttribute("aria-expanded","false"); };
+          const open = () => { menu.hidden=false; button.setAttribute("aria-expanded","true"); options.find(option=>option.dataset.value===input.value)?.focus(); };
+          button.onclick = event => { event.stopPropagation(); menu.hidden ? open() : close(); };
+          button.onkeydown = event => {
+            if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
+          };
+          options.forEach(option=>option.onclick=()=>{
+            input.value=option.dataset.value;
+            button.querySelector("span").textContent=option.textContent;
+            options.forEach(candidate=>{ candidate.classList.toggle("selected",candidate===option); candidate.setAttribute("aria-selected",String(candidate===option)); });
+            close(); button.focus();
+          });
+          menu.onkeydown = event => {
+            const current=Math.max(0,options.indexOf(document.activeElement));
+            if (event.key==="ArrowDown"){ event.preventDefault(); options[Math.min(options.length-1,current+1)]?.focus(); }
+            if (event.key==="ArrowUp"){ event.preventDefault(); options[Math.max(0,current-1)]?.focus(); }
+            if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
+          };
+          return;
+        }
         if (field.type === "iconPicker"){
           const defaults = overlay.querySelector(`#projectIconDefaults${index}`);
           const moreButton = overlay.querySelector(`#projectIconMore${index}`);
@@ -3745,7 +3838,7 @@
         finish(values.length===1 ? values[0] : values.length ? values : "__confirm__");
       };
       overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(null); });
-      const first = overlay.querySelector("input, textarea, select");
+      const first = overlay.querySelector("input:not([type='hidden']), textarea, select, .dialogSelectButton");
       if (first) first.focus();
     });
   }
@@ -4468,6 +4561,17 @@
     initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
+    enhanceSelectControls();
+    new MutationObserver(mutations=>mutations.forEach(mutation=>mutation.addedNodes.forEach(node=>{
+      if (node.nodeType===Node.ELEMENT_NODE) enhanceSelectControls(node);
+    }))).observe(document.body,{childList:true,subtree:true});
+    document.addEventListener("click",event=>{
+      if (event.target.closest(".appSelectWrap,.dialogSelectWrap")) return;
+      document.querySelectorAll(".appSelectMenu:not([hidden]),.dialogSelectMenu:not([hidden])").forEach(menu=>{
+        menu.hidden=true;
+        menu.previousElementSibling?.setAttribute("aria-expanded","false");
+      });
+    });
     reminderService.start();
     if (NETLIFY_IDENTITY_ENABLED){
       try{

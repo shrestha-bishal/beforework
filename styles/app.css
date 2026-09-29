@@ -631,6 +631,31 @@
   .modalRow{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
   .modalRow label{font-size:12px;font-weight:600;color:var(--muted);}
   .modalRow .form-control{width:100%;}
+  .dialogSelectWrap{position:relative;}
+  .dialogSelectButton{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:13px;text-align:left;cursor:pointer;}
+  .dialogSelectButton:hover,.dialogSelectButton[aria-expanded="true"]{border-color:var(--border-strong);background:var(--bg-soft);}
+  .dialogSelectButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
+  .dialogSelectButton span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dialogSelectButton iconify-icon{flex:none;color:var(--muted);font-size:16px;}
+  .dialogSelectMenu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;display:flex;max-height:220px;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .dialogSelectMenu[hidden]{display:none;}
+  .dialogSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:13px;text-align:left;cursor:pointer;}
+  .dialogSelectOption:hover,.dialogSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
+  .dialogSelectOption.selected{background:var(--bg-soft);color:var(--text);font-weight:600;}
+  .dialogSelectOption.selected::after{margin-left:auto;color:var(--accent-strong);content:"✓";font-size:13px;}
+  .appSelectWrap{position:relative;display:inline-flex;min-width:0;}
+  .appSelectNative{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;}
+  .appSelectButton{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-width:112px;min-height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
+  .appSelectButton:hover,.appSelectButton[aria-expanded="true"]{border-color:var(--border-strong);background:var(--bg-soft);}
+  .appSelectButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
+  .appSelectButton>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .appSelectButton>iconify-icon{flex:none;color:var(--muted);font-size:16px;}
+  .appSelectMenu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;display:flex;max-height:220px;min-width:100%;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .appSelectMenu[hidden]{display:none;}
+  .appSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
+  .appSelectOption:hover,.appSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
+  .appSelectOption.selected{background:var(--bg-soft);color:var(--text);font-weight:600;}
+  .appSelectOption.selected::after{margin-left:auto;color:var(--accent-strong);content:"✓";font-size:13px;}
   .tagColorGrid{display:grid;grid-template-columns:repeat(6,34px);gap:8px;align-items:center;}
   .tagColorOption,.tagColorCustomOption{position:relative;display:grid;place-items:center;width:34px;height:34px;border:1px solid transparent;border-radius:7px;cursor:pointer;}
   .tagColorOption input[type="radio"],.tagColorCustomOption input[type="radio"]{position:absolute;width:1px;height:1px;margin:0;opacity:0;}
