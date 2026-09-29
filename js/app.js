@@ -1198,11 +1198,11 @@
   }
   async function addColumnFlow(project){
     const details = await showDialog({title:"Add column", fields:[
-      {label:"Column name", placeholder:"e.g. Status, Type, Effort"},
-      {label:"Column type", type:"select", options:FIELD_TYPE_OPTIONS.map(({value,label,description})=>({value,label,description})), value:"select"}
+      {label:"Column type", type:"select", options:FIELD_TYPE_OPTIONS.map(({value,label,description})=>({value,label,description})), value:"select"},
+      {label:"Column name", placeholder:"e.g. Status, Type, Effort"}
     ], confirmLabel:"Add column"});
     if (!details) return;
-    const [label,type] = details;
+    const [type,label] = details;
     if (!label || !label.trim()) return;
     await addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
   }
