@@ -46,6 +46,7 @@
     {value:"text", label:"Text", description:"Freeform notes or details."},
     {value:"checkbox", label:"Checkbox", description:"Yes/no or done/not done flag."},
     {value:"url", label:"URL", description:"Link to a website or online resource."},
+    {value:"email", label:"Email", description:"Store a contact email address."},
     {value:"number", label:"Number", description:"Store a count, estimate, or other numeric value."},
     {value:"multi-select", label:"Multi-select", description:"Choose more than one option."},
   ];
@@ -1415,6 +1416,10 @@
       const href=safeUrlHref(value);
       return href ? `<a class="fieldUrlLink" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(value)}</a>` : (value ? escapeHtml(value) : "-");
     }
+    if (field.type==="email"){
+      const href=safeEmailHref(value);
+      return href ? `<a class="fieldUrlLink" href="${escapeHtml(href)}">${escapeHtml(value)}</a>` : (value ? escapeHtml(value) : "-");
+    }
     if (field.type==="number") return value!=="" && value!=null ? escapeHtml(String(value)) : "-";
     return value ? escapeHtml(value) : "-";
   }
@@ -1426,6 +1431,11 @@
       const url=new URL(/^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`);
       return url.protocol==="http:" || url.protocol==="https:" ? url.href : "";
     }catch(err){ return ""; }
+  }
+
+  function safeEmailHref(value){
+    const address=String(value??"").trim();
+    return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(address) ? `mailto:${address}` : "";
   }
 
   function fieldSortValue(field,value){
@@ -1458,7 +1468,7 @@
       if (mode==="__none__"){ if (val) return false; }
       else {
         const field = project?.fields?.find(candidate=>candidate.id===fid);
-        if (field?.type==="text" || field?.type==="url"){
+        if (field?.type==="text" || field?.type==="url" || field?.type==="email"){
           if (!val.toLowerCase().includes(mode.toLowerCase())) return false;
         } else if (field?.type==="number"){
           if (val==="" || Number(val)!==Number(mode)) return false;
@@ -2005,7 +2015,7 @@
       const current = boardFilterFields.get(f.id);
       let control;
       if (f.type==="date") control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (f.type==="text" || f.type==="url") control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${f.type==="url"?"Filter URL":"Enter text"}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else if (f.type==="text" || f.type==="url" || f.type==="email") control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${f.type==="url"?"Filter URL":f.type==="email"?"Filter email":"Enter text"}" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="number") control = `<input class="form-control" type="number" step="any" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="Exact value" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="checkbox") {
         const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
@@ -2449,6 +2459,7 @@
         }
         if (f.type==="number") return `<td class="${TD_CLASS}"><input type="number" step="any" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
         if (f.type==="url") return `<td class="${TD_CLASS}"><input type="url" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}" placeholder="https://..."></td>`;
+        if (f.type==="email") return `<td class="${TD_CLASS}"><input type="email" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}" placeholder="name@example.com"></td>`;
         return `<td class="${TD_CLASS}"><input type="text" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
       }).join("");
       return `<tr data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
@@ -4247,6 +4258,7 @@
       return `<div class="sideItem sideItemCheckbox"><div class="sideItemLabel">${escapeHtml(field.label)}</div><label class="checkboxFieldControl"><input type="checkbox" class="fieldInput" data-fieldid="${field.id}" value="true" ${isChecked?"checked":""}><span class="checkboxFieldValue">${isChecked ? "Yes" : "No"}</span></label></div>`;
     }
     if (field.type==="url") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="url" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}" placeholder="https://example.com"></div>`;
+    if (field.type==="email") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="email" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}" placeholder="name@example.com"></div>`;
     if (field.type==="number") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="number" step="any" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
     return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
   }
