@@ -61,30 +61,43 @@
       }
     });
   }
-  function createCommandPalette({getCommands, canOpen=()=>true, getInitialQuery=()=>"", onQueryChange=()=>{}, onClose=()=>{}, documentRef=global.document, storage=global.localStorage, platform=global.navigator?.platform||""}){
+  function createCommandPalette({getCommands, canOpen=()=>true, getInitialQuery=()=>"", onQueryChange=()=>{}, onClose=()=>{}, onTemplateError=error=>console.error(error), cloneTemplate, documentRef=global.document, storage=global.localStorage, platform=global.navigator?.platform||""}){
     const previousFocus = {element:null};
     const keyLabel = /Mac|iPhone|iPad/.test(platform) ? "⌘ K" : "Ctrl K";
-    const overlay = documentRef.createElement("div");
-    overlay.className = "commandPaletteOverlay";
-    overlay.hidden = true;
-    overlay.innerHTML = `<section class="commandPaletteDialog" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
-      <h2 class="sr-only" id="commandPaletteTitle">Search and run a command</h2>
-      <div class="commandPaletteSearchRow">
-        <iconify-icon icon="mdi:magnify" aria-hidden="true"></iconify-icon>
-        <input class="commandPaletteInput" type="search" placeholder="Search projects, tasks, or actions" autocomplete="off" aria-label="Search projects, tasks, or actions" aria-controls="commandPaletteResults" aria-expanded="true">
-        <kbd class="commandPaletteEsc">ESC</kbd>
-      </div>
-      <div class="commandPaletteResults" id="commandPaletteResults" role="listbox" aria-label="Commands and search results"></div>
-      <div class="commandPaletteFooter"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate <kbd>↵</kbd> Run</span><span>${keyLabel} Open</span></div>
-    </section>`;
-    const input = overlay.querySelector(".commandPaletteInput");
-    const results = overlay.querySelector(".commandPaletteResults");
+    let overlay = null;
+    let input = null;
+    let results = null;
+    let overlayPromise = null;
     let commands = [];
     let commandCache = null;
     let commandSearchIndex = null;
     let rankedResults = [];
     let activeIndex = 0;
     let isOpen = false;
+    let isOpening = false;
+    let openingQuery = "";
+    let openSequence = 0;
+    let openPromise = null;
+
+    function ensureOverlay(){
+      if (overlay) return Promise.resolve(overlay);
+      if (overlayPromise) return overlayPromise;
+      overlayPromise=Promise.resolve().then(()=>cloneTemplate()).then(root=>{
+        overlay=root;
+        overlay.hidden=true;
+        input=overlay.querySelector(".commandPaletteInput");
+        results=overlay.querySelector(".commandPaletteResults");
+        overlay.querySelector("[data-palette-shortcut]").textContent=keyLabel;
+        input.addEventListener("input",()=>{ activeIndex=0; onQueryChange(input.value); render(); });
+        overlay.addEventListener("click",event=>{ if (event.target===overlay) close(); });
+        documentRef.body.appendChild(overlay);
+        return overlay;
+      }).catch(error=>{
+        overlayPromise=null;
+        throw error;
+      });
+      return overlayPromise;
+    }
 
     function readRecents(){
       try{
@@ -206,15 +219,28 @@
       results.querySelector(`#commandPaletteOption${activeIndex}`)?.scrollIntoView({block:"nearest"});
     }
     function open(initialQuery){
-      if (!canOpen()) return;
-      if (isOpen){ input.focus(); return; }
-      previousFocus.element=documentRef.activeElement;
-      input.value=String(initialQuery??getInitialQuery?.()??"");
-      activeIndex=0;
-      overlay.hidden=false;
-      isOpen=true;
-      render();
-      input.focus();
+      if (!canOpen()) return Promise.resolve();
+      if (isOpen){ input.focus(); return Promise.resolve(); }
+      openingQuery=String(initialQuery??getInitialQuery?.()??"");
+      if (isOpening) return openPromise;
+      const sequence=++openSequence;
+      const focusTarget=documentRef.activeElement;
+      isOpening=true;
+      openPromise=ensureOverlay().then(()=>{
+        if (sequence!==openSequence || !canOpen()) return;
+        previousFocus.element=focusTarget;
+        input.value=openingQuery;
+        activeIndex=0;
+        overlay.hidden=false;
+        isOpen=true;
+        render();
+        input.focus();
+      }).catch(error=>{
+        if (sequence===openSequence) onTemplateError(error);
+      }).finally(()=>{
+        if (sequence===openSequence) isOpening=false;
+      });
+      return openPromise;
     }
     function refreshCommands(){
       commandCache=null;
@@ -222,6 +248,8 @@
       if (isOpen){ activeIndex=0; render(); }
     }
     function close(){
+      openSequence++;
+      isOpening=false;
       if (!isOpen) return;
       overlay.hidden=true;
       isOpen=false;
@@ -234,7 +262,7 @@
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase()==="k"){
         event.preventDefault();
         event.stopPropagation();
-        if (isOpen) close(); else open();
+        if (isOpen || isOpening) close(); else open();
         return;
       }
       if (!isOpen) return;
@@ -254,11 +282,7 @@
       }
       if (isOpen) event.stopPropagation();
     }
-    input.addEventListener("input",()=>{ activeIndex=0; onQueryChange(input.value); render(); });
-    overlay.addEventListener("click",event=>{ if (event.target===overlay) close(); });
     documentRef.addEventListener("keydown",onKeydown,true);
-    documentRef.body.appendChild(overlay);
-
     return Object.freeze({open,close,isOpen:()=>isOpen,refreshCommands});
   }
 

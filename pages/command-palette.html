@@ -1,0 +1,14 @@
+<template id="commandPalette">
+  <div class="commandPaletteOverlay" data-command-palette-overlay hidden>
+    <section class="commandPaletteDialog" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+      <h2 class="sr-only" id="commandPaletteTitle">Search and run a command</h2>
+      <div class="commandPaletteSearchRow">
+        <iconify-icon icon="mdi:magnify" aria-hidden="true"></iconify-icon>
+        <input class="commandPaletteInput" type="search" placeholder="Search projects, tasks, or actions" autocomplete="off" aria-label="Search projects, tasks, or actions" aria-controls="commandPaletteResults" aria-expanded="true">
+        <kbd class="commandPaletteEsc">ESC</kbd>
+      </div>
+      <div class="commandPaletteResults" id="commandPaletteResults" role="listbox" aria-label="Commands and search results"></div>
+      <div class="commandPaletteFooter"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate <kbd>↵</kbd> Run</span><span data-palette-shortcut></span></div>
+    </section>
+  </div>
+</template>

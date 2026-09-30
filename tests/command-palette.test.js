@@ -6,7 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(path.join(__dirname, "../js/command-palette.js"), "utf8");
+const source = fs.readFileSync(path.join(__dirname, "../js/ui/command-palette.js"), "utf8");
 const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"command-palette.js"});
 const fuzzyScore = sandbox.window.BeforeworkCommandPalette.fuzzyScore;
@@ -17,21 +17,22 @@ function createDocumentHarness(){
   let input;
   let results;
   let overlay;
+  const listeners = new Map();
   const documentRef = {
     activeElement:null,
-    createElement(){
-      if (!overlay){
-        input = {value:"",addEventListener(){},focus(){},setAttribute(){},removeAttribute(){}};
-        results = {replaceChildren(){},appendChild(){}};
-        overlay = {hidden:true,set innerHTML(value){},querySelector(selector){return selector===".commandPaletteInput" ? input : results;},addEventListener(){}};
-        return overlay;
-      }
-      return {className:"",textContent:""};
-    },
-    addEventListener(){},
+    createElement(){ return {className:"",textContent:""}; },
+    addEventListener(type,listener){ listeners.set(type,listener); },
     body:{appendChild(){}}
   };
-  return {documentRef,getInput:()=>input};
+  input = {value:"",addEventListener(){},focus(){documentRef.activeElement=input;},setAttribute(){},removeAttribute(){}};
+  results = {replaceChildren(){},appendChild(){}};
+  const shortcut = {textContent:""};
+  overlay = {hidden:true,querySelector(selector){
+    if (selector===".commandPaletteInput") return input;
+    if (selector===".commandPaletteResults") return results;
+    if (selector==="[data-palette-shortcut]") return shortcut;
+  },addEventListener(){}};
+  return {documentRef,getInput:()=>input,cloneTemplate:async()=>overlay,dispatchKeydown:event=>listeners.get("keydown")?.(event)};
 }
 
 test("ranks exact and prefix matches above fuzzy subsequences", ()=>{
@@ -68,36 +69,55 @@ test("search index retains every fuzzy match while pruning impossible candidates
   assert.ok(index.candidates("zzz").length<commands.length);
 });
 
-test("opens with the current global search query", ()=>{
+test("opens with the current global search query", async()=>{
   const harness = createDocumentHarness();
   const palette = createCommandPalette({
     getCommands:()=>[],
     getInitialQuery:()=>"calendar",
+    cloneTemplate:harness.cloneTemplate,
     documentRef:harness.documentRef,
     storage:null
   });
 
-  palette.open();
+  await palette.open();
   assert.equal(harness.getInput().value,"calendar");
   palette.close();
-  palette.open("review task");
+  await palette.open("review task");
   assert.equal(harness.getInput().value,"review task");
 });
 
-test("caches commands until workspace changes invalidate the index", ()=>{
+test("opens from the keyboard shortcut before the template is loaded", async()=>{
+  const harness=createDocumentHarness();
+  const palette=createCommandPalette({
+    getCommands:()=>[],
+    getInitialQuery:()=>"calendar",
+    cloneTemplate:harness.cloneTemplate,
+    documentRef:harness.documentRef,
+    storage:null
+  });
+  let prevented=false;
+  harness.dispatchKeydown({metaKey:true,ctrlKey:false,key:"k",preventDefault(){prevented=true;},stopPropagation(){}});
+  await palette.open();
+  assert.equal(prevented,true);
+  assert.equal(harness.getInput().value,"calendar");
+  assert.equal(palette.isOpen(),true);
+});
+
+test("caches commands until workspace changes invalidate the index", async()=>{
   let reads=0;
   const harness=createDocumentHarness();
   const palette=createCommandPalette({
     getCommands:()=>{ reads++; return []; },
+    cloneTemplate:harness.cloneTemplate,
     documentRef:harness.documentRef,
     storage:null
   });
 
-  palette.open();
+  await palette.open();
   palette.close();
-  palette.open();
+  await palette.open();
   assert.equal(reads,1);
   palette.refreshCommands();
-  palette.open();
+  await palette.open();
   assert.equal(reads,2);
 });

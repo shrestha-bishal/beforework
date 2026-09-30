@@ -116,7 +116,12 @@
     canOpen:()=>!!fileHandle,
     getInitialQuery:()=>document.getElementById("globalSearch").value,
     onQueryChange:value=>{ document.getElementById("globalSearch").value=value; },
-    onClose:focusTarget=>{ if (focusTarget?.id==="globalSearch") suppressGlobalSearchFocus=true; }
+    onClose:focusTarget=>{ if (focusTarget?.id==="globalSearch") suppressGlobalSearchFocus=true; },
+    onTemplateError:error=>showNotice("Couldn't open command palette",error.message),
+    cloneTemplate:async()=>{
+      await window.BeforeworkViewTemplates.load("commandPalette");
+      return window.BeforeworkViewTemplates.clone("commandPalette").querySelector("#commandPalette").content.firstElementChild.cloneNode(true);
+    },
   });
   window.BeforeworkCommandPaletteInstance=commandPalette;
   let settingsView = null;

@@ -9,7 +9,8 @@ window.BeforeworkViewTemplates = (()=>{
   };
   const onDemandPaths = {
     dialogs:"pages/dialogs.html",
-    overviewDetails:"pages/overview-details.html"
+    overviewDetails:"pages/overview-details.html",
+    commandPalette:"pages/command-palette.html"
   };
   const paths = {...startupPaths,...onDemandPaths};
   const templates = {};
