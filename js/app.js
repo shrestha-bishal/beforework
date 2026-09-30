@@ -4204,15 +4204,6 @@
         days.push(`<button type="button" class="datePickerDay${currentMonth?"":" is-outside"}${isSelected?" is-selected":""}${isToday?" is-today":""}" data-date="${isoDate(date)}" aria-label="${date.toLocaleDateString()}">${date.getDate()}</button>`);
       }
       popover.innerHTML=`<div class="datePickerHeader"><button type="button" class="datePickerNav" data-date-action="previous" aria-label="Previous month">‹</button><strong>${month.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</strong><button type="button" class="datePickerNav" data-date-action="next" aria-label="Next month">›</button></div><div class="datePickerWeekdays">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day=>`<span>${day}</span>`).join("")}</div><div class="datePickerGrid">${days.join("")}</div>${isDateTime?`<label class="datePickerTimeLabel">Time<input class="datePickerTimeInput" type="time" value="${input.value.slice(11,16)}"></label>`:""}<div class="datePickerFooter"><button type="button" data-date-action="clear">Clear</button><button type="button" data-date-action="today">Today</button></div>`;
-      popover.querySelectorAll("[data-date-action]").forEach(control=>control.onclick=()=>{
-        const action=control.dataset.dateAction;
-        if (action==="previous") month=new Date(month.getFullYear(),month.getMonth()-1,1);
-        if (action==="next") month=new Date(month.getFullYear(),month.getMonth()+1,1);
-        if (action==="clear"){ input.value=""; emitChange(); close(); }
-        if (action==="today") chooseDate(new Date());
-        if (action==="previous" || action==="next") render();
-      });
-      popover.querySelectorAll(".datePickerDay").forEach(day=>day.onclick=()=>chooseDate(new Date(`${day.dataset.date}T00:00:00`)));
       const timeInput=popover.querySelector(".datePickerTimeInput");
       if (timeInput) timeInput.onchange=()=>{ if (input.value.slice(0,10)) { input.value=`${input.value.slice(0,10)}T${timeInput.value}`; label.textContent=labelDate(); emitChange(); } };
     };
@@ -4223,6 +4214,29 @@
       label.textContent=labelDate(); emitChange();
       if (!isDateTime) close(); else { month=new Date(date.getFullYear(),date.getMonth(),1); render(); }
     };
+    popover.addEventListener("click",event=>{
+      const control=event.target.closest("[data-date-action]");
+      if (control){
+        event.preventDefault();
+        event.stopPropagation();
+        const action=control.dataset.dateAction;
+        if (action==="previous") month=new Date(month.getFullYear(),month.getMonth()-1,1);
+        if (action==="next") month=new Date(month.getFullYear(),month.getMonth()+1,1);
+        if (action==="clear"){ input.value=""; emitChange(); close(); }
+        if (action==="today") chooseDate(new Date());
+        if (action==="previous" || action==="next"){
+          render();
+          popover.querySelector(`[data-date-action="${action}"]`)?.focus();
+        }
+        return;
+      }
+      const day=event.target.closest(".datePickerDay");
+      if (day){
+        event.preventDefault();
+        event.stopPropagation();
+        chooseDate(new Date(`${day.dataset.date}T00:00:00`));
+      }
+    });
     const positionPopover=()=>{
       const rect=wrapper.getBoundingClientRect();
       const width=Math.min(278,window.innerWidth-24);

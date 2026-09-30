@@ -230,6 +230,57 @@ test("duplicates projects with remapped milestone links", async()=>{
   assert.equal(copy.groups[0].items[0].milestoneId,copy.milestones[0].id);
 });
 
+test("date picker month arrows navigate in both directions", ()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function enhanceDateInput(input)");
+  const end=appSource.indexOf("function enhanceDateInputs(root=document)",start);
+  const snippet=appSource.slice(start,end);
+  const makeElement=()=>{
+    const listeners={};
+    return {
+      children:[],dataset:{},style:{},attributes:{},classList:{add(){}},
+      setAttribute(name,value){this.attributes[name]=value;},
+      getAttribute(name){return this.attributes[name]||null;},
+      appendChild(child){this.children.push(child);child.parentNode=this;return child;},
+      append(...children){children.forEach(child=>this.appendChild(child));},
+      insertBefore(child,reference){
+        const index=this.children.indexOf(reference);
+        this.children.splice(index<0?this.children.length:index,0,child);
+        child.parentNode=this;
+        return child;
+      },
+      addEventListener(type,listener){listeners[type]=listener;},
+      getBoundingClientRect(){return {width:160,left:20,right:180,top:20,bottom:54};},
+      querySelector(){return null;},
+      innerHTML:"",
+      listeners
+    };
+  };
+  const document={createElement:makeElement,body:makeElement()};
+  const input=makeElement();
+  input.type="date";
+  input.value="2026-09-30";
+  const parent=makeElement();
+  parent.appendChild(input);
+  const sandbox={document,window:{innerWidth:1200,innerHeight:900},Event};
+  vm.runInNewContext(`${snippet}; enhanceDateInput(input);`,{...sandbox,input});
+  const wrapper=input.parentNode;
+  const button=wrapper.children.find(child=>child.className==="datePickerButton");
+  const popover=document.body.children[0];
+  button.onclick({stopPropagation(){}});
+  const clickAction=action=>popover.listeners.click({
+    target:{closest:selector=>selector==="[data-date-action]"?{dataset:{dateAction:action}}:null},
+    preventDefault(){},
+    stopPropagation(){}
+  });
+
+  assert.match(popover.innerHTML,/September 2026/);
+  clickAction("next");
+  assert.match(popover.innerHTML,/October 2026/);
+  clickAction("previous");
+  assert.match(popover.innerHTML,/September 2026/);
+});
+
 test("filters numeric values and any selected multi-select option", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   const start=appSource.indexOf("function itemMatchesFilter");
