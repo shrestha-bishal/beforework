@@ -6,7 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(path.join(__dirname,"../js/workspace-validation.js"),"utf8");
+const source = fs.readFileSync(path.join(__dirname,"../js/core/workspace-validation.js"),"utf8");
 const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"workspace-validation.js"});
 const validate = sandbox.window.BeforeworkWorkspaceValidation.validate;
