@@ -1,0 +1,41 @@
+<div class="milestonesWrap">
+  <div class="milestonesHeader">
+    <div>
+      <h3>Project milestones</h3>
+      <p>Track major checkpoints and link tasks to see progress.</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" data-action="createMilestone">New milestone</button>
+  </div>
+  <div class="milestoneGrid" data-milestone-grid></div>
+  <div class="milestonesEmpty" data-milestone-empty hidden>
+    <strong>No milestones yet</strong>
+    <span>Create a milestone for a major checkpoint, then link tasks to it.</span>
+  </div>
+</div>
+
+<template id="milestoneCardTemplate">
+  <article class="milestoneCard">
+    <div class="milestoneCardHeader">
+      <div>
+        <h4 data-milestone-title></h4>
+        <p data-milestone-due></p>
+      </div>
+      <div class="milestoneActions">
+        <button type="button" class="btn btn-invisible btn-sm" data-action="editMilestone">Edit</button>
+        <button type="button" class="btn btn-invisible btn-sm" data-action="deleteMilestone">Delete</button>
+      </div>
+    </div>
+    <div class="milestoneProgressLabel">
+      <span data-milestone-progress></span>
+      <span data-milestone-percent></span>
+    </div>
+    <div class="milestoneProgressTrack"><div class="milestoneProgressFill" data-milestone-fill></div></div>
+    <ul class="milestoneTaskList" data-milestone-task-list></ul>
+    <p class="milestoneEmptyTasks" data-milestone-no-tasks>No tasks linked yet.</p>
+    <button type="button" class="btn btn-invisible btn-sm milestoneAddTask" data-action="addMilestoneTask">+ Add task</button>
+  </article>
+</template>
+
+<template id="milestoneTaskTemplate">
+  <li><button type="button" data-action="openMilestoneTask"></button></li>
+</template>

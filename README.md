@@ -100,11 +100,11 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/app.js` - application behavior, rendering, column controls, and CSV export
 - `js/storage.js` and `js/folder-workspace.js` - local workspace persistence and attachments
 - `js/demo-seeder.js` - sample projects, items, fields, and demo attachment
-- `js/models/` and `js/views/` - overview details and settings views
+- `js/models/` and `js/views/` - overview details, settings, and milestone views
 - `js/google-calendar.js` - optional Google Calendar integration
 - `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace data
 - `js/workspace-validation.js` - validation for imports and connected workspace files
-- `pages/` - dashboard and settings page fragments
+- `pages/` - dashboard, settings, and milestone HTML templates
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
 - `scripts/build-site.js` - static production build

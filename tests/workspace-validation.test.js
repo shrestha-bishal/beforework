@@ -230,6 +230,97 @@ test("duplicates projects with remapped milestone links", async()=>{
   assert.equal(copy.groups[0].items[0].milestoneId,copy.milestones[0].id);
 });
 
+test("milestones view renders linked task progress", ()=>{
+  const source=fs.readFileSync(path.join(__dirname,"../js/views/milestones-view.js"),"utf8")
+    .replace("export class MilestonesView","class MilestonesView");
+  const createNode=()=>({
+    children:[],dataset:{},style:{},className:"",textContent:"",hidden:false,attributes:{},classes:{},
+    classList:{toggle(name,value){this.owner.classes[name]=value;}},
+    appendChild(child){this.children.push(child);},
+    setAttribute(name,value){this.attributes[name]=value;}
+  });
+  const createCard=()=>{
+    const card=createNode();
+    card.classList.owner=card;
+    const title=createNode();
+    const due=createNode();
+    const progress=createNode();
+    const percent=createNode();
+    const fill=createNode();
+    const list=createNode();
+    const noTasks=createNode();
+    const actions={
+      edit:createNode(),delete:createNode(),addTask:createNode()
+    };
+    card.querySelector=selector=>({
+      "[data-milestone-title]":title,
+      "[data-milestone-due]":due,
+      "[data-milestone-progress]":progress,
+      "[data-milestone-percent]":percent,
+      "[data-milestone-fill]":fill,
+      "[data-milestone-task-list]":list,
+      "[data-milestone-no-tasks]":noTasks,
+      '[data-action="editMilestone"]':actions.edit,
+      '[data-action="deleteMilestone"]':actions.delete,
+      '[data-action="addMilestoneTask"]':actions.addTask
+    })[selector];
+    return {card,title,due,progress,percent,fill,list,noTasks,actions};
+  };
+  const createTask=()=>{
+    const task=createNode();
+    const button=createNode();
+    button.classList={toggle(name,value){button.classes[name]=value;}};
+    task.querySelector=()=>button;
+    return {task,button};
+  };
+  const renderedCard=createCard();
+  const renderedTask=createTask();
+  const grid=createNode();
+  const empty=createNode();
+  const createButton=createNode();
+  const wrap=createNode();
+  wrap.querySelector=selector=>({
+    "[data-milestone-grid]":grid,
+    "[data-milestone-empty]":empty,
+    '[data-action="createMilestone"]':createButton
+  })[selector];
+  const viewFragment={
+    querySelector:selector=>({
+      ".milestonesWrap":wrap,
+      "#milestoneCardTemplate":{content:{cloneNode:()=>({querySelector:()=>renderedCard.card})}},
+      "#milestoneTaskTemplate":{content:{cloneNode:()=>({querySelector:()=>renderedTask.task})}}
+    })[selector]
+  };
+  const board={replaceChildren(fragment){this.fragment=fragment;}};
+  const sandbox={globalThis:null};
+  sandbox.globalThis=sandbox;
+  vm.runInNewContext(`${source}; globalThis.MilestonesView=MilestonesView;`,sandbox);
+  const opened=[];
+  const view=new sandbox.MilestonesView({cloneTemplate:()=>viewFragment});
+  view.render({
+    id:"project-1",
+    milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],
+    groups:[{id:"group-1",items:[{id:"task-1",title:"Prepare release",milestoneId:"milestone-1",calendarType:"task"}]}]
+  },board,{
+    isItemCompleted:()=>true,
+    fmtDate:()=> "Oct 1",
+    todayStr:()=> "2026-09-30",
+    createMilestone:()=>{},
+    editMilestone:()=>{},
+    deleteMilestone:()=>{},
+    openNewItem:()=>{},
+    openItem:(...args)=>opened.push(args)
+  });
+
+  assert.equal(board.fragment,viewFragment);
+  assert.equal(renderedCard.title.textContent,"First release");
+  assert.equal(renderedCard.progress.textContent,"1 of 1 tasks complete");
+  assert.equal(renderedCard.fill.style.width,"100%");
+  assert.equal(renderedTask.button.textContent,"Prepare release");
+  renderedTask.button.onclick();
+  assert.deepEqual(opened,[["project-1","group-1","task-1"]]);
+});
+
 test("date picker month arrows navigate in both directions", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   const start=appSource.indexOf("function enhanceDateInput(input)");

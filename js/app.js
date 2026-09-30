@@ -112,6 +112,7 @@
   window.BeforeworkCommandPaletteInstance=commandPalette;
   let settingsView = null;
   let overviewDetailsView = null;
+  let milestonesView = null;
   let showArchived = false;
   let focusInterval = null;
   let focusMode = "focus";
@@ -883,37 +884,6 @@
     project.milestones=project.milestones.filter(candidate=>candidate.id!==milestone.id);
     scheduleSave();
     render();
-  }
-  function renderMilestones(project,board){
-    const wrap=document.createElement("div");
-    wrap.className="milestonesWrap";
-    const milestones=Array.isArray(project.milestones)?project.milestones:[];
-    wrap.innerHTML=`<div class="milestonesHeader"><div><h3>Project milestones</h3><p>Track major checkpoints and link tasks to see progress.</p></div><button type="button" class="btn btn-primary btn-sm" data-action="createMilestone">New milestone</button></div>
-      ${milestones.length?`<div class="milestoneGrid">${milestones.map(milestone=>{
-        const linkedItems=project.groups.flatMap(group=>group.items.map(item=>({group,item})))
-          .filter(entry=>entry.item.milestoneId===milestone.id&&!entry.item.archived&&entry.item.calendarType!=="event");
-        const completed=linkedItems.filter(entry=>isItemCompleted(entry.item)).length;
-        const percent=linkedItems.length?Math.round(completed/linkedItems.length*100):0;
-        const overdue=milestone.dueDate&&milestone.dueDate<todayStr(0)&&completed<linkedItems.length;
-        const dueText=milestone.dueDate?`Due ${fmtDate(milestone.dueDate)}`:"No due date";
-        return `<article class="milestoneCard${overdue?" overdue":""}" data-milestone-id="${escapeHtml(milestone.id)}">
-          <div class="milestoneCardHeader"><div><h4>${escapeHtml(milestone.title)}</h4><p>${escapeHtml(dueText)}</p></div><div class="milestoneActions"><button type="button" class="btn btn-invisible btn-sm" data-action="editMilestone">Edit</button><button type="button" class="btn btn-invisible btn-sm" data-action="deleteMilestone" aria-label="Delete ${escapeHtml(milestone.title)}">Delete</button></div></div>
-          <div class="milestoneProgressLabel"><span>${completed} of ${linkedItems.length} tasks complete</span><span>${percent}%</span></div><div class="milestoneProgressTrack"><div class="milestoneProgressFill" style="width:${percent}%"></div></div>
-          ${linkedItems.length?`<ul class="milestoneTaskList">${linkedItems.map(({group,item})=>`<li><button type="button" data-action="openMilestoneTask" data-gid="${escapeHtml(group.id)}" data-iid="${escapeHtml(item.id)}" class="${isItemCompleted(item)?"completed":""}">${escapeHtml(item.title)}</button></li>`).join("")}</ul>`:`<p class="milestoneEmptyTasks">No tasks linked yet.</p>`}
-          <button type="button" class="btn btn-invisible btn-sm milestoneAddTask" data-action="addMilestoneTask">+ Add task</button>
-        </article>`;
-      }).join("")}</div>`:`<div class="milestonesEmpty"><strong>No milestones yet</strong><span>Create a milestone for a major checkpoint, then link tasks to it.</span></div>`}`;
-    wrap.querySelector('[data-action="createMilestone"]').onclick=()=>createMilestone(project);
-    wrap.querySelectorAll(".milestoneCard").forEach(card=>{
-      const milestone=milestones.find(candidate=>candidate.id===card.dataset.milestoneId);
-      card.querySelector('[data-action="editMilestone"]').onclick=()=>editMilestone(project,milestone);
-      card.querySelector('[data-action="deleteMilestone"]').onclick=()=>deleteMilestone(project,milestone);
-      card.querySelector('[data-action="addMilestoneTask"]').onclick=()=>openNewItemModal(project,project.groups[0],milestone.id);
-      card.querySelectorAll('[data-action="openMilestoneTask"]').forEach(button=>{
-        button.onclick=()=>openItemModal(project.id,button.dataset.gid,button.dataset.iid);
-      });
-    });
-    board.appendChild(wrap);
   }
   async function deleteProject(pid){
     const project = await ensureProjectLoaded(pid);
@@ -2133,7 +2103,16 @@
     if (activeView.type==="milestones"){
       filterBar.style.display="none";
       completionTabs.style.display="none";
-      renderMilestones(project,board);
+      milestonesView.render(project,board,{
+        isItemCompleted,
+        fmtDate,
+        todayStr,
+        createMilestone,
+        editMilestone,
+        deleteMilestone,
+        openNewItem:openNewItemModal,
+        openItem:openItemModal
+      });
       return;
     }
     if (activeView.type === "list") renderListView(project, board);
@@ -5243,13 +5222,17 @@
       }catch(err){ /* Identity is optional; the workspace runs without it. */ }
     }
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule] = await Promise.all([
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule] = await Promise.all([
         import("./views/settings-view.js"),
         import("./views/overview-details-view.js"),
-        import("./models/overview-details-model.js")
+        import("./models/overview-details-model.js"),
+        import("./views/milestones-view.js")
       ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({model:new overviewDetailsModelModule.OverviewDetailsModel()});
+      milestonesView = new milestonesViewModule.MilestonesView({
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
+      });
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);

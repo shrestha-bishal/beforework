@@ -3,6 +3,7 @@ window.BeforeworkViewTemplates = (()=>{
     overview:"pages/overview.html",
     calendar:"pages/calendar.html",
     integrations:"pages/integrations.html",
+    milestones:"pages/milestones.html",
     settings:"pages/settings.html",
     support:"pages/support.html"
   };
