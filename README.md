@@ -107,7 +107,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/ui/templates.js` - shared HTML template loader and cache
 - `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace data
 - `js/workspace-validation.js` - validation for imports and connected workspace files
-- `pages/` - dashboard, settings, milestone, and dialog HTML templates
+- `pages/` - HTML templates for application views and dialogs
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
 - `scripts/build-site.js` - static production build

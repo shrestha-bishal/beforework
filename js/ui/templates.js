@@ -8,7 +8,8 @@ window.BeforeworkViewTemplates = (()=>{
     support:"pages/support.html"
   };
   const onDemandPaths = {
-    dialogs:"pages/dialogs.html"
+    dialogs:"pages/dialogs.html",
+    overviewDetails:"pages/overview-details.html"
   };
   const paths = {...startupPaths,...onDemandPaths};
   const templates = {};

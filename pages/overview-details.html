@@ -1,0 +1,21 @@
+<template id="overviewDetailsOverlay">
+  <div class="overlay">
+    <div class="Overlay Overlay--size-medium position-relative overviewDetailsDialog" data-modal role="dialog" aria-modal="true">
+      <button class="btn btn-invisible closeX" type="button" data-close aria-label="Close">✕</button>
+      <h3 id="overviewDetailsTitle" data-details-title></h3>
+      <input class="form-control overviewDetailsSearch" data-details-search type="search" hidden>
+      <div class="overviewDetailsList" data-details-list></div>
+    </div>
+  </div>
+</template>
+
+<template id="overviewDetailsRow">
+  <button class="overviewDetailsRow" type="button">
+    <strong data-entry-title></strong>
+    <span data-entry-meta></span>
+  </button>
+</template>
+
+<template id="overviewDetailsEmpty">
+  <p class="overviewDetailsEmpty"></p>
+</template>

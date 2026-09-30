@@ -3551,7 +3551,7 @@
         stats:statRows,
         data:{projects:projectRecords(),openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
         actions:{openProject:selectProject,openItem:openItemModal}
-      });
+      }).catch(error=>showNotice("Couldn't load overview details",error.message));
     }
     const stats = view.querySelector("[data-overview-stats]");
     statRows.forEach(({value,label,detail,icon,tone},index)=>{
@@ -5042,7 +5042,13 @@
         import("./views/milestones-view.js")
       ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
-      overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({model:new overviewDetailsModelModule.OverviewDetailsModel()});
+      overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
+        model:new overviewDetailsModelModule.OverviewDetailsModel(),
+        cloneTemplate:async()=>{
+          await window.BeforeworkViewTemplates.load("overviewDetails");
+          return window.BeforeworkViewTemplates.clone("overviewDetails");
+        }
+      });
       milestonesView = new milestonesViewModule.MilestonesView({
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
       });

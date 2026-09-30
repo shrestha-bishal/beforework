@@ -1,37 +1,58 @@
-function escapeHtml(value){
-  return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-}
-
 export class OverviewDetailsView {
-  constructor({model}){
+  constructor({model,cloneTemplate}){
     this.model=model;
+    this.cloneTemplate=cloneTemplate;
   }
 
-  open({tone,stats,data,actions}){
+  async open({tone,stats,data,actions}){
     const stat=stats.find(row=>row.tone===tone);
     const entries=this.model.getEntries(tone,data);
-    const overlay=document.createElement("div");
-    overlay.className="overlay";
-    overlay.innerHTML=`<div class="Overlay Overlay--size-medium position-relative overviewDetailsDialog" data-modal role="dialog" aria-modal="true" aria-labelledby="overviewDetailsTitle">
-      <button class="btn btn-invisible closeX" type="button" data-close aria-label="Close">✕</button>
-      <h3 id="overviewDetailsTitle">${escapeHtml(stat?.label||"Details")}</h3>
-      ${stat?.searchable?`<input class="form-control overviewDetailsSearch" type="search" placeholder="Search ${tone==="projects"?"projects":"items"}" aria-label="Search ${tone==="projects"?"projects":"items"}">`:""}
-      <div class="overviewDetailsList"></div>
-    </div>`;
+    const templates=await this.cloneTemplate();
+    const overlay=templates.querySelector("#overviewDetailsOverlay").content.firstElementChild.cloneNode(true);
+    const rowTemplate=templates.querySelector("#overviewDetailsRow");
+    const emptyTemplate=templates.querySelector("#overviewDetailsEmpty");
+    const title=overlay.querySelector("[data-details-title]");
+    title.textContent=stat?.label||"Details";
+    const dialog=overlay.querySelector("[role='dialog']");
+    dialog.setAttribute("aria-labelledby",title.id);
+    const search=overlay.querySelector("[data-details-search]");
+    const searchable=!!stat?.searchable;
+    search.hidden=!searchable;
+    if (searchable){
+      const subject=tone==="projects"?"projects":"items";
+      search.placeholder=`Search ${subject}`;
+      search.setAttribute("aria-label",`Search ${subject}`);
+    }
     document.body.appendChild(overlay);
     overlay.querySelector("[data-close]").onclick=()=>overlay.remove();
     overlay.addEventListener("click",event=>{ if (event.target===overlay) overlay.remove(); });
-    const list=overlay.querySelector(".overviewDetailsList");
-    const search=overlay.querySelector(".overviewDetailsSearch");
+    const list=overlay.querySelector("[data-details-list]");
     const renderEntries=()=>{
       const query=search?.value||"";
-      const matches=search ? this.model.searchEntries(entries,query) : entries;
-      list.innerHTML=matches.length?matches.map(entry=>`<button class="overviewDetailsRow" type="button"${entry.kind==="project"?` data-detail-project="${escapeHtml(entry.id)}"`:` data-detail-item="${escapeHtml(entry.id)}" data-pid="${escapeHtml(entry.projectId)}" data-gid="${escapeHtml(entry.groupId)}" data-iid="${escapeHtml(entry.id)}"}`}>
-        <strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.meta)}</span>
-      </button>`).join(""):`<p class="overviewDetailsEmpty">${query.trim()?"No matching results.":"Nothing to show yet."}</p>`;
+      const matches=searchable ? this.model.searchEntries(entries,query) : entries;
+      list.replaceChildren();
+      if (!matches.length){
+        const empty=emptyTemplate.content.firstElementChild.cloneNode(true);
+        empty.textContent=query.trim()?"No matching results.":"Nothing to show yet.";
+        list.appendChild(empty);
+        return;
+      }
+      matches.forEach(entry=>{
+        const row=rowTemplate.content.firstElementChild.cloneNode(true);
+        if (entry.kind==="project") row.dataset.detailProject=entry.id;
+        else {
+          row.dataset.detailItem=entry.id;
+          row.dataset.pid=entry.projectId;
+          row.dataset.gid=entry.groupId;
+          row.dataset.iid=entry.id;
+        }
+        row.querySelector("[data-entry-title]").textContent=entry.title;
+        row.querySelector("[data-entry-meta]").textContent=entry.meta;
+        list.appendChild(row);
+      });
     };
     renderEntries();
-    if (search) search.addEventListener("input",renderEntries);
+    if (searchable) search.addEventListener("input",renderEntries);
     list.addEventListener("click",event=>{
       const button=event.target.closest(".overviewDetailsRow");
       if (!button) return;
@@ -45,7 +66,7 @@ export class OverviewDetailsView {
         actions.openItem(pid,gid,iid);
       }
     });
-    if (search) search.focus();
+    if (searchable) search.focus();
     else overlay.querySelector("[data-close]").focus();
   }
 }

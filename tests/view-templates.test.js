@@ -31,8 +31,15 @@ test("loads dialog templates on demand through the shared cache",async()=>{
 
   await loader.loadAll();
   assert.equal(requests.includes("pages/dialogs.html"),false);
+  assert.equal(requests.includes("pages/overview-details.html"),false);
 
-  await Promise.all([loader.load("dialogs"),loader.load("dialogs")]);
+  await Promise.all([
+    loader.load("dialogs"),
+    loader.load("dialogs"),
+    loader.load("overviewDetails"),
+    loader.load("overviewDetails")
+  ]);
   assert.equal(requests.filter(url=>url==="pages/dialogs.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/overview-details.html").length,1);
   assert.deepEqual(loader.clone("dialogs"),{cloned:true});
 });
