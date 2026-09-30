@@ -1942,7 +1942,7 @@
     });
   }
 
-  /* Integrations view moved to js/google-calendar.js */
+  /* Integrations view moved to js/services/google-calendar/google-calendar.js */
 
   function renderSupport(board){
     board.replaceChildren(window.BeforeworkViewTemplates.clone("support"));
@@ -2864,7 +2864,7 @@
     }
     return results;
   }
-  /* Google Calendar integration moved to js/google-calendar.js */
+  /* Google Calendar integration moved to js/services/google-calendar/google-calendar.js */
   async function showGoogleCalendarInfo(){
     await showNotice("Google Calendar sync", "This local file cannot silently sync with Google Calendar because Google requires OAuth credentials and a server-side token flow. Use the GCal link on an event for one-click creation, or export an .ics file and import it into Google Calendar.");
   }
