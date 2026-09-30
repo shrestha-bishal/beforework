@@ -11,7 +11,7 @@ const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"workspace-validation.js"});
 const validate = sandbox.window.BeforeworkWorkspaceValidation.validate;
 const seederSandbox = {window:{},Blob};
-const seederSource = fs.readFileSync(path.join(__dirname,"../js/demo-seeder.js"),"utf8");
+const seederSource = fs.readFileSync(path.join(__dirname,"../js/demo/demo-seeder.js"),"utf8");
 vm.runInNewContext(seederSource,seederSandbox,{filename:"demo-seeder.js"});
 
 test("accepts valid legacy workspaces without a schema version", ()=>{
