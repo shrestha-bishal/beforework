@@ -4,7 +4,7 @@
 
 Beforework is a serverless local-first project management workspace for projects, tasks, calendars, and focus sessions. Work across List, Table, Board, and Calendar views, and add custom fields, comments, checklists, reminders, and multiple file attachments to items. The static app stores workspace data in folders you choose on your device rather than any server. Optional Google Calendar integration connects to Google separately.
 
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5103c98-0c27-4bec-bb10-978a7c3f037a" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d1246eb5-1276-4001-b1c7-254cc3c01815" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ce98605e-02e2-4dea-a043-6bd452bb8ac5" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/4c1f8c79-466b-453f-a492-fbc421f0c7a5" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d5e9bf2a-0cdc-4fb2-8d67-c0b5d541963f" />
