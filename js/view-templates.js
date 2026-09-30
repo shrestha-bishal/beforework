@@ -9,9 +9,14 @@ window.BeforeworkViewTemplates = (()=>{
   const templates = {};
   let loadPromise = null;
 
+  function isSafePath(path){
+    return /^pages\/[a-zA-Z0-9_-]+\.html$/.test(path) && !path.includes("..");
+  }
+
   function loadAll(){
     if (loadPromise) return loadPromise;
     loadPromise = Promise.all(Object.entries(paths).map(async([name,path])=>{
+      if (!isSafePath(path)) throw new Error(`Refusing to load unsafe path: ${path}`);
       const response = await fetch(path);
       if (!response.ok) throw new Error(`Couldn't load ${path} (${response.status})`);
       const template = document.createElement("template");
