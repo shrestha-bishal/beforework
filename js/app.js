@@ -546,7 +546,7 @@
     renderAll();
   }
 
-  /* Persistence moved to js/storage.js */
+  /* Persistence moved to js/services/storage/storage.js */
 
 /* ---------- Connect gate ---------- */
   // Nothing in the app is usable until a workspace folder or legacy file is

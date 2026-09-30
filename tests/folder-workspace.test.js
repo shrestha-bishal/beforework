@@ -6,7 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const source=fs.readFileSync(path.join(__dirname,"../js/folder-workspace.js"),"utf8");
+const source=fs.readFileSync(path.join(__dirname,"../js/services/storage/folder-workspace.js"),"utf8");
 const sandbox={window:{crypto:{randomUUID:(()=>{let id=0;return ()=>`shard-${++id}`;})()}}};
 vm.runInNewContext(source,sandbox,{filename:"folder-workspace.js"});
 
