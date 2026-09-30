@@ -6,7 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const moduleSource = fs.readFileSync(path.join(__dirname, "../js/schema-migration.js"), "utf8");
+const moduleSource = fs.readFileSync(path.join(__dirname, "../js/core/schema-migration.js"), "utf8");
 
 function createStorage(){
   const values = new Map();
