@@ -99,6 +99,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `index.html` - application shell
 - `js/app.js` - application behavior, rendering, column controls, and CSV export
 - `js/services/storage/` - local workspace persistence and attachments
+- `js/services/reminders/` - in-app reminder scheduling and notifications
 - `js/demo-seeder.js` - sample projects, items, fields, and demo attachment
 - `js/models/` and `js/views/` - overview details, settings, and milestone views
 - `js/google-calendar.js` - optional Google Calendar integration

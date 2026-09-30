@@ -6,7 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(path.join(__dirname, "../js/reminders.js"), "utf8");
+const source = fs.readFileSync(path.join(__dirname, "../js/services/reminders/reminders.js"), "utf8");
 
 function createHarness({permission="default",items=[],currentTime=new Date(2026,8,29,9,5).getTime(),clock={value:currentTime},enabled=false,setIntervalFn=()=>1,clearIntervalFn=()=>{}}={}){
   const values = new Map();
