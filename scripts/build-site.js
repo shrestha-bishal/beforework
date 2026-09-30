@@ -17,5 +17,5 @@ for (const relativePath of publishPaths){
 }
 
 const siteConfig = `window.BEFOREWORK_CONFIG = Object.freeze({initialWorkspace:${JSON.stringify(mode)}});\n`;
-fs.writeFileSync(path.join(output, "js", "site-config.js"), siteConfig);
+fs.writeFileSync(path.join(output, "js", "config", "site-config.js"), siteConfig);
 console.log(`Built Beforework with ${mode} initial workspace data.`);

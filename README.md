@@ -70,7 +70,7 @@ This is a static site. Netlify runs `node scripts/build-site.js` and publishes `
 
 To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Changes to an existing workspace file are unaffected by this setting.
 
-The source config defaults to `clean`. The build script writes the selected mode into `dist/js/site-config.js` without changing the source config.
+The source config defaults to `clean`. The build script writes the selected mode into `dist/js/config/site-config.js` without changing the source config.
 
 For production use, serve the site over HTTPS. Users still retain their data locally or in a synced folder such as OneDrive or Google Drive; the application does not upload workspace data to a project server.
 
@@ -101,6 +101,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/services/storage/` - local workspace persistence and attachments
 - `js/services/reminders/` - in-app reminder scheduling and notifications
 - `js/ui/` - shared UI components and HTML template loading
+- `js/config/` - build-generated runtime configuration
 - `js/demo/` - demo workspace data and attachments
 - `js/models/` and `js/views/` - overview details, settings, and milestone views
 - `js/services/google-calendar/` - optional Google Calendar integration
