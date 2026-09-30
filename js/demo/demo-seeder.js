@@ -31,7 +31,7 @@
     const makeTag = (name, colour) => ({id:uid(), name, color:colour});
     const makeItem = (title, description, values={}, options={}) => ({
       id:uid(), title, description, attachments:options.attachments || [], calendarType:options.calendarType || "task",
-      startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "",
+      startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "", milestoneId:options.milestoneId || null,
       endDate:options.endDate || "", recurrence:options.recurrence || null, completedAt:options.completedAt || null, tagIds:options.tagIds || [], values,
       subitems:options.subitems || [], comments:options.comments || [], activity:[{id:uid(), type:"created", at:now}], archived:!!options.archived,
       createdAt:now, updatedAt:now - (options.ageDays || 0) * 86400000
@@ -52,6 +52,10 @@
     const customerTag = makeTag("customer", TAG_COLORS[5]);
     const qualityTag = makeTag("quality", TAG_COLORS[6]);
     const launchViews = views(["list", "kanban", "calendar"]);
+    const launchMilestones = [
+      {id:uid(), title:"Beta readiness", dueDate:todayStr(3)},
+      {id:uid(), title:"Product launch", dueDate:todayStr(10)}
+    ];
     const launchGroups = [
       {id:uid(), name:"Backlog", items:[]},
       {id:uid(), name:"In progress", items:[]},
@@ -61,7 +65,7 @@
     const launch = {
       id:uid(), name:"Product launch", icon:"mdi:rocket-launch-outline", folderId:productFolder.id, createdAt:now,
       tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[priorityField, dueDateField, launchStatus],
-      views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", groups:launchGroups
+      views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", milestones:launchMilestones, groups:launchGroups
     };
     launchGroups[0].items.push(
       makeItem("Publish the release overview", "Summarise what is changing, who it helps, and where to find the updated workflows.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(5), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], attachments:[{id:SAMPLE_ATTACHMENT.id,name:SAMPLE_ATTACHMENT.name,size:SAMPLE_ATTACHMENT.content.length,type:SAMPLE_ATTACHMENT.type}], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}]}),
@@ -78,6 +82,23 @@
       makeItem("Add workspace recovery guidance", "Document how to reconnect a file and recover from a browser permission prompt.", {[priorityField.id]:"low", [dueDateField.id]:todayStr(0), [launchStatus.id]:launchStatus.options[3].id}, {tagIds:[launchTag.id], ageDays:3}),
       makeItem("Verify keyboard navigation", "Confirm the main project and item actions can be reached and used with a keyboard.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[3].id}, {tagIds:[qualityTag.id], ageDays:4})
     );
+    function linkMilestoneTasks(milestone,titles){
+      const taskTitles=new Set(titles);
+      launchGroups.forEach(group=>group.items.forEach(item=>{
+        if (taskTitles.has(item.title)) item.milestoneId=milestone.id;
+      }));
+    }
+    linkMilestoneTasks(launchMilestones[0],[
+      "Check the calendar on narrow screens",
+      "Add workspace recovery guidance",
+      "Verify keyboard navigation"
+    ]);
+    linkMilestoneTasks(launchMilestones[1],[
+      "Publish the release overview",
+      "Prepare the onboarding guide",
+      "Finish recurring schedules"
+    ]);
+    launchGroups[3].items.find(item=>item.title==="Add workspace recovery guidance").completedAt=now-86400000;
 
     const onboardingStatus = makeField("Stage", "select", [
       {id:uid(), label:"New", color:TAG_COLORS[7]},

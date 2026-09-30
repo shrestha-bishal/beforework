@@ -97,6 +97,12 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   });
 
   assert.equal(validate(workspace,7).valid,true);
+  const launch=workspace.projects.find(project=>project.name==="Product launch");
+  assert.equal(launch.milestones.length,2);
+  const betaMilestone=launch.milestones.find(milestone=>milestone.title==="Beta readiness");
+  const betaTasks=launch.groups.flatMap(group=>group.items).filter(item=>item.milestoneId===betaMilestone.id);
+  assert.equal(betaTasks.length,3);
+  assert.equal(betaTasks.filter(item=>item.completedAt).length,1);
   const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
   const checkboxField=onboarding.fields.find(field=>field.type==="checkbox");
   const urlField=onboarding.fields.find(field=>field.type==="url");
