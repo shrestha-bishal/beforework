@@ -1682,10 +1682,10 @@
       const menu = document.createElement("div");
       menu.className = "projectQuickMenu";
       menu.innerHTML = `
-        <button type="button" data-project-action="edit">Edit</button>
-        <button type="button" data-project-action="duplicate">Duplicate project</button>
-        <button type="button" data-project-action="add-column">Add column</button>
+        <button type="button" data-project-action="edit">Edit project</button>
         <button type="button" data-project-action="group">New group</button>
+        <button type="button" data-project-action="add-column">Add column</button>
+        <button type="button" data-project-action="duplicate">Duplicate project</button>
         <button type="button" data-project-action="move">Move to folder</button>
         <button type="button" data-project-action="undo">Undo</button>
         <button type="button" data-project-action="print">Print / PDF</button>
