@@ -24,6 +24,17 @@ test("accepts valid legacy workspaces without a schema version", ()=>{
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{valid:true,errors:[]});
 });
 
+test("accepts nullable project descriptions and rejects other types", ()=>{
+  const base={projects:[{id:"project-1",name:"Launch",groups:[]}]};
+  assert.equal(validate(base,7).valid,true);
+  assert.equal(validate({...structuredClone(base),projects:[{...base.projects[0],description:null}]},7).valid,true);
+  assert.equal(validate({...structuredClone(base),projects:[{...base.projects[0],description:"Release planning"}]},7).valid,true);
+
+  const result=validate({...structuredClone(base),projects:[{...base.projects[0],description:42}]},7);
+  assert.equal(result.valid,false);
+  assert.ok(result.errors.some(error=>error==="projects[0].description must be a string or null."));
+});
+
 test("rejects malformed nested workspace data with field paths", ()=>{
   const result = validate({projects:[{id:"project-1",name:"Launch",groups:{}}]},7);
 

@@ -75,8 +75,8 @@ function stateWithTwoProjects(){
     focusSessions:[],
     googleCalendarLinks:[],
     projects:[
-      {id:"project-a",name:"Alpha",groups:[]},
-      {id:"project-b",name:"Beta",groups:[]}
+      {id:"project-a",name:"Alpha",description:"Release planning",groups:[]},
+      {id:"project-b",name:"Beta",description:null,groups:[]}
     ]
   };
 }
@@ -94,6 +94,8 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.equal(manifest.format,"beforework-folder-workspace");
   assert.equal(manifest.projects.length,2);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.state)),state);
+  assert.equal(revision.projectSummaries["project-a"].description,"Release planning");
+  assert.equal(revision.projectSummaries["project-b"].description,null);
   assert.equal(revision.wroteProjectFiles.length,2);
   assert.equal(revision.wroteCalendarFile,true);
   assert.match(directory.writeLog.at(-1),/manifest\.json$/);

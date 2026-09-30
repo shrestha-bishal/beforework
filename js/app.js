@@ -776,7 +776,7 @@
     return out;
   }
 
-  async function addProject(name, templateKey){
+  async function addProject(name, templateKey, description=null){
     if (state.folderLazy && state.projects.length){
       if (!await flushSave()){
         await showNotice("Project creation paused","Resolve the pending save before unloading the open project.");
@@ -787,7 +787,7 @@
     const tpl = PROJECT_TEMPLATES[templateKey] || PROJECT_TEMPLATES.blank;
     const views = tpl.views.map(type=>({id:uid(), type, name:viewLabel(type)}));
     const p = {
-      id:uid(), name, createdAt:Date.now(), folderId:null,
+      id:uid(), name, description, createdAt:Date.now(), folderId:null,
       tags:[],
       fields: buildFieldsForTemplate(tpl.fields),
       groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
@@ -803,15 +803,17 @@
   async function editProject(project){
     const result = await showDialog({title:"Edit project", fields:[
       {label:"Project name", value:project.name},
+      {label:"Description", type:"textarea", placeholder:"What is this project about?", value:project.description||""},
       {label:"Project icon", type:"iconPicker", value:project.icon || DEFAULT_PROJECT_ICON}
     ], confirmLabel:"Save"});
     if (!result) return;
-    const [name,icon] = result;
+    const [name,description,icon] = result;
     if (!name.trim()){
       await showNotice("Project name required", "Enter a name for this project.");
       return;
     }
     project.name = name.trim();
+    project.description = description.trim() || null;
     project.icon = icon || DEFAULT_PROJECT_ICON;
     scheduleSave();
     renderAll();
@@ -1960,6 +1962,7 @@
     const viewTabs = document.getElementById("viewTabs");
     const completionTabs = document.getElementById("completionTabs");
     const topLabel = document.getElementById("projectTitleLabel");
+    const descriptionLabel = document.getElementById("projectDescriptionLabel");
     const board = document.getElementById("board");
     if (completionTabs && !filterBar.contains(completionTabs)){
       filterBar.insertBefore(completionTabs,filterBar.querySelector(".filterMainRow"));
@@ -1968,6 +1971,7 @@
 
     if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
       topLabel.textContent = "Overview";
+      descriptionLabel.hidden = true;
       if (activeProjectId===CALENDAR) topLabel.textContent = "Calendar";
       if (activeProjectId===INTEGRATIONS) topLabel.textContent = "Integrations";
       if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
@@ -2007,6 +2011,8 @@
     titleIcon.setAttribute("icon", project.icon || DEFAULT_PROJECT_ICON);
     titleIcon.setAttribute("aria-hidden", "true");
     topLabel.replaceChildren(titleIcon, document.createTextNode(project.name));
+    descriptionLabel.textContent = project.description||"";
+    descriptionLabel.hidden = !project.description;
     filterBar.style.display = "block";
     editBtn.style.display = "inline-block";
     duplicateBtn.style.display = "inline-block";
@@ -4947,11 +4953,12 @@
       const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
       const result = await showDialog({title:"New project", fields:[
         {label:"Project name", placeholder:"e.g. Marketing launch"},
+        {label:"Description", type:"textarea", placeholder:"What is this project about?"},
         {label:"Template", type:"select", options:templateOptions, value:"taskboard"}
       ], confirmLabel:"Create project"});
       if (!result) return;
-      const [name, templateKey] = result;
-      if (name && name.trim()) await addProject(name.trim(), templateKey);
+      const [name, description, templateKey] = result;
+      if (name && name.trim()) await addProject(name.trim(), templateKey, description.trim()||null);
     };
     document.getElementById("addFolderBtn").onclick = createFolder;
     document.getElementById("manageTagsBtn").onclick = async () => {

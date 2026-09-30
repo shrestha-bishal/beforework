@@ -190,7 +190,9 @@
   /* Main */
   #topbar{display:flex;align-items:center;gap:8px;padding:16px 20px 14px; border-bottom:1px solid var(--border);position:relative;background:var(--bg);}
   @media (min-width:861px){#sidebar.collapsed~#main #topbar{padding-left:40px;}}
-  #topbar h2{font-size:18px;font-weight:700;margin:0;flex:1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .projectHeading{flex:1;min-width:0;}
+  #topbar h2{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectDescriptionLabel{overflow:hidden;margin:2px 0 0;color:var(--muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}
   #globalSaveStatus{flex:0 1 250px;min-width:0;overflow:hidden;color:var(--muted);font-size:11px;text-align:right;text-overflow:ellipsis;white-space:nowrap;}
   #globalSaveStatus.is-saving{color:var(--accent-strong);}
   #globalSaveStatus.is-error{color:var(--color-danger-fg);font-weight:600;}

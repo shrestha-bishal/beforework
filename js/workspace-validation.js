@@ -58,6 +58,9 @@
     (data.projects||[]).forEach((project,index)=>{
       const projectPath=`projects[${index}]`;
       if (!validateNamedRecord(project,projectPath,"project")) return;
+      if (project.description!==undefined && project.description!==null && typeof project.description!=="string"){
+        addError(`${projectPath}.description must be a string or null.`);
+      }
       for (const key of ["groups","fields","tags","views"]){
         if (project[key]!==undefined && !Array.isArray(project[key])) addError(`${projectPath}.${key} must be an array.`);
       }
