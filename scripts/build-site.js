@@ -4,6 +4,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const output = path.join(root, "dist");
 const mode = process.env.BEFOREWORK_MODE === "demo" ? "demo" : "clean";
+const googleClientId = process.env.BEFOREWORK_GOOGLE_CLIENT_ID || "";
 const publishPaths = ["index.html", "robots.txt", "sitemap.xml", "images", "js", "pages", "styles"];
 
 fs.rmSync(output, {recursive:true, force:true});

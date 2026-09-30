@@ -60,7 +60,7 @@
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
   const GITHUB_SPONSORS_URL = "https://github.com/sponsors/shrestha-bishal";
   const BUY_ME_A_COFFEE_URL = "https://www.buymeacoffee.com/shresthabishal";
-  const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
+  const GOOGLE_CLIENT_ID = window.BEFOREWORK_CONFIG.googleClientId || "";
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
   const dialogs = window.BeforeworkDialogs.create({
     tagColorOptions:TAG_COLOR_OPTIONS,
