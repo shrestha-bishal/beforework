@@ -80,7 +80,7 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 
 ## Data format and upgrades
 
-Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Projects can have an optional description, stored as a string or `null`. Existing single-file workspace JSON remains supported and can be opened or migrated into a folder workspace. List and Table column arrangements are saved per project and view.
+Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Projects can have an optional description and project-level milestones with optional due dates; tasks can be linked to milestones to track checkpoint progress. Existing single-file workspace JSON remains supported and can be opened or migrated into a folder workspace. List and Table column arrangements are saved per project and view.
 
 Item attachments are stored as separate files under the workspace's `attachments/` directory, with multiple attachments supported per project or calendar item. Attachments require a folder workspace; they are not embedded in legacy single-file JSON. Browser recovery snapshots contain workspace JSON and attachment metadata, not the attachment file contents. The demo workspace includes a downloadable plain-text project-notes attachment. CSV exports contain the current filtered rows and visible columns; values are escaped for CSV and spreadsheet formula safety.
 

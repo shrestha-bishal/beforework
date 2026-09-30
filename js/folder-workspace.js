@@ -122,6 +122,7 @@
       id:project.id,
       name:project.name,
       description:project.description??null,
+      milestones:(project.milestones||[]).map(milestone=>({id:milestone.id,title:milestone.title,dueDate:milestone.dueDate||null})),
       icon:project.icon||"",
       folderId:project.folderId||null,
       createdAt:project.createdAt||0,

@@ -193,6 +193,29 @@
   .projectHeading{flex:1;min-width:0;}
   #topbar h2{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectDescriptionLabel{overflow:hidden;margin:2px 0 0;color:var(--muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}
+  .milestonesWrap{width:100%;min-width:0;overflow:auto;padding:4px 2px 20px;}
+  .milestonesHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;}
+  .milestonesHeader h3{margin:0;font-size:17px;}
+  .milestonesHeader p{margin:4px 0 0;color:var(--muted);font-size:12px;}
+  .milestoneGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;}
+  .milestoneCard{min-width:0;padding:16px;border:1px solid var(--border);border-radius:10px;background:var(--bg);box-shadow:var(--shadow-lift);}
+  .milestoneCard.overdue{border-color:var(--warn);}
+  .milestoneCardHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .milestoneCardHeader h4{overflow-wrap:anywhere;margin:0;font-size:14px;}
+  .milestoneCardHeader p{margin:4px 0 0;color:var(--muted);font-size:12px;}
+  .milestoneCard.overdue .milestoneCardHeader p{color:var(--warn);}
+  .milestoneActions{display:flex;flex:none;gap:2px;}
+  .milestoneActions button{font-size:11px;}
+  .milestoneProgressLabel{display:flex;justify-content:space-between;gap:8px;margin:16px 0 6px;color:var(--muted);font-size:11px;}
+  .milestoneProgressTrack{height:6px;overflow:hidden;border-radius:99px;background:var(--bg-soft2);}
+  .milestoneProgressFill{height:100%;border-radius:inherit;background:var(--accent);}
+  .milestoneTaskList{display:flex;flex-direction:column;gap:2px;margin:12px 0 0;padding:0;list-style:none;}
+  .milestoneTaskList button{display:block;width:100%;overflow:hidden;padding:5px 6px;border:0;border-radius:5px;background:transparent;color:var(--text);font:inherit;font-size:12px;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+  .milestoneTaskList button:hover{background:var(--bg-soft);}
+  .milestoneTaskList button.completed{color:var(--muted);text-decoration:line-through;}
+  .milestoneEmptyTasks{margin:12px 0 0;color:var(--faint);font-size:12px;}
+  .milestonesEmpty{display:flex;min-height:180px;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);text-align:center;}
+  .milestonesEmpty strong{color:var(--text);font-size:14px;}
   #globalSaveStatus{flex:0 1 250px;min-width:0;overflow:hidden;color:var(--muted);font-size:11px;text-align:right;text-overflow:ellipsis;white-space:nowrap;}
   #globalSaveStatus.is-saving{color:var(--accent-strong);}
   #globalSaveStatus.is-error{color:var(--color-danger-fg);font-weight:600;}

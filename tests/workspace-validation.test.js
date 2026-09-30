@@ -35,6 +35,18 @@ test("accepts nullable project descriptions and rejects other types", ()=>{
   assert.ok(result.errors.some(error=>error==="projects[0].description must be a string or null."));
 });
 
+test("validates project milestones and task references", ()=>{
+  const project={id:"project-1",name:"Launch",milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],
+    groups:[{id:"group-1",name:"Tasks",items:[{id:"task-1",title:"Prepare release",milestoneId:"milestone-1"}]}]};
+  assert.equal(validate({projects:[project]},7).valid,true);
+  assert.equal(validate({projects:[{...project,milestones:[{...project.milestones[0],dueDate:null}]}]},7).valid,true);
+
+  const invalidDate=validate({projects:[{...project,milestones:[{...project.milestones[0],dueDate:"2026-02-30"}]}]},7);
+  assert.ok(invalidDate.errors.some(error=>error.includes("milestones[0].dueDate")));
+  const missingMilestone=validate({projects:[{...project,groups:[{...project.groups[0],items:[{...project.groups[0].items[0],milestoneId:"missing"}]}]}]},7);
+  assert.ok(missingMilestone.errors.some(error=>error.includes("items[0].milestoneId")));
+});
+
 test("rejects malformed nested workspace data with field paths", ()=>{
   const result = validate({projects:[{id:"project-1",name:"Launch",groups:{}}]},7);
 
@@ -187,6 +199,35 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
   assert.match(result.choices,/Docs/);
   assert.match(result.choices,/Design/);
   assert.equal(result.numericSort,true);
+});
+
+test("duplicates projects with remapped milestone links", async()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("async function duplicateProject(project)");
+  const end=appSource.indexOf("function addGroup",start);
+  const snippet=appSource.slice(start,end);
+  let nextId=0;
+  const context={
+    showDialog:async()=> "Launch copy",
+    state:{folderLazy:false,projects:[]},
+    uid:()=>`copy-${++nextId}`,
+    scheduleSave:()=>{},
+    renderAll:()=>{},
+    registerProjectSummary:()=>{},
+    persistActiveLocation:()=>{}
+  };
+  await vm.runInNewContext(`${snippet}; duplicateProject(project);`,{
+    ...context,
+    project:{
+      id:"project-1",name:"Launch",milestones:[{id:"milestone-1",title:"First release",dueDate:null}],
+      fields:[],tags:[],groups:[{id:"group-1",items:[{id:"task-1",title:"Prepare release",milestoneId:"milestone-1"}]}],
+      views:[{id:"view-1",type:"list",name:"List"}],activeViewId:"view-1"
+    }
+  });
+
+  const copy=context.state.projects[0];
+  assert.notEqual(copy.milestones[0].id,"milestone-1");
+  assert.equal(copy.groups[0].items[0].milestoneId,copy.milestones[0].id);
 });
 
 test("filters numeric values and any selected multi-select option", ()=>{

@@ -129,6 +129,7 @@
     {type:"table", label:"Table"},
     {type:"kanban", label:"Board"},
     {type:"calendar", label:"Calendar"},
+    {type:"milestones", label:"Milestones"},
   ];
   function viewLabel(type){ return (VIEW_DEFS.find(v=>v.type===type)||{}).label || type; }
   const PROJECT_TEMPLATES = {
@@ -842,6 +843,78 @@
     if (project.activeViewId===viewId) project.activeViewId = project.views[0].id;
     scheduleSave(); render();
   }
+  async function createMilestone(project){
+    const result=await showDialog({title:"New milestone",fields:[
+      {label:"Milestone name",placeholder:"e.g. First release"},
+      {label:"Due date",type:"date"}
+    ],confirmLabel:"Create milestone"});
+    if (!result) return;
+    const [title,dueDate]=result;
+    if (!title.trim()){
+      await showNotice("Milestone name required","Enter a name for this milestone.");
+      return;
+    }
+    if (!Array.isArray(project.milestones)) project.milestones=[];
+    project.milestones.push({id:uid(),title:title.trim(),dueDate:dueDate||null});
+    scheduleSave();
+    render();
+  }
+  async function editMilestone(project,milestone){
+    const result=await showDialog({title:"Edit milestone",fields:[
+      {label:"Milestone name",value:milestone.title},
+      {label:"Due date",type:"date",value:milestone.dueDate||""}
+    ],confirmLabel:"Save milestone"});
+    if (!result) return;
+    const [title,dueDate]=result;
+    if (!title.trim()){
+      await showNotice("Milestone name required","Enter a name for this milestone.");
+      return;
+    }
+    milestone.title=title.trim();
+    milestone.dueDate=dueDate||null;
+    scheduleSave();
+    render();
+  }
+  async function deleteMilestone(project,milestone){
+    if (!await showConfirm(`Delete milestone ${milestone.title}`,"Linked tasks will be kept and unlinked from this milestone.",true)) return;
+    project.groups.forEach(group=>group.items.forEach(item=>{
+      if (item.milestoneId===milestone.id) item.milestoneId=null;
+    }));
+    project.milestones=project.milestones.filter(candidate=>candidate.id!==milestone.id);
+    scheduleSave();
+    render();
+  }
+  function renderMilestones(project,board){
+    const wrap=document.createElement("div");
+    wrap.className="milestonesWrap";
+    const milestones=Array.isArray(project.milestones)?project.milestones:[];
+    wrap.innerHTML=`<div class="milestonesHeader"><div><h3>Project milestones</h3><p>Track major checkpoints and link tasks to see progress.</p></div><button type="button" class="btn btn-primary btn-sm" data-action="createMilestone">New milestone</button></div>
+      ${milestones.length?`<div class="milestoneGrid">${milestones.map(milestone=>{
+        const linkedItems=project.groups.flatMap(group=>group.items.map(item=>({group,item})))
+          .filter(entry=>entry.item.milestoneId===milestone.id&&!entry.item.archived&&entry.item.calendarType!=="event");
+        const completed=linkedItems.filter(entry=>isItemCompleted(entry.item)).length;
+        const percent=linkedItems.length?Math.round(completed/linkedItems.length*100):0;
+        const overdue=milestone.dueDate&&milestone.dueDate<todayStr(0)&&completed<linkedItems.length;
+        const dueText=milestone.dueDate?`Due ${fmtDate(milestone.dueDate)}`:"No due date";
+        return `<article class="milestoneCard${overdue?" overdue":""}" data-milestone-id="${escapeHtml(milestone.id)}">
+          <div class="milestoneCardHeader"><div><h4>${escapeHtml(milestone.title)}</h4><p>${escapeHtml(dueText)}</p></div><div class="milestoneActions"><button type="button" class="btn btn-invisible btn-sm" data-action="editMilestone">Edit</button><button type="button" class="btn btn-invisible btn-sm" data-action="deleteMilestone" aria-label="Delete ${escapeHtml(milestone.title)}">Delete</button></div></div>
+          <div class="milestoneProgressLabel"><span>${completed} of ${linkedItems.length} tasks complete</span><span>${percent}%</span></div><div class="milestoneProgressTrack"><div class="milestoneProgressFill" style="width:${percent}%"></div></div>
+          ${linkedItems.length?`<ul class="milestoneTaskList">${linkedItems.map(({group,item})=>`<li><button type="button" data-action="openMilestoneTask" data-gid="${escapeHtml(group.id)}" data-iid="${escapeHtml(item.id)}" class="${isItemCompleted(item)?"completed":""}">${escapeHtml(item.title)}</button></li>`).join("")}</ul>`:`<p class="milestoneEmptyTasks">No tasks linked yet.</p>`}
+          <button type="button" class="btn btn-invisible btn-sm milestoneAddTask" data-action="addMilestoneTask">+ Add task</button>
+        </article>`;
+      }).join("")}</div>`:`<div class="milestonesEmpty"><strong>No milestones yet</strong><span>Create a milestone for a major checkpoint, then link tasks to it.</span></div>`}`;
+    wrap.querySelector('[data-action="createMilestone"]').onclick=()=>createMilestone(project);
+    wrap.querySelectorAll(".milestoneCard").forEach(card=>{
+      const milestone=milestones.find(candidate=>candidate.id===card.dataset.milestoneId);
+      card.querySelector('[data-action="editMilestone"]').onclick=()=>editMilestone(project,milestone);
+      card.querySelector('[data-action="deleteMilestone"]').onclick=()=>deleteMilestone(project,milestone);
+      card.querySelector('[data-action="addMilestoneTask"]').onclick=()=>openNewItemModal(project,project.groups[0],milestone.id);
+      card.querySelectorAll('[data-action="openMilestoneTask"]').forEach(button=>{
+        button.onclick=()=>openItemModal(project.id,button.dataset.gid,button.dataset.iid);
+      });
+    });
+    board.appendChild(wrap);
+  }
   async function deleteProject(pid){
     const project = await ensureProjectLoaded(pid);
     if (project) project.groups.forEach(group=>group.items.forEach(queueGoogleEventDeletes));
@@ -857,7 +930,7 @@
     const proposedName = `${project.name} (copy)`;
     const name = await showDialog({
       title:"Duplicate project",
-      message:"Groups, fields, tags, views, and items will be copied. Comments and Google Calendar sync history won't be copied. Scheduled items may sync as new events.",
+      message:"Groups, fields, tags, milestones, views, and items will be copied. Comments and Google Calendar sync history won't be copied. Scheduled items may sync as new events.",
       fields:[{label:"Project name", value:proposedName}],
       confirmLabel:"Duplicate"
     });
@@ -872,6 +945,7 @@
     const tagIds = new Map();
     const groupIds = new Map();
     const viewIds = new Map();
+    const milestoneIds = new Map();
     const now = Date.now();
     const fields = (project.fields||[]).map(field=>{
       const id = uid();
@@ -892,6 +966,7 @@
     const views = project.views||[];
     groups.forEach(group=>groupIds.set(group.id, uid()));
     views.forEach(view=>viewIds.set(view.id, uid()));
+    (project.milestones||[]).forEach(milestone=>milestoneIds.set(milestone.id,uid()));
 
     const copyItem = item=>{
       const values = {};
@@ -902,6 +977,7 @@
         ...item,
         id:uid(),
         tagIds:(item.tagIds||[]).map(id=>tagIds.get(id)).filter(Boolean),
+        milestoneId:milestoneIds.get(item.milestoneId)||null,
         attachments:(item.attachments||[]).map(attachment=>({...attachment})),
         values,
         subitems:(item.subitems||[]).map(subitem=>({...subitem,id:uid()})),
@@ -920,6 +996,7 @@
       createdAt:now,
       fields,
       tags,
+      milestones:(project.milestones||[]).map(milestone=>({...milestone,id:milestoneIds.get(milestone.id)})),
       groups:groups.map(group=>({
         ...group,
         id:groupIds.get(group.id),
@@ -986,18 +1063,18 @@
   function addItem(pid, gid, title){
     const project = getProject(pid);
     const it = {id:uid(), title, description:"", attachments:[], calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
-      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[],
+      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, milestoneId:null, tagIds:[], values:{}, subitems:[],
       comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     recordItemActivity(it, "created");
     getGroup(pid,gid).items.push(it);
     scheduleSave(); render();
     return it;
   }
-  function openNewItemModal(project, group){
+  function openNewItemModal(project, group, milestoneId=null){
     if (!project || !group) return;
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false, draft:{
       id:uid(), title:"", description:"", attachments:[], calendarType:project.itemDefaultType==="event" ? "event" : "task",
-      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, tagIds:[], values:{}, subitems:[], comments:[],
+      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, milestoneId, tagIds:[], values:{}, subitems:[], comments:[],
       activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
@@ -2053,6 +2130,12 @@
     };
 
     const activeView = project.views.find(v=>v.id===project.activeViewId) || project.views[0];
+    if (activeView.type==="milestones"){
+      filterBar.style.display="none";
+      completionTabs.style.display="none";
+      renderMilestones(project,board);
+      return;
+    }
     if (activeView.type === "list") renderListView(project, board);
     else if (activeView.type === "table") renderTableView(project, board);
     else if (activeView.type === "calendar") renderCalendar(board, project);
@@ -4205,7 +4288,7 @@
         const type = field.type === "textarea" ? "textarea" : "input";
         const control = type === "textarea"
           ? `<textarea class="form-control" id="${id}" placeholder="${escapeHtml(field.placeholder||"")}">${escapeHtml(field.value||"")}</textarea>`
-          : `<input class="form-control" id="${id}" type="text" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
+          : `<input class="form-control" id="${id}" type="${field.type==="date"?"date":"text"}" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
         return `<div class="modalRow">${label}${control}</div>`;
       }).join("");
       overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
@@ -4399,6 +4482,12 @@
     if (!item || !modal) { closeItemModal(); return; }
 
     const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${projectRecords().map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
+    const milestoneOptions = (project.milestones||[]).map(milestone=>
+      `<option value="${escapeHtml(milestone.id)}" ${item.milestoneId===milestone.id?"selected":""}>${escapeHtml(milestone.title)}</option>`).join("");
+    const milestoneSelector = item.calendarType!=="event" && milestoneOptions ? `<div class="sideItem">
+      <label class="sideItemLabel" for="itemMilestoneSelect">Milestone</label>
+      <select class="form-control" id="itemMilestoneSelect"><option value="">No milestone</option>${milestoneOptions}</select>
+    </div>` : "";
     const groupOptions = project.groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
     const groupSelector = project.groups.length>1 ? `<div class="sideItem">
@@ -4557,6 +4646,7 @@
               <button type="button" data-calendar-type="event" class="${item.calendarType==="event"?"active":""}">Event</button>
             </div>
           </div>
+          ${milestoneSelector}
           ${fieldsHtml}
           <div class="sideItem">
             <div class="sideItemLabel">Tags</div>
@@ -4649,6 +4739,15 @@
         openItemRef.groupId = newGid;
       }
     });
+    const milestoneSelect=modal.querySelector("#itemMilestoneSelect");
+    if (milestoneSelect) milestoneSelect.addEventListener("change",event=>{
+      item.milestoneId=event.target.value||null;
+      if (isNew) return;
+      item.updatedAt=Date.now();
+      scheduleSave();
+      render();
+      renderItemModal();
+    });
     const addScheduleBtn = modal.querySelector('[data-action="addSchedule"]');
     if (addScheduleBtn) addScheduleBtn.onclick = () => {
       openItemRef.scheduleOpen = true;
@@ -4659,6 +4758,7 @@
     modal.querySelectorAll("[data-calendar-type]").forEach(button=>{
       button.onclick = () => {
         item.calendarType = button.dataset.calendarType;
+        if (item.calendarType==="event") item.milestoneId=null;
         modal.querySelectorAll("[data-calendar-type]").forEach(tab=>tab.classList.toggle("active", tab===button));
         if (isNew) return;
         item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();

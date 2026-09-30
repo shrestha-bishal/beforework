@@ -7,6 +7,11 @@
   function hasText(value){
     return typeof value==="string" && value.trim().length>0;
   }
+  function isDate(value){
+    if (typeof value!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date=new Date(`${value}T00:00:00.000Z`);
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10)===value;
+  }
   function validateWorkspaceData(data,maxSchemaVersion){
     const errors=[];
     const addError=message=>{ if (errors.length<30) errors.push(message); };
@@ -16,13 +21,16 @@
       if (!hasText(value.name)) addError(`${path}.name must be a non-empty string.`);
       return true;
     };
-    const validateItems=(items,path)=>{
+    const validateItems=(items,path,milestoneIds)=>{
       if (!Array.isArray(items)) return;
       items.forEach((item,index)=>{
         const itemPath=`${path}[${index}]`;
         if (!isRecord(item)){ addError(`${itemPath} must be an object.`); return; }
         if (!hasText(item.id)) addError(`${itemPath}.id must be a non-empty string.`);
         if (!hasText(item.title)) addError(`${itemPath}.title must be a non-empty string.`);
+        if (item.milestoneId!==undefined && item.milestoneId!==null && (typeof item.milestoneId!=="string" || (milestoneIds && !milestoneIds.has(item.milestoneId)))){
+          addError(`${itemPath}.milestoneId must reference a milestone in its project.`);
+        }
         for (const key of ["tagIds","subitems","comments","activity"]){
           if (item[key]!==undefined && !Array.isArray(item[key])) addError(`${itemPath}.${key} must be an array.`);
         }
@@ -61,9 +69,20 @@
       if (project.description!==undefined && project.description!==null && typeof project.description!=="string"){
         addError(`${projectPath}.description must be a string or null.`);
       }
-      for (const key of ["groups","fields","tags","views"]){
+      for (const key of ["groups","fields","tags","views","milestones"]){
         if (project[key]!==undefined && !Array.isArray(project[key])) addError(`${projectPath}.${key} must be an array.`);
       }
+      const milestones=Array.isArray(project.milestones)?project.milestones:[];
+      const milestoneIds=new Set();
+      milestones.forEach((milestone,milestoneIndex)=>{
+        const path=`${projectPath}.milestones[${milestoneIndex}]`;
+        if (!isRecord(milestone)){ addError(`${path} must be an object.`); return; }
+        if (!hasText(milestone.id) || !hasText(milestone.title)) addError(`${path} must have an id and title.`);
+        if (milestone.dueDate!==undefined && milestone.dueDate!==null && !isDate(milestone.dueDate)){
+          addError(`${path}.dueDate must be a valid date string or null.`);
+        }
+        if (hasText(milestone.id)) milestoneIds.add(milestone.id);
+      });
       (Array.isArray(project.fields) ? project.fields : []).forEach((field,fieldIndex)=>{
         const path=`${projectPath}.fields[${fieldIndex}]`;
         if (!isRecord(field)){ addError(`${path} must be an object.`); return; }
@@ -82,7 +101,7 @@
         const groupPath=`${projectPath}.groups[${groupIndex}]`;
         if (!validateNamedRecord(group,groupPath)) return;
         if (group.items!==undefined && !Array.isArray(group.items)) addError(`${groupPath}.items must be an array.`);
-        validateItems(group.items,`${groupPath}.items`);
+        validateItems(group.items,`${groupPath}.items`,milestoneIds);
       });
     });
     validateItems(data.calendarItems,"calendarItems");
