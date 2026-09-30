@@ -104,6 +104,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/demo-seeder.js` - sample projects, items, fields, and demo attachment
 - `js/models/` and `js/views/` - overview details, settings, and milestone views
 - `js/services/google-calendar/` - optional Google Calendar integration
+- `js/ui/templates.js` - shared HTML template loader and cache
 - `js/schema-migration.js` - versioned upgrades and pre-upgrade backups for workspace data
 - `js/workspace-validation.js` - validation for imports and connected workspace files
 - `pages/` - dashboard, settings, milestone, and dialog HTML templates

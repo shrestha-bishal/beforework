@@ -21,8 +21,8 @@ function loadTemplatesModule(){
       })
     }
   };
-  const source=fs.readFileSync(path.join(__dirname,"../js/view-templates.js"),"utf8");
-  vm.runInNewContext(source,sandbox,{filename:"view-templates.js"});
+  const source=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
+  vm.runInNewContext(source,sandbox,{filename:"templates.js"});
   return {loader:window.BeforeworkViewTemplates,requests};
 }
 
