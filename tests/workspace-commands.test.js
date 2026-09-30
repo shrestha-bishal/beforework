@@ -6,7 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(path.join(__dirname, "../js/workspace-commands.js"), "utf8");
+const source = fs.readFileSync(path.join(__dirname, "../js/commands/workspace-commands.js"), "utf8");
 const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"workspace-commands.js"});
 const createCommands = sandbox.window.BeforeworkWorkspaceCommands.create;
