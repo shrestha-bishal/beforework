@@ -62,6 +62,15 @@
   const BUY_ME_A_COFFEE_URL = "https://www.buymeacoffee.com/shresthabishal";
   const GOOGLE_CLIENT_ID = "1082047072334-rovrplv89dp521ue1qra4dl3v8jqe1qu.apps.googleusercontent.com";
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
+  const dialogs = window.BeforeworkDialogs.create({
+    tagColorOptions:TAG_COLOR_OPTIONS,
+    defaultProjectIcon:DEFAULT_PROJECT_ICON,
+    projectDefaultIcons:PROJECT_DEFAULT_ICONS,
+    openFloatingSelectMenu,
+    closeFloatingSelectMenu,
+    loadTemplate:name=>window.BeforeworkViewTemplates.load(name),
+    clonePageTemplate:name=>window.BeforeworkViewTemplates.clone(name)
+  });
 
   let state = null;                 // { projects:[] }
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
@@ -4233,208 +4242,9 @@
   function enhanceDateInputs(root=document){
     root.querySelectorAll("input[type=date]:not([data-date-picker-enhanced]),input[type=datetime-local]:not([data-date-picker-enhanced])").forEach(enhanceDateInput);
   }
-  function showDialog({title, message="", fields=[], confirmLabel="Continue", secondaryLabel="", danger=false, cancelLabel="Cancel"}){
-    if (showDialog.finishActive) showDialog.finishActive(null);
-    return new Promise(resolve=>{
-      const overlay = document.createElement("div");
-      overlay.className = "overlay";
-      overlay.id = "dialogOverlay";
-      const selectedIconValues = fields.map(field=>field.type==="iconPicker" ? (field.value || DEFAULT_PROJECT_ICON) : null);
-      const fieldsHtml = fields.map((field,index)=>{
-        const id = `dialogField${index}`;
-        const labelFor = field.type === "tagColor" ? `${id}Color0` : id;
-        const label = field.label ? `<label for="${labelFor}">${escapeHtml(field.label)}</label>` : "";
-        if (field.type === "iconPicker"){
-          return `<div class="modalRow">${label}
-            <div class="projectIconResults" id="projectIconDefaults${index}" role="radiogroup" aria-label="Default project icons"></div>
-            <button class="btn btn-sm projectIconMore" id="projectIconMore${index}" type="button" aria-expanded="false">More icons</button>
-            <div class="projectIconSearchPanel" id="projectIconSearchPanel${index}" hidden>
-              <input class="form-control projectIconSearch" id="${id}" type="search" placeholder="Search icons, e.g. folder or rocket" aria-label="Search Material Design icons">
-              <div class="projectIconResults" id="projectIconSearchResults${index}" role="radiogroup" aria-label="Icon search results"></div>
-              <p class="projectIconSearchStatus" id="projectIconStatus${index}" role="status">Search Material Design Icons to browse more.</p>
-            </div>
-          </div>`;
-        }
-        if (field.type === "tagColor"){
-          const selectedIndex = TAG_COLOR_OPTIONS.findIndex(option=>option.value===field.value);
-          const customValue = /^#[0-9a-f]{6}$/i.test(field.value||"") ? field.value : "#0969da";
-          const swatches = TAG_COLOR_OPTIONS.map((option,optionIndex)=>`<label class="tagColorOption" title="${option.label}">
-            <input id="${id}Color${optionIndex}" type="radio" name="${id}" value="${escapeHtml(option.value)}" ${selectedIndex===optionIndex?"checked":""}>
-            <span class="tagColorSwatch" style="background:${escapeHtml(option.value)}"></span><span class="sr-only">${option.label}</span>
-          </label>`).join("");
-          return `<div class="modalRow">${label}<div class="tagColorGrid" role="radiogroup" aria-label="${escapeHtml(field.label||"Pill color")}">
-            ${swatches}<div class="tagColorCustomOption" title="Custom color">
-              <input id="${id}Custom" type="radio" name="${id}" value="__custom__" ${selectedIndex<0?"checked":""} aria-label="Custom color">
-              <span class="tagColorCustomSwatch"><iconify-icon icon="mdi:eyedropper-variant" aria-hidden="true"></iconify-icon><span class="tagColorCustomCurrent${selectedIndex<0?" is-visible":""}" style="background:${customValue}"></span></span>
-              <input class="tagColorPicker" id="dialogColor${index}" type="color" value="${customValue}" aria-label="Choose custom pill color">
-            </div>
-          </div></div>`;
-        }
-        if (field.type === "select"){
-          const selectedOption=(field.options||[]).find(option=>option.value===field.value)||(field.options||[])[0];
-          const options = (field.options||[]).map((option,optionIndex)=>{
-            const meta = option.description ? `<small class="dialogSelectOptionMeta">${escapeHtml(option.description)}</small>` : "";
-            return `<button type="button" class="dialogSelectOption${option.value===selectedOption?.value?" selected":""}" role="option" aria-selected="${option.value===selectedOption?.value}" data-value="${escapeHtml(option.value)}" data-index="${optionIndex}"><span class="dialogSelectOptionText"><span class="dialogSelectOptionLabel">${escapeHtml(option.label)}</span>${meta}</span></button>`;
-          }).join("");
-          return `<div class="modalRow">${label}<div class="dialogSelectWrap"><input type="hidden" id="${id}" value="${escapeHtml(selectedOption?.value||"")}"><button type="button" class="dialogSelectButton" id="${id}Button" aria-haspopup="listbox" aria-expanded="false"><span>${escapeHtml(selectedOption?.label||"")}</span><iconify-icon icon="mdi:chevron-down" aria-hidden="true"></iconify-icon></button><div class="dialogSelectMenu" role="listbox" aria-label="${escapeHtml(field.label||"Select an option")}" hidden>${options}</div></div></div>`;
-        }
-        const type = field.type === "textarea" ? "textarea" : "input";
-        const control = type === "textarea"
-          ? `<textarea class="form-control" id="${id}" placeholder="${escapeHtml(field.placeholder||"")}">${escapeHtml(field.value||"")}</textarea>`
-          : `<input class="form-control" id="${id}" type="${field.type==="date"?"date":"text"}" placeholder="${escapeHtml(field.placeholder||"")}" value="${escapeHtml(field.value||"")}">`;
-        return `<div class="modalRow">${label}${control}</div>`;
-      }).join("");
-      overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
-        <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
-        <h3>${escapeHtml(title)}</h3>
-        ${message ? `<p class="dialogMessage">${escapeHtml(message)}</p>` : ""}
-        ${fieldsHtml}
-        <div class="uiDivider modalDivider" aria-hidden="true"></div>
-        <div class="modalFooter">
-          <button class="btn btn-invisible" data-dialog-cancel>${escapeHtml(cancelLabel)}</button>
-          ${secondaryLabel ? `<button class="btn" data-dialog-secondary>${escapeHtml(secondaryLabel)}</button>` : ""}
-          <button class="btn ${danger?"btn-danger":"btn-primary"} btn-sm" data-dialog-confirm>${escapeHtml(confirmLabel)}</button>
-        </div>
-      </div>`;
-      document.body.appendChild(overlay);
-      const finish = value => {
-        overlay.remove();
-        if (showDialog.finishActive === finish) showDialog.finishActive = null;
-        resolve(value);
-      };
-      showDialog.finishActive = finish;
-      fields.forEach((field,index)=>{
-        if (field.type === "select"){
-          const button = overlay.querySelector(`#dialogField${index}Button`);
-          const input = overlay.querySelector(`#dialogField${index}`);
-          const menu = overlay.querySelector(`#dialogField${index}Button + .dialogSelectMenu`);
-          const options = [...menu.querySelectorAll(".dialogSelectOption")];
-          const close = () => closeFloatingSelectMenu(menu);
-          const open = () => { openFloatingSelectMenu(button,menu); options.find(option=>option.dataset.value===input.value)?.focus(); };
-          button.onclick = event => { event.stopPropagation(); menu.hidden ? open() : close(); };
-          button.onkeydown = event => {
-            if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
-          };
-          options.forEach(option=>option.onclick=()=>{
-            input.value=option.dataset.value;
-            const label = option.querySelector(".dialogSelectOptionLabel")?.textContent || option.textContent;
-            button.querySelector("span").textContent = label;
-            options.forEach(candidate=>{ candidate.classList.toggle("selected",candidate===option); candidate.setAttribute("aria-selected",String(candidate===option)); });
-            close(); button.focus();
-          });
-          menu.onkeydown = event => {
-            const current=Math.max(0,options.indexOf(document.activeElement));
-            if (event.key==="ArrowDown"){ event.preventDefault(); options[Math.min(options.length-1,current+1)]?.focus(); }
-            if (event.key==="ArrowUp"){ event.preventDefault(); options[Math.max(0,current-1)]?.focus(); }
-            if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
-          };
-          return;
-        }
-        if (field.type === "iconPicker"){
-          const defaults = overlay.querySelector(`#projectIconDefaults${index}`);
-          const moreButton = overlay.querySelector(`#projectIconMore${index}`);
-          const searchPanel = overlay.querySelector(`#projectIconSearchPanel${index}`);
-          const search = overlay.querySelector(`#dialogField${index}`);
-          const results = overlay.querySelector(`#projectIconSearchResults${index}`);
-          const status = overlay.querySelector(`#projectIconStatus${index}`);
-          let matches = [];
-          let searchTimer = null;
-          let searchSequence = 0;
-          const renderOptions = (container,icons)=>{
-            container.innerHTML = icons.map(iconName=>`<label class="projectIconOption" title="${escapeHtml(iconName)}">
-              <input type="radio" name="dialogIcon${index}" value="${escapeHtml(iconName)}" ${selectedIconValues[index]===iconName?"checked":""}>
-              <iconify-icon icon="${escapeHtml(iconName)}" aria-hidden="true"></iconify-icon><span>${escapeHtml(iconName.slice(4))}</span>
-            </label>`).join("");
-          };
-          const renderIconChoices = ()=>{
-            const defaultIcons = [...PROJECT_DEFAULT_ICONS];
-            if (!defaultIcons.includes(selectedIconValues[index])) defaultIcons.unshift(selectedIconValues[index]);
-            const defaultIconSet = new Set(defaultIcons);
-            renderOptions(defaults,defaultIcons);
-            renderOptions(results,matches.filter(iconName=>!defaultIconSet.has(iconName)));
-          };
-          const selectIcon = event=>{
-            const radio = event.target.closest('input[type="radio"]');
-            if (!radio) return;
-            selectedIconValues[index] = radio.value;
-            renderIconChoices();
-          };
-          renderIconChoices();
-          defaults.addEventListener("change",selectIcon);
-          results.addEventListener("change",selectIcon);
-          moreButton.addEventListener("click",()=>{
-            searchPanel.hidden = !searchPanel.hidden;
-            moreButton.setAttribute("aria-expanded",String(!searchPanel.hidden));
-            moreButton.textContent = searchPanel.hidden ? "More icons" : "Hide search";
-            if (!searchPanel.hidden) search.focus();
-          });
-          search.addEventListener("input",()=>{
-            clearTimeout(searchTimer);
-            const query = search.value.trim();
-            const sequence = ++searchSequence;
-            if (query.length<2){
-              matches = [];
-              renderIconChoices();
-              status.textContent = query ? "Type at least 2 characters to search." : "Search Material Design Icons to browse more.";
-              return;
-            }
-            status.textContent = "Searching icons...";
-            searchTimer = setTimeout(async()=>{
-              try{
-                const response = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&prefix=mdi&limit=48`);
-                if (!response.ok) throw new Error("Icon search unavailable");
-                const payload = await response.json();
-                if (sequence!==searchSequence) return;
-                matches = (Array.isArray(payload.icons) ? payload.icons : []).filter(iconName=>typeof iconName==="string" && /^mdi:[a-z0-9-]+$/i.test(iconName));
-                renderIconChoices();
-                status.textContent = matches.length ? `${matches.length} icons found.` : "No matching icons.";
-              }catch(err){
-                if (sequence!==searchSequence) return;
-                matches = [];
-                renderIconChoices();
-                status.textContent = "Icon search unavailable. Your selected icon is unchanged.";
-              }
-            },250);
-          });
-          return;
-        }
-        if (field.type !== "tagColor") return;
-        const customRadio = overlay.querySelector(`input[name="dialogField${index}"][value="__custom__"]`);
-        const picker = overlay.querySelector(`#dialogColor${index}`);
-        const currentColor = overlay.querySelector(`.tagColorCustomCurrent`);
-        const selectCustom = () => { customRadio.checked = true; currentColor.classList.add("is-visible"); };
-        picker.addEventListener("pointerdown",selectCustom);
-        picker.addEventListener("input",()=>{
-          selectCustom();
-          currentColor.style.background = picker.value;
-        });
-        overlay.querySelectorAll(`input[name="dialogField${index}"]:not([value="__custom__"])`).forEach(radio=>{
-          radio.addEventListener("change",()=>currentColor.classList.remove("is-visible"));
-        });
-      });
-      overlay.querySelectorAll("[data-dialog-cancel]").forEach(button=>button.onclick=()=>finish(null));
-      const secondary = overlay.querySelector("[data-dialog-secondary]");
-      if (secondary) secondary.onclick = () => finish("__secondary__");
-      overlay.querySelector("[data-dialog-confirm]").onclick = () => {
-        const values = fields.map((field,index)=>{
-          if (field.type === "iconPicker") return selectedIconValues[index];
-          if (field.type !== "tagColor") return overlay.querySelector(`#dialogField${index}`).value;
-          const selected = overlay.querySelector(`input[name="dialogField${index}"]:checked`);
-          return selected?.value === "__custom__" ? overlay.querySelector(`#dialogColor${index}`).value : selected?.value;
-        });
-        finish(values.length===1 ? values[0] : values.length ? values : "__confirm__");
-      };
-      overlay.addEventListener("click", event=>{ if (event.target===overlay) finish(null); });
-      const first = overlay.querySelector("input:not([type='hidden']), textarea, select, .dialogSelectButton");
-      if (first) first.focus();
-    });
-  }
-  function showNotice(title, message){
-    return showDialog({title, message, confirmLabel:"OK", cancelLabel:"Close", fields:[]});
-  }
-  function showConfirm(title, message, danger=false){
-    return showDialog({title, message, confirmLabel:danger?"Delete":"Continue", danger});
-  }
+  function showDialog(options){ return dialogs.showDialog(options); }
+  function showNotice(title, message){ return dialogs.showNotice(title, message); }
+  function showConfirm(title, message, danger=false){ return dialogs.showConfirm(title, message, danger); }
   function fieldInputHtml(field, item){
     const val = item.values[field.id] ?? "";
     const isChecked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
@@ -5156,8 +4966,11 @@
         const overlays = document.querySelectorAll(".overlay");
         if (overlays.length){
           const top = overlays[overlays.length-1];
-          if (top.id==="itemOverlay") openItemRef = null;
-          top.remove();
+          if (top.id==="dialogOverlay") dialogs.dismissActive();
+          else {
+            if (top.id==="itemOverlay") openItemRef = null;
+            top.remove();
+          }
         }
         return;
       }

@@ -1,0 +1,73 @@
+<template id="dialogShell">
+  <div class="overlay" id="dialogOverlay">
+    <div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
+      <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
+      <h3 data-dialog-title></h3>
+      <p class="dialogMessage" data-dialog-message hidden></p>
+      <div data-dialog-fields></div>
+      <div class="uiDivider modalDivider" aria-hidden="true"></div>
+      <div class="modalFooter">
+        <button class="btn btn-invisible" data-dialog-cancel data-dialog-cancel-label></button>
+        <button class="btn" data-dialog-secondary hidden></button>
+        <button class="btn btn-primary btn-sm" data-dialog-confirm></button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="dialogInputField">
+  <div class="modalRow">
+    <label data-dialog-label></label>
+    <input class="form-control" data-dialog-input type="text">
+  </div>
+</template>
+
+<template id="dialogTextareaField">
+  <div class="modalRow">
+    <label data-dialog-label></label>
+    <textarea class="form-control" data-dialog-textarea></textarea>
+  </div>
+</template>
+
+<template id="dialogSelectField">
+  <div class="modalRow">
+    <label data-dialog-label></label>
+    <div class="dialogSelectWrap">
+      <input type="hidden" data-select-value>
+      <button type="button" class="dialogSelectButton" data-select-button aria-haspopup="listbox" aria-expanded="false">
+        <span data-select-label></span>
+        <iconify-icon icon="mdi:chevron-down" aria-hidden="true"></iconify-icon>
+      </button>
+      <div class="dialogSelectMenu" data-select-menu role="listbox" hidden></div>
+    </div>
+  </div>
+</template>
+
+<template id="dialogTagColorField">
+  <div class="modalRow">
+    <label data-dialog-label></label>
+    <div class="tagColorGrid" data-color-group data-tag-swatches role="radiogroup">
+      <div class="tagColorCustomOption" data-custom-option title="Custom color">
+        <input data-custom-radio type="radio" value="__custom__" aria-label="Custom color">
+        <span class="tagColorCustomSwatch">
+          <iconify-icon icon="mdi:eyedropper-variant" aria-hidden="true"></iconify-icon>
+          <span class="tagColorCustomCurrent" data-custom-current></span>
+        </span>
+        <input class="tagColorPicker" data-custom-picker type="color" aria-label="Choose custom pill color">
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="dialogIconPickerField">
+  <div class="modalRow">
+    <label data-dialog-label></label>
+    <div class="projectIconResults" data-default-icons role="radiogroup" aria-label="Default project icons"></div>
+    <button class="btn btn-sm projectIconMore" data-icon-more type="button" aria-expanded="false">More icons</button>
+    <div class="projectIconSearchPanel" data-icon-search-panel hidden>
+      <input class="form-control projectIconSearch" data-icon-search type="search" placeholder="Search icons, e.g. folder or rocket" aria-label="Search Material Design icons">
+      <div class="projectIconResults" data-icon-results role="radiogroup" aria-label="Icon search results"></div>
+      <p class="projectIconSearchStatus" data-icon-status role="status">Search Material Design Icons to browse more.</p>
+    </div>
+  </div>
+</template>
