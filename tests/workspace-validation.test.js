@@ -99,6 +99,7 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   assert.equal(validate(workspace,7).valid,true);
   const launch=workspace.projects.find(project=>project.name==="Product launch");
   assert.equal(launch.milestones.length,2);
+  assert.ok(launch.views.some(view=>view.type==="milestones"));
   const betaMilestone=launch.milestones.find(milestone=>milestone.title==="Beta readiness");
   const betaTasks=launch.groups.flatMap(group=>group.items).filter(item=>item.milestoneId===betaMilestone.id);
   assert.equal(betaTasks.length,3);

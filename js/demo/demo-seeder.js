@@ -51,7 +51,7 @@
     const designTag = makeTag("design", TAG_COLORS[2]);
     const customerTag = makeTag("customer", TAG_COLORS[5]);
     const qualityTag = makeTag("quality", TAG_COLORS[6]);
-    const launchViews = views(["list", "kanban", "calendar"]);
+    const launchViews = views(["list", "kanban", "calendar", "milestones"]);
     const launchMilestones = [
       {id:uid(), title:"Beta readiness", dueDate:todayStr(3)},
       {id:uid(), title:"Product launch", dueDate:todayStr(10)}
