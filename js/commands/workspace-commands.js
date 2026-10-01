@@ -6,6 +6,7 @@
       const commands = [
         {id:"navigate:overview",title:"Go to overview",category:"Navigate",subtitle:"Workspace summary",keywords:"home dashboard",icon:"mdi:view-dashboard-outline",pinned:true,run:()=>actions.navigate("overview")},
         {id:"navigate:calendar",title:"Open calendar",category:"Navigate",subtitle:"All projects and events",keywords:"schedule dates",icon:"mdi:calendar-month-outline",pinned:true,run:()=>actions.navigate("calendar")},
+        {id:"navigate:roadmap",title:"Open roadmap",category:"Navigate",subtitle:"Project milestones and dated tasks",keywords:"timeline projects milestones",icon:"mdi:chart-gantt",run:()=>actions.navigate("roadmap")},
         {id:"navigate:settings",title:"Open settings",category:"Navigate",subtitle:"Preferences and workspace data",keywords:"configuration preferences",icon:"mdi:cog-outline",pinned:true,run:()=>actions.navigate("settings")},
         {id:"navigate:integrations",title:"Open integrations",category:"Navigate",subtitle:"Connected services",keywords:"Google Calendar sync",icon:"mdi:connection",run:()=>actions.navigate("integrations")},
         {id:"action:new-task",title:"Add task to current project",category:"Create",subtitle:"Quick-add to the open project",keywords:"new task item",icon:"mdi:plus-circle-outline",shortcut:"N",pinned:true,run:actions.addTask},

@@ -23,6 +23,7 @@
   ];
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
+  const ROADMAP = "__roadmap__";
   const INTEGRATIONS = "__integrations__";
   const SETTINGS = "__settings__";
   const SUPPORT = "__support__";
@@ -80,7 +81,7 @@
       navigate(destination){
         if (destination==="settings") navigateToSettings();
         else if (destination==="integrations") navigateToIntegrations();
-        else selectProject(destination==="calendar" ? CALENDAR : OVERVIEW);
+        else selectProject(destination==="calendar" ? CALENDAR : destination==="roadmap" ? ROADMAP : OVERVIEW);
       },
       addTask:quickAddViaShortcut,
       createProject(){ document.getElementById("addProjectBtn").click(); },
@@ -127,6 +128,7 @@
   let settingsView = null;
   let overviewDetailsView = null;
   let milestonesView = null;
+  let roadmapView = null;
   let showArchived = false;
   let focusInterval = null;
   let focusMode = "focus";
@@ -145,12 +147,13 @@
     {type:"kanban", label:"Board"},
     {type:"calendar", label:"Calendar"},
     {type:"milestones", label:"Milestones"},
+    {type:"roadmap", label:"Roadmap"},
   ];
   function viewLabel(type){ return (VIEW_DEFS.find(v=>v.type===type)||{}).label || type; }
   const PROJECT_TEMPLATES = {
     simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:["Items"]},
     table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:["Rows"]},
-    taskboard:{label:"Project / task management",  views:["list","kanban","calendar"], fields:["priority","due"], groups:["To do","In progress","Review"]},
+    taskboard:{label:"Project / task management",  views:["list","kanban","calendar","roadmap"], fields:["priority","due"], groups:["To do","In progress","Review"]},
     calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:["Items"], itemDefaultType:"event"},
     blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:["Items"]},
   };
@@ -2145,6 +2148,7 @@
   function renderProjectList(){
     document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
     document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
+    document.getElementById("roadmapNav").className = activeProjectId===ROADMAP ? "active" : "";
     document.getElementById("integrationsNav").className = activeProjectId===INTEGRATIONS ? "active" : "";
     document.getElementById("settingsNav").className = activeProjectId===SETTINGS ? "active" : "";
     document.getElementById("supportNav").classList.toggle("active",activeProjectId===SUPPORT);
@@ -2312,7 +2316,7 @@
   }
 
   async function selectProject(pid){
-    if (state?.folderLazy && ![OVERVIEW,CALENDAR,INTEGRATIONS,SETTINGS,SUPPORT].includes(pid)){
+    if (state?.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(pid)){
       if (activeProjectId!==pid && state.projects.length){
         if (!await flushSave()){
           await showNotice("Project switch paused","Resolve the current save or conflict before unloading the open project.");
@@ -2335,6 +2339,19 @@
     selectedItemIds.clear();
     renderAll();
     closeSidebarOnMobile();
+  }
+
+  async function openRoadmapItem(projectId,groupId,itemId){
+    await selectProject(projectId);
+    if (activeProjectId===projectId) openItemModal(projectId,groupId,itemId);
+  }
+
+  async function openRoadmapMilestone(projectId,milestoneId){
+    await selectProject(projectId);
+    if (activeProjectId!==projectId) return;
+    const project=getProject(projectId);
+    const milestone=project?.milestones?.find(candidate=>candidate.id===milestoneId);
+    if (project&&milestone) editMilestone(project,milestone);
   }
 
   function persistActiveLocation(){
@@ -2364,9 +2381,9 @@
   function restoreActiveLocation(){
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
-    if (saved===OVERVIEW || saved===CALENDAR || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)) activeProjectId = saved;
+    if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
-    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== SUPPORT) restoreProjectFilters(activeProjectId);
+    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) restoreProjectFilters(activeProjectId);
   }
 
   function renderSidebarTags(){
@@ -2374,7 +2391,7 @@
     const wrap = document.getElementById("sideTagsList");
     const label = document.getElementById("tagsSectionLabel");
     const project = getProject(activeProjectId);
-    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project){ section.style.display = "none"; return; }
+    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===ROADMAP || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project){ section.style.display = "none"; return; }
     section.style.display = "block";
     label.textContent = "Tags in " + project.name;
     wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("")
@@ -2462,10 +2479,11 @@
     }
     board.innerHTML = "";
 
-    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
+    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === ROADMAP || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
       topLabel.textContent = "Overview";
       descriptionLabel.hidden = true;
       if (activeProjectId===CALENDAR) topLabel.textContent = "Calendar";
+      if (activeProjectId===ROADMAP) topLabel.textContent = "Roadmap";
       if (activeProjectId===INTEGRATIONS) topLabel.textContent = "Integrations";
       if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
       if (activeProjectId===SUPPORT) topLabel.textContent = "Support Beforework";
@@ -2482,6 +2500,13 @@
       viewTabs.style.display = "none";
       completionTabs.style.display = "none";
       if (activeProjectId===CALENDAR) renderCalendar(board, null);
+      else if (activeProjectId===ROADMAP) roadmapView.render(board,window.BeforeworkRoadmapModel.rowsForWorkspace(projectRecords()),{
+        scope:"workspace",
+        fmtDate,
+        onOpenProject:selectProject,
+        onOpenItem:openRoadmapItem,
+        onOpenMilestone:openRoadmapMilestone
+      });
       else if (activeProjectId===INTEGRATIONS) renderIntegrations(board);
       else if (activeProjectId===SETTINGS) renderSettings(board);
       else if (activeProjectId===SUPPORT) renderSupport(board);
@@ -2558,6 +2583,18 @@
         deleteMilestone,
         openNewItem:openNewItemModal,
         openItem:openItemModal
+      });
+      return;
+    }
+    if (activeView.type==="roadmap"){
+      filterBar.style.display="none";
+      completionTabs.style.display="none";
+      roadmapView.render(board,window.BeforeworkRoadmapModel.rowsForProject(project),{
+        scope:"project",
+        fmtDate,
+        onOpenProject:selectProject,
+        onOpenItem:openItemModal,
+        onOpenMilestone:openRoadmapMilestone
       });
       return;
     }
@@ -5228,6 +5265,7 @@
     document.getElementById("calendarNav").onclick = () => {
       activeProjectId = CALENDAR; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
     };
+    document.getElementById("roadmapNav").onclick = () => selectProject(ROADMAP);
     document.getElementById("integrationsNav").onclick = () => {
       navigateToIntegrations();
     };
@@ -5474,11 +5512,12 @@
       }catch(err){ /* Identity is optional; the workspace runs without it. */ }
     }
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule] = await Promise.all([
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule] = await Promise.all([
         import("./views/settings-view.js"),
         import("./views/overview-details-view.js"),
         import("./models/overview-details-model.js"),
-        import("./views/milestones-view.js")
+        import("./views/milestones-view.js"),
+        import("./views/roadmap-view.js")
       ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
@@ -5491,6 +5530,7 @@
       milestonesView = new milestonesViewModule.MilestonesView({
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
       });
+      roadmapView = new roadmapViewModule.RoadmapView();
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);
@@ -5501,7 +5541,7 @@
     catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + err.message); }
     if (reconnected){
       restoreActiveLocation();
-      if (state.folderLazy && ![OVERVIEW,CALENDAR,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
+      if (state.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
         try{ await ensureProjectLoaded(activeProjectId); }
         catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + err.message); }
       }

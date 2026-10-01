@@ -42,6 +42,7 @@ test("provides quick actions and workspace search entries", ()=>{
   const entries = commands.getCommands();
 
   assert.ok(entries.some(entry=>entry.id==="action:new-project"));
+  assert.ok(entries.some(entry=>entry.id==="navigate:roadmap"));
   assert.ok(entries.some(entry=>entry.id==="project:project-1"));
   const itemEntry = entries.find(entry=>entry.id==="item:project-1:group-1:item-1");
   assert.match(itemEntry.keywords,/Check month ends/);
