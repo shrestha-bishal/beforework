@@ -208,6 +208,7 @@ test("new Calendar items default to tasks in standalone and project calendars",a
   await create(project,"2026-10-03");
   assert.equal(context.openItemRef.draft.calendarType,"task");
   assert.equal(context.openItemRef.draft.values.due,"2026-10-03");
-  assert.equal(context.openItemRef.draft.startTime,"09:00");
-  assert.equal(context.openItemRef.draft.endTime,"10:00");
+  assert.equal(context.openItemRef.draft.startTime,"");
+  assert.equal(context.openItemRef.draft.endTime,"");
+  assert.equal(context.openItemRef.draft.endDate,"");
 });
