@@ -1,0 +1,11 @@
+{
+  "name": "beforework",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-site.js"
+  },
+  "devDependencies": {
+    "html-minifier-terser": "7.2.0",
+    "terser": "5.51.2"
+  }
+}
