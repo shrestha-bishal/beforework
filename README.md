@@ -105,7 +105,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/app.js` - application behavior, rendering, column controls, and CSV export
 - `js/services/storage/` - local workspace persistence and attachments
 - `js/services/reminders/` - in-app reminder scheduling and notifications
-- `js/ui/` - shared UI components and HTML template loading
+- `js/ui/` - shared UI components, appearance preferences, and HTML template loading
 - `js/config/` - build-generated runtime configuration
 - `js/demo/` - demo workspace data and attachments
 - `js/models/` and `js/views/` - overview details, settings, and milestone views

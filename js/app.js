@@ -56,9 +56,7 @@
   const FIELD_TYPES = FIELD_TYPE_OPTIONS.map(option=>option.value);
   function fieldTypeLabel(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.label || "Text"; }
   function fieldTypeDescription(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.description || ""; }
-  const THEME_KEY = "personal_dashboard_theme_v1";
   const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
-  const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
   const GITHUB_SPONSORS_URL = "https://github.com/sponsors/shrestha-bishal";
@@ -195,27 +193,6 @@
   let googleSilentAuth = false;
   let googleTokenRefreshTimer = null;
 
-  /* ---------- Theme ---------- */
-  function applyTheme(theme){
-    document.documentElement.setAttribute("data-theme", theme);
-    // Primer's own color tokens switch off this attribute (set alongside
-    // data-light-theme/data-dark-theme on <html> - see the head).
-    document.documentElement.setAttribute("data-color-mode", theme==="dark" ? "dark" : "light");
-    const btn = document.getElementById("themeToggle");
-    if (btn) btn.textContent = theme==="dark" ? "☀️" : "🌙";
-    try{ localStorage.setItem(THEME_KEY, theme); }catch(err){/* ignore */}
-  }
-  function toggleTheme(){
-    const current = document.documentElement.getAttribute("data-theme")==="dark" ? "dark" : "light";
-    applyTheme(current==="dark" ? "light" : "dark");
-  }
-  function initTheme(){
-    let saved = null;
-    try{ saved = localStorage.getItem(THEME_KEY); }catch(err){/* ignore */}
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    applyTheme(saved || (prefersDark ? "dark" : "light"));
-  }
-
   function getTimeFormat(){
     try{ return localStorage.getItem(TIME_FORMAT_KEY)==="24" ? "24" : "12"; }catch(err){ return "12"; }
   }
@@ -231,26 +208,6 @@
   function formatDateTime(timestamp){
     const date = new Date(timestamp);
     return date.toLocaleString(undefined, {dateStyle:"medium", timeStyle:"short", hour12:getTimeFormat()==="12"});
-  }
-
-  /* ---------- Sidebar collapse (desktop) ---------- */
-  function applySidebarCollapsed(collapsed){
-    const sidebar = document.getElementById("sidebar");
-    const handle = document.getElementById("sidebarCollapseHandle");
-    sidebar.classList.toggle("collapsed", collapsed);
-    handle.textContent = collapsed ? "›" : "‹";
-    handle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
-    handle.setAttribute("aria-label", handle.title);
-    try{ localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0"); }catch(err){/* ignore */}
-  }
-  function toggleSidebarCollapsed(){
-    const sidebar = document.getElementById("sidebar");
-    applySidebarCollapsed(!sidebar.classList.contains("collapsed"));
-  }
-  function initSidebarCollapse(){
-    let saved = null;
-    try{ saved = localStorage.getItem(SIDEBAR_KEY); }catch(err){/* ignore */}
-    applySidebarCollapsed(saved === "1");
   }
 
   /* ---------- Auth (optional, pluggable) ----------
@@ -468,7 +425,7 @@
     timerNav.classList.toggle("active", open);
     timerNav.setAttribute("aria-expanded", String(open));
     if (open){
-      applySidebarCollapsed(false);
+      window.BeforeworkAppearance.applySidebarCollapsed(false);
       if (window.innerWidth<=860){
         document.getElementById("sidebar").classList.add("open");
         document.getElementById("sidebarScrim").classList.add("show");
@@ -2521,12 +2478,12 @@
     return new SettingsView({
       cloneTemplate:()=>window.BeforeworkViewTemplates.clone("settings"),
       actions:{
-      toggleTheme(board){ toggleTheme(); renderSettings(board); },
+      toggleTheme(board){ window.BeforeworkAppearance.toggleTheme(); renderSettings(board); },
       setTimeFormat(value){
         try{ localStorage.setItem(TIME_FORMAT_KEY, value); }catch(err){/* ignore */}
         renderAll();
       },
-      toggleSidebar(board){ toggleSidebarCollapsed(); renderSettings(board); },
+      toggleSidebar(board){ window.BeforeworkAppearance.toggleSidebarCollapsed(); renderSettings(board); },
       async toggleReminders(board){
         if (reminderService.getStatus().enabled) reminderService.disable();
         else await reminderService.enable();
@@ -5537,7 +5494,7 @@
     };
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
-    document.getElementById("sidebarCollapseHandle").onclick = toggleSidebarCollapsed;
+    document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
     document.getElementById("undoBtn").onclick = undoLastChange;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
       if (e.target.files[0]) importJSON(e.target.files[0]);
@@ -5569,8 +5526,8 @@
       }
       if (editable) return;
       if (e.key==="n"){ e.preventDefault(); quickAddViaShortcut(); return; }
-      if (e.key==="d"){ e.preventDefault(); toggleTheme(); return; }
-      if (e.key==="["){ e.preventDefault(); toggleSidebarCollapsed(); return; }
+      if (e.key==="d"){ e.preventDefault(); window.BeforeworkAppearance.toggleTheme(); return; }
+      if (e.key==="["){ e.preventDefault(); window.BeforeworkAppearance.toggleSidebarCollapsed(); return; }
       if (e.key==="t"){ e.preventDefault(); toggleFocusTimer(); return; }
       if (e.key==="?"){ e.preventDefault(); showShortcutsModal(); return; }
     });
@@ -5585,8 +5542,8 @@
      file. Auth (if a provider is available) is initialized independently
      and never blocks or gates this flow. */
   async function boot(){
-    initTheme();
-    initSidebarCollapse();
+    window.BeforeworkAppearance.initTheme();
+    window.BeforeworkAppearance.initSidebarCollapse();
     wireStaticControls();
     wireConnectGate();
     enhanceSelectControls();
