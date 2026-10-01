@@ -1,0 +1,27 @@
+<button id="focusTimerNav" type="button" title="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Focus timer</span></button>
+<div class="focusTimerPanel Box" id="focusTimerPanel">
+  <div class="focusTimerHeader">
+    <h4>Timer</h4>
+    <button class="btn btn-sm btn-invisible focusTimerClose" id="focusTimerCloseBtn" type="button" aria-label="Close focus timer">✕</button>
+  </div>
+  <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
+    <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
+    <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
+  </div>
+  <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
+  <div class="focusTimerDurationRow">
+    <label for="focusDurationInput">Duration (minutes)</label>
+    <div class="focusTimerDurationControl">
+      <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
+      <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Set</button>
+    </div>
+  </div>
+  <div class="focusTimerQuickRow">
+    <span>Quick durations</span>
+    <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
+  </div>
+  <div class="focusTimerBtnRow">
+    <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
+    <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
+  </div>
+</div>

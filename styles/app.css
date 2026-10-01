@@ -928,7 +928,8 @@
   .focusTimerPanel{position:static;width:auto;margin:5px 0 8px;padding:12px;background:var(--bg);
     border:1px solid var(--border);border-radius:var(--radius);box-shadow:none;display:none;}
   .focusTimerPanel.open{display:block;}
-  .focusTimerHeader{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .focusTimerHeader{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px;}
+  .focusTimerClose{padding:2px 5px;line-height:1;}
   .focusTimerPanel h4{margin:0;font-size:12px;font-weight:600;color:var(--text);}
   .focusTimerDurationRow label{font-size:10px;font-weight:600;color:var(--muted);}
   .focusTimerDisplay{font-size:32px;font-weight:600;text-align:center;margin:5px 0 9px;font-variant-numeric:tabular-nums;line-height:1.15;}

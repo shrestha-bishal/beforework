@@ -106,13 +106,14 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/services/storage/` - local workspace persistence and attachments
 - `js/services/reminders/` - in-app reminder scheduling and notifications
 - `js/ui/` - shared UI components, appearance preferences, and HTML template loading
+- `js/features/` - cohesive application features
 - `js/config/` - build-generated runtime configuration
 - `js/demo/` - demo workspace data and attachments
 - `js/models/` and `js/views/` - overview details, settings, and milestone views
 - `js/services/google-calendar/` - optional Google Calendar integration
 - `js/commands/` - workspace-specific command definitions
 - `js/core/` - workspace validation, schema migrations, and data-version compatibility
-- `pages/` - HTML templates for application views and dialogs
+- `pages/` - HTML templates for application views, dialogs, and features
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
 - `scripts/build-site.js` - static production build and minification

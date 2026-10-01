@@ -87,7 +87,7 @@
       createProject(){ document.getElementById("addProjectBtn").click(); },
       createFolder(){ document.getElementById("addFolderBtn").click(); },
       createEvent(){ openNewCalendarItemModal(null,todayStr(0)); },
-      toggleTheme,
+      toggleTheme:()=>window.BeforeworkAppearance.toggleTheme(),
       toggleTimer:toggleFocusTimer,
       showShortcuts:showShortcutsModal,
       openProject:selectProject,
@@ -130,16 +130,34 @@
   let milestonesView = null;
   let roadmapView = null;
   let showArchived = false;
-  let focusInterval = null;
-  let focusMode = "focus";
-  let focusSeconds = 25*60;
-  let focusTotal = 25*60;
-  let focusDuration = 25*60;
-  let breakDuration = 5*60;
-  let focusSessionStartedAt = null;
-  let focusSessionProjectId = null;
-  let focusSessionElapsedSeconds = 0;
   let activeProjectId = OVERVIEW;
+  const focusTimer = window.BeforeworkFocusTimer.create({
+    getProjectId:()=>getProject(activeProjectId)?.id || null,
+    loadTemplate:name=>window.BeforeworkViewTemplates.load(name),
+    cloneTemplate:name=>window.BeforeworkViewTemplates.clone(name),
+    onSessionComplete(session){
+      if (!Array.isArray(state.focusSessions)) state.focusSessions=[];
+      state.focusSessions.push({id:uid(),...session});
+      scheduleSave();
+      if (activeProjectId===OVERVIEW) render();
+    },
+    onFinished(mode){
+      showNotice(
+        mode==="break" ? "Break finished" : "Focus session finished",
+        mode==="break"
+          ? "Your break has finished. Start another focus session when you're ready."
+          : "Your focus session has finished. Take a short break or start another session."
+      );
+    },
+    onOpen(){
+      window.BeforeworkAppearance.applySidebarCollapsed(false);
+      if (window.innerWidth<=860){
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebarScrim").classList.add("show");
+      }
+    }
+  });
+  function toggleFocusTimer(){ focusTimer.togglePanel(); }
   // View type is per-project now (project.views + project.activeViewId), not global.
   const VIEW_DEFS = [
     {type:"list", label:"List"},
@@ -296,141 +314,6 @@
     }
     // No provider available: account controls stay unavailable and the rest
     // of the app is completely unaffected.
-  }
-
-  /* ---------- Focus timer ---------- */
-  function renderFocusTimer(){
-    const disp = document.getElementById("focusTimerDisplay");
-    if (!disp) return;
-    const m = Math.floor(focusSeconds/60), s = focusSeconds%60;
-    disp.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-    document.title = focusInterval ? `${disp.textContent} · Beforework` : "Beforework";
-  }
-  function clearFocusSessionTracking(){
-    focusSessionStartedAt = null;
-    focusSessionProjectId = null;
-    focusSessionElapsedSeconds = 0;
-  }
-  function recordCompletedFocusSession(){
-    if (focusSessionElapsedSeconds>0){
-      const completedAt = Date.now();
-      if (!Array.isArray(state.focusSessions)) state.focusSessions = [];
-      state.focusSessions.push({
-        id:uid(),
-        projectId:focusSessionProjectId,
-        startedAt:focusSessionStartedAt || completedAt,
-        completedAt,
-        durationSeconds:focusSessionElapsedSeconds
-      });
-      scheduleSave();
-      if (activeProjectId===OVERVIEW) render();
-    }
-    clearFocusSessionTracking();
-  }
-  function startFocusTimer(){
-    if (focusInterval || focusSeconds<=0) return;
-    if (focusMode==="focus" && focusSessionStartedAt===null){
-      focusSessionStartedAt = Date.now();
-      focusSessionProjectId = getProject(activeProjectId)?.id || null;
-      focusSessionElapsedSeconds = 0;
-    }
-    focusInterval = setInterval(()=>{
-      focusSeconds = Math.max(0, focusSeconds-1);
-      if (focusMode==="focus") focusSessionElapsedSeconds++;
-      renderFocusTimer();
-      if (focusSeconds<=0){
-        clearInterval(focusInterval); focusInterval=null;
-        if (focusMode==="focus") recordCompletedFocusSession();
-        const startBtn = document.getElementById("focusStartBtn");
-        if (startBtn) startBtn.textContent = "Start";
-        showNotice(focusMode==="break" ? "Break finished" : "Focus session finished", focusMode==="break" ? "Your break has finished. Start another focus session when you're ready." : "Your focus session has finished. Take a short break or start another session.");
-      }
-    }, 1000);
-    const startBtn = document.getElementById("focusStartBtn");
-    if (startBtn) startBtn.textContent = "Pause";
-  }
-  function pauseFocusTimer(){
-    if (focusInterval){ clearInterval(focusInterval); focusInterval=null; }
-    const startBtn = document.getElementById("focusStartBtn");
-    if (startBtn) startBtn.textContent = "Start";
-    renderFocusTimer();
-  }
-  function resetFocusTimer(){
-    pauseFocusTimer();
-    clearFocusSessionTracking();
-    focusSeconds = focusTotal;
-    renderFocusTimer();
-  }
-  function setFocusDuration(minutes){
-    pauseFocusTimer();
-    clearFocusSessionTracking();
-    focusTotal = minutes * 60;
-    if (focusMode==="focus") focusDuration = focusTotal;
-    else breakDuration = focusTotal;
-    focusSeconds = focusTotal;
-    const input = document.getElementById("focusDurationInput");
-    input.setCustomValidity("");
-    input.value = "";
-    input.placeholder = String(minutes);
-    renderFocusTimer();
-    renderFocusQuickOptions();
-  }
-  function renderFocusQuickOptions(){
-    const container = document.getElementById("focusTimerQuickOptions");
-    if (!container) return;
-    const options = focusMode==="focus" ? [25,50,90] : [5,10,15];
-    const currentMinutes = focusTotal/60;
-    container.innerHTML = options.map(minutes=>
-      `<button class="btn btn-sm${minutes===currentMinutes?" selected":""}" type="button" data-focus-quick="${minutes}" aria-label="${minutes} minute ${focusMode}" aria-pressed="${minutes===currentMinutes}">${minutes}m</button>`
-    ).join("");
-    container.querySelectorAll("[data-focus-quick]").forEach(button=>{
-      button.onclick = () => setFocusDuration(Number(button.dataset.focusQuick));
-    });
-  }
-  function setFocusMode(mode){
-    if (mode!=="focus" && mode!=="break") return;
-    if (focusMode===mode) return;
-    pauseFocusTimer();
-    clearFocusSessionTracking();
-    focusMode = mode;
-    focusTotal = mode==="focus" ? focusDuration : breakDuration;
-    focusSeconds = focusTotal;
-    const input = document.getElementById("focusDurationInput");
-    input.value = "";
-    input.placeholder = String(focusTotal/60);
-    input.setCustomValidity("");
-    document.querySelectorAll("[data-focus-mode]").forEach(button=>{
-      const selected = button.dataset.focusMode===mode;
-      button.classList.toggle("selected", selected);
-      button.setAttribute("aria-pressed", String(selected));
-    });
-    renderFocusTimer();
-    renderFocusQuickOptions();
-  }
-  function applyCustomFocusDuration(){
-    const input = document.getElementById("focusDurationInput");
-    const minutes = input.valueAsNumber;
-    if (!Number.isInteger(minutes) || minutes<1 || minutes>180){
-      input.setCustomValidity("Enter a whole number from 1 to 180.");
-      input.reportValidity();
-      return;
-    }
-    input.setCustomValidity("");
-    setFocusDuration(minutes);
-  }
-  function toggleFocusTimer(){
-    const panel = document.getElementById("focusTimerPanel");
-    const open = panel.classList.toggle("open");
-    const timerNav = document.getElementById("focusTimerNav");
-    timerNav.classList.toggle("active", open);
-    timerNav.setAttribute("aria-expanded", String(open));
-    if (open){
-      window.BeforeworkAppearance.applySidebarCollapsed(false);
-      if (window.innerWidth<=860){
-        document.getElementById("sidebar").classList.add("open");
-        document.getElementById("sidebarScrim").classList.add("show");
-      }
-    }
   }
 
   /* ---------- Keyboard shortcuts modal ---------- */
@@ -5334,7 +5217,6 @@
     document.getElementById("settingsNav").onclick = navigateToSettings;
     document.getElementById("supportNav").onclick = navigateToSupport;
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    document.getElementById("focusTimerNav").onclick = toggleFocusTimer;
     workspaceSwitcherBtn.onclick = event => {
       event.stopPropagation();
       const open = workspaceSwitcherMenu.classList.toggle("open");
@@ -5458,19 +5340,6 @@
       document.getElementById("projectMenuBtn").classList.remove("active");
       window.print();
     };
-    document.getElementById("focusStartBtn").onclick = () => {
-      if (focusInterval) pauseFocusTimer(); else startFocusTimer();
-    };
-    document.getElementById("focusResetBtn").onclick = resetFocusTimer;
-    document.getElementById("focusDurationApplyBtn").onclick = applyCustomFocusDuration;
-    document.getElementById("focusDurationInput").addEventListener("input", event=>event.target.setCustomValidity(""));
-    document.getElementById("focusDurationInput").addEventListener("keydown", event=>{
-      if (event.key==="Enter"){ event.preventDefault(); applyCustomFocusDuration(); }
-    });
-    document.querySelectorAll("[data-focus-mode]").forEach(button=>{
-      button.onclick = () => setFocusMode(button.dataset.focusMode);
-    });
-    renderFocusQuickOptions();
     document.getElementById("toggleFilters").onclick = () => {
       const panel = document.getElementById("filterPanel");
       const button = document.getElementById("toggleFilters");
@@ -5596,6 +5465,11 @@
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);
+      return;
+    }
+    try{ await focusTimer.init(); }
+    catch(err){
+      showNotice("Couldn't load focus timer", err.message);
       return;
     }
     const reconnected = await tryReconnectFile();

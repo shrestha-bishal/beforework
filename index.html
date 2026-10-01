@@ -115,30 +115,7 @@
         </div>
         <div class="sidebarBottomNav">
           <div class="uiDivider sidebarNavDivider" aria-hidden="true"></div>
-          <button id="focusTimerNav" type="button" title="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Focus timer</span></button>
-          <div class="focusTimerPanel Box" id="focusTimerPanel">
-            <div class="focusTimerHeader"><h4>Timer</h4></div>
-            <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
-              <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
-              <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
-            </div>
-            <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
-            <div class="focusTimerDurationRow">
-              <label for="focusDurationInput">Duration (minutes)</label>
-              <div class="focusTimerDurationControl">
-                <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
-                <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Set</button>
-              </div>
-            </div>
-            <div class="focusTimerQuickRow">
-              <span>Quick durations</span>
-              <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
-            </div>
-            <div class="focusTimerBtnRow">
-              <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
-              <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
-            </div>
-          </div>
+          <div id="focusTimerMount"></div>
           <div id="integrationsNav"><iconify-icon icon="mdi:hub-outline" aria-hidden="true"></iconify-icon><span>Integrations</span></div>
           <div id="settingsNav"><iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon><span>Settings</span></div>
           <div class="uiDivider supportNavDivider" aria-hidden="true"></div>
@@ -224,6 +201,7 @@
     <script src="js/ui/command-palette.js"></script>
     <script src="js/ui/dialogs.js"></script>
     <script src="js/ui/appearance.js"></script>
+    <script src="js/features/focus-timer.js"></script>
     <script src="js/services/csv-import.js"></script>
     <script src="js/models/roadmap-model.js"></script>
     <script src="js/app.js"></script>

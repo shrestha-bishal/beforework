@@ -5,7 +5,8 @@ window.BeforeworkViewTemplates = (()=>{
     integrations:"pages/integrations.html",
     milestones:"pages/milestones.html",
     settings:"pages/settings.html",
-    support:"pages/support.html"
+    support:"pages/support.html",
+    focusTimer:"pages/focus-timer.html"
   };
   const onDemandPaths = {
     dialogs:"pages/dialogs.html",
