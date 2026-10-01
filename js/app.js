@@ -1856,6 +1856,10 @@
   function attachmentSectionHtml(item,prefix){
     const attachments=Array.isArray(item.attachments)?item.attachments:[];
     const available=window.BeforeworkStorage.supportsAttachments();
+    if (prefix==="item") return `<div class="itemAttachmentControls">
+      <button class="btn btn-invisible btn-sm itemAttachmentAdd" type="button" data-attachment-add aria-label="Attach files" title="Attach files" ${available?"":"disabled"}><iconify-icon icon="mdi:paperclip" aria-hidden="true"></iconify-icon><span>Attach</span></button>
+      <input type="file" id="${prefix}AttachmentInput" multiple hidden>
+    </div>`;
     return `<div class="mainSection itemAttachmentsSection">
       <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">${attachments.length}</span></div>
       <button class="btn btn-sm itemAttachmentAdd" type="button" data-attachment-add ${available?"":"disabled"}><iconify-icon icon="mdi:paperclip" aria-hidden="true"></iconify-icon><span>Attach files</span></button>
@@ -1888,7 +1892,12 @@
       }
       input.value="";
       renderList();
-      if (files.length>errors.length && !isNew){ item.updatedAt=Date.now(); scheduleSave(); }
+      const addedCount=files.length-errors.length;
+      if (addedCount>0 && !isNew){
+        item.updatedAt=Date.now();
+        scheduleSave();
+        modal.querySelector('[data-item-tab="attachments"]')?.click();
+      }
       if (errors.length) await showNotice("Some attachments couldn't be added",errors.join(" "));
     };
     list.onclick=async event=>{
@@ -3511,10 +3520,9 @@
       <div class="itemModalBody">
         <div class="itemModalMain">
           <div class="mainSection">
-            <div class="mainSectionLabel">Description</div>
+            <div class="itemDescriptionHead"><div class="mainSectionLabel">Description</div>${attachmentSectionHtml(item,"item")}</div>
             <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
           </div>
-          ${attachmentSectionHtml(item,"item")}
           <div class="mainSection">
             <div class="mainSectionHead">
               <div class="mainSectionLabel">Subitems</div>
@@ -3528,6 +3536,7 @@
           <div class="mainSection">
             <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
               <button type="button" class="itemDetailTab active" data-item-tab="comments" role="tab" aria-selected="true">Comments</button>
+              <button type="button" class="itemDetailTab" data-item-tab="attachments" role="tab" aria-selected="false">Attachments <span class="itemAttachmentCount">${(item.attachments||[]).length}</span></button>
               <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
             </div>
             <div class="itemDetailPanel active" data-item-panel="comments">
@@ -3537,7 +3546,14 @@
                 <button class="btn btn-sm" data-action="addComment">Add</button>
               </div>
             </div>
+            <div class="itemDetailPanel" data-item-panel="attachments">
+              <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
+            </div>
             <div class="itemDetailPanel" data-item-panel="activity">${activityHtml}</div>
+          </div>` : ""}
+          ${isNew ? `<div class="mainSection itemAttachmentsSection">
+            <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">${(item.attachments||[]).length}</span></div>
+            <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
           </div>` : ""}
         </div>
         <div class="uiDivider itemModalSidebarDivider" aria-hidden="true"></div>
@@ -3747,6 +3763,21 @@
       item.updatedAt = Date.now(); scheduleSave(); render();
     });
     wireAttachmentControls(modal,item,{prefix:"item",isNew});
+    modal.querySelectorAll(".itemDetailTab").forEach(tab=>{
+      tab.onclick=()=>{
+        const target=tab.dataset.itemTab;
+        modal.querySelectorAll(".itemDetailTab").forEach(button=>{
+          const active=button===tab;
+          button.classList.toggle("active",active);
+          button.setAttribute("aria-selected",String(active));
+        });
+        modal.querySelectorAll(".itemDetailPanel").forEach(panel=>{
+          const active=panel.dataset.itemPanel===target;
+          panel.classList.toggle("active",active);
+          panel.hidden=!active;
+        });
+      };
+    });
     modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
       chip.onclick = () => {
         const tid = chip.dataset.tagfilter;
