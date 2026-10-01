@@ -42,3 +42,110 @@
     </section>
   </div>
 </div>
+
+<template id="overviewStatTemplate">
+  <button class="overviewStat" type="button">
+    <span class="overviewStatIcon"><iconify-icon data-stat-icon aria-hidden="true"></iconify-icon></span>
+    <span class="overviewStatCopy">
+      <span class="overviewStatValue" data-stat-value></span>
+      <span class="overviewStatLabel" data-stat-label></span>
+      <span class="overviewStatDetail" data-stat-detail></span>
+    </span>
+  </button>
+</template>
+
+<template id="overviewDividerTemplate">
+  <div class="uiDivider overviewDivider" aria-hidden="true"></div>
+</template>
+
+<template id="overviewQuietTemplate">
+  <div class="overviewQuiet"></div>
+</template>
+
+<template id="overviewPriorityRowTemplate">
+  <div class="overviewPriorityRow">
+    <span class="barLabel" data-priority-label></span>
+    <div class="barTrack"><div class="barFill" data-priority-fill></div></div>
+    <span class="barCount" data-priority-count></span>
+  </div>
+</template>
+
+<template id="overviewProjectRowTemplate">
+  <button class="overviewProjectRow" type="button">
+    <span class="overviewProjectInfo"><strong data-project-name></strong><small data-project-percent></small></span>
+    <span class="overviewProjectTrack" role="progressbar" data-project-progress>
+      <span data-project-fill></span>
+    </span>
+    <span class="overviewProjectMeta" data-project-meta></span>
+  </button>
+</template>
+
+<template id="overviewFocusSummaryTemplate">
+  <div>
+    <div class="overviewFocusTotal">
+      <strong data-focus-total></strong>
+      <span data-focus-count></span>
+    </div>
+    <div data-focus-rows></div>
+  </div>
+</template>
+
+<template id="overviewFocusRowTemplate">
+  <div class="overviewFocusRow">
+    <span data-focus-project></span>
+    <strong data-focus-duration></strong>
+    <small data-focus-sessions></small>
+  </div>
+</template>
+
+<template id="overviewWorkloadChartTemplate">
+  <svg viewBox="0 0 560 174" role="img" aria-label="Items due each day over the next seven days">
+    <line class="overviewChartGridline" x1="28" y1="132" x2="548" y2="132"></line>
+    <g data-workload-bars></g>
+  </svg>
+</template>
+
+<template id="overviewStatusChartTemplate">
+  <div class="overviewStatusRing" role="img" data-status-label>
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="overviewStatusTrack" cx="60" cy="60" r="48"></circle>
+        <circle class="overviewStatusComplete" data-status-complete cx="60" cy="60" r="48" transform="rotate(-90 60 60)"></circle>
+      </svg>
+      <div class="overviewStatusTotal"><strong data-status-total></strong><span>Total</span></div>
+    </div>
+    <div class="overviewStatusLegend">
+      <div><span class="overviewLegendDot open"></span><span>Open</span><strong data-status-open></strong></div>
+      <div><span class="overviewLegendDot complete"></span><span>Completed</span><strong data-status-completed></strong></div>
+    </div>
+</template>
+
+<template id="overviewTimelineDayTemplate">
+  <div class="overviewDay">
+    <div class="overviewDayHeader"><span data-day-name></span><strong data-day-number></strong></div>
+    <div class="overviewDayItems">
+      <div class="overviewDayEntries" data-day-entries></div>
+      <span class="overviewDayEmpty" data-day-empty>No work due</span>
+      <span class="overviewMore" data-day-more hidden></span>
+    </div>
+  </div>
+</template>
+
+<template id="overviewTimelineItemTemplate">
+  <button class="overviewTimelineItem" type="button">
+    <strong data-timeline-title></strong>
+    <span data-timeline-subtitle></span>
+  </button>
+</template>
+
+<template id="overviewRecentRowTemplate">
+  <button class="overviewRecentRow" type="button">
+    <span class="overviewRecentMain">
+      <span class="priorityDot" data-recent-priority hidden></span>
+      <strong data-recent-title></strong>
+    </span>
+    <span class="overviewRecentMeta">
+      <span data-recent-project-group></span>
+      <span data-recent-updated></span>
+    </span>
+  </button>
+</template>

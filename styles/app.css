@@ -479,6 +479,7 @@
   .overviewDayHeader strong{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;font-size:11px;color:var(--text);font-weight:600;}
   .overviewDay.today .overviewDayHeader strong{background:var(--accent);color:#fff;}
   .overviewDayItems{display:flex;flex-direction:column;gap:5px;}
+  .overviewDayEntries{display:flex;flex-direction:column;gap:5px;}
   .overviewTimelineItem{display:flex;flex-direction:column;gap:4px;width:100%;min-width:0;padding:7px;border:0;border-radius:6px;background:var(--bg-soft);text-align:left;color:var(--text);transition:background .12s ease;}
   .overviewTimelineItem:hover,.overviewRecentRow:hover,.overviewProjectRow:hover{background:var(--bg-soft2);}
   .overviewTimelineItem:focus-visible,.overviewRecentRow:focus-visible,.overviewProjectRow:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
@@ -492,7 +493,7 @@
   .overviewRecentMain,.overviewRecentMeta,.overviewProjectInfo{display:flex;align-items:center;gap:7px;min-width:0;}
   .overviewRecentMain strong,.overviewProjectInfo strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600;}
   .overviewRecentMeta{font-size:10px;color:var(--muted);}
-  .overviewRecentMeta span{color:var(--faint);}
+  .overviewRecentMeta [data-recent-updated]{color:var(--faint);}
   .overviewProjectInfo{justify-content:space-between;}
   .overviewProjectInfo small{flex:none;color:var(--accent-strong);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;}
   .overviewFocusTotal{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px;}

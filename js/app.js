@@ -129,6 +129,7 @@
   let overviewDetailsView = null;
   let milestonesView = null;
   let roadmapView = null;
+  let overviewView = null;
   let showArchived = false;
   let activeProjectId = OVERVIEW;
   const focusTimer = window.BeforeworkFocusTimer.create({
@@ -2441,7 +2442,7 @@
       else if (activeProjectId===INTEGRATIONS) renderIntegrations(board);
       else if (activeProjectId===SETTINGS) renderSettings(board);
       else if (activeProjectId===SUPPORT) renderSupport(board);
-      else renderOverview(board);
+      else overviewView.render(board);
       return;
     }
 
@@ -3824,589 +3825,6 @@
     updateGoogleCalendarButtons();
   }
 
-  /* ---------- Overview ---------- */
-  function renderOverview(board){
-    const wrap = document.createElement("div");
-    wrap.className = "overviewWrap";
-    const flat = allItemsFlat();
-    const activeItems = flat.filter(row=>!row.item.archived);
-    const openItems = activeItems.filter(row=>!isItemCompleted(row.item));
-    const completedItems = activeItems.filter(row=>isItemCompleted(row.item));
-    function dueOf(row){
-      const field = dueDateField(row.project);
-      return field ? row.item.values[field.id] : row.item.endDate||"";
-    }
-    function priorityOf(r){ const f = priorityField(r.project); return f ? (r.item.values[f.id]||"") : ""; }
-    const today = todayStr(0);
-    const weekEnd = todayStr(7);
-    const overdue = openItems.filter(row=>dueOf(row) && dueOf(row)<today);
-    const dueThisWeek = openItems.filter(row=>dueOf(row)>=today && dueOf(row)<=weekEnd);
-    const recent = [...activeItems].sort((a,b)=>b.item.updatedAt-a.item.updatedAt).slice(0,5);
-
-    function priorityBreakdownHtml(){
-      const counts = {high:0, medium:0, low:0, none:0};
-      openItems.forEach(r=>{
-        const p = priorityOf(r);
-        if (p==="high"||p==="medium"||p==="low") counts[p]++; else counts.none++;
-      });
-      const max = Math.max(1, ...Object.values(counts));
-      const rows = [
-        {label:"High",key:"high",color:"var(--color-danger-fg)"},
-        {label:"Medium",key:"medium",color:"var(--color-attention-fg)"},
-        {label:"Low",key:"low",color:"var(--color-attention-fg)"},
-        {label:"No priority",key:"none",color:"var(--color-neutral-muted)"},
-      ];
-      const body = rows.map((row,index)=>`${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<div class="overviewPriorityRow">
-        <span class="barLabel">${row.label}</span>
-        <div class="barTrack"><div class="barFill" style="width:${(counts[row.key]/max*100)}%;background:${row.color};"></div></div>
-        <span class="barCount">${counts[row.key]}</span>
-      </div>`).join("");
-      return body;
-    }
-    function projectBreakdownHtml(){
-      return projectRecords().map((project,index)=>{
-        const projectItems = state.folderLazy
-          ? project.itemIndex.filter(item=>!item.archived).map(item=>({group:project.groups.find(group=>group.id===item.groupId)||{name:item.groupName},item}))
-          : project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
-        const complete = projectItems.filter(row=>isItemCompleted(row.item)).length;
-        const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
-        return `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<button class="overviewProjectRow" type="button" data-overview-project="${escapeHtml(project.id)}">
-          <span class="overviewProjectInfo"><strong>${escapeHtml(project.name)}</strong><small>${percent}%</small></span>
-          <span class="overviewProjectTrack" role="progressbar" aria-label="${escapeHtml(project.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></span>
-          <span class="overviewProjectMeta">${complete} of ${projectItems.length} complete</span>
-        </button>`;
-      }).join("") || `<div class="overviewQuiet">No projects yet.</div>`;
-    }
-    function focusSummaryHtml(){
-      const now = Date.now();
-      const weekStart = new Date(now);
-      weekStart.setHours(0,0,0,0);
-      weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));
-      const sessions = (state.focusSessions||[]).filter(session=>session &&
-        Number.isFinite(session.completedAt) && session.completedAt>=weekStart.getTime() && session.completedAt<=now &&
-        Number.isFinite(session.durationSeconds) && session.durationSeconds>0);
-      const byProject = new Map();
-      let totalSeconds = 0;
-      sessions.forEach(session=>{
-        const project = projectRecords().find(candidate=>candidate.id===session.projectId);
-        const key = project ? project.id : (session.projectId ? `deleted:${session.projectId}` : "__unassigned__");
-        const name = project ? project.name : (session.projectId ? "Deleted project" : "Unassigned");
-        const entry = byProject.get(key) || {name, seconds:0, count:0};
-        entry.seconds += session.durationSeconds;
-        entry.count++;
-        totalSeconds += session.durationSeconds;
-        byProject.set(key, entry);
-      });
-      const formatDuration = seconds=>{
-        const totalMinutes = Math.floor(seconds/60);
-        const hours = Math.floor(totalMinutes/60);
-        const minutes = totalMinutes%60;
-        return hours ? `${hours}h${minutes?` ${minutes}m`:""}` : `${totalMinutes}m`;
-      };
-      const rows = [...byProject.values()].sort((a,b)=>b.seconds-a.seconds).map((entry,index)=>
-        `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<div class="overviewFocusRow"><span>${escapeHtml(entry.name)}</span><strong>${formatDuration(entry.seconds)}</strong><small>${entry.count} focus session${entry.count===1?"":"s"}</small></div>`
-      ).join("");
-      return `<div class="overviewFocusTotal"><strong>${formatDuration(totalSeconds)}</strong><span>${sessions.length} completed session${sessions.length===1?"":"s"}</span></div>${rows||`<div class="overviewQuiet">Completed sessions will appear here.</div>`}`;
-    }
-    function workloadChartHtml(rows){
-      const counts = rows.map(day=>scheduled.filter(row=>row.date===day.date).length);
-      const max = Math.max(1,...counts);
-      const bars = rows.map((day,index)=>{
-        const x = 46+index*72;
-        const height = counts[index] ? counts[index]/max*104 : 2;
-        const y = 132-height;
-        const label = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined,{weekday:"short"});
-        return `<g class="overviewChartBar"><title>${escapeHtml(label)}: ${counts[index]} item${counts[index]===1?"":"s"}</title>
-          <rect x="${x}" y="${y}" width="34" height="${height}" rx="5" fill="var(--accent)" opacity="${counts[index]?".82":".18"}"></rect>
-          <text x="${x+17}" y="151" text-anchor="middle">${escapeHtml(label)}</text>
-          <text class="overviewChartValue" x="${x+17}" y="${Math.max(18,y-7)}" text-anchor="middle">${counts[index]}</text>
-        </g>`;
-      }).join("");
-      return `<svg viewBox="0 0 560 174" role="img" aria-label="Items due each day over the next seven days">
-        <line class="overviewChartGridline" x1="28" y1="132" x2="548" y2="132"></line>${bars}
-      </svg>`;
-    }
-    function taskStatusChartHtml(){
-      const total = openItems.length+completedItems.length;
-      const circumference = 2*Math.PI*48;
-      const completeLength = total ? completedItems.length/total*circumference : 0;
-      return `<div class="overviewStatusRing" role="img" aria-label="${openItems.length} open and ${completedItems.length} completed items">
-        <svg viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="overviewStatusTrack" cx="60" cy="60" r="48"></circle>
-          <circle class="overviewStatusComplete" cx="60" cy="60" r="48" stroke-dasharray="${completeLength} ${circumference}" transform="rotate(-90 60 60)"></circle>
-        </svg>
-        <div class="overviewStatusTotal"><strong>${total}</strong><span>Total</span></div>
-      </div>
-      <div class="overviewStatusLegend">
-        <div><span class="overviewLegendDot open"></span><span>Open</span><strong>${openItems.length}</strong></div>
-        <div><span class="overviewLegendDot complete"></span><span>Completed</span><strong>${completedItems.length}</strong></div>
-      </div>`;
-    }
-
-    const view = window.BeforeworkViewTemplates.clone("overview");
-    const statRows = [
-      {value:projectRecords().length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects",searchable:true},
-      {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open",searchable:true},
-      {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue",searchable:true},
-      {value:completedItems.length,label:"Completed",detail:"Marked complete",icon:"mdi:check-circle-outline",tone:"completed",searchable:true}
-    ];
-    function openOverviewStatDetails(tone){
-      overviewDetailsView.open({
-        tone,
-        stats:statRows,
-        data:{projects:projectRecords(),openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
-        actions:{openProject:selectProject,openItem:openItemModal}
-      }).catch(error=>showNotice("Couldn't load overview details",error.message));
-    }
-    const stats = view.querySelector("[data-overview-stats]");
-    statRows.forEach(({value,label,detail,icon,tone},index)=>{
-      const row = document.createElement("button");
-      row.type="button";
-      row.className = `overviewStat overviewStat-${tone}${tone==="overdue"?(overdue.length?" has-overdue":" is-clear"):""}`;
-      row.dataset.overviewStat=tone;
-      row.setAttribute("aria-label",`${value} ${label}. Show details`);
-      const iconWrap = document.createElement("span");
-      iconWrap.className = "overviewStatIcon";
-      const iconElement = document.createElement("iconify-icon");
-      iconElement.setAttribute("icon",icon);
-      iconElement.setAttribute("aria-hidden","true");
-      iconWrap.appendChild(iconElement);
-      const copy = document.createElement("span");
-      copy.className = "overviewStatCopy";
-      const count = document.createElement("div");
-      count.className = "overviewStatValue";
-      count.textContent = String(value);
-      const name = document.createElement("div");
-      name.className = "overviewStatLabel";
-      name.textContent = label;
-      const description = document.createElement("div");
-      description.className = "overviewStatDetail";
-      description.textContent = detail;
-      copy.append(count,name,description);
-      row.append(iconWrap,copy);
-      stats.appendChild(row);
-      if (index===1){
-        const divider=document.createElement("div");
-        divider.className="uiDivider overviewStatsDivider";
-        divider.setAttribute("aria-hidden","true");
-        stats.appendChild(divider);
-      }
-    });
-    const scheduled = [];
-    openItems.forEach(row=>{
-      const date = dueOf(row);
-      if (date && date>=today && date<=weekEnd) scheduled.push({...row,date,source:"project"});
-    });
-    (state.calendarItems||[]).filter(item=>!item.archived).forEach(item=>{
-      const startDate = item.startDate || item.endDate;
-      const endDate = item.endDate && item.endDate>=startDate ? item.endDate : startDate;
-      if (!startDate || endDate<today || startDate>weekEnd) return;
-      for (let offset=0; offset<7; offset++){
-        const date = todayStr(offset);
-        if (date>=startDate && date<=endDate) scheduled.push({item,date,project:null,group:null,source:"calendar"});
-      }
-    });
-    scheduled.sort((a,b)=>a.date.localeCompare(b.date) || (a.item.startTime||"").localeCompare(b.item.startTime||""));
-    const weekDays = Array.from({length:7},(_,offset)=>{
-      const date = todayStr(offset);
-      const items = scheduled.filter(row=>row.date===date);
-      const day = new Date(`${date}T00:00:00`);
-      const entries = items.slice(0,3).map(row=>`<button class="overviewTimelineItem" type="button"${row.source==="project"?` data-pid="${escapeHtml(row.project.id)}" data-gid="${escapeHtml(row.group.id)}" data-iid="${escapeHtml(row.item.id)}"`:` data-calendar-id="${escapeHtml(row.item.id)}"`}>
-        <strong>${escapeHtml(row.item.title||"Untitled item")}</strong><span>${row.source==="project"?escapeHtml(`${row.project.name} / ${row.group.name}`):"Calendar item"}</span>
-      </button>`).join("");
-      return `<div class="overviewDay${offset===0?" today":""}">
-        <div class="overviewDayHeader"><span>${day.toLocaleDateString(undefined,{weekday:"short"})}</span><strong>${day.getDate()}</strong></div>
-        <div class="overviewDayItems">${entries||`<span class="overviewDayEmpty">No work due</span>`}${items.length>3?`<span class="overviewMore">+${items.length-3} more</span>`:""}</div>
-      </div>`;
-    }).join("");
-    view.querySelector("[data-overview-timeline]").innerHTML = weekDays;
-    view.querySelector("[data-overview-week-chart]").innerHTML = workloadChartHtml(Array.from({length:7},(_,offset)=>({date:todayStr(offset)})));
-    view.querySelector("[data-overview-status-chart]").innerHTML = taskStatusChartHtml();
-    view.querySelector("[data-overview-projects]").innerHTML = projectBreakdownHtml();
-    view.querySelector("[data-overview-priorities]").innerHTML = priorityBreakdownHtml();
-    view.querySelector("[data-overview-focus]").innerHTML = focusSummaryHtml();
-    view.querySelector("[data-overview-recent]").innerHTML = recent.map((row,index)=>{
-      const priority = priorityField(row.project);
-      const chip = priority ? fieldChipHtml(priority,priorityOf(row)) : "";
-      return `${index?'<div class="uiDivider overviewDivider" aria-hidden="true"></div>':""}<button class="overviewRecentRow" type="button" data-pid="${escapeHtml(row.project.id)}" data-gid="${escapeHtml(row.group.id)}" data-iid="${escapeHtml(row.item.id)}">
-        <span class="overviewRecentMain">${chip}<strong>${escapeHtml(row.item.title)}</strong></span>
-        <span class="overviewRecentMeta">${escapeHtml(row.project.name)} / ${escapeHtml(row.group.name)} <span>· ${escapeHtml(formatUpdatedAt(row.item.updatedAt))}</span></span>
-      </button>`;
-    }).join("") || `<div class="overviewQuiet">No project activity yet.</div>`;
-    const cardContainer = view.querySelector("[data-overview-reorder-container]");
-    const cardOrder = Array.isArray(state.overviewCardOrder) ? state.overviewCardOrder : [];
-    const cards = [...cardContainer.querySelectorAll("[data-overview-card]")];
-    cards.sort((a,b)=>{
-      const aIndex = cardOrder.indexOf(a.dataset.overviewCard);
-      const bIndex = cardOrder.indexOf(b.dataset.overviewCard);
-      return (aIndex<0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex<0 ? Number.MAX_SAFE_INTEGER : bIndex);
-    }).forEach(card=>cardContainer.appendChild(card));
-    const cardLayouts = state.overviewCardLayouts && typeof state.overviewCardLayouts==="object" ? state.overviewCardLayouts : {};
-    const clamp = (value,min,max)=>Math.max(min,Math.min(max,value));
-    function getGridMetrics(){
-      const bounds = cardContainer.getBoundingClientRect();
-      const style = getComputedStyle(cardContainer);
-      const trackSizes = style.gridTemplateColumns.trim().split(/\s+/).map(parseFloat);
-      return {width:bounds.width,tracks:trackSizes.length,trackWidth:trackSizes[0]||bounds.width,gap:parseFloat(style.columnGap)||0};
-    }
-    function setCardColumns(card,columns,metrics=getGridMetrics()){
-      const minWidth = Number(card.dataset.overviewMinWidth)||260;
-      const savedWidth = Number.parseFloat(card.style.getPropertyValue("--overview-card-width"))||0;
-      const requiredWidth = Math.min(metrics.width,Math.max(minWidth,savedWidth));
-      const columnWidth = metrics.trackWidth+metrics.gap;
-      const requiredColumns = Math.ceil((requiredWidth+metrics.gap)/Math.max(columnWidth,1));
-      const safeColumns = clamp(Math.max(Math.round(columns),requiredColumns),1,metrics.tracks);
-      card.style.setProperty("--overview-card-columns",String(safeColumns));
-      card.style.setProperty("--overview-card-min-width",`${minWidth}px`);
-    }
-    function getCardColumns(card){
-      return Number(card.style.getPropertyValue("--overview-card-columns"))||1;
-    }
-    function getOrderedCards(){
-      return [...cardContainer.querySelectorAll("[data-overview-card]")];
-    }
-    function arrangeCards(metrics=getGridMetrics()){
-      const occupiedRows = [];
-      getOrderedCards().forEach(card=>{
-        const span = Math.min(getCardColumns(card),metrics.tracks);
-        let rowIndex = 0;
-        let start = 1;
-        while (true){
-          const occupied = occupiedRows[rowIndex]||[];
-          start = 1;
-          while (start+span-1<=metrics.tracks && occupied.some(range=>start<=range.end && start+span-1>=range.start)) start++;
-          if (start+span-1<=metrics.tracks) break;
-          rowIndex++;
-        }
-        if (!occupiedRows[rowIndex]) occupiedRows[rowIndex]=[];
-        occupiedRows[rowIndex].push({start,end:start+span-1});
-        card.style.gridColumn = `${start} / span ${span}`;
-        card.style.gridRow = String(rowIndex+1);
-        const areaWidth = span*metrics.trackWidth+Math.max(0,span-1)*metrics.gap;
-        card.style.width = `${areaWidth}px`;
-      });
-    }
-    function refreshOverviewLayout(){
-      const containerWidth = cardContainer.getBoundingClientRect().width;
-      if (containerWidth>0){
-        const trackCount = Math.max(1,Math.floor(containerWidth/15));
-        cardContainer.style.gridTemplateColumns = `repeat(${trackCount},minmax(1px,1fr))`;
-        cardContainer.style.columnGap = "10px";
-      }
-      const metrics = getGridMetrics();
-      getOrderedCards().forEach(card=>setCardColumns(card,getCardColumns(card),metrics));
-      arrangeCards(metrics);
-    }
-    function saveCardLayout(card){
-      if (!state.overviewCardLayouts || typeof state.overviewCardLayouts!=="object") state.overviewCardLayouts = {};
-      state.overviewCardLayouts[card.dataset.overviewCard] = {
-        version:2,
-        columns:Number(card.style.getPropertyValue("--overview-card-columns"))||1,
-        width:Number.parseFloat(card.style.getPropertyValue("--overview-card-width"))||null,
-        height:Number.parseFloat(card.style.getPropertyValue("--overview-card-height"))||null
-      };
-      scheduleSave();
-    }
-    cards.forEach(card=>{
-      const saved = cardLayouts[card.dataset.overviewCard];
-      const savedColumns = saved && Number.isFinite(saved.columns) ? (saved.version===2 ? saved.columns : saved.columns>4 ? Math.round(saved.columns/6) : saved.columns) : null;
-      const initialColumns = savedColumns || Number(card.style.getPropertyValue("--overview-card-columns"))||1;
-      const minWidth = Number(card.dataset.overviewMinWidth)||260;
-      if (saved && Number.isFinite(saved.width)) card.style.setProperty("--overview-card-width",`${Math.max(saved.width,minWidth)}px`);
-      setCardColumns(card,initialColumns);
-      if (saved && Number.isFinite(saved.height)) card.style.setProperty("--overview-card-height",`${Math.max(saved.height,180)}px`);
-    });
-    refreshOverviewLayout();
-    const updateCardColumns = ()=>{
-      const metrics = getGridMetrics();
-      cards.forEach(card=>setCardColumns(card,Number(card.style.getPropertyValue("--overview-card-columns"))||1,metrics));
-      arrangeCards(metrics);
-    };
-    if ("ResizeObserver" in window) new ResizeObserver(updateCardColumns).observe(cardContainer);
-    else window.addEventListener("resize",updateCardColumns);
-    let dragState = null;
-    cards.forEach(card=>{
-      const header = card.querySelector(".overviewPanelHeader");
-      const dragHandle = document.createElement("span");
-      dragHandle.className = "overviewDragHandle";
-      dragHandle.setAttribute("role","button");
-      dragHandle.setAttribute("aria-label","Drag to rearrange");
-      dragHandle.title = "Drag to rearrange";
-      dragHandle.tabIndex = 0;
-      const dragIcon = document.createElement("iconify-icon");
-      dragIcon.setAttribute("icon","mdi:drag-vertical");
-      dragIcon.setAttribute("aria-hidden","true");
-      dragHandle.appendChild(dragIcon);
-      header.appendChild(dragHandle);
-      dragHandle.addEventListener("pointerdown",event=>{
-        if (event.button!==0 || dragState) return;
-        event.preventDefault();
-        const bounds = card.getBoundingClientRect();
-        dragState = {card,handle:dragHandle,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
-          offsetX:event.clientX-bounds.left,offsetY:event.clientY-bounds.top,bounds,gridColumn:card.style.gridColumn,gridRow:card.style.gridRow,placeholder:null,dropPreview:null,dropReference:null,moved:false};
-        const currentDrag = dragState;
-        currentDrag.windowPointerUp = pointerEvent=>{
-          if (dragState===currentDrag && currentDrag.pointerId===pointerEvent.pointerId) finishDrag(pointerEvent);
-        };
-        currentDrag.windowPointerCancel = pointerEvent=>{
-          if (dragState===currentDrag && currentDrag.pointerId===pointerEvent.pointerId) finishDrag(pointerEvent,true);
-        };
-        window.addEventListener("pointerup",currentDrag.windowPointerUp);
-        window.addEventListener("pointercancel",currentDrag.windowPointerCancel);
-        dragHandle.setPointerCapture(event.pointerId);
-      });
-      dragHandle.addEventListener("pointermove",event=>{
-        if (!dragState || dragState.handle!==dragHandle || dragState.pointerId!==event.pointerId) return;
-        const deltaX = event.clientX-dragState.startX;
-        const deltaY = event.clientY-dragState.startY;
-        if (!dragState.moved && Math.hypot(deltaX,deltaY)<5) return;
-        event.preventDefault();
-        const dragged = dragState.card;
-        if (!dragState.moved){
-          dragState.moved = true;
-          const placeholder = document.createElement("div");
-          placeholder.className = "overviewDropPlaceholder";
-          placeholder.style.setProperty("--overview-card-columns",dragged.style.getPropertyValue("--overview-card-columns"));
-          placeholder.style.setProperty("--overview-card-min-width",dragged.style.getPropertyValue("--overview-card-min-width"));
-          placeholder.style.gridColumn = dragged.style.gridColumn;
-          placeholder.style.gridRow = dragged.style.gridRow;
-          placeholder.style.boxSizing = "border-box";
-          placeholder.style.alignSelf = "start";
-          placeholder.style.minWidth = `${dragState.bounds.width}px`;
-          placeholder.style.maxWidth = "none";
-          placeholder.style.width = `${dragState.bounds.width}px`;
-          placeholder.style.minHeight = `${dragState.bounds.height}px`;
-          placeholder.style.maxHeight = `${dragState.bounds.height}px`;
-          placeholder.style.height = `${dragState.bounds.height}px`;
-          dragged.after(placeholder);
-          dragState.placeholder = placeholder;
-          const dropPreview = document.createElement("div");
-          dropPreview.className = "overviewDropPreview";
-          dropPreview.style.width = "4px";
-          dropPreview.style.height = `${dragState.bounds.height}px`;
-          document.body.appendChild(dropPreview);
-          dragState.dropPreview = dropPreview;
-          dragged.style.removeProperty("transform");
-          dragged.classList.add("dragging");
-          dragged.style.position = "fixed";
-          dragged.style.boxSizing = "border-box";
-          dragged.style.minWidth = `${dragState.bounds.width}px`;
-          dragged.style.maxWidth = "none";
-          dragged.style.width = `${dragState.bounds.width}px`;
-          dragged.style.minHeight = `${dragState.bounds.height}px`;
-          dragged.style.maxHeight = `${dragState.bounds.height}px`;
-          dragged.style.height = `${dragState.bounds.height}px`;
-          dragged.style.zIndex = "100";
-          dragged.style.pointerEvents = "none";
-          dragged.style.gridColumn = "auto";
-          dragged.style.margin = "0";
-        }
-        dragged.style.left = `${event.clientX-dragState.offsetX}px`;
-        dragged.style.top = `${event.clientY-dragState.offsetY}px`;
-        const draggedBounds = dragged.getBoundingClientRect();
-        const targetX = draggedBounds.left+draggedBounds.width/2;
-        const targetY = draggedBounds.top+draggedBounds.height/2;
-        const rows = [];
-        cards.forEach(candidate=>{
-          if (candidate===dragged) return;
-          const bounds = candidate.getBoundingClientRect();
-          let row = rows.find(entry=>Math.abs(entry.top-bounds.top)<6);
-          if (!row){ row={top:bounds.top,cards:[]}; rows.push(row); }
-          row.cards.push({card:candidate,bounds});
-        });
-        rows.sort((a,b)=>a.top-b.top);
-        rows.forEach(row=>row.cards.sort((a,b)=>a.bounds.left-b.bounds.left));
-        const rowIndex = Math.max(0,rows.findIndex((row,index)=>targetY<(rows[index+1]?.top??Infinity)));
-        const row = rows[rowIndex];
-        const beforeCard = row?.cards.find(entry=>targetX<entry.bounds.left+entry.bounds.width/2)?.card;
-        const reference = beforeCard || rows[rowIndex+1]?.cards[0]?.card || null;
-        cards.forEach(candidate=>candidate.classList.remove("dropTarget"));
-        const placeholder = dragState.placeholder;
-        if (reference) reference.classList.add("dropTarget");
-        dragState.dropReference = reference;
-        const previewTarget = reference || row?.cards[row.cards.length-1]?.card;
-        const dropPreview = dragState.dropPreview;
-        if (dropPreview && previewTarget){
-          const previewBounds = previewTarget.getBoundingClientRect();
-          dropPreview.style.left = `${reference ? previewBounds.left-7 : previewBounds.right+7}px`;
-          dropPreview.style.top = `${previewBounds.top}px`;
-          dropPreview.hidden = false;
-        }else if (dropPreview){
-          dropPreview.hidden = true;
-        }
-      });
-      const finishDrag = (event,cancelled=false)=>{
-        if (!dragState || dragState.handle!==dragHandle || (event && dragState.pointerId!==event.pointerId)) return;
-        const currentDrag = dragState;
-        const {card:dragged,placeholder,dropPreview,dropReference,moved} = currentDrag;
-        dragState = null;
-        window.removeEventListener("pointerup",currentDrag.windowPointerUp);
-        window.removeEventListener("pointercancel",currentDrag.windowPointerCancel);
-        if (moved && !cancelled && placeholder && placeholder.isConnected){
-          placeholder.remove();
-          if (dropReference && dropReference.isConnected && dropReference!==dragged){
-            cardContainer.insertBefore(dragged,dropReference);
-          }else if (!dropReference){
-            cardContainer.appendChild(dragged);
-          }
-          state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
-          scheduleSave();
-        }else if (placeholder && placeholder.isConnected){ placeholder.remove(); }
-        if (dropPreview && dropPreview.isConnected) dropPreview.remove();
-        ["position","left","top","width","height","min-width","max-width","min-height","max-height","box-sizing","z-index","pointer-events","margin"].forEach(property=>dragged.style.removeProperty(property));
-        if (moved && !cancelled){
-          refreshOverviewLayout();
-          wrap.scrollLeft = 0;
-          requestAnimationFrame(refreshOverviewLayout);
-        }
-        else {
-          dragged.style.gridColumn = currentDrag.gridColumn;
-          dragged.style.gridRow = currentDrag.gridRow;
-        }
-        cards.forEach(candidate=>candidate.classList.remove("dragging","dropTarget"));
-      };
-      dragHandle.addEventListener("pointerup",finishDrag);
-      dragHandle.addEventListener("pointercancel",event=>finishDrag(event,true));
-      dragHandle.addEventListener("lostpointercapture",event=>finishDrag(event));
-      dragHandle.addEventListener("keydown",event=>{
-        const step = {ArrowLeft:-1,ArrowUp:-1,ArrowRight:1,ArrowDown:1}[event.key];
-        if (!step) return;
-        event.preventDefault();
-        const siblings = [...cardContainer.querySelectorAll("[data-overview-card]")];
-        const index = siblings.indexOf(card);
-        const next = siblings[index+step];
-        if (!next) return;
-        cardContainer.insertBefore(card,step<0 ? next : next.nextSibling);
-        state.overviewCardOrder = [...cardContainer.querySelectorAll("[data-overview-card]")].map(candidate=>candidate.dataset.overviewCard);
-        arrangeCards();
-        scheduleSave();
-      });
-
-      const resizeHandle = document.createElement("span");
-      resizeHandle.className = "overviewResizeHandle";
-      resizeHandle.setAttribute("role","button");
-      resizeHandle.setAttribute("aria-label",`Resize ${card.querySelector("h3")?.textContent||"overview card"}`);
-      resizeHandle.setAttribute("aria-keyshortcuts","ArrowLeft ArrowRight ArrowUp ArrowDown");
-      resizeHandle.title = "Drag to resize; use arrow keys when focused";
-      resizeHandle.tabIndex = 0;
-      card.appendChild(resizeHandle);
-      let resizeState = null;
-      resizeHandle.addEventListener("pointerdown",event=>{
-        if (event.button!==0 || resizeState || dragState) return;
-        event.preventDefault();
-        const metrics = getGridMetrics();
-        const minWidth = Math.min(Number(card.dataset.overviewMinWidth)||260,metrics.width);
-        resizeState = {pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
-          columns:getCardColumns(card),tracks:metrics.tracks,trackWidth:metrics.trackWidth,gridGap:metrics.gap,
-          minWidth,
-          initialColumns:Number(card.style.getPropertyValue("--overview-card-columns"))||1,
-          initialWidth:card.style.getPropertyValue("--overview-card-width"),width:card.getBoundingClientRect().width,
-          initialHeight:card.style.getPropertyValue("--overview-card-height"),height:card.getBoundingClientRect().height,gridWidth:metrics.width,changed:false};
-        card.style.removeProperty("width");
-        resizeHandle.setPointerCapture(event.pointerId);
-      });
-      resizeHandle.addEventListener("pointermove",event=>{
-        if (!resizeState || resizeState.pointerId!==event.pointerId) return;
-        event.preventDefault();
-        const tracks = resizeState.tracks;
-        const widthStep = resizeState.trackWidth+resizeState.gridGap;
-        const width = clamp(resizeState.width+(event.clientX-resizeState.startX),resizeState.minWidth,resizeState.gridWidth);
-        const columns = clamp(Math.ceil((width+resizeState.gridGap)/Math.max(widthStep,1)),1,tracks);
-        const height = resizeState.height+(event.clientY-resizeState.startY);
-        card.style.setProperty("--overview-card-width",`${width}px`);
-        setCardColumns(card,columns);
-        card.style.setProperty("--overview-card-height",`${Math.max(height,180)}px`);
-        resizeState.changed = Math.abs(width-resizeState.width)>=1 || Math.abs(height-resizeState.height)>=1;
-      });
-      const finishResize = (event,cancelled=false)=>{
-        if (!resizeState || (event && resizeState.pointerId!==event.pointerId)) return;
-        const {changed,initialColumns,initialWidth,initialHeight} = resizeState;
-        resizeState = null;
-        if (cancelled){
-          if (initialWidth) card.style.setProperty("--overview-card-width",initialWidth);
-          else card.style.removeProperty("--overview-card-width");
-          setCardColumns(card,initialColumns);
-          if (initialHeight) card.style.setProperty("--overview-card-height",initialHeight);
-          else card.style.removeProperty("--overview-card-height");
-        }else if (changed){ saveCardLayout(card); }
-        refreshOverviewLayout();
-      };
-      resizeHandle.addEventListener("pointerup",finishResize);
-      resizeHandle.addEventListener("pointercancel",event=>finishResize(event,true));
-      resizeHandle.addEventListener("lostpointercapture",event=>finishResize(event,true));
-      resizeHandle.addEventListener("keydown",event=>{
-        const step = {ArrowLeft:[-20,0],ArrowRight:[20,0],ArrowUp:[0,-40],ArrowDown:[0,40]}[event.key];
-        if (!step) return;
-        event.preventDefault();
-        if (step[0]){
-          const metrics = getGridMetrics();
-          const minWidth = Math.min(Number(card.dataset.overviewMinWidth)||260,metrics.width);
-          const width = clamp(card.getBoundingClientRect().width+step[0],minWidth,metrics.width);
-          const nextColumns = clamp(Math.ceil((width+metrics.gap)/(metrics.trackWidth+metrics.gap)),1,metrics.tracks);
-          card.style.setProperty("--overview-card-width",`${width}px`);
-          setCardColumns(card,nextColumns);
-        }
-        const currentHeight = Number.parseFloat(card.style.getPropertyValue("--overview-card-height"))||card.getBoundingClientRect().height;
-        card.style.setProperty("--overview-card-height",`${Math.max(currentHeight+step[1],180)}px`);
-        saveCardLayout(card);
-        refreshOverviewLayout();
-      });
-    });
-    wrap.appendChild(view);
-    wrap.querySelectorAll(".overviewRecentRow[data-iid]").forEach(el=>{
-      el.onclick = () => {
-        openItemModal(el.dataset.pid,el.dataset.gid,el.dataset.iid);
-      };
-    });
-    wrap.querySelectorAll(".overviewTimelineItem[data-iid]").forEach(el=>{
-      el.onclick = () => openItemModal(el.dataset.pid,el.dataset.gid,el.dataset.iid);
-    });
-    wrap.querySelectorAll(".overviewTimelineItem[data-calendar-id]").forEach(el=>{
-      el.onclick = () => {
-        const item = (state.calendarItems||[]).find(candidate=>candidate.id===el.dataset.calendarId);
-        if (item) openStandaloneCalendarItemModal(item);
-      };
-    });
-    wrap.querySelectorAll("[data-overview-project]").forEach(el=>{
-      el.onclick = () => selectProject(el.dataset.overviewProject);
-    });
-    wrap.querySelectorAll("[data-overview-stat]").forEach(button=>{
-      button.onclick=()=>openOverviewStatDetails(button.dataset.overviewStat);
-    });
-    wrap.querySelectorAll("[data-overview-action]").forEach(button=>{
-      button.onclick = async () => {
-        if (button.dataset.overviewAction==="project"){
-          document.getElementById("addProjectBtn").click();
-          return;
-        }
-        if (button.dataset.overviewAction==="calendar"){
-          activeProjectId = CALENDAR; persistActiveLocation(); renderAll(); return;
-        }
-        if (button.dataset.overviewAction==="event"){
-          openNewCalendarItemModal(null,today);
-          return;
-        }
-        if (!projectRecords().length){
-          await showNotice("Create a project first","Tasks are organized inside project groups.");
-          return;
-        }
-        const result = await showDialog({title:"New task",fields:[
-          {label:"Task name",placeholder:"What needs to get done?"},
-          {label:"Project",type:"select",options:projectRecords().map(project=>({value:project.id,label:project.name})),value:projectRecords()[0].id}
-        ],confirmLabel:"Create task"});
-        if (!result) return;
-        const [title,projectId] = result;
-        const project = await ensureProjectLoaded(projectId);
-        const group = project?.groups[0];
-        if (!title.trim() || !project || !group) return;
-        const item = addItem(project.id,group.id,title.trim());
-        openItemModal(project.id,group.id,item.id);
-      };
-    });
-    board.appendChild(wrap);
-    requestAnimationFrame(refreshOverviewLayout);
-  }
-
   /* ---------- Item modal ---------- */
   function openItemModal(pid, gid, iid){
     if (state.folderLazy && !getLoadedProject(pid)){
@@ -5443,12 +4861,13 @@
       }catch(err){ /* Identity is optional; the workspace runs without it. */ }
     }
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule] = await Promise.all([
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule] = await Promise.all([
         import("./views/settings-view.js"),
         import("./views/overview-details-view.js"),
         import("./models/overview-details-model.js"),
         import("./views/milestones-view.js"),
-        import("./views/roadmap-view.js")
+        import("./views/roadmap-view.js"),
+        import("./views/overview-view.js")
       ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
@@ -5462,6 +4881,37 @@
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
       });
       roadmapView = new roadmapViewModule.RoadmapView();
+      overviewView = new overviewViewModule.OverviewView({
+        getState:()=>state,
+        model:{
+          allItemsFlat,
+          isItemCompleted,
+          dueDateField,
+          priorityField,
+          todayStr,
+          projectRecords,
+          formatUpdatedAt,
+          priorityColor:value=>PRIORITY_OPTIONS.find(option=>option.id===value)?.color
+        },
+        actions:{
+          scheduleSave,
+          selectProject,
+          openItemModal,
+          openStandaloneCalendarItemModal,
+          showNotice,
+          openNewCalendarItemModal,
+          showDialog,
+          ensureProjectLoaded,
+          addItem,
+          navigateCalendar(){
+            activeProjectId=CALENDAR;
+            persistActiveLocation();
+            renderAll();
+          }
+        },
+        overviewDetailsView,
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("overview")
+      });
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", err.message);

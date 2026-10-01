@@ -109,7 +109,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/features/` - cohesive application features
 - `js/config/` - build-generated runtime configuration
 - `js/demo/` - demo workspace data and attachments
-- `js/models/` and `js/views/` - overview details, settings, and milestone views
+- `js/models/` and `js/views/` - overview, settings, milestone, and roadmap views
 - `js/services/google-calendar/` - optional Google Calendar integration
 - `js/commands/` - workspace-specific command definitions
 - `js/core/` - workspace validation, schema migrations, and data-version compatibility
