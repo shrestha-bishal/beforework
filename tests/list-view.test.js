@@ -31,7 +31,8 @@ test("List sorting stays shared with Table view and is accessed through app stat
   assert.ok(view.includes("setListSort({field,"));
   assert.ok(app.includes("getListSort:()=>listSort"));
   assert.ok(app.includes("setListSort:value=>{ listSort=value; }"));
-  assert.ok(app.includes("function renderTableView(project, board)"));
+  assert.ok(app.includes('cloneTemplate:()=>window.BeforeworkViewTemplates.clone("tableView")'));
+  assert.ok(app.includes('import("./views/table-view.js")'));
 });
 
 test("project view dispatch uses the extracted List renderer",()=>{
