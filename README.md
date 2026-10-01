@@ -29,19 +29,19 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 ## Features
 
 - Projects, folders, groups, tasks, and standalone calendar items
-- List, table, board, calendar, and roadmap views
+- List, table, board, calendar, roadmap, and milestone views with per-project view configuration
 - Workspace and project roadmaps with task duration bars from optional start dates to task dates, plus milestone markers
 - Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, URLs, email addresses, and numbers
 - Tags, subtasks, comments, activity history, archiving, recurring schedules, and reminders
-- Multiple file attachments per item in folder workspaces
+- Multiple file attachments per item in folder workspaces, plus project and calendar item attachments
 - Drag-and-drop data-column ordering saved independently for List and Table views
 - CSV export of the current filtered List or Table view, in visible column and row order
 - CSV import with column mapping and preview into an existing or new project. It supports task titles, descriptions, due dates, priority, status/groups, and tags; select the date format used by the CSV (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`).
 - Searchable overview statistics, workload and progress summaries, and a focus timer
-- Keyboard shortcuts and a command palette for common actions
+- Keyboard shortcuts, a command palette, and quick actions for common workspace tasks
 - Browser notifications for reminders and tasks due today while the app is open
-- Optional Google Calendar integration
-- Folder-based JSON workspaces with legacy single-file JSON import and migration support
+- Optional Google Calendar integration and dedicated Integrations / Support pages
+- Folder-based JSON workspaces with automatic recovery snapshots, file conflict checks, import/restore validation, and legacy single-file JSON import and migration support
 
 ## Run locally
 
@@ -55,7 +55,7 @@ python3 -m http.server 8000
 
 Then open <http://localhost:8000/> in Chrome or Edge and create a workspace folder, open an existing folder workspace, or connect an older single-file JSON workspace.
 
-Local hosting starts with an empty workspace by default. To explore a sample workspace without building anything locally, visit the [Beforework demo](https://beforework-demo.netlify.app/).
+Local hosting starts with an empty workspace by default. For a demo workspace with sample projects, project notes, calendar events, and custom fields, use the hosted [Beforework demo](https://beforework-demo.netlify.app/) or build a local demo by enabling `BEFOREWORK_MODE=demo`.
 
 For development, if you need to run the demo data locally, build and serve the generated site with demo mode enabled:
 
@@ -70,6 +70,8 @@ The production build minifies JavaScript, CSS, and HTML in `dist`; source files 
 ## Deploy
 
 This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build minifies JavaScript, CSS, and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspaces with sample projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which starts with an empty workspace.
+
+The app keeps the same local-first data model in both modes: a folder workspace on the user's device, optional attachments, and browser-side persistence. The demo site simply preloads sample content so new users can explore the UI without creating data manually.
 
 To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Changes to an existing workspace file are unaffected by this setting.
 
@@ -87,9 +89,9 @@ Workspace data is stored in JSON shards inside a folder. `manifest.json` stores 
 
 Item attachments are stored as separate files under the workspace's `attachments/` directory, with multiple attachments supported per project or calendar item. Attachments require a folder workspace; they are not embedded in legacy single-file JSON. Browser recovery snapshots contain workspace JSON and attachment metadata, not the attachment file contents. The demo workspace includes a downloadable plain-text project-notes attachment. CSV exports contain the current filtered rows and visible columns; values are escaped for CSV and spreadsheet formula safety.
 
-When an older or unversioned workspace is opened or imported, Beforework validates its structure and applies migrations in order until it reaches the current schema. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older data recoverable.
+Beforework also keeps up to eight rolling recovery snapshots in IndexedDB, with a 64 MB total storage limit. The app saves a pre-write snapshot at most once every 30 minutes and creates additional snapshots before imports, restores, file conflicts, and workspace switches with unsaved changes. In **Settings > Storage & Data**, retained snapshots can be restored or exported. Pre-upgrade snapshots remain available separately. This makes recovery and validation safer when upgrading older data or resolving file changes from another process.
 
-Beforework keeps up to eight rolling recovery snapshots, with a 64 MB total storage limit, in the browser's IndexedDB. It captures the previous workspace before a write at most once every 30 minutes, and creates additional snapshots before imports, restores, file conflicts, and workspace switches with unsaved changes. In **Settings > Storage & Data**, retained snapshots can be restored or exported. Pre-upgrade snapshots remain available separately.
+When an older or unversioned workspace is opened or imported, Beforework validates its structure and applies migrations in order until it reaches the current schema. Future schema versions and malformed project, group, or item data are rejected before they can replace the active workspace. Migrations add or reshape fields without deleting retired properties, which helps keep older data recoverable.
 
 Recovery snapshots are local to the current browser profile, do not sync with the workspace file, and may be removed if browser site data is cleared. Export a JSON copy or keep the workspace file in a synced folder for portable recovery. Before each save, Beforework compares the connected file with the revision it last read or wrote. If the file changed elsewhere, choose to load the external version (the tab's version is snapshotted) or overwrite it (both versions are snapshotted); canceling leaves the tab's changes in memory without overwriting the file. Settings shows save progress or failure and offers a retry.
 
@@ -109,8 +111,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/models/` and `js/views/` - overview details, settings, and milestone views
 - `js/services/google-calendar/` - optional Google Calendar integration
 - `js/commands/` - workspace-specific command definitions
-- `js/core/` - workspace schema migrations and data-version compatibility
-- `js/core/` - workspace validation and schema migrations
+- `js/core/` - workspace validation, schema migrations, and data-version compatibility
 - `pages/` - HTML templates for application views and dialogs
 - `styles/app.css` - application styles
 - `images/` - icons and image assets
