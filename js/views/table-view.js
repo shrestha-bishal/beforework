@@ -103,7 +103,8 @@ export class TableView {
     const headerRow=table.tHead.rows[0];
     const groupHeader=headerRow.querySelector("[data-table-group-header]");
     const tagsHeader=headerRow.querySelector('[data-column-id="tags"]');
-    if (!showGroupColumn) groupHeader.remove();
+    if (showGroupColumn) groupHeader.hidden=false;
+    else groupHeader.remove();
     project.fields.forEach(field=>{
       const fieldHeader=templates.querySelector("#tableViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=field.id;

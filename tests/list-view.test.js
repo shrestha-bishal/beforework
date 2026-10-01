@@ -55,3 +55,10 @@ test("List view structure and reusable row markup live in its page template",()=
   assert.ok(!view.includes('tbody.innerHTML ='));
   assert.ok(app.includes('cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")'));
 });
+
+test("List headers stay aligned with optional group and progress cells",()=>{
+  assert.ok(view.includes("if (showGroupColumn) groupHeader.hidden=false;"));
+  assert.ok(view.includes("if (showProgressColumn) progressHeader.hidden=false;"));
+  assert.ok(view.includes("else groupCell.remove();"));
+  assert.ok(view.includes("else progressCell.remove();"));
+});

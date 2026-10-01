@@ -48,8 +48,10 @@ export class ListView {
     const groupHeader=headerRow.querySelector("[data-list-group-header]");
     const tagsHeader=headerRow.querySelector('[data-column-id="tags"]');
     const progressHeader=headerRow.querySelector("[data-list-progress-header]");
-    if (!showGroupColumn) groupHeader.remove();
-    if (!showProgressColumn) progressHeader.remove();
+    if (showGroupColumn) groupHeader.hidden=false;
+    else groupHeader.remove();
+    if (showProgressColumn) progressHeader.hidden=false;
+    else progressHeader.remove();
     project.fields.forEach(field=>{
       const fieldHeader=templates.querySelector("#listViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=field.id;

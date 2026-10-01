@@ -47,6 +47,11 @@ test("Table keeps shared selection, sorting, and edits wired to app behavior",()
   assert.ok(app.includes('import("./views/table-view.js")'));
 });
 
+test("Table group header visibility matches optional group cells",()=>{
+  assert.ok(view.includes("if (showGroupColumn) groupHeader.hidden=false;"));
+  assert.ok(view.includes("else groupCell.remove();"));
+});
+
 test("Table field controls preserve the supported editable field types",()=>{
   for (const fieldType of ["priority","select","multi-select","checkbox","number","url","email","date","start-date","due-date"]){
     assert.ok(view.includes(`"${fieldType}"`),`missing ${fieldType} behavior`);
