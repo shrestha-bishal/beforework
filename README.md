@@ -15,8 +15,8 @@ Beforework is a serverless local-first project management workspace for projects
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/61c114d3-da65-4f30-8f70-15172d15af00" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/143a1b17-8a70-4777-9e0d-cb250ed2b051" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5f8a1fe-10cd-4cf9-85ac-430966c88c57" />
-
-
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/84a4522a-244c-4591-9993-433b2fee19c7" />
+<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/eacf2746-8352-4b64-a1ee-2ee9b50e3a1c" />
 
 ## Hosted version
 
