@@ -2,7 +2,7 @@
 
 ![Beforework logo](images/icon-wide.png)
 
-Beforework is a serverless local-first project management workspace for projects, tasks, calendars, and focus sessions. Work across List, Table, Board, and Calendar views, and add custom fields, comments, checklists, reminders, and multiple file attachments to items. The static app stores workspace data in folders you choose on your device rather than any server. Optional Google Calendar integration connects to Google separately.
+Beforework is a serverless local-first project management workspace for projects, tasks, calendars, and focus sessions. Work across List, Table, Board, Calendar, Roadmap and Milestone views, and add custom fields, comments, checklists, reminders, and multiple file attachments to items. The static app stores workspace data in folders you choose on your device rather than any server. Optional Google Calendar integration connects to Google separately.
 
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d1246eb5-1276-4001-b1c7-254cc3c01815" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ce98605e-02e2-4dea-a043-6bd452bb8ac5" />
