@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const CleanCSS = require("clean-css");
 const {minify: minifyHtml} = require("html-minifier-terser");
 const {minify: minifyJavaScript} = require("terser");
 
@@ -50,11 +51,19 @@ async function build(){
   const files=[
     ...listFiles(path.join(output,"js")),
     ...listFiles(path.join(output,"pages")),
+    ...listFiles(path.join(output,"styles")),
     path.join(output,"index.html")
   ];
 
   for (const file of files.filter(file=>file.endsWith(".js"))){
     await minifyJavaScriptFile(file);
+  }
+
+  for (const file of files.filter(file=>file.endsWith(".css"))){
+    const source=fs.readFileSync(file,"utf8");
+    const result=new CleanCSS().minify(source);
+    if (result.errors.length) throw new Error(`CSS minification failed for ${file}: ${result.errors.join("; ")}`);
+    fs.writeFileSync(file,result.styles);
   }
 
   for (const file of files.filter(file=>file.endsWith(".html"))){

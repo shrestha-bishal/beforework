@@ -63,11 +63,11 @@ node scripts/build-site.js
 python -m http.server 8000 --directory dist
 ```
 
-The production build minifies JavaScript and HTML in `dist`; source files remain readable and unchanged. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
+The production build minifies JavaScript, CSS, and HTML in `dist`; source files remain readable and unchanged. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
 
 ## Deploy
 
-This is a static site. Netlify installs the build dependencies, runs `node scripts/build-site.js`, and publishes `dist`. The build minifies JavaScript and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspaces with sample projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which starts with an empty workspace.
+This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build minifies JavaScript, CSS, and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspaces with sample projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which starts with an empty workspace.
 
 To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Changes to an existing workspace file are unaffected by this setting.
 
