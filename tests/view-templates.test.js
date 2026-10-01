@@ -35,6 +35,7 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/focus-timer.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/list-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/table-view.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
 
   await Promise.all([
     loader.load("dialogs"),
@@ -51,5 +52,6 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/focus-timer.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/list-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/table-view.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
   assert.deepEqual(loader.clone("dialogs"),{cloned:true});
 });

@@ -6,6 +6,7 @@ window.BeforeworkViewTemplates = (()=>{
     milestones:"pages/milestones.html",
     listView:"pages/list-view.html",
     tableView:"pages/table-view.html",
+    boardView:"pages/board-view.html",
     settings:"pages/settings.html",
     support:"pages/support.html",
     focusTimer:"pages/focus-timer.html"

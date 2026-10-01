@@ -132,6 +132,7 @@
   let overviewView = null;
   let listView = null;
   let tableView = null;
+  let boardView = null;
   let showArchived = false;
   let activeProjectId = OVERVIEW;
   const focusTimer = window.BeforeworkFocusTimer.create({
@@ -2535,7 +2536,7 @@
     if (activeView.type === "list") listView.render(project, board);
     else if (activeView.type === "table") tableView.render(project, board);
     else if (activeView.type === "calendar") renderCalendar(board, project);
-    else renderKanban(project, board);
+    else boardView.render(project, board);
     if (activeView.type==="list" || activeView.type==="table"){
       const addRow = board.querySelector(".listAddRow");
       if (addRow){
@@ -2684,98 +2685,6 @@
     const count = fieldCount + boardFilterGroups.size + boardFilterTags.size + (boardFilterText ? 1 : 0);
     summary.innerHTML = count ? `<strong>${count}</strong> filter${count===1?"":"s"} applied` : "All items";
   }
-
-  /* ---------- Kanban ---------- */
-  function renderKanban(project, board){
-    project.groups.forEach(group=>{
-      const col = document.createElement("div");
-      col.className = "group Box";
-      col.dataset.groupId = group.id;
-
-      const visibleItems = group.items.filter(it=>itemMatchesFilter(project, it, group));
-
-      col.innerHTML = `
-        <div class="groupHead">
-          <input class="form-control groupTitle" value="${escapeHtml(group.name)}">
-          <span class="Counter Counter--secondary">${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}</span>
-          <button class="btn btn-invisible btn-sm fieldColumnMenuBtn" data-action="groupMenu" type="button" title="Group actions" aria-label="Group actions for ${escapeHtml(group.name)}">⋮</button>
-          <div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit</button><button type="button" data-group-action="delete" class="danger">Delete</button></div>
-        </div>
-        <div class="groupBody"></div>
-        <button class="btn addItemBtn" data-action="addItem">+ Add item</button>
-      `;
-
-      col.querySelector(".groupTitle").addEventListener("change", (e)=>{
-        group.name = e.target.value.trim() || group.name;
-        scheduleSave(); renderProjectList();
-      });
-      const groupMenuButton = col.querySelector('[data-action="groupMenu"]');
-      const groupMenu = col.querySelector(".fieldColumnMenu");
-      groupMenuButton.onclick = event=>{
-        event.stopPropagation();
-        const shouldOpen = !groupMenu.classList.contains("open");
-        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
-        groupMenu.classList.toggle("open", shouldOpen);
-      };
-      groupMenu.querySelector('[data-group-action="edit"]').onclick = event=>{
-        event.stopPropagation();
-        groupMenu.classList.remove("open");
-        editGroupName(project, group);
-      };
-      groupMenu.querySelector('[data-group-action="delete"]').onclick = event=>{
-        event.stopPropagation();
-        groupMenu.classList.remove("open");
-        confirmDeleteGroup(project, group);
-      };
-      col.querySelector('[data-action="addItem"]').onclick = async () => {
-        openNewItemModal(project, group);
-      };
-
-      const body = col.querySelector(".groupBody");
-      visibleItems.forEach(item=> body.appendChild(renderCard(project, group.id, item)));
-
-      col.addEventListener("dragover", (e)=>{ e.preventDefault(); col.classList.add("dragover"); });
-      col.addEventListener("dragleave", ()=> col.classList.remove("dragover"));
-      col.addEventListener("drop", (e)=>{
-        e.preventDefault(); col.classList.remove("dragover");
-        const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-        moveItem(project.id, data.groupId, group.id, data.itemId, null);
-      });
-
-      board.appendChild(col);
-    });
-  }
-
-  function renderCard(project, gid, item){
-    const card = document.createElement("div");
-    card.className = "card Box" + (item.archived ? " archived" : "");
-    card.draggable = true;
-    const doneSub = item.subitems.filter(s=>s.done).length;
-    const pf = priorityField(project);
-    const dfs = fieldsWithStartBeforeDue(dateFields(project));
-    const titlePrefix = pf ? fieldChipHtml(pf, item.values[pf.id]) : "";
-    const dueChips = dfs.map(f=>fieldChipHtml(f, item.values[f.id])).join("");
-    const tagsHtml = item.tagIds.map(tid=>{
-      const tag = tagById(project, tid); return tag ? tagPillHtml(tag) : "";
-    }).join("");
-    card.innerHTML = `
-      <div class="cardTitle">${titlePrefix}${escapeHtml(item.title)}</div>
-      <div class="cardMeta">
-        ${item.archived ? `<span class="Label Label--secondary">Archived</span>` : ""}
-        ${item.subitems.length? `<span class="Counter Counter--secondary">${doneSub}/${item.subitems.length}</span>`:""}
-        ${item.comments && item.comments.length ? `<span class="Counter Counter--secondary" title="Comments">💬 ${item.comments.length}</span>` : ""}
-        ${dueChips}
-        ${tagsHtml}
-      </div>`;
-    card.onclick = () => openItemModal(project.id, gid, item.id);
-    card.addEventListener("dragstart", (e)=>{
-      card.classList.add("dragging");
-      e.dataTransfer.setData("text/plain", JSON.stringify({groupId:gid, itemId:item.id}));
-    });
-    card.addEventListener("dragend", ()=> card.classList.remove("dragging"));
-    return card;
-  }
-
 
   function calendarEntries(scopeProject){
     const entries = [];
@@ -4534,7 +4443,7 @@
       }catch(err){ /* Identity is optional; the workspace runs without it. */ }
     }
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule] = await Promise.all([
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule] = await Promise.all([
         import("./views/settings-view.js"),
         import("./views/overview-details-view.js"),
         import("./models/overview-details-model.js"),
@@ -4542,7 +4451,8 @@
         import("./views/roadmap-view.js"),
         import("./views/overview-view.js"),
         import("./views/list-view.js"),
-        import("./views/table-view.js")
+        import("./views/table-view.js"),
+        import("./views/board-view.js")
       ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
@@ -4609,6 +4519,23 @@
         renderProjectList,
         applyTableColumnOrder,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("tableView")
+      });
+      boardView = new boardViewModule.BoardView({
+        itemMatchesFilter,
+        scheduleSave,
+        renderProjectList,
+        editGroupName,
+        confirmDeleteGroup,
+        openNewItemModal,
+        moveItem,
+        priorityField,
+        dateFields,
+        fieldsWithStartBeforeDue,
+        fieldChipHtml,
+        tagById,
+        tagPillHtml,
+        openItemModal,
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("boardView")
       });
       overviewView = new overviewViewModule.OverviewView({
         getState:()=>state,
