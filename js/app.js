@@ -43,7 +43,9 @@
   const FIELD_TYPE_OPTIONS = [
     {value:"priority", label:"Priority", description:"Best for urgency or ranking."},
     {value:"select", label:"Single select", description:"Pick one answer from a fixed list."},
-    {value:"date", label:"Date", description:"Track due dates or milestones."},
+    {value:"start-date", label:"Start date", description:"When work on this task should begin."},
+    {value:"due-date", label:"Due date", description:"When this task should be completed."},
+    {value:"date", label:"Date", description:"A custom date for any other purpose."},
     {value:"text", label:"Text", description:"Freeform notes or details."},
     {value:"checkbox", label:"Checkbox", description:"Yes/no or done/not done flag."},
     {value:"url", label:"URL", description:"Link to a website or online resource."},
@@ -160,7 +162,7 @@
   function buildFieldsForTemplate(keys){
     return (keys||[]).map(k=>{
       if (k==="priority") return {id:uid(), label:"Priority", type:"priority", options:[]};
-      if (k==="due") return {id:uid(), label:"Due date", type:"date", options:[]};
+      if (k==="due") return {id:uid(), label:"Due date", type:"due-date", options:[]};
       return null;
     }).filter(Boolean);
   }
@@ -718,9 +720,24 @@
       if (!await flushSave()) throw new Error("Resolve the pending save before loading another project.");
       state.projects=[];
     }
-    const project=await window.BeforeworkStorage.loadFolderProject(pid);
+    let project=await window.BeforeworkStorage.loadFolderProject(pid);
     project.folderId=summary.folderId;
+    let migratedProject=false;
+    const items=project.groups.flatMap(group=>group.items||[]);
+    const hasLegacyDateFields=project.fields.some(field=>field.type==="date"
+      && /^(start|start date|starts on|due|due date|deadline)$/.test(String(field.label||"").trim().toLowerCase()));
+    const hasLegacyStartDates=items.some(item=>item.calendarType!=="event"&&item.startDate)
+      && !project.fields.some(field=>field.type==="start-date");
+    if (state.schemaVersion<SCHEMA_VERSION||hasLegacyDateFields||hasLegacyStartDates){
+      const sourceVersion=state.schemaVersion<SCHEMA_VERSION?state.schemaVersion:7;
+      const migrated=migrateState({...state,schemaVersion:sourceVersion,projects:[project],folderLazy:false,projectSummaries:undefined});
+      project=migrated.projects[0];
+      state.schemaVersion=SCHEMA_VERSION;
+      migratedProject=true;
+    }
     state.projects.push(project);
+    registerProjectSummary(project);
+    if (migratedProject) scheduleSave();
     return project;
   }
   function getGroup(pid,gid){ return getProject(pid)?.groups.find(g=>g.id===gid); }
@@ -730,7 +747,26 @@
   }
   function tagById(project,tid){ return project.tags.find(t=>t.id===tid); }
   function priorityField(project){ return project.fields.find(f=>f.type==="priority"); }
-  function dateFields(project){ return project.fields.filter(f=>f.type==="date"); }
+  function isDateField(field){ return ["date","start-date","due-date"].includes(field?.type); }
+  function dateFields(project){ return project.fields.filter(isDateField); }
+  function fieldsWithStartBeforeDue(fields){
+    const ordered=fields.slice();
+    const startIndex=ordered.findIndex(field=>field.type==="start-date");
+    const dueIndex=ordered.findIndex(field=>field.type==="due-date");
+    if (startIndex>=0&&dueIndex>=0&&startIndex>dueIndex){
+      [ordered[startIndex],ordered[dueIndex]]=[ordered[dueIndex],ordered[startIndex]];
+    }
+    return ordered;
+  }
+  function startDateField(project){ return project.fields.find(field=>field.type==="start-date"); }
+  function dueDateField(project){
+    return project.fields.find(field=>field.type==="due-date")
+      || project.fields.find(field=>field.type==="date"&&/^(due|due date|deadline)$/.test(String(field.label||"").trim().toLowerCase()));
+  }
+  function calendarDateFields(project){
+    return dateFields(project).filter(field=>field.type!=="start-date")
+      .sort((first,second)=>Number(second===dueDateField(project))-Number(first===dueDateField(project)));
+  }
   function getReminderEntries(){
     if (!state) return [];
     const entries = [];
@@ -744,7 +780,7 @@
         },[])
         : project.groups;
       groups.forEach(group=>group.items.forEach(item=>{
-        const dueField = dateFields(project).find(field=>item.values[field.id]);
+        const dueField = dueDateField(project);
         entries.push({
           id:`project:${project.id}:${item.id}`,
           itemId:item.id,
@@ -1108,7 +1144,7 @@
     const confirmButton=overlay.querySelector("[data-csv-confirm]");
     let dateFormatSelect=null;
     let dateFormatControl=null;
-    let dateFormatTargetKey=null;
+    let dateFormatTargetKeys=new Set();
     const context={parsed:null,project:null,fields:[],targets:[],selectionToken:0,closed:false,step:1};
 
     const close=()=>{
@@ -1178,13 +1214,23 @@
       const targets=[
         {key:"title",kind:"title",label:"Task title",required:true},
         {key:"description",kind:"description",label:"Description"},
+        {key:"startDate",kind:"startDate",label:"Start date"},
+        {key:"dueDate",kind:"dueDate",label:"Due date"},
         {key:"status",kind:"status",label:"Status / group"},
         {key:"tags",kind:"tags",label:"Tags"}
       ];
+      const startField=fields.find(field=>field.type==="start-date")
+        || fields.find(field=>field.type==="date"&&/^(start|start date|starts on)$/.test(String(field.label||"").trim().toLowerCase()));
+      const dueField=fields.find(field=>field.type==="due-date")
+        || fields.find(field=>field.type==="date"&&/^(due|due date|deadline)$/.test(String(field.label||"").trim().toLowerCase()));
+      targets.find(target=>target.kind==="startDate").fieldId=startField?.id||null;
+      targets.find(target=>target.kind==="startDate").fieldIndex=startField?fields.indexOf(startField):null;
+      targets.find(target=>target.kind==="dueDate").fieldId=dueField?.id||null;
+      targets.find(target=>target.kind==="dueDate").fieldIndex=dueField?fields.indexOf(dueField):null;
       fields.forEach((field,index)=>{
-        if (field.type==="date") targets.push({
-          key:`date:${index}`,kind:"dueDate",fieldId:field.id,fieldIndex:index,label:`Due date - ${field.label}`
-        });
+        if (field.type==="date"&&field!==startField&&field!==dueField){
+          targets.push({key:`customDate:${index}`,kind:"customDate",fieldId:field.id,fieldIndex:index,label:`Date - ${field.label}`});
+        }
         if (field.type==="priority") targets.push({
           key:`priority:${index}`,kind:"priority",fieldId:field.id,fieldIndex:index,label:`Priority - ${field.label}`
         });
@@ -1195,6 +1241,7 @@
       const value=header.trim().toLowerCase();
       if (target.kind==="title" && /^(title|task|task name|name)$/.test(value)) return true;
       if (target.kind==="description" && /^(description|details|notes)$/.test(value)) return true;
+      if (target.kind==="startDate" && /^(start|start date|start_date|starts on)$/.test(value)) return true;
       if (target.kind==="status" && /^(status|group|stage)$/.test(value)) return true;
       if (target.kind==="tags" && /^(tag|tags|label|labels)$/.test(value)) return true;
       if (target.kind==="dueDate" && /^(due|due date|deadline)$/.test(value)) return true;
@@ -1221,15 +1268,17 @@
       });
 
       const mapping={};
-      let dueDateFieldId=null,priorityFieldId=null,dueDateFieldIndex=null,priorityFieldIndex=null;
+      let startDateFieldId=null,dueDateFieldId=null,priorityFieldId=null;
+      let startDateFieldIndex=null,dueDateFieldIndex=null,priorityFieldIndex=null;
       for (const target of context.targets){
         if (selectedTargets.has(target.key)){
-          mapping[target.kind]=selectedTargets.get(target.key);
+          mapping[target.kind==="customDate"?target.key:target.kind]=selectedTargets.get(target.key);
+          if (target.kind==="startDate"){ startDateFieldId=target.fieldId; startDateFieldIndex=target.fieldIndex; }
           if (target.kind==="dueDate"){ dueDateFieldId=target.fieldId; dueDateFieldIndex=target.fieldIndex; }
           if (target.kind==="priority"){ priorityFieldId=target.fieldId; priorityFieldIndex=target.fieldIndex; }
         }
       }
-      if (dateFormatControl) dateFormatControl.hidden=!selectedTargets.has(dateFormatTargetKey);
+      if (dateFormatControl) dateFormatControl.hidden=![...dateFormatTargetKeys].some(key=>selectedTargets.has(key));
       const hasTitle=Object.hasOwn(mapping,"title");
       const nameValid=destination.value!=="new" || !!newName.value.trim();
       const selectedProject=project;
@@ -1271,6 +1320,8 @@
           const cell=document.createElement("td");
           const kind=target.kind;
           cell.textContent=kind==="dueDate" ? task.dueDate
+            : kind==="startDate" ? task.startDate
+              : kind==="customDate" ? task.customDates[target.key]||""
             : kind==="priority" ? task.priority
               : kind==="tags" ? task.tags.join(", ")
                 : kind==="status" ? task.status||groupNames[0]||""
@@ -1282,7 +1333,10 @@
       if (prepared && !prepared.errors.length && nameValid && (destination.value==="new" || !!selectedProject)){
         confirmButton.disabled=false;
       }else confirmButton.disabled=true;
-      context.mapping={mapping,dueDateFieldId,priorityFieldId,dueDateFieldIndex,priorityFieldIndex,prepared};
+      context.mapping={mapping,startDateFieldId,dueDateFieldId,priorityFieldId,startDateFieldIndex,dueDateFieldIndex,priorityFieldIndex,
+        customDateFields:context.targets.filter(target=>target.kind==="customDate"&&selectedTargets.has(target.key))
+          .map(target=>({key:target.key,fieldId:target.fieldId,fieldIndex:target.fieldIndex})),
+        prepared};
     }
 
     function renderMapping(){
@@ -1291,7 +1345,7 @@
       mappingFields.replaceChildren();
       dateFormatSelect=null;
       dateFormatControl=null;
-      dateFormatTargetKey=null;
+      dateFormatTargetKeys=new Set();
       context.targets.forEach(target=>{
         const label=document.createElement("div");
         label.className="csvImportField";
@@ -1316,11 +1370,10 @@
         });
         select.addEventListener("change",refreshPreview);
         label.append(caption,select);
-        if (target.kind==="dueDate"){
+        if ((target.kind==="dueDate"||target.kind==="startDate")&&!dateFormatControl){
           dateFormatControl=document.createElement("div");
           dateFormatControl.className="csvImportDateFormatControl";
           dateFormatControl.hidden=true;
-          dateFormatTargetKey=target.key;
           const formatLabel=document.createElement("label");
           formatLabel.className="csvImportDateFormatLabel";
           formatLabel.htmlFor="csvImportDateFormat";
@@ -1337,6 +1390,7 @@
           dateFormatControl.append(formatLabel,dateFormatSelect);
           label.appendChild(dateFormatControl);
         }
+        if (target.kind==="dueDate"||target.kind==="startDate"||target.kind==="customDate") dateFormatTargetKeys.add(target.key);
         mappingFields.appendChild(label);
       });
       refreshPreview();
@@ -1434,14 +1488,33 @@
         }
         if (!project.groups.length) project.groups.push({id:uid(),name:"Items",items:[]});
 
-        const dateField=destination.value==="new"
+        let startField=destination.value==="new"
+          ? project.fields[context.mapping.startDateFieldIndex]
+          : project.fields.find(field=>field.id===context.mapping.startDateFieldId);
+        let dueField=destination.value==="new"
           ? project.fields[context.mapping.dueDateFieldIndex]
           : project.fields.find(field=>field.id===context.mapping.dueDateFieldId);
         const priorityField=destination.value==="new"
           ? project.fields[context.mapping.priorityFieldIndex]
           : project.fields.find(field=>field.id===context.mapping.priorityFieldId);
-        if (context.mapping.dueDateFieldId && !dateField) throw new Error("The selected due-date field is no longer available.");
+        if (context.mapping.startDateFieldId && !startField) throw new Error("The selected start-date field is no longer available.");
+        if (context.mapping.dueDateFieldId && !dueField) throw new Error("The selected due-date field is no longer available.");
         if (context.mapping.priorityFieldId && !priorityField) throw new Error("The selected priority field is no longer available.");
+        if (context.mapping.mapping.startDate!==undefined&&!startField){
+          startField={id:uid(),label:"Start date",type:"start-date",options:[]};
+          project.fields.push(startField);
+        }
+        if (context.mapping.mapping.dueDate!==undefined&&!dueField){
+          dueField={id:uid(),label:"Due date",type:"due-date",options:[]};
+          project.fields.push(dueField);
+        }
+        const customDateFields=context.mapping.customDateFields.map(target=>{
+          const field=destination.value==="new"
+            ? project.fields[target.fieldIndex]
+            : project.fields.find(candidate=>candidate.id===target.fieldId);
+          if (!field) throw new Error("A selected custom date column is no longer available.");
+          return {...target,field};
+        });
         const groups=new Map(project.groups.map(group=>[group.name.trim().toLowerCase(),group]));
         prepared.groupsToCreate.forEach(name=>{
           const group={id:uid(),name,items:[]};
@@ -1455,7 +1528,11 @@
           if (!group) throw new Error(`Couldn't find a group for status "${imported.status}".`);
           const item=createItem(project.id,imported.title);
           item.description=imported.description;
-          if (dateField && imported.dueDate) item.values[dateField.id]=imported.dueDate;
+          if (startField && imported.startDate) item.values[startField.id]=imported.startDate;
+          if (dueField && imported.dueDate) item.values[dueField.id]=imported.dueDate;
+          customDateFields.forEach(({key,field})=>{
+            if (imported.customDates[key]) item.values[field.id]=imported.customDates[key];
+          });
           if (priorityField && imported.priority) item.values[priorityField.id]=imported.priority;
           imported.tags.forEach(name=>{
             const key=name.trim().toLowerCase();
@@ -1678,6 +1755,15 @@
     scheduleSave(); renderAll();
   }
   async function addField(project, label, type){
+    if (type==="date"&&/^(start|start date|starts on|due|due date|deadline)$/.test(label.trim().toLowerCase())){
+      await showNotice("Choose a date-specific column type",`Use Start date or Due date for "${label}". Choose Date for a different kind of date.`);
+      return;
+    }
+    if ((type==="start-date"||type==="due-date")&&project.fields.some(field=>field.type===type)){
+      await showNotice(`${type==="start-date"?"Start date":"Due date"} column already exists`,
+        "Each project can have one dedicated start date column and one dedicated due date column.");
+      return;
+    }
     const field = {id:uid(), label, type, options:[]};
     if (type==="select" || type==="multi-select"){
       const opts = await showDialog({title:"Column options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create column"});
@@ -1696,14 +1782,19 @@
     scheduleSave(); renderAll();
   }
   async function addColumnFlow(project){
+    const availableFieldTypes=FIELD_TYPE_OPTIONS.filter(option=>
+      !["start-date","due-date"].includes(option.value)
+      || !project.fields.some(field=>field.type===option.value));
     const details = await showDialog({title:"Add column", fields:[
-      {label:"Column type", type:"select", options:FIELD_TYPE_OPTIONS.map(({value,label,description})=>({value,label,description})), value:"select"},
+      {label:"Column type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
       {label:"Column name", placeholder:"e.g. Status, Type, Effort"}
     ], confirmLabel:"Add column"});
     if (!details) return;
     const [type,label] = details;
-    if (!label || !label.trim()) return;
-    await addField(project, label.trim(), FIELD_TYPES.includes(type) ? type : "select");
+    const fieldType=FIELD_TYPES.includes(type)?type:"select";
+    const columnName=label?.trim()||(fieldType==="start-date"?"Start date":fieldType==="due-date"?"Due date":"");
+    if (!columnName) return;
+    await addField(project,columnName,fieldType);
   }
   function orderedTableColumns(project,viewType,columnIds){
     const saved=project.columnOrders?.[viewType]||[];
@@ -1955,7 +2046,7 @@
       const opt = PRIORITY_OPTIONS.find(o=>o.id===value); if (!opt) return "";
       return `<span class="priorityDot" style="background:${opt.color}" title="${opt.label} ${escapeHtml(field.label)}"></span>`;
     }
-    if (field.type==="date") return duePillHtml(value);
+    if (["date","start-date","due-date"].includes(field.type)) return duePillHtml(value);
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value); if (!opt) return "";
       return `<span class="Label Label--secondary"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>`;
@@ -1975,7 +2066,7 @@
       const opt = PRIORITY_OPTIONS.find(o=>o.id===value);
       return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "-";
     }
-    if (field.type==="date") return value ? duePillHtml(value) : "-";
+    if (["date","start-date","due-date"].includes(field.type)) return value ? duePillHtml(value) : "-";
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value);
       return opt ? fieldChipHtml(field,value) : "-";
@@ -2076,7 +2167,7 @@
       } else if (field?.type==="checkbox"){
         firstValue=first.item.values[field.id] ? 1 : 0;
         secondValue=second.item.values[field.id] ? 1 : 0;
-      } else if (field?.type==="date"){
+      } else if (isDateField(field)){
         firstValue=first.item.values[field.id]||"9999-99-99";
         secondValue=second.item.values[field.id]||"9999-99-99";
       } else if (field){
@@ -2715,7 +2806,7 @@
       const opts = f.type==="priority" ? PRIORITY_OPTIONS : (f.options||[]);
       const current = boardFilterFields.get(f.id);
       let control;
-      if (f.type==="date") control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      if (isDateField(f)) control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="text" || f.type==="url" || f.type==="email") control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${f.type==="url"?"Filter URL":f.type==="email"?"Filter email":"Enter text"}" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="number") control = `<input class="form-control" type="number" step="any" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="Exact value" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="checkbox") {
@@ -2818,7 +2909,7 @@
     card.draggable = true;
     const doneSub = item.subitems.filter(s=>s.done).length;
     const pf = priorityField(project);
-    const dfs = dateFields(project);
+    const dfs = fieldsWithStartBeforeDue(dateFields(project));
     const titlePrefix = pf ? fieldChipHtml(pf, item.values[pf.id]) : "";
     const dueChips = dfs.map(f=>fieldChipHtml(f, item.values[f.id])).join("");
     const tagsHtml = item.tagIds.map(tid=>{
@@ -3118,7 +3209,7 @@
           const opts=(f.options||[]).map(option=>`<option value="${option.id}" ${selected.includes(option.id)?"selected":""}>${escapeHtml(option.label)}</option>`).join("");
           return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><select multiple size="${Math.max(2,Math.min(3,(f.options||[]).length))}" class="form-control tableCell tableMultiSelect" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}">${opts}</select></td>`;
         }
-        if (f.type==="date"){
+        if (isDateField(f)){
           return `<td class="${TD_CLASS}" data-column-id="field:${f.id}"><input type="date" class="form-control tableCell" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}" data-fieldid="${f.id}" value="${escapeHtml(val)}"></td>`;
         }
         if (f.type==="checkbox"){
@@ -3191,7 +3282,7 @@
         ? project.itemIndex.map(item=>({item,group:project.groups.find(group=>group.id===item.groupId)||{id:item.groupId,name:item.groupName}}))
         : project.groups.flatMap(group=>group.items.map(item=>({item,group})));
       projectItems.forEach(({group,item})=>{
-      const fields = dateFields(project);
+      const fields = calendarDateFields(project);
       const datedField = fields.find(field=>item.values[field.id]);
       const repeatDates = expandRecurringDates(item.values[datedField?.id] || item.endDate || "", item.endDate || item.values[datedField?.id] || "", normaliseRecurrence(item.recurrence));
       if (datedField){
@@ -3545,7 +3636,7 @@
     }
     const project = scopeProject;
     if (!project) return;
-    const dateField = dateFields(project)[0];
+    const dateField = calendarDateFields(project)[0];
     if (!dateField){ await showNotice("Date column required", `Add a date column to ${project.name} before creating calendar items.`); return; }
     const group = project.groups[0];
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:!scopeProject, draft:{
@@ -3902,7 +3993,7 @@
     const openItems = activeItems.filter(row=>!isItemCompleted(row.item));
     const completedItems = activeItems.filter(row=>isItemCompleted(row.item));
     function dueOf(row){
-      const field = dateFields(row.project).find(candidate=>row.item.values[candidate.id]);
+      const field = dueDateField(row.project);
       return field ? row.item.values[field.id] : row.item.endDate||"";
     }
     function priorityOf(r){ const f = priorityField(r.project); return f ? (r.item.values[f.id]||"") : ""; }
@@ -4737,7 +4828,7 @@
       const options=(field.options||[]).map(option=>`<label class="multiSelectFieldOption"><input type="checkbox" class="fieldInput" data-fieldid="${field.id}" value="${option.id}" ${selected.has(option.id)?"checked":""}><span>${escapeHtml(option.label)}</span></label>`).join("");
       return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><div class="multiSelectFieldOptions">${options||`<span class="fieldOptionsEmpty">Add options to this column first.</span>`}</div></div>`;
     }
-    if (field.type==="date"){
+    if (["date","start-date","due-date"].includes(field.type)){
       return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
     }
     if (field.type==="checkbox"){
@@ -4783,7 +4874,7 @@
       </div>`).join("");
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
-    const fieldsHtml = project.fields.map(f=>fieldInputHtml(f, item)).join("");
+    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).map(field=>fieldInputHtml(field,item)).join("");
     const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
     const recurrence = normaliseRecurrence(item.recurrence);
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
@@ -4985,7 +5076,7 @@
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
         const nextGroup = nextProject.groups[0];
-        const nextDateField = dateFields(nextProject)[0];
+        const nextDateField = calendarDateFields(nextProject)[0];
         if (!nextDateField){ showNotice("Date column required", `Add a date column to ${nextProject.name} before creating calendar items.`); return; }
         openItemRef.projectId = nextProject.id;
         openItemRef.groupId = nextGroup.id;
@@ -5089,7 +5180,21 @@
     modal.querySelectorAll(".fieldInput").forEach(el=>{
       el.addEventListener("change", e=>{
         const field = project.fields.find(candidate=>candidate.id===el.dataset.fieldid);
-        if (field?.type==="date" && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
+        const startField=startDateField(project);
+        const dueField=dueDateField(project);
+        const startValue=startField?item.values[startField.id]:"";
+        const dueValue=dueField?item.values[dueField.id]:"";
+        if (field===startField&&e.target.value&&dueValue&&e.target.value>dueValue){
+          e.target.value=startValue||"";
+          showNotice("Start date is after the due date","Choose a start date on or before the due date.");
+          return;
+        }
+        if (field===dueField&&e.target.value&&startValue&&e.target.value<startValue){
+          e.target.value=item.values[el.dataset.fieldid]||"";
+          showNotice("Task date is before its start date","Choose a task date on or after the task's start date.");
+          return;
+        }
+        if (isDateField(field) && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
         const nextValue = field?.type==="checkbox" ? (e.target.checked ? "true" : "")
           : field?.type==="multi-select" ? [...modal.querySelectorAll(".fieldInput")].filter(input=>input.dataset.fieldid===el.dataset.fieldid && input.checked).map(input=>input.value)
           : field?.type==="number" ? (e.target.value==="" ? "" : Number(e.target.value))

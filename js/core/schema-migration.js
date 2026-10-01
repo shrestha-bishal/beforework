@@ -89,6 +89,35 @@
             : null;
         })));
         return state;
+      },
+      8: state=>{
+        state.projects.forEach(project=>{
+          if (!Array.isArray(project.fields)) project.fields=[];
+          project.fields.forEach(field=>{
+            if (field.type!=="date") return;
+            const label=String(field.label||"").trim().toLowerCase();
+            if (/^(start|start date|starts on)$/.test(label)) field.type="start-date";
+            else if (/^(due|due date|deadline)$/.test(label)) field.type="due-date";
+          });
+          const groups=Array.isArray(project.groups)?project.groups:[];
+          const items=groups.flatMap(group=>Array.isArray(group.items)?group.items:[]);
+          const startField=project.fields.find(field=>field.type==="start-date");
+          const itemsWithLegacyStart=items.filter(item=>item.calendarType!=="event"&&typeof item.startDate==="string"&&item.startDate);
+          if (!startField&&itemsWithLegacyStart.length){
+            const field={id:uid(),label:"Start date",type:"start-date",options:[]};
+            project.fields.push(field);
+            itemsWithLegacyStart.forEach(item=>{
+              if (!item.values||typeof item.values!=="object"||Array.isArray(item.values)) item.values={};
+              item.values[field.id]=item.startDate;
+            });
+          }else if (startField){
+            itemsWithLegacyStart.forEach(item=>{
+              if (!item.values||typeof item.values!=="object"||Array.isArray(item.values)) item.values={};
+              if (!item.values[startField.id]) item.values[startField.id]=item.startDate;
+            });
+          }
+        });
+        return state;
       }
     };
     const schemaVersion = Math.max(...Object.keys(migrations).map(Number));

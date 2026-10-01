@@ -57,19 +57,39 @@ test("validates CSV file types and size with actionable errors",()=>{
 });
 
 test("prepares mapped tasks, resolves groups, and identifies new groups",()=>{
-  const parsed={headers:["Title","Status","Tags","Due","Priority"],rows:[
-    ["Prepare release","To do","release; qa","2026-10-01","High"],
-    ["Publish release","Ready","release","10/2/2026","P2"]
+  const parsed={headers:["Title","Status","Tags","Start Date","Due","Priority"],rows:[
+    ["Prepare release","To do","release; qa","2026-09-25","2026-10-01","High"],
+    ["Publish release","Ready","release","","10/2/2026","P2"]
   ]};
-  const result=csvImport.prepareImport(parsed,{title:0,status:1,tags:2,dueDate:3,priority:4},["To Do"],"MDY");
+  const result=csvImport.prepareImport(parsed,{title:0,status:1,tags:2,startDate:3,dueDate:4,priority:5},["To Do"],"MDY");
   assert.deepEqual(JSON.parse(JSON.stringify(result)),{
     tasks:[
-      {title:"Prepare release",description:"",dueDate:"2026-10-01",priority:"high",status:"To Do",tags:["release","qa"]},
-      {title:"Publish release",description:"",dueDate:"2026-10-02",priority:"medium",status:"Ready",tags:["release"]}
+      {title:"Prepare release",description:"",startDate:"2026-09-25",dueDate:"2026-10-01",customDates:{},priority:"high",status:"To Do",tags:["release","qa"]},
+      {title:"Publish release",description:"",startDate:"",dueDate:"2026-10-02",customDates:{},priority:"medium",status:"Ready",tags:["release"]}
     ],
     errors:[],
     groupsToCreate:["Ready"]
   });
+});
+
+test("normalizes mapped custom date columns and rejects invalid values",()=>{
+  const result=csvImport.prepareImport(
+    {headers:["Title","Review"],rows:[["Plan release","2026-10-02"],["Ship release","not a date"]]},
+    {title:0,"customDate:2":1}
+  );
+  assert.deepEqual(JSON.parse(JSON.stringify(result.tasks.map(task=>task.customDates))),[
+    {"customDate:2":"2026-10-02"},
+    {"customDate:2":""}
+  ]);
+  assert.match(result.errors[0],/custom date/);
+});
+
+test("rejects a task start date after its due date",()=>{
+  const result=csvImport.prepareImport(
+    {headers:["Title","Start","Due"],rows:[["Plan release","2026-10-02","2026-10-01"]]},
+    {title:0,startDate:1,dueDate:2}
+  );
+  assert.deepEqual(JSON.parse(JSON.stringify(result.errors)),["Row 2: start date must be on or before the due date."]);
 });
 
 test("reports row-specific missing titles and invalid mapped values",()=>{

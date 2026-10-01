@@ -106,21 +106,33 @@
       const rowNumber=index+2;
       const read=key=>mapping[key]==null ? "" : String(row[mapping[key]]??"").trim();
       const title=read("title");
+      const startDate=normalizeDate(read("startDate"),dateFormat);
       const dueDate=normalizeDate(read("dueDate"),dateFormat);
+      const customDates={};
+      Object.keys(mapping).filter(key=>key.startsWith("customDate:")).forEach(key=>{
+        const raw=read(key);
+        const value=normalizeDate(raw,dateFormat);
+        if (raw&&value===null) errors.push(`Row ${rowNumber}: ${key.replace("customDate:","custom date ")} doesn't match the selected format.`);
+        customDates[key]=value||"";
+      });
       const priority=normalizePriority(read("priority"));
       const rawStatus=read("status");
       const status=rawStatus ? existingGroups.get(rawStatus.toLowerCase())||rawStatus : "";
       const tags=read("tags").split(/[;,]/).map(tag=>tag.trim()).filter(Boolean);
 
       if (!title) errors.push(`Row ${rowNumber}: task title is required.`);
+      if (read("startDate") && startDate===null) errors.push(`Row ${rowNumber}: start date doesn't match the selected format.`);
       if (read("dueDate") && dueDate===null) errors.push(`Row ${rowNumber}: date doesn't match the selected format.`);
+      if (startDate && dueDate && startDate>dueDate) errors.push(`Row ${rowNumber}: start date must be on or before the due date.`);
       if (read("priority") && priority===null) errors.push(`Row ${rowNumber}: priority must be High, Medium, or Low.`);
       if (rawStatus && !existingGroups.has(rawStatus.toLowerCase())) groupsToCreate.set(rawStatus.toLowerCase(),rawStatus);
 
       return {
         title,
         description:read("description"),
+        startDate:startDate||"",
         dueDate:dueDate||"",
+        customDates,
         priority:priority||"",
         status,
         tags

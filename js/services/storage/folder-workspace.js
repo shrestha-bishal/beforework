@@ -98,19 +98,21 @@
   }
   function summarizeProject(project){
     const groups=(project.groups||[]).map(group=>({id:group.id,name:group.name,itemCount:(group.items||[]).length}));
-    const summaryFieldIds=new Set((project.fields||[]).filter(field=>field.type==="date" || field.type==="priority").map(field=>field.id));
+    const summaryFieldIds=new Set((project.fields||[]).filter(field=>["date","start-date","due-date","priority"].includes(field.type)).map(field=>field.id));
     const items=(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({
       id:item.id,
       title:item.title,
       groupId:group.id,
       groupName:group.name,
       calendarType:item.calendarType||"task",
+      description:item.description||"",
       archived:!!item.archived,
       completedAt:item.completedAt||null,
       updatedAt:item.updatedAt||0,
       createdAt:item.createdAt||0,
       tagIds:item.tagIds||[],
       values:Object.fromEntries(Object.entries(item.values||{}).filter(([fieldId])=>summaryFieldIds.has(fieldId))),
+      startDate:item.startDate||"",
       startTime:item.startTime||"",
       endTime:item.endTime||"",
       endDate:item.endDate||"",

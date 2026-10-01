@@ -47,6 +47,18 @@ test("validates project milestones and task references", ()=>{
   assert.ok(missingMilestone.errors.some(error=>error.includes("items[0].milestoneId")));
 });
 
+test("validates optional task start dates", ()=>{
+  const base={projects:[{id:"project-1",name:"Launch",groups:[{id:"group-1",name:"Tasks",items:[
+    {id:"task-1",title:"Prepare release",startDate:"2026-09-25"}
+  ]}]}]};
+  assert.equal(validate(base,7).valid,true);
+
+  const invalid=structuredClone(base);
+  invalid.projects[0].groups[0].items[0].startDate="2026-02-30";
+  const result=validate(invalid,7);
+  assert.ok(result.errors.some(error=>error==="projects[0].groups[0].items[0].startDate must be a valid date string or null."));
+});
+
 test("rejects malformed nested workspace data with field paths", ()=>{
   const result = validate({projects:[{id:"project-1",name:"Launch",groups:{}}]},7);
 
@@ -170,7 +182,10 @@ test("renders URL, email, number, and multi-select field controls", ()=>{
     fieldInputHtml({id:"url-field",label:"Reference",type:"url"},{values:{}}),
     fieldInputHtml({id:"email-field",label:"Contact",type:"email"},{values:{}}),
     fieldInputHtml({id:"number-field",label:"Estimate",type:"number"},{values:{"number-field":0}}),
-    fieldInputHtml({id:"multi-field",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},{values:{"multi-field":["design"]}})
+    fieldInputHtml({id:"multi-field",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},{values:{"multi-field":["design"]}}),
+    fieldInputHtml({id:"start-field",label:"Start date",type:"start-date"},{values:{}}),
+    fieldInputHtml({id:"due-field",label:"Due date",type:"due-date"},{values:{}}),
+    fieldInputHtml({id:"custom-date-field",label:"Review date",type:"date"},{values:{}})
   ]);`,context));
 
   assert.match(html[0],/type="url"/);
@@ -179,6 +194,12 @@ test("renders URL, email, number, and multi-select field controls", ()=>{
   assert.match(html[2],/value="0"/);
   assert.match(html[3],/value="docs"/);
   assert.match(html[3],/value="design" checked/);
+  assert.match(html[4],/data-fieldid="start-field"/);
+  assert.match(html[4],/type="date"/);
+  assert.match(html[5],/data-fieldid="due-field"/);
+  assert.match(html[5],/type="date"/);
+  assert.match(html[6],/data-fieldid="custom-date-field"/);
+  assert.match(html[6],/type="date"/);
 });
 
 test("renders safe URL links and searchable multi-select labels", ()=>{

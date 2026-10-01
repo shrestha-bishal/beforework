@@ -13,7 +13,7 @@ export class RoadmapView {
     const title=document.createElement("h3");
     title.textContent=scope==="workspace"?"Workspace roadmap":"Project roadmap";
     const description=document.createElement("p");
-    description.textContent="Each marker shows the day of its date. Hover for task or milestone details.";
+    description.textContent="Task bars span the start and due dates. Milestones and one-date tasks use markers.";
     heading.append(title,description);
     const controls=document.createElement("div");
     controls.className="roadmapControls";
@@ -49,25 +49,25 @@ export class RoadmapView {
     let activePopover=null;
     let popoverHideTimer=0;
     let popoverId=0;
-    const schedulePopoverHide=marker=>{
+    const schedulePopoverHide=anchor=>{
       clearTimeout(popoverHideTimer);
       popoverHideTimer=window.setTimeout(()=>{
-        if (marker.matches(":hover,:focus")||activePopover?.element.matches(":hover")) return;
+        if (anchor.matches(":hover,:focus")||activePopover?.element.matches(":hover")) return;
         hidePopover();
       },160);
     };
     const hidePopover=()=>{
       clearTimeout(popoverHideTimer);
       if (!activePopover) return;
-      activePopover.marker.removeAttribute("aria-describedby");
-      activePopover.marker.removeAttribute("aria-controls");
-      activePopover.marker.removeAttribute("aria-haspopup");
-      activePopover.marker.setAttribute("aria-expanded","false");
+      activePopover.anchor.removeAttribute("aria-describedby");
+      activePopover.anchor.removeAttribute("aria-controls");
+      activePopover.anchor.removeAttribute("aria-haspopup");
+      activePopover.anchor.setAttribute("aria-expanded","false");
       activePopover.element.remove();
       activePopover=null;
     };
-    const positionPopover=(marker,popover)=>{
-      const anchor=marker.getBoundingClientRect();
+    const positionPopover=(anchorElement,popover)=>{
+      const anchor=anchorElement.getBoundingClientRect();
       const box=popover.getBoundingClientRect();
       const margin=12;
       let left=anchor.left;
@@ -79,9 +79,9 @@ export class RoadmapView {
       popover.style.left=`${left}px`;
       popover.style.top=`${top}px`;
     };
-    const showPopover=(marker,row)=>{
+    const showPopover=(anchor,row)=>{
       clearTimeout(popoverHideTimer);
-      if (activePopover?.marker===marker) return;
+      if (activePopover?.anchor===anchor) return;
       hidePopover();
       const popover=document.createElement("div");
       popover.className="calendarContextPopover";
@@ -116,7 +116,10 @@ export class RoadmapView {
         fact.append(factLabel,factValue);
         facts.appendChild(fact);
       };
-      addFact("Date",fmtDate(row.date));
+      if (row.startDate) addFact("Start",fmtDate(row.startDate));
+      if (row.fieldLabel!=="Start date"){
+        addFact(row.kind==="task"?(row.fieldLabel||"Due"):"Date",fmtDate(row.date));
+      }
       if (row.kind==="task") addFact("Status",row.completed?"Completed":"Open");
       addFact("Project",row.projectName);
       addFact("Group",row.groupName);
@@ -129,16 +132,16 @@ export class RoadmapView {
         popover.appendChild(description);
       }
       document.body.appendChild(popover);
-      activePopover={marker,element:popover};
-      marker.setAttribute("aria-describedby",popover.id);
-      marker.setAttribute("aria-haspopup","dialog");
-      marker.setAttribute("aria-controls",popover.id);
-      marker.setAttribute("aria-expanded","true");
-      positionPopover(marker,popover);
+      activePopover={anchor,element:popover};
+      anchor.setAttribute("aria-describedby",popover.id);
+      anchor.setAttribute("aria-haspopup","dialog");
+      anchor.setAttribute("aria-controls",popover.id);
+      anchor.setAttribute("aria-expanded","true");
+      positionPopover(anchor,popover);
       const scheduleHide=()=>{
         clearTimeout(popoverHideTimer);
         popoverHideTimer=window.setTimeout(()=>{
-          if (marker.matches(":hover,:focus")||popover.matches(":hover")) return;
+          if (anchor.matches(":hover,:focus")||popover.matches(":hover")) return;
           hidePopover();
         },160);
       };
@@ -147,7 +150,7 @@ export class RoadmapView {
       popover.addEventListener("keydown",event=>{
         if (event.key!=="Escape") return;
         hidePopover();
-        marker.focus();
+        anchor.focus();
       });
     };
     content.addEventListener("scroll",hidePopover,{passive:true});
@@ -156,6 +159,11 @@ export class RoadmapView {
       hidePopover();
       const months=Array.from({length:12},(_,index)=>new Date(this.startMonth.getFullYear(),this.startMonth.getMonth()+index,1));
       const end=new Date(this.startMonth.getFullYear(),this.startMonth.getMonth()+12,1);
+      const positionForDate=(date,dayOffset=0)=>{
+        const monthIndex=(date.getFullYear()-this.startMonth.getFullYear())*12+date.getMonth()-this.startMonth.getMonth();
+        const monthDays=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
+        return (monthIndex+(date.getDate()-1+dayOffset)/monthDays)/months.length*100;
+      };
       range.textContent=`${months[0].toLocaleDateString(undefined,{month:"short",year:"numeric"})} - ${new Date(end.getTime()-86400000).toLocaleDateString(undefined,{month:"short",year:"numeric"})}`;
       timeline.style.setProperty("--roadmap-month-count",String(months.length));
       lanes.replaceChildren();
@@ -172,19 +180,33 @@ export class RoadmapView {
         label.textContent=month.toLocaleDateString(undefined,{month:"short",year:month.getMonth()===0?"numeric":undefined});
         monthTrack.appendChild(label);
       });
+      const todayDate=new Date();
+      const todayPosition=positionForDate(todayDate,.5);
+      if (todayDate>=this.startMonth&&todayDate<end){
+        const todayLine=document.createElement("div");
+        todayLine.className="roadmapTodayLine";
+        todayLine.style.left=`${todayPosition}%`;
+        todayLine.setAttribute("aria-hidden","true");
+        const todayLabel=document.createElement("span");
+        todayLabel.className="roadmapTodayLabel";
+        todayLabel.textContent="Today";
+        todayLine.appendChild(todayLabel);
+        monthTrack.appendChild(todayLine);
+      }
       monthHeader.append(spacer,monthTrack);
       lanes.appendChild(monthHeader);
 
       const visible=rows.filter(row=>{
         const date=new Date(`${row.date}T00:00:00`);
-        return Number.isFinite(date.getTime())&&date>=this.startMonth&&date<end;
+        const startDate=new Date(`${row.startDate||row.date}T00:00:00`);
+        return Number.isFinite(date.getTime())&&Number.isFinite(startDate.getTime())&&startDate<end&&date>=this.startMonth;
       });
       if (!visible.length){
         const empty=document.createElement("p");
         empty.className="roadmapEmpty";
         empty.textContent=rows.length
           ? "No dated tasks or milestones in this range. Use the arrows to browse other dates."
-          : "Add due dates to tasks or milestones to see them on the roadmap.";
+          : "Add start or due dates to tasks, or due dates to milestones, to see them on the roadmap.";
         lanes.appendChild(empty);
         return;
       }
@@ -213,32 +235,68 @@ export class RoadmapView {
         const track=document.createElement("div");
         track.className="roadmapTrack";
         months.forEach(()=>track.appendChild(document.createElement("div")) );
+        if (todayDate>=this.startMonth&&todayDate<end){
+          const todayLine=document.createElement("div");
+          todayLine.className="roadmapTodayLine";
+          todayLine.style.left=`${todayPosition}%`;
+          todayLine.setAttribute("aria-hidden","true");
+          track.appendChild(todayLine);
+        }
         const date=new Date(`${row.date}T00:00:00`);
-        const monthIndex=(date.getFullYear()-this.startMonth.getFullYear())*12+date.getMonth()-this.startMonth.getMonth();
-        const position=(monthIndex+(date.getDate()-1)/new Date(date.getFullYear(),date.getMonth()+1,0).getDate())/months.length*100;
+        const position=positionForDate(date,.5);
+        const startDate=new Date(`${row.startDate||row.date}T00:00:00`);
+        let durationBar=null;
+        if (row.kind==="task"&&row.startDate&&row.startDate<row.date){
+          const visibleStart=startDate<this.startMonth?this.startMonth:startDate;
+          const afterEnd=new Date(date.getFullYear(),date.getMonth(),date.getDate()+1);
+          const visibleEnd=afterEnd>end?end:afterEnd;
+          durationBar=document.createElement("button");
+          durationBar.type="button";
+          durationBar.className="roadmapDuration";
+          durationBar.style.left=`${positionForDate(visibleStart)}%`;
+          durationBar.style.width=`${Math.max(0,positionForDate(visibleEnd)-positionForDate(visibleStart))}%`;
+          durationBar.title=`${row.title}: ${fmtDate(row.startDate)} to ${fmtDate(row.date)}`;
+          durationBar.setAttribute("aria-label",`Task: ${row.title}, ${fmtDate(row.startDate)} to ${fmtDate(row.date)}. Click to open task.`);
+          durationBar.onclick=()=>{ hidePopover(); onOpenItem?.(row.projectId,row.groupId,row.itemId); };
+          track.appendChild(durationBar);
+        }
         const marker=document.createElement("button");
         marker.type="button";
         marker.className=`roadmapMarker ${row.kind}`;
         marker.style.left=`${position}%`;
         const itemType=row.kind==="milestone"?"Milestone":"Task";
+        const dateDescription=row.startDate&&row.startDate<row.date
+          ? `${fmtDate(row.startDate)} to ${fmtDate(row.date)}`
+          : fmtDate(row.date);
         marker.title=row.milestoneId
-          ? `Edit milestone: ${row.title}, ${fmtDate(row.date)}`
-          : `${itemType}: ${row.title}, ${fmtDate(row.date)}`;
+          ? `Edit milestone: ${row.title}, ${dateDescription}`
+          : `${itemType}: ${row.title}, ${dateDescription}`;
         marker.setAttribute("aria-label",row.milestoneId
-          ? `${itemType}: ${row.title}, ${fmtDate(row.date)}. Click to edit milestone.`
-          : `${itemType}: ${row.title}, ${fmtDate(row.date)}. Hover or focus for details.`);
+          ? `${itemType}: ${row.title}, ${dateDescription}. Click to edit milestone.`
+          : `${itemType}: ${row.title}, ${dateDescription}. Hover or focus for details.`);
         marker.textContent=String(date.getDate());
         if (row.itemId) marker.onclick=()=>{ hidePopover(); onOpenItem?.(row.projectId,row.groupId,row.itemId); };
         else if (row.milestoneId) marker.onclick=()=>{ hidePopover(); onOpenMilestone?.(row.projectId,row.milestoneId); };
         else marker.onclick=()=>{ hidePopover(); onOpenProject?.(row.projectId); };
-        marker.onpointerenter=()=>showPopover(marker,row);
-        marker.onpointerleave=()=>schedulePopoverHide(marker);
-        marker.onfocus=()=>showPopover(marker,row);
-        marker.onblur=()=>schedulePopoverHide(marker);
-        marker.onkeydown=event=>{
-          if (event.key==="Escape"&&activePopover?.marker===marker) hidePopover();
-        };
-        track.appendChild(marker);
+        if (date>=this.startMonth&&date<end){
+          marker.onpointerenter=()=>showPopover(marker,row);
+          marker.onpointerleave=()=>schedulePopoverHide(marker);
+          marker.onfocus=()=>showPopover(marker,row);
+          marker.onblur=()=>schedulePopoverHide(marker);
+          marker.onkeydown=event=>{
+            if (event.key==="Escape"&&activePopover?.anchor===marker) hidePopover();
+          };
+          track.appendChild(marker);
+        }
+        if (durationBar){
+          durationBar.onpointerenter=()=>showPopover(durationBar,row);
+          durationBar.onpointerleave=()=>schedulePopoverHide(durationBar);
+          durationBar.onfocus=()=>showPopover(durationBar,row);
+          durationBar.onblur=()=>schedulePopoverHide(durationBar);
+          durationBar.onkeydown=event=>{
+            if (event.key==="Escape"&&activePopover?.anchor===durationBar) hidePopover();
+          };
+        }
         lane.append(label,track);
         lanes.appendChild(lane);
       });

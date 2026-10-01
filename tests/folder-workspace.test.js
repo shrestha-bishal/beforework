@@ -85,7 +85,9 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   const workspace=createWorkspaceModule();
   const directory=createMemoryDirectory();
   const state=stateWithTwoProjects();
-  state.projects[0].groups.push({id:"group-1",name:"Tasks",items:[{id:"item-1",title:"Prepare release",milestoneId:"milestone-1"}]});
+  state.projects[0].groups.push({id:"group-1",name:"Tasks",items:[{
+    id:"item-1",title:"Prepare release",description:"Get signoff",startDate:"2026-09-25",milestoneId:"milestone-1"
+  }]});
   state.calendarItems.push({id:"event-1",title:"Release"});
 
   const revision=await workspace.save(directory,state);
@@ -98,6 +100,8 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.equal(revision.projectSummaries["project-a"].description,"Release planning");
   assert.equal(revision.projectSummaries["project-b"].description,null);
   assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].milestones)),[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}]);
+  assert.equal(revision.projectSummaries["project-a"].itemIndex[0].description,"Get signoff");
+  assert.equal(revision.projectSummaries["project-a"].itemIndex[0].startDate,"2026-09-25");
   assert.equal(revision.wroteProjectFiles.length,2);
   assert.equal(revision.wroteCalendarFile,true);
   assert.match(directory.writeLog.at(-1),/manifest\.json$/);

@@ -28,6 +28,9 @@
         if (!isRecord(item)){ addError(`${itemPath} must be an object.`); return; }
         if (!hasText(item.id)) addError(`${itemPath}.id must be a non-empty string.`);
         if (!hasText(item.title)) addError(`${itemPath}.title must be a non-empty string.`);
+        if (item.startDate!==undefined && item.startDate!==null && item.startDate!=="" && !isDate(item.startDate)){
+          addError(`${itemPath}.startDate must be a valid date string or null.`);
+        }
         if (item.milestoneId!==undefined && item.milestoneId!==null && (typeof item.milestoneId!=="string" || (milestoneIds && !milestoneIds.has(item.milestoneId)))){
           addError(`${itemPath}.milestoneId must reference a milestone in its project.`);
         }

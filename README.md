@@ -30,8 +30,8 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 
 - Projects, folders, groups, tasks, and standalone calendar items
 - List, table, board, calendar, and roadmap views
-- Workspace and project roadmaps for dated tasks and milestones
-- Custom fields for text, dates, checkboxes, priority, single- and multi-selects, URLs, email addresses, and numbers
+- Workspace and project roadmaps with task duration bars from optional start dates to task dates, plus milestone markers
+- Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, URLs, email addresses, and numbers
 - Tags, subtasks, comments, activity history, archiving, recurring schedules, and reminders
 - Multiple file attachments per item in folder workspaces
 - Drag-and-drop data-column ordering saved independently for List and Table views
