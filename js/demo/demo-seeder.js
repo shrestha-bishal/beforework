@@ -39,7 +39,9 @@
     const views = types => types.map(type=>({id:uid(), type, name:viewLabel(type)}));
 
     const priorityField = makeField("Priority", "priority");
-    const dueDateField = makeField("Due date", "date");
+    const startDateField = makeField("Start date", "start-date");
+    const dueDateField = makeField("Due date", "due-date");
+    const reviewDateField = makeField("Review date", "date");
     const launchStatus = makeField("Status", "select", [
       {id:uid(), label:"Backlog", color:TAG_COLORS[7]},
       {id:uid(), label:"In progress", color:TAG_COLORS[5]},
@@ -51,10 +53,11 @@
     const designTag = makeTag("design", TAG_COLORS[2]);
     const customerTag = makeTag("customer", TAG_COLORS[5]);
     const qualityTag = makeTag("quality", TAG_COLORS[6]);
-    const launchViews = views(["list", "kanban", "calendar", "milestones"]);
+    const launchViews = views(["list", "table", "kanban", "calendar", "milestones", "roadmap"]);
     const launchMilestones = [
       {id:uid(), title:"Beta readiness", dueDate:todayStr(3)},
-      {id:uid(), title:"Product launch", dueDate:todayStr(10)}
+      {id:uid(), title:"Product launch", dueDate:todayStr(10)},
+      {id:uid(), title:"Post-launch review", dueDate:todayStr(17)}
     ];
     const launchGroups = [
       {id:uid(), name:"Backlog", items:[]},
@@ -63,24 +66,28 @@
       {id:uid(), name:"Ready", items:[]}
     ];
     const launch = {
-      id:uid(), name:"Product launch", icon:"mdi:rocket-launch-outline", folderId:productFolder.id, createdAt:now,
-      tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[priorityField, dueDateField, launchStatus],
+      id:uid(), name:"Product launch", description:"Coordinate the release from final quality checks through customer communication and post-launch follow-up.", icon:"mdi:rocket-launch-outline", folderId:productFolder.id, createdAt:now,
+      tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[priorityField, startDateField, dueDateField, reviewDateField, launchStatus],
       views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", milestones:launchMilestones, groups:launchGroups
     };
     launchGroups[0].items.push(
-      makeItem("Publish the release overview", "Summarise what is changing, who it helps, and where to find the updated workflows.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(5), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], attachments:[{id:SAMPLE_ATTACHMENT.id,name:SAMPLE_ATTACHMENT.name,size:SAMPLE_ATTACHMENT.content.length,type:SAMPLE_ATTACHMENT.type}], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}]}),
-      makeItem("Prepare the onboarding guide", "Create a concise guide that helps new teams set up projects, groups, and their first workspace file.", {[priorityField.id]:"low", [dueDateField.id]:todayStr(8), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id, designTag.id]})
+      makeItem("Publish the release overview", "Summarise what is changing, who it helps, and where to find the updated workflows.", {[priorityField.id]:"medium", [startDateField.id]:todayStr(1), [dueDateField.id]:todayStr(5), [reviewDateField.id]:todayStr(4), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], attachments:[{id:SAMPLE_ATTACHMENT.id,name:SAMPLE_ATTACHMENT.name,size:SAMPLE_ATTACHMENT.content.length,type:SAMPLE_ATTACHMENT.type}], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}]}),
+      makeItem("Prepare the onboarding guide", "Create a concise guide that helps new teams set up projects, groups, and their first workspace file.", {[priorityField.id]:"low", [startDateField.id]:todayStr(3), [dueDateField.id]:todayStr(8), [reviewDateField.id]:todayStr(7), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id, designTag.id]}),
+      makeItem("Explore post-launch improvements", "Capture follow-up ideas after the release and turn them into a new project plan.", {[priorityField.id]:"low", [startDateField.id]:todayStr(12), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[featureTag.id]}),
+      makeItem("Collect customer feedback", "Gather feedback after the release and bring themes to the post-launch review.", {[priorityField.id]:"medium", [reviewDateField.id]:todayStr(14), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id]})
     );
     launchGroups[1].items.push(
-      makeItem("Finish recurring schedules", "Complete repeat rules for daily, weekly, and custom calendar entries.", {[priorityField.id]:"high", [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[featureTag.id, qualityTag.id], subitems:[{id:uid(), title:"Cover weekly weekday selection", done:true}, {id:uid(), title:"Verify custom month-end dates", done:false}], comments:[{id:uid(), text:"The interval and end-date cases are covered. I am checking the month-end behavior before review.", createdAt:now - 3600000}]}),
-      makeItem("Refine first-run setup", "Make the first connection flow clear for people creating a workspace from scratch.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(4), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[designTag.id], ageDays:1})
+      makeItem("Finish recurring schedules", "Complete repeat rules for daily, weekly, and custom calendar entries.", {[priorityField.id]:"high", [startDateField.id]:todayStr(-2), [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[featureTag.id, qualityTag.id], subitems:[{id:uid(), title:"Cover weekly weekday selection", done:true}, {id:uid(), title:"Verify custom month-end dates", done:false}], comments:[{id:uid(), text:"The interval and end-date cases are covered. I am checking the month-end behavior before review.", createdAt:now - 3600000}]}),
+      makeItem("Refine first-run setup", "Make the first connection flow clear for people creating a workspace from scratch.", {[priorityField.id]:"medium", [startDateField.id]:todayStr(1), [dueDateField.id]:todayStr(4), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[designTag.id], ageDays:1})
     );
     launchGroups[2].items.push(
-      makeItem("Check the calendar on narrow screens", "Review month and week views at phone widths and confirm event details remain readable.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(2), [launchStatus.id]:launchStatus.options[2].id}, {tagIds:[qualityTag.id, designTag.id], ageDays:2})
+      makeItem("Check the calendar on narrow screens", "Review month and week views at phone widths and confirm event details remain readable.", {[priorityField.id]:"medium", [startDateField.id]:todayStr(-1), [dueDateField.id]:todayStr(2), [reviewDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[2].id}, {tagIds:[qualityTag.id, designTag.id], ageDays:2}),
+      makeItem("Confirm the support handoff", "Share release notes and escalation guidance with the support team.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(6), [reviewDateField.id]:todayStr(5), [launchStatus.id]:launchStatus.options[2].id}, {tagIds:[customerTag.id]}),
+      makeItem("Monitor the first-week metrics", "Check adoption, support volume, and error reports after release.", {[priorityField.id]:"high", [startDateField.id]:todayStr(10), [dueDateField.id]:todayStr(16), [launchStatus.id]:launchStatus.options[2].id}, {tagIds:[qualityTag.id]})
     );
     launchGroups[3].items.push(
-      makeItem("Add workspace recovery guidance", "Document how to reconnect a file and recover from a browser permission prompt.", {[priorityField.id]:"low", [dueDateField.id]:todayStr(0), [launchStatus.id]:launchStatus.options[3].id}, {tagIds:[launchTag.id], ageDays:3}),
-      makeItem("Verify keyboard navigation", "Confirm the main project and item actions can be reached and used with a keyboard.", {[priorityField.id]:"medium", [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[3].id}, {tagIds:[qualityTag.id], ageDays:4})
+      makeItem("Add workspace recovery guidance", "Document how to reconnect a file and recover from a browser permission prompt.", {[priorityField.id]:"low", [startDateField.id]:todayStr(-3), [dueDateField.id]:todayStr(0), [launchStatus.id]:launchStatus.options[3].id}, {tagIds:[launchTag.id], ageDays:3}),
+      makeItem("Verify keyboard navigation", "Confirm the main project and item actions can be reached and used with a keyboard.", {[priorityField.id]:"medium", [startDateField.id]:todayStr(0), [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[3].id}, {tagIds:[qualityTag.id], ageDays:4})
     );
     function linkMilestoneTasks(milestone,titles){
       const taskTitles=new Set(titles);
@@ -97,6 +104,11 @@
       "Publish the release overview",
       "Prepare the onboarding guide",
       "Finish recurring schedules"
+    ]);
+    linkMilestoneTasks(launchMilestones[2],[
+      "Explore post-launch improvements",
+      "Collect customer feedback",
+      "Monitor the first-week metrics"
     ]);
     launchGroups[3].items.find(item=>item.title==="Add workspace recovery guidance").completedAt=now-86400000;
 
@@ -119,7 +131,7 @@
     const onboardingViews = views(["table", "list"]);
     const onboardingGroup = {id:uid(), name:"Customer success", items:[]};
     const onboarding = {
-      id:uid(), name:"Customer onboarding", icon:"mdi:account-group-outline", folderId:operationsFolder.id, createdAt:now,
+      id:uid(), name:"Customer onboarding", description:"Track customer setup, follow-up dates, contacts, and onboarding needs in one place.", icon:"mdi:account-group-outline", folderId:operationsFolder.id, createdAt:now,
       tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[onboardingStatus, onboardingDate, onboardingPriority, onboardingEmailSent, onboardingReference, onboardingContact, onboardingSeats, onboardingTopics],
       views:onboardingViews, activeViewId:onboardingViews[0].id, itemDefaultType:"task", groups:[onboardingGroup]
     };
@@ -146,7 +158,7 @@
       {id:uid(), name:"Done", items:[]}
     ];
     const personalPlanning = {
-      id:uid(), name:"Personal planning", icon:"mdi:home-heart-outline", folderId:personalFolder.id, createdAt:now,
+      id:uid(), name:"Personal planning", description:"Keep household tasks, learning goals, and recurring routines organized by status and target date.", icon:"mdi:home-heart-outline", folderId:personalFolder.id, createdAt:now,
       tags:[homeTag, learningTag, wellbeingTag], fields:[personalStatus, personalPriority, personalDate],
       views:personalViews, activeViewId:personalViews[0].id, itemDefaultType:"task", groups:personalGroups
     };
@@ -167,7 +179,7 @@
     const calendarViews = views(["calendar", "list"]);
     const calendarGroup = {id:uid(), name:"Team schedule", items:[]};
     const teamCalendar = {
-      id:uid(), name:"Team calendar", icon:"mdi:calendar-month-outline", folderId:operationsFolder.id, createdAt:now,
+      id:uid(), name:"Team calendar", description:"A shared schedule for recurring team rituals, planning sessions, and release events.", icon:"mdi:calendar-month-outline", folderId:operationsFolder.id, createdAt:now,
       tags:[makeTag("meeting", TAG_COLORS[5]), makeTag("milestone", TAG_COLORS[1])], fields:[calendarDate],
       views:calendarViews, activeViewId:calendarViews[0].id, itemDefaultType:"event", groups:[calendarGroup]
     };
@@ -201,4 +213,3 @@
 
   global.BeforeworkDemoSeeder = Object.freeze({create:createDemoWorkspace,writeAttachments});
 })(window);
-

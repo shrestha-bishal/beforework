@@ -97,7 +97,7 @@ test("rejects future schema versions instead of downgrading them", ()=>{
 test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>{
   let nextId=0;
   const workspace=seederSandbox.window.BeforeworkDemoSeeder.create({
-    schemaVersion:7,
+    schemaVersion:8,
     uid:()=>`demo-${++nextId}`,
     viewLabel:type=>type,
     tagColors:Array(8).fill("#0969da"),
@@ -108,15 +108,36 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
     }
   });
 
-  assert.equal(validate(workspace,7).valid,true);
+  assert.equal(validate(workspace,8).valid,true);
   const launch=workspace.projects.find(project=>project.name==="Product launch");
-  assert.equal(launch.milestones.length,2);
+  assert.ok(launch.description);
+  const launchStartDate=launch.fields.find(field=>field.type==="start-date");
+  const launchDueDate=launch.fields.find(field=>field.type==="due-date");
+  const launchReviewDate=launch.fields.find(field=>field.label==="Review date");
+  assert.ok(launchStartDate);
+  assert.ok(launchDueDate);
+  assert.equal(launchReviewDate.type,"date");
+  assert.ok(launch.fields.indexOf(launchStartDate)<launch.fields.indexOf(launchDueDate));
+  const launchItems=launch.groups.flatMap(group=>group.items);
+  assert.ok(launchItems.every(item=>!item.values[launchStartDate.id]||!item.values[launchDueDate.id]
+    || item.values[launchStartDate.id]<=item.values[launchDueDate.id]));
+  assert.ok(launchItems.some(item=>item.title==="Explore post-launch improvements"
+    && item.values[launchStartDate.id]&&!item.values[launchDueDate.id]));
+  assert.ok(launchItems.some(item=>item.title==="Confirm the support handoff"
+    && !item.values[launchStartDate.id]&&item.values[launchDueDate.id]));
+  assert.ok(launchItems.some(item=>item.values[launchReviewDate.id]));
+  assert.ok(launchItems.some(item=>item.title==="Collect customer feedback"
+    && !item.values[launchStartDate.id]&&!item.values[launchDueDate.id]&&item.values[launchReviewDate.id]));
+  assert.equal(launch.milestones.length,3);
   assert.ok(launch.views.some(view=>view.type==="milestones"));
+  assert.ok(launch.views.some(view=>view.type==="table"));
+  assert.ok(launch.views.some(view=>view.type==="roadmap"));
   const betaMilestone=launch.milestones.find(milestone=>milestone.title==="Beta readiness");
   const betaTasks=launch.groups.flatMap(group=>group.items).filter(item=>item.milestoneId===betaMilestone.id);
   assert.equal(betaTasks.length,3);
   assert.equal(betaTasks.filter(item=>item.completedAt).length,1);
   const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
+  assert.ok(onboarding.description);
   const checkboxField=onboarding.fields.find(field=>field.type==="checkbox");
   const urlField=onboarding.fields.find(field=>field.type==="url");
   const emailField=onboarding.fields.find(field=>field.type==="email");
@@ -135,6 +156,7 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   assert.ok(onboarding.groups[0].items.some(item=>item.values[multiSelectField.id].length>1));
 
   const personal=workspace.projects.find(project=>project.name==="Personal planning");
+  assert.ok(personal.description);
   const targetDate=personal.fields.find(field=>field.label==="Target date");
   const overdueOpenItems=personal.groups.flatMap(group=>group.items).filter(item=>
     item.values[targetDate.id]<"2026-09-29" && !item.completedAt
