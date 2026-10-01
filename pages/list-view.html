@@ -1,0 +1,64 @@
+<template id="listViewTemplate">
+  <div class="listWrap">
+    <div class="listAddRow">
+      <button class="btn btn-sm exportCsvBtn" id="exportCsvBtn" type="button"><iconify-icon icon="mdi:download" aria-hidden="true"></iconify-icon><span>Export CSV</span></button>
+      <button class="btn btn-primary addListItemBtn" id="quickAddBtn" type="button">+ Add item</button>
+    </div>
+    <div class="bulkBar">
+      <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
+      <span class="bulkSelectionActions">
+        <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkSelectAll" type="button"><iconify-icon icon="mdi:checkbox-multiple-marked-outline" aria-hidden="true"></iconify-icon><span>Select all</span></button>
+        <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkComplete" type="button"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Mark complete</span></button>
+        <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkIncomplete" type="button"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Mark incomplete</span></button>
+        <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkDuplicate" type="button"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+        <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkMove" type="button"><iconify-icon icon="mdi:folder-move-outline" aria-hidden="true"></iconify-icon><span>Move</span></button>
+        <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkTag" type="button"><iconify-icon icon="mdi:tag-outline" aria-hidden="true"></iconify-icon><span>Tag</span></button>
+        <button class="btn btn-sm btn-danger bulkAction bulkActionWithIcon" id="bulkDelete" type="button"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete</span></button>
+      </span>
+    </div>
+    <table class="listTable width-full">
+      <thead>
+        <tr>
+          <th class="selectCell p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
+          <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader" data-field="title" data-column-id="title">
+            <button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder Title column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Title</span><span class="arrow"></span>
+          </th>
+          <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group" data-list-group-header hidden>
+            <button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder Group column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div>
+          </th>
+          <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader" data-column-id="tags">
+            <button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder Tags column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Tags</span>
+          </th>
+          <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader" data-column-id="progress" data-list-progress-header hidden>
+            <button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder Progress column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Progress</span>
+          </th>
+          <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader" data-field="updated" data-column-id="updated">
+            <button type="button" class="fieldColumnDragHandle" draggable="true" aria-label="Reorder Updated column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Updated</span><span class="arrow"></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="listTbody"></tbody>
+    </table>
+  </div>
+</template>
+
+<template id="listViewFieldHeaderTemplate">
+  <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader" data-custom-field="true">
+    <button type="button" class="fieldColumnDragHandle" draggable="true"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel"></span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div>
+  </th>
+</template>
+
+<template id="listViewRowTemplate">
+  <tr class="rowClickable">
+    <td class="selectCell p-2 border-bottom"><input type="checkbox" data-item-select></td>
+    <td class="p-2 border-bottom" data-column-id="title"><span class="Label Label--secondary listArchivedLabel" style="margin-right:6px;" hidden>Archived</span><span data-list-item-title></span></td>
+    <td class="p-2 border-bottom" data-column-id="group" data-list-group-cell></td>
+    <td class="p-2 border-bottom" data-column-id="tags"><div class="rowTags" data-list-tags></div></td>
+    <td class="p-2 border-bottom" data-column-id="progress" data-list-progress-cell></td>
+    <td class="p-2 border-bottom" data-column-id="updated"><span data-list-updated></span></td>
+  </tr>
+</template>
+
+<template id="listViewEmptyRowTemplate">
+  <tr><td style="color:var(--faint);padding:16px 10px;white-space:normal;" data-list-empty-cell></td></tr>
+</template>

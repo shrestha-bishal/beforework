@@ -4,6 +4,7 @@ window.BeforeworkViewTemplates = (()=>{
     calendar:"pages/calendar.html",
     integrations:"pages/integrations.html",
     milestones:"pages/milestones.html",
+    listView:"pages/list-view.html",
     settings:"pages/settings.html",
     support:"pages/support.html",
     focusTimer:"pages/focus-timer.html"

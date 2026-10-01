@@ -130,6 +130,7 @@
   let milestonesView = null;
   let roadmapView = null;
   let overviewView = null;
+  let listView = null;
   let showArchived = false;
   let activeProjectId = OVERVIEW;
   const focusTimer = window.BeforeworkFocusTimer.create({
@@ -2530,7 +2531,7 @@
       });
       return;
     }
-    if (activeView.type === "list") renderListView(project, board);
+    if (activeView.type === "list") listView.render(project, board);
     else if (activeView.type === "table") renderTableView(project, board);
     else if (activeView.type === "calendar") renderCalendar(board, project);
     else renderKanban(project, board);
@@ -2774,151 +2775,6 @@
     return card;
   }
 
-  /* ---------- List view ---------- */
-  function renderListView(project, board){
-    const wrap = document.createElement("div");
-    wrap.className = "listWrap";
-    const showGroupColumn = project.groups.length>1;
-    const showProgressColumn = project.groups.some(group=>group.items.some(item=>
-      itemMatchesFilter(project,item,group) && Array.isArray(item.subitems) && item.subitems.length>0));
-
-    const TH_CLASS = "p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom";
-    const TD_CLASS = "p-2 border-bottom";
-    const fieldHeaders = project.fields.map(f=>`<th class="${TH_CLASS} fieldColumnHeader" data-field="${f.id}" data-column-id="field:${f.id}" data-custom-field="true">${columnDragHandleHtml(f.label)}<span class="fieldColumnLabel">${escapeHtml(f.label)}</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Actions for ${escapeHtml(f.label)}" title="Column actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-column-action="edit">Edit</button><button type="button" data-column-action="delete" class="danger">Delete</button></div></th>`).join("");
-    const groupHeader = showGroupColumn ? `<th class="${TH_CLASS} fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group">${columnDragHandleHtml("Group")}<span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div></th>` : "";
-    wrap.innerHTML = `
-      <div class="listAddRow">
-        <button class="btn btn-sm exportCsvBtn" id="exportCsvBtn" type="button"><iconify-icon icon="mdi:download" aria-hidden="true"></iconify-icon><span>Export CSV</span></button>
-        <button class="btn btn-primary addListItemBtn" id="quickAddBtn">+ Add item</button>
-      </div>
-      <div class="bulkBar">
-        <strong class="selectionSummary"><span id="selectedCount">0</span> selected</strong>
-        <span class="bulkSelectionActions">
-          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkSelectAll"><iconify-icon icon="mdi:checkbox-multiple-marked-outline" aria-hidden="true"></iconify-icon><span>Select all</span></button>
-          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkComplete"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Mark complete</span></button>
-          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkIncomplete"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Mark incomplete</span></button>
-          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkDuplicate"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
-          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkMove"><iconify-icon icon="mdi:folder-move-outline" aria-hidden="true"></iconify-icon><span>Move</span></button>
-          <button class="btn btn-sm bulkAction bulkActionWithIcon" id="bulkTag"><iconify-icon icon="mdi:tag-outline" aria-hidden="true"></iconify-icon><span>Tag</span></button>
-          <button class="btn btn-sm btn-danger bulkAction bulkActionWithIcon" id="bulkDelete"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete</span></button>
-        </span>
-      </div>
-      <table class="listTable width-full">
-        <thead><tr>
-          <th class="selectCell ${TH_CLASS}"><input type="checkbox" id="selectAllItems" title="Select all visible items"></th>
-          <th class="${TH_CLASS} fieldColumnHeader" data-field="title" data-column-id="title">${columnDragHandleHtml("Title")}<span class="fieldColumnLabel">Title</span><span class="arrow"></span></th>
-          ${groupHeader}
-          ${fieldHeaders}
-          <th class="${TH_CLASS} fieldColumnHeader" data-column-id="tags">${columnDragHandleHtml("Tags")}<span class="fieldColumnLabel">Tags</span></th>
-          ${showProgressColumn ? `<th class="${TH_CLASS} fieldColumnHeader" data-column-id="progress">${columnDragHandleHtml("Progress")}<span class="fieldColumnLabel">Progress</span></th>` : ""}
-          <th class="${TH_CLASS} fieldColumnHeader" data-field="updated" data-column-id="updated">${columnDragHandleHtml("Updated")}<span class="fieldColumnLabel">Updated</span><span class="arrow"></span></th>
-        </tr></thead>
-        <tbody id="listTbody"></tbody>
-      </table>
-    `;
-    board.appendChild(wrap);
-    const table=wrap.querySelector(".listTable");
-    wireTableColumnReordering(table,project,"list");
-
-    const doQuickAdd = () => {
-      openNewItemModal(project, project.groups[0]);
-    };
-    document.getElementById("quickAddBtn").onclick = doQuickAdd;
-    document.getElementById("exportCsvBtn").onclick = () => exportProjectCsv(project,"list",showProgressColumn);
-    const updateSelection = () => {
-      const selected = [...selectedItemIds];
-      const selectedItems = project.groups.flatMap(group => group.items).filter(item => selected.includes(item.id));
-      const allSelectedCompleted = selectedItems.length > 0 && selectedItems.every(isItemCompleted);
-      const allSelectedIncomplete = selectedItems.length > 0 && selectedItems.every(item => !isItemCompleted(item));
-      const completeBtn = document.getElementById("bulkComplete");
-      const incompleteBtn = document.getElementById("bulkIncomplete");
-      document.getElementById("selectedCount").textContent = selected.length;
-      wrap.querySelector(".bulkBar").dataset.selected = selected.length ? "true" : "false";
-      completeBtn.disabled = selected.length === 0 || allSelectedCompleted;
-      incompleteBtn.disabled = selected.length === 0 || allSelectedIncomplete;
-      completeBtn.classList.toggle("is-hidden", selected.length === 0 || allSelectedCompleted);
-      incompleteBtn.classList.toggle("is-hidden", selected.length === 0 || allSelectedIncomplete);
-      wrap.querySelectorAll("input[data-item-select]").forEach(input=>{
-        input.checked = selectedItemIds.has(input.dataset.itemSelect);
-      });
-    };
-    document.getElementById("bulkSelectAll").onclick = () => {
-      rowsForSelection(project).forEach(row=>selectedItemIds.add(row.item.id));
-      updateSelection();
-    };
-    document.getElementById("selectAllItems").onchange = e => {
-      rowsForSelection(project).forEach(row=>{
-        if (e.target.checked) selectedItemIds.add(row.item.id);
-        else selectedItemIds.delete(row.item.id);
-      });
-      updateSelection();
-    };
-    document.getElementById("bulkComplete").onclick = () => bulkSetCompleted(project, true);
-    document.getElementById("bulkIncomplete").onclick = () => bulkSetCompleted(project, false);
-    document.getElementById("bulkMove").onclick = () => bulkMove(project);
-    document.getElementById("bulkDuplicate").onclick = () => bulkDuplicate(project);
-    document.getElementById("bulkTag").onclick = () => bulkTag(project);
-    document.getElementById("bulkDelete").onclick = () => bulkDelete(project);
-
-    wrap.querySelectorAll("th[data-field]").forEach(th=>{
-      const field = th.dataset.field;
-      const arrow = listSort.field===field ? (listSort.dir==="asc"?" ↑":" ↓") : "";
-      const customField = project.fields.find(candidate=>candidate.id===field);
-      if (field==="group"){
-        th.querySelector(".arrow").textContent = arrow;
-        wireGroupColumnHeader(th, project);
-      } else if (customField){
-        th.querySelector(".arrow").textContent = arrow;
-        wireCustomColumnHeader(th, customField, project);
-      } else {
-        th.querySelector(".arrow").textContent = arrow;
-      }
-      th.onclick = () => {
-        if (listSort.field===field) listSort.dir = listSort.dir==="asc"?"desc":"asc";
-        else listSort = {field, dir: field==="updated" ? "desc" : "asc"};
-        render();
-      };
-    });
-
-    const rows=sortProjectRows(project,rowsForSelection(project));
-
-    const tbody = document.getElementById("listTbody");
-    const colCount = 4 + project.fields.length + (showGroupColumn?1:0) + (showProgressColumn?1:0);
-    if (!rows.length){
-      tbody.innerHTML = `<tr><td colspan="${colCount}" style="color:var(--faint);padding:16px 10px;white-space:normal;">No items match the current filters.</td></tr>`;
-      applyTableColumnOrder(table,project,"list");
-      return;
-    }
-    tbody.innerHTML = rows.map(({item,group})=>{
-      const doneSub = item.subitems.filter(s=>s.done).length;
-      const tagsHtml = item.tagIds.map(tid=>{
-        const tag = tagById(project, tid); return tag ? tagPillHtml(tag) : "";
-      }).join("");
-      const fieldCells = project.fields.map(f=>`<td class="${TD_CLASS}" data-column-id="field:${f.id}">${fieldCellHtml(f, item.values[f.id])}</td>`).join("");
-      return `<tr class="rowClickable${item.archived?" archived":""}" data-pid="${project.id}" data-gid="${group.id}" data-iid="${item.id}">
-        <td class="selectCell ${TD_CLASS}"><input type="checkbox" data-item-select="${item.id}" ${selectedItemIds.has(item.id)?"checked":""}></td>
-        <td class="${TD_CLASS}" data-column-id="title">${item.archived?`<span class="Label Label--secondary" style="margin-right:6px;">Archived</span>`:""}${escapeHtml(item.title)}</td>
-        ${showGroupColumn ? `<td class="${TD_CLASS}" data-column-id="group">${escapeHtml(group.name)}</td>` : ""}
-        ${fieldCells}
-        <td class="${TD_CLASS}" data-column-id="tags"><div class="rowTags">${tagsHtml||"-"}</div></td>
-        ${showProgressColumn ? `<td class="${TD_CLASS}" data-column-id="progress">${item.subitems.length? doneSub+"/"+item.subitems.length : "-"}</td>` : ""}
-        <td class="${TD_CLASS}" data-column-id="updated">${escapeHtml(formatUpdatedAt(item.updatedAt))}</td>
-      </tr>`;
-    }).join("");
-    tbody.querySelectorAll("tr[data-iid]").forEach(tr=>{
-      tr.onclick = e => {
-        if (e.target.matches("input[data-item-select]")){
-          if (e.target.checked) selectedItemIds.add(e.target.dataset.itemSelect);
-          else selectedItemIds.delete(e.target.dataset.itemSelect);
-          updateSelection();
-          return;
-        }
-        openItemModal(tr.dataset.pid, tr.dataset.gid, tr.dataset.iid);
-      };
-    });
-    applyTableColumnOrder(table,project,"list");
-    updateSelection();
-  }
 
   /* ---------- Table view ---------- */
   function renderTableView(project, board){
@@ -4861,13 +4717,14 @@
       }catch(err){ /* Identity is optional; the workspace runs without it. */ }
     }
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule] = await Promise.all([
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule] = await Promise.all([
         import("./views/settings-view.js"),
         import("./views/overview-details-view.js"),
         import("./models/overview-details-model.js"),
         import("./views/milestones-view.js"),
         import("./views/roadmap-view.js"),
-        import("./views/overview-view.js")
+        import("./views/overview-view.js"),
+        import("./views/list-view.js")
       ]);
       settingsView = createSettingsView(settingsModule.SettingsView);
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
@@ -4881,6 +4738,33 @@
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
       });
       roadmapView = new roadmapViewModule.RoadmapView();
+      listView = new listViewModule.ListView({
+        itemMatchesFilter,
+        wireTableColumnReordering,
+        openNewItemModal,
+        exportProjectCsv,
+        selectedItemIds,
+        isItemCompleted,
+        rowsForSelection,
+        bulkSetCompleted,
+        bulkMove,
+        bulkDuplicate,
+        bulkTag,
+        bulkDelete,
+        getListSort:()=>listSort,
+        setListSort:value=>{ listSort=value; },
+        wireGroupColumnHeader,
+        wireCustomColumnHeader,
+        render,
+        sortProjectRows,
+        tagById,
+        tagPillHtml,
+        fieldCellHtml,
+        formatUpdatedAt,
+        openItemModal,
+        applyTableColumnOrder,
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")
+      });
       overviewView = new overviewViewModule.OverviewView({
         getState:()=>state,
         model:{
