@@ -37,9 +37,11 @@ test("loads dialog templates on demand through the shared cache",async()=>{
     loader.load("dialogs"),
     loader.load("dialogs"),
     loader.load("overviewDetails"),
-    loader.load("overviewDetails")
+    loader.load("overviewDetails"),
+    loader.load("csvImport")
   ]);
   assert.equal(requests.filter(url=>url==="pages/dialogs.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/overview-details.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/csv-import.html").length,1);
   assert.deepEqual(loader.clone("dialogs"),{cloned:true});
 });

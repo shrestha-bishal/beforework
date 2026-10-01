@@ -1,0 +1,70 @@
+<template id="csvImportDialog">
+  <div class="overlay csvImportOverlay" data-csv-overlay>
+    <section class="Overlay Overlay--size-medium position-relative csvImportDialog" data-modal role="dialog" aria-modal="true" aria-labelledby="csvImportTitle">
+      <button class="btn btn-invisible closeX" data-csv-cancel aria-label="Close">✕</button>
+      <h3 id="csvImportTitle">Import tasks from CSV</h3>
+      <p class="csvImportHelp">Choose an existing project or create a new one, then map the CSV columns and preview the tasks before importing.</p>
+      <div class="csvImportSteps" aria-label="Import steps">
+        <div data-csv-step-indicator="1" aria-current="step"><span>1</span> Choose file</div>
+        <div data-csv-step-indicator="2"><span>2</span> Map columns</div>
+      </div>
+      <div class="csvImportStep" data-csv-step="1">
+      <div class="csvImportSetup">
+        <label class="modalRow csvImportField">
+          <span>Import into</span>
+          <select class="form-control" data-csv-destination>
+            <option value="existing">Existing project</option>
+            <option value="new">New project</option>
+          </select>
+        </label>
+        <label class="modalRow csvImportField" data-csv-existing-wrap hidden>
+          <span>Project</span>
+          <select class="form-control" data-csv-existing-project></select>
+        </label>
+        <label class="modalRow csvImportField" data-csv-new-wrap hidden>
+          <span>New project name</span>
+          <input class="form-control" type="text" data-csv-new-name placeholder="e.g. Product launch">
+        </label>
+        <label class="modalRow csvImportField" data-csv-template-wrap hidden>
+          <span>Project template</span>
+          <select class="form-control" data-csv-template>
+            <option value="taskboard">Project / task management</option>
+            <option value="simple">Simple list</option>
+            <option value="table">Table</option>
+            <option value="blank">Blank</option>
+          </select>
+        </label>
+        <div class="modalRow csvImportField">
+          <span>CSV file</span>
+          <div class="csvImportFileControl">
+            <button class="btn btn-sm" type="button" data-csv-file-button><iconify-icon icon="mdi:upload" aria-hidden="true"></iconify-icon><span>Choose CSV</span></button>
+            <span class="csvImportFileName" data-csv-file-name>No file selected</span>
+            <input class="csvImportFileInput" type="file" accept=".csv,text/csv" data-csv-file aria-label="Choose a CSV file">
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="csvImportStep" data-csv-step="2" hidden>
+      <section class="csvImportMapping" data-csv-mapping>
+        <h4>Map columns</h4>
+        <div class="csvImportMappingGrid" data-csv-mapping-fields></div>
+        <h4 data-csv-preview-heading>Preview</h4>
+        <p class="csvImportHelp" data-csv-preview-summary></p>
+        <div class="csvImportPreviewWrap">
+          <table class="csvImportPreview">
+            <thead data-csv-preview-head></thead>
+            <tbody data-csv-preview-body></tbody>
+          </table>
+        </div>
+      </section>
+      </div>
+      <p class="csvImportStatus" data-csv-status role="status" aria-live="polite"></p>
+      <div class="uiDivider modalDivider" aria-hidden="true"></div>
+      <footer class="modalFooter">
+        <button class="btn" type="button" data-csv-back hidden>Back</button>
+        <button class="btn btn-primary btn-sm" type="button" data-csv-next disabled>Next</button>
+        <button class="btn btn-primary btn-sm" data-csv-confirm disabled>Import tasks</button>
+      </footer>
+    </section>
+  </div>
+</template>

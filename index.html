@@ -96,6 +96,7 @@
               <button class="btn btn-sm btn-invisible projectCreateBtn" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
               <div class="projectCreateMenu" id="projectCreateMenu" role="menu">
                 <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
+                <button class="btn btn-sm btn-invisible" id="importProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:table-arrow-up" aria-hidden="true"></iconify-icon><span>Import project</span></button>
                 <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
               </div>
             </div>
@@ -162,6 +163,7 @@
             <button class="btn btn-sm btn-invisible projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
             <div class="projectMenu" id="projectMenu">
               <button class="btn btn-sm btn-invisible" id="editProjectBtn">Edit project</button>
+              <button class="btn btn-sm btn-invisible" id="importProjectCsvBtn">Import from CSV</button>
               <button class="btn btn-sm btn-invisible" id="addGroupBtn">New group</button>
               <button class="btn btn-sm btn-invisible" id="manageFieldsBtn">Add column</button>
               <button class="btn btn-sm btn-invisible" id="duplicateProjectBtn">Duplicate project</button>
@@ -220,6 +222,7 @@
     <script src="js/commands/workspace-commands.js"></script>
     <script src="js/ui/command-palette.js"></script>
     <script src="js/ui/dialogs.js"></script>
+    <script src="js/services/csv-import.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

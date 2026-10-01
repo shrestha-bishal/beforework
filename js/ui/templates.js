@@ -10,7 +10,8 @@ window.BeforeworkViewTemplates = (()=>{
   const onDemandPaths = {
     dialogs:"pages/dialogs.html",
     overviewDetails:"pages/overview-details.html",
-    commandPalette:"pages/command-palette.html"
+    commandPalette:"pages/command-palette.html",
+    csvImport:"pages/csv-import.html"
   };
   const paths = {...startupPaths,...onDemandPaths};
   const templates = {};

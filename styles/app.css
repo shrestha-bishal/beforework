@@ -1034,3 +1034,47 @@
     .overviewQuickActions button{flex:1;justify-content:center;}
     .overviewPanel{padding:12px;}
   }
+
+.csvImportOverlay{z-index:125;}
+.csvImportDialog{display:flex;max-height:min(90vh,900px);flex-direction:column;overflow:hidden;border-radius:var(--radius-lg);}
+.csvImportDialog h3{padding-right:32px;}
+.csvImportDialog h4{margin:18px 0 8px;font-size:14px;}
+.csvImportHelp{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.45;}
+.csvImportSteps{display:flex;gap:18px;margin:0 0 18px;padding-bottom:10px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600;}
+.csvImportSteps>div{display:flex;align-items:center;gap:7px;}
+.csvImportSteps>div[aria-current=step]{color:var(--accent-strong);}
+.csvImportSteps>div>span{display:grid;width:20px;height:20px;place-items:center;border:1px solid var(--border);border-radius:50%;font-size:11px;}
+.csvImportSteps>div[aria-current=step]>span{border-color:var(--accent-strong);background:var(--accent-strong);color:#fff;}
+.csvImportStep[hidden]{display:none;}
+.csvImportSetup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;}
+.csvImportSetup.is-new-project [data-csv-new-wrap],.csvImportSetup.is-new-project [data-csv-template-wrap]{grid-column:1/-1;}
+.csvImportField{min-width:0;margin-bottom:14px;}
+.csvImportField>span:first-child{color:var(--muted);font-size:12px;font-weight:600;}
+.csvImportField[hidden]{display:none;}
+.csvImportField .form-control{width:100%;}
+.csvImportProjectName{display:flex;min-height:34px;align-items:center;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-soft);color:var(--text);font-size:13px;font-weight:400;}
+.csvImportFileControl{display:flex;min-width:0;align-items:center;gap:10px;}
+.csvImportFileControl .btn{display:inline-flex;flex:none;align-items:center;gap:6px;}
+.csvImportFileControl iconify-icon{font-size:15px;}
+.csvImportFileName{overflow:hidden;color:var(--muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}
+.csvImportFileInput{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%);}
+.csvImportFileInput:focus-visible+.csvImportFileName{outline:2px solid var(--accent);outline-offset:2px;}
+.csvImportMapping{min-height:0;overflow:auto;}
+.csvImportMapping[hidden]{display:none;}
+.csvImportMappingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.csvImportDateFormatControl{display:grid;gap:5px;margin-top:9px;padding:9px;border:1px solid var(--border);border-radius:6px;background:var(--bg-soft);}
+.csvImportDateFormatControl[hidden]{display:none;}
+.csvImportDateFormatLabel{color:var(--muted);font-size:11px;font-weight:600;}
+.csvImportDateFormatControl .form-control{min-height:32px;font-size:12px;}
+.csvImportStatus{min-height:18px;margin:10px 0 0;color:var(--muted);font-size:12px;}
+.csvImportStatus.error{color:var(--color-danger-fg);}
+.csvImportPreviewWrap{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:6px;}
+.csvImportPreview{width:100%;border-collapse:collapse;font-size:12px;}
+.csvImportPreview th,.csvImportPreview td{max-width:240px;padding:7px 9px;border-bottom:1px solid var(--border);overflow:hidden;text-align:left;text-overflow:ellipsis;white-space:nowrap;}
+.csvImportPreview th{position:sticky;top:0;background:var(--bg-soft);font-weight:600;}
+.csvImportDialog .modalDivider{margin-top:12px;}
+.csvImportDialog [data-csv-next],.csvImportDialog [data-csv-confirm]{margin-left:auto;}
+@media(max-width:600px){
+  .csvImportSetup,.csvImportMappingGrid{grid-template-columns:1fr;}
+  .csvImportDialog{max-height:94vh;}
+}

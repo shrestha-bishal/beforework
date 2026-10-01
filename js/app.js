@@ -815,6 +815,7 @@
     activeProjectId = p.id;
     persistActiveLocation();
     scheduleSave(); renderAll();
+    return p;
   }
   async function editProject(project){
     const result = await showDialog({title:"Edit project", fields:[
@@ -1045,14 +1046,445 @@
     deleteGroup(project.id, group.id, targetGroupId);
   }
   function addItem(pid, gid, title){
+    const it = createItem(pid,title);
+    getGroup(pid,gid).items.push(it);
+    scheduleSave(); render();
+    return it;
+  }
+  function createItem(pid,title){
     const project = getProject(pid);
     const it = {id:uid(), title, description:"", attachments:[], calendarType:(project && project.itemDefaultType==="event") ? "event" : "task",
       startTime:"", endTime:"", location:"", endDate:"", completedAt:null, milestoneId:null, tagIds:[], values:{}, subitems:[],
       comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()};
     recordItemActivity(it, "created");
-    getGroup(pid,gid).items.push(it);
-    scheduleSave(); render();
     return it;
+  }
+  async function openCsvImportDialog(destinationMode="existing",targetProjectId=activeProjectId){
+    if (!fileHandle){
+      await showNotice("Connect a workspace first","Open or create a workspace before importing tasks.");
+      return;
+    }
+    try{
+      await window.BeforeworkViewTemplates.load("csvImport");
+    }catch(error){
+      await showNotice("Couldn't open CSV import",error.message);
+      return;
+    }
+
+    const templateFragment=window.BeforeworkViewTemplates.clone("csvImport");
+    const dialogTemplate=templateFragment.querySelector("#csvImportDialog");
+    if (!dialogTemplate){
+      await showNotice("Couldn't open CSV import","The CSV import dialog template is missing.");
+      return;
+    }
+    const overlay=dialogTemplate.content.firstElementChild.cloneNode(true);
+    const destination=overlay.querySelector("[data-csv-destination]");
+    destination.closest(".csvImportField").hidden=true;
+    destination.disabled=true;
+    const setup=overlay.querySelector(".csvImportSetup");
+    const existingWrap=overlay.querySelector("[data-csv-existing-wrap]");
+    const existingProject=overlay.querySelector("[data-csv-existing-project]");
+    existingProject.disabled=true;
+    const newWrap=overlay.querySelector("[data-csv-new-wrap]");
+    const newName=overlay.querySelector("[data-csv-new-name]");
+    const templateWrap=overlay.querySelector("[data-csv-template-wrap]");
+    const templateSelect=overlay.querySelector("[data-csv-template]");
+    const fileInput=overlay.querySelector("[data-csv-file]");
+    const fileButton=overlay.querySelector("[data-csv-file-button]");
+    const fileName=overlay.querySelector("[data-csv-file-name]");
+    const status=overlay.querySelector("[data-csv-status]");
+    const stepPanels=[...overlay.querySelectorAll("[data-csv-step]")];
+    const stepIndicators=[...overlay.querySelectorAll("[data-csv-step-indicator]")];
+    const backButton=overlay.querySelector("[data-csv-back]");
+    const nextButton=overlay.querySelector("[data-csv-next]");
+    const mappingSection=overlay.querySelector("[data-csv-mapping]");
+    const mappingFields=overlay.querySelector("[data-csv-mapping-fields]");
+    const previewSummary=overlay.querySelector("[data-csv-preview-summary]");
+    const previewHead=overlay.querySelector("[data-csv-preview-head]");
+    const previewBody=overlay.querySelector("[data-csv-preview-body]");
+    const confirmButton=overlay.querySelector("[data-csv-confirm]");
+    let dateFormatSelect=null;
+    let dateFormatControl=null;
+    let dateFormatTargetKey=null;
+    const context={parsed:null,project:null,fields:[],targets:[],selectionToken:0,closed:false,step:1};
+
+    const close=()=>{
+      context.closed=true;
+      overlay.remove();
+    };
+    overlay.querySelectorAll("[data-csv-cancel]").forEach(button=>button.addEventListener("click",close));
+    overlay.addEventListener("click",event=>{ if (event.target===overlay) close(); });
+    overlay.addEventListener("keydown",event=>{ if (event.key==="Escape"){ event.preventDefault(); close(); } });
+    document.body.appendChild(overlay);
+
+    const records=projectRecords();
+    overlay.querySelector("#csvImportTitle").textContent=destinationMode==="new" ? "Import project from CSV" : "Import tasks from CSV";
+    const helpText=overlay.querySelector(".csvImportHelp");
+    helpText.textContent=destinationMode==="new"
+      ? "Create a new project and import its tasks from a CSV file."
+      : "Import tasks from a CSV file into this project.";
+    confirmButton.textContent=destinationMode==="new" ? "Create project" : "Import tasks";
+    existingProject.replaceChildren(...records.map(project=>{
+      const option=document.createElement("option");
+      option.value=project.id;
+      option.textContent=project.name;
+      return option;
+    }));
+    const initial=records.find(project=>project.id===activeProjectId)||records[0];
+    if (destinationMode==="new"){
+      destination.value="new";
+    }else if (records.some(project=>project.id===targetProjectId)){
+      existingProject.value=targetProjectId;
+      destination.value="existing";
+      helpText.textContent=`Import tasks from a CSV file into ${records.find(project=>project.id===targetProjectId).name}.`;
+    }else if (initial){
+      existingProject.value=initial.id;
+      destination.value="existing";
+      helpText.textContent=`Import tasks from a CSV file into ${initial.name}.`;
+    }else destination.value="new";
+
+    const setStatus=(message,isError=false)=>{
+      status.textContent=message;
+      status.classList.toggle("error",isError);
+    };
+    const updateStep=()=>{
+      stepPanels.forEach(panel=>{ panel.hidden=Number(panel.dataset.csvStep)!==context.step; });
+      stepIndicators.forEach(indicator=>{
+        if (Number(indicator.dataset.csvStepIndicator)===context.step) indicator.setAttribute("aria-current","step");
+        else indicator.removeAttribute("aria-current");
+      });
+      backButton.hidden=context.step===1;
+      nextButton.hidden=context.step!==1;
+      confirmButton.hidden=context.step!==2;
+      nextButton.disabled=!context.parsed || (destination.value==="new" && !newName.value.trim());
+    };
+    const getTemplateFields=()=>{
+      const template=PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank;
+      return buildFieldsForTemplate(template.fields);
+    };
+    const currentTargetProject=()=>{
+      if (destination.value==="new") return null;
+      const selectedId=existingProject.value;
+      if (!selectedId) return null;
+      const project=getProject(selectedId);
+      if (!project) throw new Error("Couldn't load the selected project.");
+      return project;
+    };
+    const makeTargets=project=>{
+      const fields=project ? project.fields : getTemplateFields();
+      const targets=[
+        {key:"title",kind:"title",label:"Task title",required:true},
+        {key:"description",kind:"description",label:"Description"},
+        {key:"status",kind:"status",label:"Status / group"},
+        {key:"tags",kind:"tags",label:"Tags"}
+      ];
+      fields.forEach((field,index)=>{
+        if (field.type==="date") targets.push({
+          key:`date:${index}`,kind:"dueDate",fieldId:field.id,fieldIndex:index,label:`Due date - ${field.label}`
+        });
+        if (field.type==="priority") targets.push({
+          key:`priority:${index}`,kind:"priority",fieldId:field.id,fieldIndex:index,label:`Priority - ${field.label}`
+        });
+      });
+      return targets;
+    };
+    const guessTarget=(target,header)=>{
+      const value=header.trim().toLowerCase();
+      if (target.kind==="title" && /^(title|task|task name|name)$/.test(value)) return true;
+      if (target.kind==="description" && /^(description|details|notes)$/.test(value)) return true;
+      if (target.kind==="status" && /^(status|group|stage)$/.test(value)) return true;
+      if (target.kind==="tags" && /^(tag|tags|label|labels)$/.test(value)) return true;
+      if (target.kind==="dueDate" && /^(due|due date|deadline)$/.test(value)) return true;
+      if (target.kind==="priority" && /^priority$/.test(value)) return true;
+      return false;
+    };
+    const selectedProjectForPreview=()=>context.project;
+
+    function refreshPreview(){
+      const project=selectedProjectForPreview();
+      const selectedTargets=new Map();
+      const selectedColumns=new Set();
+      mappingFields.querySelectorAll("[data-csv-target]").forEach(select=>{
+        if (select.value==="" || !Number.isInteger(Number(select.value))) return;
+        const column=Number(select.value);
+        selectedTargets.set(select.dataset.csvTarget,column);
+        selectedColumns.add(column);
+      });
+      mappingFields.querySelectorAll("[data-csv-target]").forEach(select=>{
+        [...select.options].forEach(option=>{
+          if (!option.value || option.value===select.value) return;
+          option.disabled=selectedColumns.has(Number(option.value));
+        });
+      });
+
+      const mapping={};
+      let dueDateFieldId=null,priorityFieldId=null,dueDateFieldIndex=null,priorityFieldIndex=null;
+      for (const target of context.targets){
+        if (selectedTargets.has(target.key)){
+          mapping[target.kind]=selectedTargets.get(target.key);
+          if (target.kind==="dueDate"){ dueDateFieldId=target.fieldId; dueDateFieldIndex=target.fieldIndex; }
+          if (target.kind==="priority"){ priorityFieldId=target.fieldId; priorityFieldIndex=target.fieldIndex; }
+        }
+      }
+      if (dateFormatControl) dateFormatControl.hidden=!selectedTargets.has(dateFormatTargetKey);
+      const hasTitle=Object.hasOwn(mapping,"title");
+      const nameValid=destination.value!=="new" || !!newName.value.trim();
+      const selectedProject=project;
+      const groupNames=selectedProject
+        ? selectedProject.groups.map(group=>group.name)
+        : (PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank).groups;
+      const prepared=context.parsed && hasTitle
+        ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,dateFormatSelect?.value||"DMY")
+        : null;
+      previewHead.replaceChildren();
+      previewBody.replaceChildren();
+
+      if (!context.parsed){ confirmButton.disabled=true; return; }
+      if (!hasTitle){
+        previewSummary.textContent="Map a CSV column to Task title to continue.";
+        setStatus("Choose a CSV file and map its task title column.");
+      }else if (prepared.errors.length){
+        const extra=prepared.errors.length>3 ? ` And ${prepared.errors.length-3} more.` : "";
+        setStatus(`${prepared.errors.slice(0,3).join(" ")}${extra}`,true);
+        previewSummary.textContent=`${prepared.tasks.length} CSV row(s) found; fix the errors before importing.`;
+      }else{
+        setStatus("");
+        previewSummary.textContent=`${prepared.tasks.length} task(s) ready to import.${prepared.groupsToCreate.length ? ` New groups will be created: ${prepared.groupsToCreate.join(", ")}.` : ""}`;
+      }
+
+      const columns=context.targets.filter(target=>selectedTargets.has(target.key));
+      const headingRow=document.createElement("tr");
+      columns.forEach(target=>{
+        const cell=document.createElement("th");
+        cell.scope="col";
+        cell.textContent=target.label;
+        headingRow.appendChild(cell);
+      });
+      previewHead.appendChild(headingRow);
+      const sample=(prepared?.tasks||[]).slice(0,5);
+      sample.forEach(task=>{
+        const row=document.createElement("tr");
+        columns.forEach(target=>{
+          const cell=document.createElement("td");
+          const kind=target.kind;
+          cell.textContent=kind==="dueDate" ? task.dueDate
+            : kind==="priority" ? task.priority
+              : kind==="tags" ? task.tags.join(", ")
+                : kind==="status" ? task.status||groupNames[0]||""
+                  : task[kind]||"";
+          row.appendChild(cell);
+        });
+        previewBody.appendChild(row);
+      });
+      if (prepared && !prepared.errors.length && nameValid && (destination.value==="new" || !!selectedProject)){
+        confirmButton.disabled=false;
+      }else confirmButton.disabled=true;
+      context.mapping={mapping,dueDateFieldId,priorityFieldId,dueDateFieldIndex,priorityFieldIndex,prepared};
+    }
+
+    function renderMapping(){
+      if (!context.parsed) return;
+      context.targets=makeTargets(context.project);
+      mappingFields.replaceChildren();
+      dateFormatSelect=null;
+      dateFormatControl=null;
+      dateFormatTargetKey=null;
+      context.targets.forEach(target=>{
+        const label=document.createElement("div");
+        label.className="csvImportField";
+        const caption=document.createElement("span");
+        caption.textContent=target.required ? `${target.label} (required)` : target.label;
+        const select=document.createElement("select");
+        select.className="form-control";
+        select.dataset.csvTarget=target.key;
+        const selectId=`csvImportTarget-${target.key.replace(/[^a-z0-9_-]/gi,"-")}`;
+        select.id=selectId;
+        caption.htmlFor=selectId;
+        const skip=document.createElement("option");
+        skip.value="";
+        skip.textContent="Don't import";
+        select.appendChild(skip);
+        context.parsed.headers.forEach((header,index)=>{
+          const option=document.createElement("option");
+          option.value=String(index);
+          option.textContent=header;
+          if (guessTarget(target,header)) option.selected=true;
+          select.appendChild(option);
+        });
+        select.addEventListener("change",refreshPreview);
+        label.append(caption,select);
+        if (target.kind==="dueDate"){
+          dateFormatControl=document.createElement("div");
+          dateFormatControl.className="csvImportDateFormatControl";
+          dateFormatControl.hidden=true;
+          dateFormatTargetKey=target.key;
+          const formatLabel=document.createElement("label");
+          formatLabel.className="csvImportDateFormatLabel";
+          formatLabel.htmlFor="csvImportDateFormat";
+          formatLabel.textContent="Date format";
+          dateFormatSelect=document.createElement("select");
+          dateFormatSelect.className="form-control";
+          dateFormatSelect.id="csvImportDateFormat";
+          dateFormatSelect.dataset.csvDateFormat="";
+          dateFormatSelect.innerHTML=`
+            <option value="DMY" selected>Day / Month / Year (29/12/2024)</option>
+            <option value="MDY">Month / Day / Year (12/29/2024)</option>
+            <option value="YMD">Year / Month / Day (2024-12-29)</option>`;
+          dateFormatSelect.addEventListener("change",refreshPreview);
+          dateFormatControl.append(formatLabel,dateFormatSelect);
+          label.appendChild(dateFormatControl);
+        }
+        mappingFields.appendChild(label);
+      });
+      refreshPreview();
+    }
+
+    async function refreshProjectAndMapping(){
+      const token=++context.selectionToken;
+      confirmButton.disabled=true;
+      context.project=null;
+      if (destination.value==="existing"){
+        if (!existingProject.value){
+          setStatus("Create a project before importing tasks.",true);
+          renderMapping();
+          return;
+        }
+        setStatus("Loading project…");
+        try{
+          const project=await currentTargetProject();
+          if (context.closed || token!==context.selectionToken) return;
+          context.project=project;
+        }catch(error){
+          if (context.closed || token!==context.selectionToken) return;
+          setStatus(error.message,true);
+        }
+      }
+      if (context.closed || token!==context.selectionToken) return;
+      if (context.step===2) renderMapping();
+      if (!context.parsed) setStatus(destination.value==="new" ? "Choose a CSV file to continue." : "");
+      updateStep();
+    }
+
+    destination.addEventListener("change",()=>{
+      const isNew=destination.value==="new";
+      setup.classList.toggle("is-new-project",isNew);
+      existingWrap.hidden=isNew;
+      newWrap.hidden=!isNew;
+      templateWrap.hidden=!isNew;
+      refreshProjectAndMapping();
+    });
+    existingProject.addEventListener("change",refreshProjectAndMapping);
+    templateSelect.addEventListener("change",renderMapping);
+    newName.addEventListener("input",updateStep);
+    nextButton.addEventListener("click",()=>{
+      if (!context.parsed || (destination.value==="new" && !newName.value.trim())) return;
+      context.step=2;
+      setStatus("");
+      updateStep();
+      renderMapping();
+      mappingFields.querySelector("[data-csv-target]")?.focus();
+    });
+    backButton.addEventListener("click",()=>{
+      context.step=1;
+      setStatus("");
+      updateStep();
+    });
+    fileButton.addEventListener("click",()=>fileInput.click());
+    fileInput.addEventListener("change",async()=>{
+      context.parsed=null;
+      mappingFields.replaceChildren();
+      confirmButton.disabled=true;
+      updateStep();
+      const file=fileInput.files?.[0];
+      fileName.textContent=file?.name||"No file selected";
+      if (!file){ refreshPreview(); setStatus(""); return; }
+      try{
+        window.BeforeworkCsvImport.validateFile(file);
+        const bytes=await file.arrayBuffer();
+        let text;
+        const view=new Uint8Array(bytes);
+        if (view[0]===0xFF && view[1]===0xFE) text=new TextDecoder("utf-16le").decode(bytes);
+        else if (view[0]===0xFE && view[1]===0xFF) text=new TextDecoder("utf-16be").decode(bytes);
+        else text=new TextDecoder("utf-8").decode(bytes);
+        context.parsed=window.BeforeworkCsvImport.parseCsv(text);
+        await refreshProjectAndMapping();
+        setStatus("CSV loaded. Continue to map its columns.");
+      }catch(error){
+        context.parsed=null;
+        refreshPreview();
+        updateStep();
+        setStatus(error.message,true);
+      }
+    });
+    confirmButton.addEventListener("click",async()=>{
+      confirmButton.disabled=true;
+      try{
+        const prepared=context.mapping?.prepared;
+        if (!prepared || prepared.errors.length) throw new Error("Fix the CSV mapping errors before importing.");
+        let project=context.project;
+        if (destination.value==="new"){
+          project=await addProject(newName.value.trim(),templateSelect.value,null);
+          if (!project) throw new Error("The project could not be created. Resolve any pending workspace save and try again.");
+        }else{
+          project=await ensureProjectLoaded(existingProject.value);
+          if (!project) throw new Error("Couldn't load the selected project.");
+        }
+        if (!project.groups.length) project.groups.push({id:uid(),name:"Items",items:[]});
+
+        const dateField=destination.value==="new"
+          ? project.fields[context.mapping.dueDateFieldIndex]
+          : project.fields.find(field=>field.id===context.mapping.dueDateFieldId);
+        const priorityField=destination.value==="new"
+          ? project.fields[context.mapping.priorityFieldIndex]
+          : project.fields.find(field=>field.id===context.mapping.priorityFieldId);
+        if (context.mapping.dueDateFieldId && !dateField) throw new Error("The selected due-date field is no longer available.");
+        if (context.mapping.priorityFieldId && !priorityField) throw new Error("The selected priority field is no longer available.");
+        const groups=new Map(project.groups.map(group=>[group.name.trim().toLowerCase(),group]));
+        prepared.groupsToCreate.forEach(name=>{
+          const group={id:uid(),name,items:[]};
+          project.groups.push(group);
+          groups.set(name.trim().toLowerCase(),group);
+        });
+        const tags=new Map(project.tags.map(tag=>[tag.name.trim().toLowerCase(),tag]));
+
+        for (const imported of prepared.tasks){
+          const group=imported.status ? groups.get(imported.status.trim().toLowerCase()) : project.groups[0];
+          if (!group) throw new Error(`Couldn't find a group for status "${imported.status}".`);
+          const item=createItem(project.id,imported.title);
+          item.description=imported.description;
+          if (dateField && imported.dueDate) item.values[dateField.id]=imported.dueDate;
+          if (priorityField && imported.priority) item.values[priorityField.id]=imported.priority;
+          imported.tags.forEach(name=>{
+            const key=name.trim().toLowerCase();
+            let tag=tags.get(key);
+            if (!tag){ tag=createTag(project,name); tags.set(key,tag); }
+            if (!item.tagIds.includes(tag.id)) item.tagIds.push(tag.id);
+          });
+          group.items.push(item);
+        }
+        activeProjectId=project.id;
+        persistActiveLocation();
+        registerProjectSummary(project);
+        scheduleSave();
+        renderAll();
+        close();
+        await showNotice(destinationMode==="new" ? "Project created" : "CSV import complete",
+          `Imported ${prepared.tasks.length} task(s) into ${project.name}.`);
+      }catch(error){
+        confirmButton.disabled=false;
+        setStatus(error.message,true);
+      }
+    });
+
+    existingWrap.hidden=true;
+    newWrap.hidden=destination.value!=="new";
+    templateWrap.hidden=destination.value!=="new";
+    setup.classList.toggle("is-new-project",destination.value==="new");
+    context.step=1;
+    updateStep();
+    if (destination.value==="new") newName.focus();
+    else fileButton.focus();
+    await refreshProjectAndMapping();
   }
   function openNewItemModal(project, group, milestoneId=null){
     if (!project || !group) return;
@@ -4868,6 +5300,8 @@
       const [name, description, templateKey] = result;
       if (name && name.trim()) await addProject(name.trim(), templateKey, description.trim()||null);
     };
+    document.getElementById("importProjectBtn").onclick = () => openCsvImportDialog("new");
+    document.getElementById("importProjectCsvBtn").onclick = () => openCsvImportDialog("existing",activeProjectId);
     document.getElementById("addFolderBtn").onclick = createFolder;
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);

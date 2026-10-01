@@ -35,6 +35,7 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 - Multiple file attachments per item in folder workspaces
 - Drag-and-drop data-column ordering saved independently for List and Table views
 - CSV export of the current filtered List or Table view, in visible column and row order
+- CSV import with column mapping and preview into an existing or new project. It supports task titles, descriptions, due dates, priority, status/groups, and tags; select the date format used by the CSV (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`).
 - Searchable overview statistics, workload and progress summaries, and a focus timer
 - Keyboard shortcuts and a command palette for common actions
 - Browser notifications for reminders and tasks due today while the app is open
@@ -132,8 +133,8 @@ Beforework is source-available under the
 
 The source is public and you're free to use, modify, and
 distribute it for personal or noncommercial purposes. Commercial
-use — including offering Beforework, or a modified or hosted
-version of it, as a product or service — is not permitted
+use - including offering Beforework, or a modified or hosted
+version of it, as a product or service - is not permitted
 without a separate agreement with the Licensor.
 
 Contributions and bug reports are welcome; see
