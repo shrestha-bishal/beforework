@@ -72,6 +72,7 @@
     loadTemplate:name=>window.BeforeworkViewTemplates.load(name),
     clonePageTemplate:name=>window.BeforeworkViewTemplates.clone(name)
   });
+  const modal = window.BeforeworkModal.create();
 
   const __VIEW_IMPORT_HINTS = [
     'import("./views/settings-view.js")',
@@ -3086,12 +3087,7 @@
       id:uid(), title:"", description:"", attachments:[], calendarType:"task", startTime:"", endTime:"", location:"", endDate:"",
       tagIds:[], values:{[dateField.id]:date}, subitems:[], comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
-    const overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="itemModal"></div>`;
-    overlay.addEventListener("click", event=>{ if (event.target===overlay) closeItemModal(); });
-    document.body.appendChild(overlay);
+    createItemModalShell();
     renderItemModal();
   }
   /* ---------- Item modal ---------- */
@@ -3101,17 +3097,18 @@
       return;
     }
     openItemRef = {projectId:pid, groupId:gid, itemId:iid};
-    const overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="itemModal"></div>`;
-    overlay.addEventListener("click", (e)=>{ if (e.target===overlay) closeItemModal(); });
-    document.body.appendChild(overlay);
+    createItemModalShell();
     renderItemModal();
   }
+  function createItemModalShell(){
+    const content=document.createElement("div");
+    content.className="Overlay Overlay--size-medium position-relative";
+    content.setAttribute("data-modal","");
+    content.id="itemModal";
+    modal.open({id:"itemOverlay",content,onBackdrop:closeItemModal});
+  }
   function closeItemModal(){
-    const el = document.getElementById("itemOverlay");
-    if (el) el.remove();
+    modal.close("itemOverlay");
     openItemRef = null;
   }
   function positionFloatingSelectMenu(button,menu){
@@ -3479,103 +3476,73 @@
           return `<div class="activityRow"><div class="activityBadge">${escapeHtml(label)}</div><div class="activityMeta">${escapeHtml(formatUpdatedAt(event.at))}</div></div>`;
         }).join("")
       : `<div class="commentEmpty">No activity yet.</div>`;
-    const defaultTab = "comments";
+    const itemActions = !isNew ? `<div class="itemModalActions">
+      <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+      <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
+        <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+        <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
+        <div class="itemModalActionSeparator" role="separator"></div>
+        <button type="button" role="menuitem" class="danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
+      </div>
+    </div>` : "";
+    const subitemCount = item.subitems.length
+      ? `<span class="subitemsProgressCount">${doneSubCount}/${item.subitems.length}</span>`
+      : "";
+    const subitemProgress = item.subitems.length
+      ? `<div class="progressTrack"><div class="progressFill" style="width:${subPct}%"></div></div>`
+      : "";
+    const existingItemDetails = !isNew ? `
+      <div class="mainSection">
+        <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
+          <button type="button" class="itemDetailTab active" data-item-tab="comments" role="tab" aria-selected="true">Comments</button>
+          <button type="button" class="itemDetailTab" data-item-tab="attachments" role="tab" aria-selected="false">Attachments <span class="itemAttachmentCount">${(item.attachments||[]).length}</span></button>
+          <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
+        </div>
+        <div class="itemDetailPanel active" data-item-panel="comments">
+          ${commentsHtml}
+          <div style="display:flex;gap:6px;margin-top:10px;">
+            <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
+            <button class="btn btn-sm" data-action="addComment">Add</button>
+          </div>
+        </div>
+        <div class="itemDetailPanel" data-item-panel="attachments">
+          <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
+        </div>
+        <div class="itemDetailPanel" data-item-panel="activity">${activityHtml}</div>
+      </div>` : "";
+    const newItemAttachments = isNew ? `<div class="mainSection itemAttachmentsSection">
+      <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">${(item.attachments||[]).length}</span></div>
+      <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
+    </div>` : "";
+    const footerActions = isNew
+      ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>`
+      : item.calendarType!=="event"
+        ? `<button class="btn ${isCompleted?"btn-invisible":"btn-primary"} btn-sm" data-action="completeItem">${isCompleted?"Reopen":"Mark complete"}</button>`
+        : "";
 
-    modal.innerHTML = `
-      <button class="btn btn-invisible closeX" data-action="close">✕</button>
-      <div class="itemModalHeader">
-        <div class="itemModalBreadcrumb">${escapeHtml(project.name)} <span aria-hidden="true">/</span> ${escapeHtml(group?.name||"")}</div>
-        <div class="itemModalTitleRow">
-          <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="${escapeHtml(item.title)}">
-          ${!isNew ? `<div class="itemModalActions">
-            <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
-            <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
-              <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
-              <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
-              <div class="itemModalActionSeparator" role="separator"></div>
-              <button type="button" role="menuitem" class="danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
-            </div>
-          </div>` : ""}
-        </div>
-      </div>
-      <div class="itemModalBody">
-        <div class="itemModalMain">
-          <div class="mainSection">
-            <div class="itemDescriptionHead"><div class="mainSectionLabel">Description</div>${attachmentSectionHtml(item,"item")}</div>
-            <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">${escapeHtml(item.description)}</textarea>
-          </div>
-          <div class="mainSection">
-            <div class="mainSectionHead">
-              <div class="mainSectionLabel">Subitems</div>
-              ${item.subitems.length ? `<span class="subitemsProgressCount">${doneSubCount}/${item.subitems.length}</span>` : ""}
-            </div>
-            ${item.subitems.length ? `<div class="progressTrack"><div class="progressFill" style="width:${subPct}%"></div></div>` : ""}
-            <div id="subitemsList">${subitemsHtml}</div>
-            <button class="btn btn-invisible btn-sm" data-action="addSub" style="align-self:flex-start;padding-left:6px;">+ Add subitem</button>
-          </div>
-          ${!isNew ? `
-          <div class="mainSection">
-            <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
-              <button type="button" class="itemDetailTab active" data-item-tab="comments" role="tab" aria-selected="true">Comments</button>
-              <button type="button" class="itemDetailTab" data-item-tab="attachments" role="tab" aria-selected="false">Attachments <span class="itemAttachmentCount">${(item.attachments||[]).length}</span></button>
-              <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
-            </div>
-            <div class="itemDetailPanel active" data-item-panel="comments">
-              ${commentsHtml}
-              <div style="display:flex;gap:6px;margin-top:10px;">
-                <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
-                <button class="btn btn-sm" data-action="addComment">Add</button>
-              </div>
-            </div>
-            <div class="itemDetailPanel" data-item-panel="attachments">
-              <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
-            </div>
-            <div class="itemDetailPanel" data-item-panel="activity">${activityHtml}</div>
-          </div>` : ""}
-          ${isNew ? `<div class="mainSection itemAttachmentsSection">
-            <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">${(item.attachments||[]).length}</span></div>
-            <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
-          </div>` : ""}
-        </div>
-        <div class="uiDivider itemModalSidebarDivider" aria-hidden="true"></div>
-        <div class="itemModalSidebar">
-          ${projectOptions}
-          ${groupSelector}
-          <div class="sideItem">
-            <div class="sideItemLabel">Type</div>
-            <div class="typeTabs" id="itemCalendarType">
-              <button type="button" data-calendar-type="task" class="${item.calendarType!=="event"?"active":""}">Task</button>
-              <button type="button" data-calendar-type="event" class="${item.calendarType==="event"?"active":""}">Event</button>
-            </div>
-          </div>
-          ${milestoneSelector}
-          ${fieldsHtml}
-          <div class="sideItem">
-            <div class="sideItemLabel">Tags</div>
-            <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-              ${tagChips}
-              <button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
-            </div>
-          </div>
-          <div class="sideItem">
-            <div class="sideItemLabel">Location</div>
-            <input class="form-control" type="text" id="itemLocationInput" value="${escapeHtml(item.location||"")}" placeholder="Optional location or link">
-          </div>
-          <div class="sideItem">
-            <div class="sideItemLabel">Schedule</div>
-            ${scheduleHtml}
-          </div>
-        </div>
-      </div>
-      <div class="uiDivider itemModalDivider" aria-hidden="true"></div>
-      <div class="itemModalFooter">
-        <span class="itemModalFooterNote">${isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`}</span>
-        <div class="itemModalFooterActions">
-          ${isNew ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>` : `
-            ${item.calendarType!=="event" ? `<button class="btn ${isCompleted?"btn-invisible":"btn-primary"} btn-sm" data-action="completeItem">${isCompleted?"Reopen":"Mark complete"}</button>` : ""}`}
-        </div>
-      </div>
-    `;
+    modal.innerHTML = window.BeforeworkViewTemplates.render("itemModal",{
+      breadcrumb:`${escapeHtml(project.name)} <span aria-hidden="true">/</span> ${escapeHtml(group?.name||"")}`,
+      title:escapeHtml(item.title),
+      itemActions,
+      descriptionAttachments:attachmentSectionHtml(item,"item"),
+      description:escapeHtml(item.description),
+      subitemCount,
+      subitemProgress,
+      subitems:subitemsHtml,
+      existingItemDetails,
+      newItemAttachments,
+      projectOptions,
+      groupSelector,
+      taskTabClass:item.calendarType!=="event" ? "active" : "",
+      eventTabClass:item.calendarType==="event" ? "active" : "",
+      milestoneSelector,
+      fields:fieldsHtml,
+      tagChips,
+      location:escapeHtml(item.location||""),
+      schedule:scheduleHtml,
+      footerNote:isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`,
+      footerActions
+    });
 
     modal.querySelector('[data-action="close"]').onclick = closeItemModal;
     const actionMenu = modal.querySelector("#itemModalActionMenu");

@@ -1,0 +1,61 @@
+<button class="btn btn-invisible closeX" data-action="close">✕</button>
+<div class="itemModalHeader">
+  <div class="itemModalBreadcrumb">{{breadcrumb}}</div>
+  <div class="itemModalTitleRow">
+    <input class="form-control" type="text" id="itemTitleInput" placeholder="Item title" value="{{title}}">
+    {{itemActions}}
+  </div>
+</div>
+<div class="itemModalBody">
+  <div class="itemModalMain">
+    <div class="mainSection">
+      <div class="itemDescriptionHead"><div class="mainSectionLabel">Description</div>{{descriptionAttachments}}</div>
+      <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">{{description}}</textarea>
+    </div>
+    <div class="mainSection">
+      <div class="mainSectionHead">
+        <div class="mainSectionLabel">Subitems</div>
+        {{subitemCount}}
+      </div>
+      {{subitemProgress}}
+      <div id="subitemsList">{{subitems}}</div>
+      <button class="btn btn-invisible btn-sm" data-action="addSub" style="align-self:flex-start;padding-left:6px;">+ Add subitem</button>
+    </div>
+    {{existingItemDetails}}
+    {{newItemAttachments}}
+  </div>
+  <div class="uiDivider itemModalSidebarDivider" aria-hidden="true"></div>
+  <div class="itemModalSidebar">
+    {{projectOptions}}
+    {{groupSelector}}
+    <div class="sideItem">
+      <div class="sideItemLabel">Type</div>
+      <div class="typeTabs" id="itemCalendarType">
+        <button type="button" data-calendar-type="task" class="{{taskTabClass}}">Task</button>
+        <button type="button" data-calendar-type="event" class="{{eventTabClass}}">Event</button>
+      </div>
+    </div>
+    {{milestoneSelector}}
+    {{fields}}
+    <div class="sideItem">
+      <div class="sideItemLabel">Tags</div>
+      <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        {{tagChips}}
+        <button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
+      </div>
+    </div>
+    <div class="sideItem">
+      <div class="sideItemLabel">Location</div>
+      <input class="form-control" type="text" id="itemLocationInput" value="{{location}}" placeholder="Optional location or link">
+    </div>
+    <div class="sideItem">
+      <div class="sideItemLabel">Schedule</div>
+      {{schedule}}
+    </div>
+  </div>
+</div>
+<div class="uiDivider itemModalDivider" aria-hidden="true"></div>
+<div class="itemModalFooter">
+  <span class="itemModalFooterNote">{{footerNote}}</span>
+  <div class="itemModalFooterActions">{{footerActions}}</div>
+</div>

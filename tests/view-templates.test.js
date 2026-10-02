@@ -13,12 +13,17 @@ function loadTemplatesModule(){
     window,
     fetch:async url=>{
       requests.push(url);
-      return {ok:true,text:async()=>`<template>${url}</template>`};
+      return {ok:true,text:async()=>url==="pages/item-modal.html" ? "<div>{{value}}</div>" : `<template>${url}</template>`};
     },
     document:{
-      createElement:()=>({
-        content:{cloneNode:()=>({cloned:true})}
-      })
+      createElement:()=>{
+        let html="";
+        return {
+          get innerHTML(){ return html; },
+          set innerHTML(value){ html=value; },
+          content:{cloneNode:()=>({cloned:true})}
+        };
+      }
     }
   };
   const source=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
@@ -37,6 +42,7 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/table-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/calendar.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/item-modal.html").length,1);
 
   await Promise.all([
     loader.load("dialogs"),
@@ -55,5 +61,14 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/table-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/calendar.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/item-modal.html").length,1);
   assert.deepEqual(loader.clone("dialogs"),{cloned:true});
+});
+
+test("renders named values into loaded templates and rejects missing values",async()=>{
+  const {loader}=loadTemplatesModule();
+  await loader.loadAll();
+
+  assert.equal(loader.render("itemModal",{value:"task"}),"<div>task</div>");
+  assert.throws(()=>loader.render("itemModal",{}),/Missing value "value"/);
 });

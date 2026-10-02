@@ -185,6 +185,7 @@ test("new Calendar items default to tasks in standalone and project calendars",a
     calendarDateFields:project=>project.fields,
     openStandaloneCalendarItemModal:(item,isNew)=>standaloneItems.push({item,isNew}),
     async showNotice(){ throw new Error("Unexpected notice"); },
+    createItemModalShell(){},
     document:{
       createElement(){ return overlay; },
       body:{appendChild(){}}

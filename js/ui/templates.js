@@ -7,6 +7,7 @@ window.BeforeworkViewTemplates = (()=>{
     listView:"pages/list-view.html",
     tableView:"pages/table-view.html",
     boardView:"pages/board-view.html",
+    itemModal:"pages/item-modal.html",
     settings:"pages/settings.html",
     support:"pages/support.html",
     focusTimer:"pages/focus-timer.html"
@@ -60,5 +61,17 @@ window.BeforeworkViewTemplates = (()=>{
     return template.content.cloneNode(true);
   }
 
-  return {load,loadAll,clone};
+  function render(name,values={}){
+    const template=templates[name];
+    if (!template) throw new Error(`View template "${name}" hasn't loaded`);
+    if (!values || typeof values!=="object") throw new TypeError("Template values must be an object.");
+    return template.innerHTML.replace(/\{\{([a-zA-Z][a-zA-Z0-9_]*)\}\}/g,(token,key)=>{
+      if (!Object.prototype.hasOwnProperty.call(values,key)){
+        throw new Error(`Missing value "${key}" for view template "${name}"`);
+      }
+      return String(values[key]);
+    });
+  }
+
+  return {load,loadAll,clone,render};
 })();
