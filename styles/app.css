@@ -532,8 +532,27 @@
   .datePickerFooter{display:flex;justify-content:space-between;margin-top:10px;padding-top:9px;border-top:1px solid var(--border);}
   .datePickerFooter button{padding:3px 4px;border:0;background:transparent;color:var(--accent-strong);font:inherit;font-size:11px;cursor:pointer;}
   .datePickerFooter button:hover,.datePickerFooter button:focus{outline:0;text-decoration:underline;}
+  .timePickerButton{min-width:112px;}
+  .timePickerPopover{position:fixed;top:0;left:0;z-index:120;width:278px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .timePickerPopover[hidden]{display:none;}
+  .timePickerHeader{margin-bottom:10px;color:var(--text);font-size:13px;font-weight:600;text-align:center;}
+  .timePickerWheels{position:relative;display:flex;align-items:stretch;justify-content:center;gap:6px;height:180px;isolation:isolate;}
+  .timePickerWheel{position:relative;z-index:1;flex:1 1 0;min-width:0;}
+  .timePickerOptions{display:flex;height:100%;flex-direction:column;overflow-y:auto;padding:72px 2px;overscroll-behavior:contain;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);}
+  .timePickerOptions::-webkit-scrollbar{display:none;}
+  .timePickerOption{display:grid;flex:0 0 36px;place-items:center;width:100%;height:36px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--faint);font:inherit;font-size:12px;font-variant-numeric:tabular-nums;scroll-snap-align:center;cursor:pointer;}
+  .timePickerOption:hover,.timePickerOption:focus{outline:0;color:var(--muted);}
+  .timePickerOption.is-selected{color:var(--text);font-weight:600;}
+  .timePickerSeparator{position:relative;z-index:1;align-self:center;color:var(--muted);font-size:13px;}
+  .timePickerSelection{position:absolute;z-index:0;top:50%;right:0;left:0;height:36px;transform:translateY(-50%);border:1px solid var(--border);border-radius:9px;background:var(--bg);pointer-events:none;}
+  .timePickerFooter{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--border);}
+  .timePickerFooter button{min-height:28px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+  .timePickerFooter button:hover,.timePickerFooter button:focus{outline:0;border-color:var(--border-strong);background:var(--bg-soft);}
+  .timePickerFooter .timePickerSave{border-color:var(--accent);background:var(--accent);color:var(--color-btn-primary-text,var(--bg));}
+  .timePickerFooter .timePickerSave:hover,.timePickerFooter .timePickerSave:focus{border-color:var(--accent-strong);background:var(--accent-strong);}
   @media (max-width:560px){
     .datePickerPopover{width:calc(100vw - 24px);max-width:calc(100vw - 24px);}
+    .timePickerPopover{max-width:calc(100vw - 24px);}
   }
   .modalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
   #itemTitleInput{font-size:16px;font-weight:600;padding:6px 8px;min-height:0;}
