@@ -44,8 +44,23 @@ test("Markdown renderer supports common formatting and sanitizes generated HTML"
   assert.equal(options[0].linkify,true);
   assert.equal(sanitizeCalls.length,1);
   assert.ok(sanitizeCalls[0].settings.ALLOWED_TAGS.includes("a"));
+  assert.ok(sanitizeCalls[0].settings.ALLOWED_TAGS.includes("input"));
+  assert.ok(sanitizeCalls[0].settings.ALLOWED_ATTR.includes("checked"));
+  assert.ok(sanitizeCalls[0].settings.ALLOWED_ATTR.includes("disabled"));
   assert.ok(!sanitizeCalls[0].settings.ALLOWED_TAGS.includes("img"));
   assert.ok(!sanitizeCalls[0].settings.ALLOWED_ATTR.includes("onerror"));
+});
+
+test("task list Markdown renders disabled checked and unchecked checkboxes",()=>{
+  const {renderer}=createRenderer();
+  const html=renderer.render("- [ ] Not done\n- [x] Done\n- Regular item");
+
+  assert.match(html,/<input class="markdownTaskCheckbox" type="checkbox" disabled> /);
+  assert.match(html,/<input class="markdownTaskCheckbox" type="checkbox" disabled checked> /);
+  assert.match(html,/<ul class="contains-task-list">/);
+  assert.match(html,/<li class="task-list-item">/);
+  assert.match(html,/<li>Regular item<\/li>/);
+  assert.doesNotMatch(html,/\[ \]|\[x\]/);
 });
 
 test("raw HTML and unsafe link protocols are not emitted as active markup",()=>{

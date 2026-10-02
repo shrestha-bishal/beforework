@@ -10,7 +10,9 @@ const itemDetailsStyles=fs.readFileSync(path.join(__dirname,"../styles/item-deta
 const stylesManifest=fs.readFileSync(path.join(__dirname,"../styles/manifest.css"),"utf8");
 
 test("item comments and activity styles are isolated and included in the manifest",()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   assert.doesNotMatch(appStyles,/#[Cc]ommentsList|\.comment(?:Row|Body|Meta|Text|Empty)\b|\.itemDetail(?:Tabs|Tab|Panel)\b|#activityList|\.activity(?:Row|Meta|Badge)\b/);
+  assert.match(appSource,/<div id="commentsList">\$\{commentsHtml\}<\/div>/);
   assert.match(itemDetailsStyles,/#commentsList/);
   assert.match(itemDetailsStyles,/#activityList/);
   assert.match(itemDetailsStyles,/\.itemDetailTabs/);
@@ -30,6 +32,8 @@ test("Markdown description editor and preview fill the available column width",(
   assert.match(itemDetailsStyles,/\.itemDescriptionMenuButton iconify-icon\{font-size:18px;\}/);
   assert.match(itemDetailsStyles,/\.itemDescriptionMenuButton:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
   assert.match(itemDetailsStyles,/\.itemDescriptionCopyStatus\{position:absolute;width:1px;height:1px/);
+  assert.match(itemDetailsStyles,/\.markdownBody ul\.contains-task-list\{padding-left:0;list-style:none;\}/);
+  assert.match(itemDetailsStyles,/\.markdownBody input\.markdownTaskCheckbox\{width:14px;height:14px/);
   assert.match(itemDetailsStyles,/\.itemMarkdownToolbar\{display:flex;align-items:center;justify-content:space-between/);
   assert.match(itemDetailsStyles,/\.itemMarkdownTools button:hover\{background:var\(--bg\);color:var\(--text\);\}/);
   assert.match(itemDetailsStyles,/\.itemDescriptionEditControls\{display:flex;justify-content:flex-end;gap:8px;margin-top:-2px;padding:0 2px;\}/);

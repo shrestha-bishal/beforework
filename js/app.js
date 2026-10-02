@@ -3616,7 +3616,7 @@
           <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
         </div>
         <div class="itemDetailPanel active" data-item-panel="comments">
-          ${commentsHtml}
+          <div id="commentsList">${commentsHtml}</div>
           <div class="commentComposer">
             <textarea class="form-control" id="newCommentInput" rows="2" placeholder="Write a comment..."></textarea>
             <div class="commentComposerFooter">

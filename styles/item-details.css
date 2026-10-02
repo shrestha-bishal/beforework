@@ -82,6 +82,9 @@
 .markdownBody h2{font-size:1.2em;}
 .markdownBody h3,.markdownBody h4{font-size:1.05em;}
 .markdownBody ul,.markdownBody ol{margin:0 0 8px;padding-left:22px;}
+.markdownBody ul.contains-task-list{padding-left:0;list-style:none;}
+.markdownBody .task-list-item{list-style:none;}
+.markdownBody input.markdownTaskCheckbox{width:14px;height:14px;margin:0 7px 0 0;vertical-align:-2px;accent-color:var(--accent);}
 .markdownBody blockquote{margin:8px 0;padding:2px 0 2px 10px;border-left:3px solid var(--border-strong);color:var(--muted);}
 .markdownBody code{padding:1px 4px;border-radius:4px;background:var(--bg-soft2);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em;}
 .markdownBody pre{overflow:auto;margin:8px 0;padding:10px 12px;border-radius:6px;background:var(--bg-soft);white-space:pre;}
