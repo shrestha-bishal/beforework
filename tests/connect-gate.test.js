@@ -104,6 +104,7 @@ test("connect gate explains unsupported browsers and wires workspace actions",as
 
 test("app delegates connect gate behavior to its UI module",()=>{
   assert.match(app,/window\.BeforeworkConnectGate\.create\(/);
+  assert.match(app,/function hideConnectGate\(\)\s*\{\s*connectGate\.hide\(\);\s*\}/);
   assert.doesNotMatch(app,/function wireConnectGate/);
   assert.ok(index.indexOf('src="js/ui/connect-gate.js"')<index.indexOf('src="js/app.js"'));
 });

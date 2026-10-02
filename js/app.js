@@ -88,6 +88,7 @@
 
   let state = null;                 // { projects:[] }
   let connectGate = null;
+  let navigation = null;
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
   const workspaceCommands = window.BeforeworkWorkspaceCommands.create({
     getState:()=>state,
@@ -426,6 +427,9 @@
 
   function showConnectGate(){
     connectGate.show();
+  }
+  function hideConnectGate(){
+    connectGate.hide();
   }
 
   function exportJSON(){
@@ -3871,57 +3875,22 @@
 
   /* ---------- Mobile sidebar ---------- */
   function toggleSidebar(){
-    document.getElementById("sidebar").classList.toggle("open");
-    document.getElementById("sidebarScrim").classList.toggle("show");
+    navigation.toggleSidebar();
   }
   function closeSidebarOnMobile(){
-    document.getElementById("sidebar").classList.remove("open");
-    document.getElementById("sidebarScrim").classList.remove("show");
+    navigation.closeSidebarOnMobile();
   }
 
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
     const projectCreateMenu = document.getElementById("projectCreateMenu");
     const projectCreateBtn = document.getElementById("projectCreateBtn");
-    const workspaceSwitcherBtn = document.getElementById("workspaceSwitcherBtn");
-    const workspaceSwitcherMenu = document.getElementById("workspaceSwitcherMenu");
-    const closeWorkspaceSwitcher = () => {
-      workspaceSwitcherMenu.classList.remove("open");
-      workspaceSwitcherBtn.setAttribute("aria-expanded", "false");
-    };
     const closeProjectCreateMenu = () => {
       projectCreateMenu.classList.remove("open");
       projectCreateBtn.classList.remove("active");
       projectCreateBtn.setAttribute("aria-expanded", "false");
     };
-    const goToOverview = () => {
-      activeProjectId = OVERVIEW; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
-    };
-    document.getElementById("overviewNav").onclick = goToOverview;
-    document.getElementById("brandHomeBtn").onclick = goToOverview;
-    document.getElementById("calendarNav").onclick = () => {
-      activeProjectId = CALENDAR; persistActiveLocation(); renderAll(); closeSidebarOnMobile();
-    };
-    document.getElementById("roadmapNav").onclick = () => selectProject(ROADMAP);
-    document.getElementById("integrationsNav").onclick = () => {
-      navigateToIntegrations();
-    };
-    document.getElementById("settingsNav").onclick = navigateToSettings;
-    document.getElementById("supportNav").onclick = navigateToSupport;
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    workspaceSwitcherBtn.onclick = event => {
-      event.stopPropagation();
-      const open = workspaceSwitcherMenu.classList.toggle("open");
-      workspaceSwitcherBtn.setAttribute("aria-expanded", String(open));
-    };
-    document.getElementById("workspaceSwitchBtn").onclick = async () => {
-      closeWorkspaceSwitcher();
-      await switchFile();
-    };
-    document.getElementById("workspaceNewBtn").onclick = async () => {
-      closeWorkspaceSwitcher();
-      await startNewFileFromMenu();
-    };
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
       const menu = document.getElementById("projectMenu");
@@ -3949,7 +3918,6 @@
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
       if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
-      if (!event.target.closest(".workspaceSwitcher")) closeWorkspaceSwitcher();
       const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
         if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
@@ -4020,8 +3988,6 @@
       document.getElementById("projectMenuBtn").classList.remove("active");
       window.print();
     };
-    document.getElementById("sidebarToggle").onclick = toggleSidebar;
-    document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
     document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
     document.getElementById("undoBtn").onclick = undoLastChange;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
@@ -4072,6 +4038,27 @@
   async function boot({loadViewModules}){
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
+    navigation=window.BeforeworkNavigation.create({
+      onOverview:()=>{
+        activeProjectId=OVERVIEW;
+        persistActiveLocation();
+        renderAll();
+        closeSidebarOnMobile();
+      },
+      onCalendar:()=>{
+        activeProjectId=CALENDAR;
+        persistActiveLocation();
+        renderAll();
+        closeSidebarOnMobile();
+      },
+      onRoadmap:()=>selectProject(ROADMAP),
+      onIntegrations:navigateToIntegrations,
+      onSettings:navigateToSettings,
+      onSupport:navigateToSupport,
+      switchWorkspace:switchFile,
+      createWorkspace:startNewFileFromMenu
+    });
+    navigation.wire();
     window.BeforeworkBoardFilters.create({
       onSearchChange:value=>{
         boardFilterText=value.trim();
