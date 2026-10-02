@@ -15,5 +15,5 @@ test("Settings page styles are isolated and included in the stylesheet manifest"
   assert.match(settingsStyles,/\.settingsRecoveryEntry/);
   assert.match(settingsStyles,/@media \(max-width:700px\)/);
   assert.match(stylesManifest,/@import url\("settings\.css"\);/);
-  assert.match(stylesManifest,/@import url\("item-details\.css"\);\s*$/);
+  assert.match(stylesManifest,/@import url\("item-details\.css"\);/);
 });

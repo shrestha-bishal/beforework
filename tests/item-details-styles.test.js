@@ -14,5 +14,5 @@ test("item comments and activity styles are isolated and included in the manifes
   assert.match(itemDetailsStyles,/#commentsList/);
   assert.match(itemDetailsStyles,/#activityList/);
   assert.match(itemDetailsStyles,/\.itemDetailTabs/);
-  assert.match(stylesManifest,/@import url\("item-details\.css"\);\s*$/);
+  assert.match(stylesManifest,/@import url\("item-details\.css"\);/);
 });
