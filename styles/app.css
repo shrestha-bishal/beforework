@@ -390,7 +390,8 @@
   .listWrap{padding:18px 24px 88px;overflow:auto;flex:1;min-height:0;height:100%;width:100%;}
   .listAddRow{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
   .listAddRow select{width:auto;min-width:150px;}
-  .listAddRow .addListItemBtn{margin-left:auto;}
+  .listViewToolbarActions{position:relative;display:flex;align-items:center;gap:8px;margin-left:auto;}
+  .listViewMenuWrap{position:relative;display:flex;align-items:center;}
   .exportCsvBtn{display:inline-flex;align-items:center;gap:6px;}
   .exportCsvBtn iconify-icon{font-size:14px;}
   .rowTags{display:flex;gap:4px;flex-wrap:wrap;}
@@ -416,11 +417,14 @@
   .listTable .selectCell{width:42px;text-align:center;padding-left:12px!important;padding-right:6px!important;}
   .listTable tbody input[type="checkbox"],.listTable thead input[type="checkbox"]{display:block;margin:auto;}
   .listTable th.fieldColumnHeader{position:relative;white-space:nowrap;padding-right:34px!important;}
-  .listTable th.fieldColumnHeader[data-column-id]{padding-right:58px!important;}
-  .fieldColumnDragHandle{position:absolute;right:32px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:22px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--faint);cursor:grab;transform:translateY(-50%);}
+  .listTable th.fieldColumnHeader[data-column-id]{padding-right:34px!important;}
+  .listTable.rearrangingColumns th.fieldColumnHeader[data-column-id]{padding-right:58px!important;}
+  .listTable.rearrangingSingleColumn th.fieldColumnHeader[data-column-id]{padding-right:58px!important;}
+  .fieldColumnDragHandle{position:absolute;right:32px;top:50%;display:none;align-items:center;justify-content:center;width:22px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--faint);cursor:grab;transform:translateY(-50%);}
+  .listTable.rearrangingColumns .fieldColumnDragHandle,.listTable.rearrangingSingleColumn .columnRearrangeSource .fieldColumnDragHandle{display:inline-flex;}
   .fieldColumnDragHandle:hover{background:var(--bg-soft2);color:var(--text);}
   .fieldColumnDragHandle:active{cursor:grabbing;}
-  .fieldColumnDragHandle iconify-icon{font-size:15px;}
+  .fieldColumnDragHandle svg{width:15px;height:15px;}
   .listTable th.columnDragging{opacity:.45;}
   .listTable th.columnDropTarget{box-shadow:inset 2px 0 var(--accent);}
   .listTable th.columnDropTarget.columnDropAfter{box-shadow:inset -2px 0 var(--accent);}
@@ -428,10 +432,13 @@
   .fieldColumnHeader:hover .fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);}
   .fieldColumnMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
   .fieldColumnMenu{position:absolute;top:calc(100% + 3px);right:4px;z-index:70;display:none;flex-direction:column;min-width:112px;padding:4px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);text-align:left;}
+  .listViewMenuWrap .listViewMenu{top:calc(100% + 3px);right:0;}
   .fieldColumnMenu.open{display:flex;}
   .fieldColumnMenu button{padding:6px 8px;border:0;border-radius:5px;background:transparent;text-align:left;color:var(--text);font-size:12px;cursor:pointer;}
   .fieldColumnMenu button:hover{background:var(--bg-soft2);}
   .fieldColumnMenu button.danger{color:var(--danger);}
+  .fieldColumnRearrangeAction{display:flex;align-items:center;gap:8px;}
+  .listViewMenu .fieldColumnRearrangeAction svg{width:14px;height:14px;flex:none;}
   .fieldFilterGroup,.tagFilterGroup{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 9px;
     border-radius:7px;background:var(--accent-soft);color:var(--accent-strong);}
   .fieldFilterGroup .removeFieldFilter,.tagFilterGroup .removeFieldFilter{padding:2px 5px;font-size:11px;}

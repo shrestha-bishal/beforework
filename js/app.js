@@ -1660,9 +1660,72 @@
   }
   function wireTableColumnReordering(table,project,viewType){
     const getColumnIds=()=>[...table.tHead.rows[0].cells].filter(cell=>cell.dataset.columnId).map(cell=>cell.dataset.columnId);
+    const toolbar=table.closest(".listWrap")?.querySelector(".listViewToolbarActions");
+    const viewMenuButton=toolbar?.querySelector(".listViewMenuBtn");
+    const viewMenu=toolbar?.querySelector(".listViewMenu");
+    const globalRearrangeAction=viewMenu?.querySelector(".fieldColumnRearrangeAction");
+    let rearrangeMode=null;
+    let rearrangeSource=null;
+    const setRearrangeMode=(mode,source=null)=>{
+      rearrangeMode=mode;
+      rearrangeSource=source;
+      table.classList.toggle("rearrangingColumns",mode==="all");
+      table.classList.toggle("rearrangingSingleColumn",mode==="single");
+      table.querySelectorAll("th[data-column-id]").forEach(header=>{
+        header.classList.toggle("columnRearrangeSource",mode==="single"&&header===source);
+        const handle=header.querySelector(".fieldColumnDragHandle");
+        if (handle) handle.draggable=mode==="all"||(mode==="single"&&header===source);
+      });
+      if (globalRearrangeAction) globalRearrangeAction.querySelector("span").textContent=mode?"Done":"Rearrange";
+      table.querySelectorAll(".columnRearrangeAction").forEach(action=>{
+        action.textContent=mode==="single"&&action.closest("th")===source?"Done":"Rearrange";
+      });
+    };
+    const toggleColumnRearrange=(header,menu)=>{
+      menu.classList.remove("open");
+      if (rearrangeMode==="single"&&rearrangeSource===header) setRearrangeMode(null);
+      else setRearrangeMode("single",header);
+    };
     table.querySelectorAll("th[data-column-id]").forEach(th=>{
+      let menuButton=th.querySelector(".fieldColumnMenuBtn");
+      let menu=th.querySelector(".fieldColumnMenu");
+      const label=th.querySelector(".fieldColumnLabel")?.textContent||"column";
+      if (!menuButton){
+        menuButton=document.createElement("button");
+        menuButton.type="button";
+        menuButton.className="fieldColumnMenuBtn";
+        menuButton.setAttribute("aria-label",`Actions for ${label}`);
+        menuButton.title="Column actions";
+        menuButton.textContent="⋮";
+        th.appendChild(menuButton);
+      }
+      if (!menu){
+        menu=document.createElement("div");
+        menu.className="fieldColumnMenu";
+        th.appendChild(menu);
+      }
+      let columnAction=menu.querySelector(".columnRearrangeAction");
+      if (!columnAction){
+        columnAction=document.createElement("button");
+        columnAction.type="button";
+        columnAction.className="fieldColumnRearrangeAction columnRearrangeAction";
+        columnAction.textContent="Rearrange";
+        menu.insertBefore(columnAction,menu.firstChild);
+      }
+      menuButton.onclick=event=>{
+        event.stopPropagation();
+        const shouldOpen=!menu.classList.contains("open");
+        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
+        menu.classList.toggle("open",shouldOpen);
+      };
+      columnAction.onclick=event=>{
+        event.stopPropagation();
+        toggleColumnRearrange(th,menu);
+      };
       const dragHandle=th.querySelector(".fieldColumnDragHandle");
       if (!dragHandle) return;
+      dragHandle.draggable=false;
+      dragHandle.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 15v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2z"></path></svg>';
       const clearDragStyles=()=>table.querySelectorAll(".columnDragging,.columnDropTarget,.columnDropAfter").forEach(header=>header.classList.remove("columnDragging","columnDropTarget","columnDropAfter"));
       dragHandle.addEventListener("click",event=>event.stopPropagation());
       dragHandle.addEventListener("dragstart",event=>{
@@ -1691,20 +1754,39 @@
         clearDragStyles();
         if (reorderTableColumn(project,viewType,getColumnIds(),sourceId,th.dataset.columnId,position)){
           scheduleSave();
-          render();
+          applyTableColumnOrder(table,project,viewType);
         }
       });
     });
+    table.closest(".listWrap")?.addEventListener("click",event=>{
+      if (!rearrangeMode || event.target.closest("th[data-column-id],.fieldColumnRearrangeAction")) return;
+      setRearrangeMode(null);
+    });
+    if (viewMenuButton&&viewMenu&&globalRearrangeAction){
+      viewMenuButton.onclick=event=>{
+        event.stopPropagation();
+        const shouldOpen=!viewMenu.classList.contains("open");
+        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
+        viewMenu.classList.toggle("open",shouldOpen);
+        viewMenuButton.setAttribute("aria-expanded",String(shouldOpen));
+      };
+      globalRearrangeAction.onclick=event=>{
+        event.stopPropagation();
+        viewMenu.classList.remove("open");
+        viewMenuButton.setAttribute("aria-expanded","false");
+        setRearrangeMode(rearrangeMode==="all"?null:"all");
+      };
+      table.closest(".listWrap")?.addEventListener("keydown",event=>{
+        if (event.key!=="Escape") return;
+        viewMenu.classList.remove("open");
+        viewMenuButton.setAttribute("aria-expanded","false");
+        table.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>menu.classList.remove("open"));
+        if (rearrangeMode) setRearrangeMode(null);
+      });
+    }
   }
   function wireCustomColumnHeader(th, field, project){
-    const menuButton = th.querySelector(".fieldColumnMenuBtn");
     const menu = th.querySelector(".fieldColumnMenu");
-    menuButton.onclick = event => {
-      event.stopPropagation();
-      const shouldOpen = !menu.classList.contains("open");
-      document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
-      menu.classList.toggle("open", shouldOpen);
-    };
     menu.querySelector('[data-column-action="edit"]').onclick = async event => {
       event.stopPropagation();
       menu.classList.remove("open");
@@ -1720,14 +1802,7 @@
     };
   }
   function wireGroupColumnHeader(th, project){
-    const menuButton = th.querySelector(".fieldColumnMenuBtn");
     const menu = th.querySelector(".fieldColumnMenu");
-    menuButton.onclick = event=>{
-      event.stopPropagation();
-      const shouldOpen = !menu.classList.contains("open");
-      document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
-      menu.classList.toggle("open", shouldOpen);
-    };
     menu.querySelectorAll("[data-group-action]").forEach(button=>{
       button.onclick = async event=>{
         event.stopPropagation();
@@ -4145,7 +4220,7 @@
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
         if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
       });
-      if (!event.target.closest(".fieldColumnHeader")){
+      if (!event.target.closest(".fieldColumnHeader,.listViewMenu,.listViewMenuBtn")){
         document.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>menu.classList.remove("open"));
       }
     });
