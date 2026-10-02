@@ -87,6 +87,7 @@
   ];
 
   let state = null;                 // { projects:[] }
+  let connectGate = null;
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
   const workspaceCommands = window.BeforeworkWorkspaceCommands.create({
     getState:()=>state,
@@ -423,39 +424,8 @@
     renderAll();
   }
 
-  /* Persistence moved to js/services/storage/storage.js */
-
-/* ---------- Connect gate ---------- */
-  // Nothing in the app is usable until a workspace folder or legacy file is
-  // connected - browser storage is only for recovery and reconnect metadata.
   function showConnectGate(){
-    const gate = document.getElementById("connectGate");
-    const folderSupported = "showDirectoryPicker" in window;
-    const fileSupported = "showOpenFilePicker" in window && "showSaveFilePicker" in window;
-    const supported = folderSupported || fileSupported;
-    document.getElementById("gateNewBtn").hidden = !folderSupported;
-    document.getElementById("gateOpenBtn").hidden = !folderSupported;
-    document.getElementById("gateLegacyFileBtn").hidden = !fileSupported;
-    if (getSyncStatusText()==="No workspace connected.") setSyncStatus("No workspace folder connected. Create or open one, or choose an older JSON workspace.");
-    document.getElementById("gateSupportedActions").style.display = supported ? "flex" : "none";
-    document.getElementById("gateUnsupported").style.display = supported ? "none" : "block";
-    const reconnectRow = document.getElementById("gateReconnectRow");
-    if (supported && pendingReconnectHandle){
-      reconnectRow.style.display = "block";
-      document.getElementById("gateFileName").textContent = pendingReconnectHandle.name;
-    } else {
-      reconnectRow.style.display = "none";
-    }
-    const legacyRow = document.getElementById("gateLegacyRow");
-    if (supported && localStorage.getItem(LEGACY_LS_KEY)){
-      legacyRow.style.display = "block";
-    } else {
-      legacyRow.style.display = "none";
-    }
-    gate.classList.add("open");
-  }
-  function hideConnectGate(){
-    document.getElementById("connectGate").classList.remove("open");
+    connectGate.show();
   }
 
   function exportJSON(){
@@ -3917,18 +3887,6 @@
   }
 
   /* ---------- Wiring ---------- */
-  function wireConnectGate(){
-    const runFromGate = async action => {
-      hideConnectGate();
-      await action();
-      if (!fileHandle) showConnectGate();
-    };
-    document.getElementById("gateNewBtn").onclick = () => runFromGate(createNewWorkspaceFolder);
-    document.getElementById("gateOpenBtn").onclick = () => runFromGate(openExistingWorkspaceFolder);
-    document.getElementById("gateLegacyFileBtn").onclick = () => runFromGate(openExistingFile);
-    document.getElementById("gateReconnectBtn").onclick = reconnectPendingFile;
-    document.getElementById("gateLegacyBtn").onclick = migrateLegacyBrowserData;
-  }
   function wireStaticControls(){
     const projectCreateMenu = document.getElementById("projectCreateMenu");
     const projectCreateBtn = document.getElementById("projectCreateBtn");
@@ -4155,7 +4113,21 @@
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
     wireStaticControls();
-    wireConnectGate();
+    connectGate = window.BeforeworkConnectGate.create({
+      getSyncStatusText,
+      setSyncStatus,
+      getPendingReconnectHandle:()=>pendingReconnectHandle,
+      hasLegacyData:()=>!!localStorage.getItem(LEGACY_LS_KEY),
+      hasConnectedWorkspace:()=>!!fileHandle,
+      actions:{
+        createWorkspace:createNewWorkspaceFolder,
+        openWorkspace:openExistingWorkspaceFolder,
+        openLegacyFile:openExistingFile,
+        reconnect:reconnectPendingFile,
+        migrateLegacyData:migrateLegacyBrowserData
+      }
+    });
+    connectGate.wire();
     enhanceSelectControls();
     enhanceDateInputs();
     new MutationObserver(mutations=>mutations.forEach(mutation=>mutation.addedNodes.forEach(node=>{
