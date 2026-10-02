@@ -614,7 +614,7 @@
 
   /* Item modal - GitHub-issue style two-pane layout: fixed header and
      footer, with a scrollable body split into a main column and a metadata sidebar. */
-  #itemModal{width:min(1120px,calc(100vw - 48px));max-height:min(90vh,900px);padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
+  #itemModal{width:min(1280px,calc(100vw - 48px));max-height:min(90vh,900px);padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
   .itemModalActions{position:relative;display:flex;align-items:center;gap:2px;flex:none;z-index:3;}
   .itemModalMenuButton{display:grid;place-items:center;width:32px;height:32px;padding:0;border-radius:7px;color:var(--muted);}
@@ -635,7 +635,7 @@
     border:1px solid transparent;border-radius:10px;}
   .itemModalHeader #itemTitleInput:hover{background:var(--bg-soft);}
   .itemModalHeader #itemTitleInput:focus{background:var(--bg-soft);border-color:var(--border);box-shadow:none;}
-  .itemModalBody{flex:1;min-height:0;display:flex;overflow-x:hidden;overflow-y:auto;}
+  .itemModalBody{flex:1;min-height:0;display:flex;overflow-x:hidden;overflow-y:auto;margin-bottom: 16px;}
   .itemModalMain{flex:1;min-width:0;padding:26px 30px 24px;display:flex;flex-direction:column;gap:20px;}
   .itemModalSidebar{width:330px;flex:none;border-left:1px solid var(--border);background:var(--bg);
     padding:24px 22px;display:flex;flex-direction:column;gap:14px;}
