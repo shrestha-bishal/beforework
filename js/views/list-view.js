@@ -170,7 +170,7 @@ export class ListView {
         const cell=document.createElement("td");
         cell.className="p-2 border-bottom";
         cell.dataset.columnId=`field:${field.id}`;
-        appendMarkup(cell,fieldCellHtml(field,item.values[field.id]));
+        appendMarkup(cell,fieldCellHtml(field,item.values[field.id],project));
         tagsCell.before(cell);
       });
       tbody.appendChild(row);

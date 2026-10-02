@@ -347,6 +347,9 @@
   .multiSelectFieldOption{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 7px;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;}
   .multiSelectFieldOption input{flex:none;width:14px;height:14px;min-height:0;margin:0;}
   .multiSelectFieldOption span{overflow-wrap:anywhere;}
+  .relationPill{display:inline-flex;align-items:center;gap:4px;margin:1px 3px 1px 0;}
+  .relationPill iconify-icon{font-size:12px;}
+  .tableRelationValue{display:block;min-width:110px;max-width:240px;overflow:hidden;color:var(--text);text-overflow:ellipsis;white-space:nowrap;}
   .fieldOptionsEmpty{color:var(--faint);font-size:11px;}
   td .tableCell{background:transparent;border:1px solid transparent;}
   td .tableCell:hover{border-color:var(--border);background:var(--bg-soft);}
@@ -650,6 +653,7 @@
   .itemModalSidebar>.sideItem:last-child{padding-bottom:0;border-bottom:0;}
   .itemModalSidebar .form-control,.itemModalSidebar .datePickerButton,.itemModalSidebar .appSelectButton{
     min-height:36px;border-radius:8px;background:var(--bg);box-shadow:none;}
+  .itemModalSidebar .appSelectButton:hover,.itemModalSidebar .appSelectButton[aria-expanded="true"]{background:var(--bg-soft);}
   .itemModalSidebar .form-control:focus,.itemModalSidebar .datePickerButton:focus,.itemModalSidebar .appSelectButton:focus{
     border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   .itemModalSidebar .typeTabs{border-radius:8px;background:var(--bg-soft);}

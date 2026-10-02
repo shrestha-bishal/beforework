@@ -394,7 +394,10 @@ test("duplicates projects with remapped milestone links", async()=>{
     ...context,
     project:{
       id:"project-1",name:"Launch",milestones:[{id:"milestone-1",title:"First release",dueDate:null}],
-      fields:[],tags:[],groups:[{id:"group-1",items:[{id:"task-1",title:"Prepare release",milestoneId:"milestone-1"}]}],
+      fields:[{id:"related",type:"relation",options:[]}],tags:[],groups:[{id:"group-1",items:[
+        {id:"task-1",title:"Prepare release",milestoneId:"milestone-1",values:{related:["task-2"]}},
+        {id:"task-2",title:"Publish release",values:{related:["task-1"]}}
+      ]}],
       views:[{id:"view-1",type:"list",name:"List"}],activeViewId:"view-1"
     }
   });
@@ -402,6 +405,8 @@ test("duplicates projects with remapped milestone links", async()=>{
   const copy=context.state.projects[0];
   assert.notEqual(copy.milestones[0].id,"milestone-1");
   assert.equal(copy.groups[0].items[0].milestoneId,copy.milestones[0].id);
+  assert.deepEqual(copy.groups[0].items[0].values[copy.fields[0].id],[copy.groups[0].items[1].id]);
+  assert.deepEqual(copy.groups[0].items[1].values[copy.fields[0].id],[copy.groups[0].items[0].id]);
 });
 
 test("milestones view renders linked task progress", ()=>{

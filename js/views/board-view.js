@@ -87,7 +87,7 @@ export class BoardView {
     card.classList.toggle("archived",!!item.archived);
     card.draggable=true;
     const priority=priorityField(project);
-    if (priority) appendMarkup(card.querySelector(".cardPriority"),fieldChipHtml(priority,item.values[priority.id]));
+    if (priority) appendMarkup(card.querySelector(".cardPriority"),fieldChipHtml(priority,item.values[priority.id],project));
     card.querySelector("[data-board-card-title]").textContent=item.title;
     card.querySelector(".cardArchived").hidden=!item.archived;
     const doneSubitems=item.subitems.filter(subitem=>subitem.done).length;
@@ -99,7 +99,7 @@ export class BoardView {
     if (item.comments&&item.comments.length) card.querySelector("[data-board-comment-count]").textContent=String(item.comments.length);
     const dateChips=card.querySelector(".cardDateChips");
     fieldsWithStartBeforeDue(dateFields(project)).forEach(field=>{
-      appendMarkup(dateChips,fieldChipHtml(field,item.values[field.id]));
+      appendMarkup(dateChips,fieldChipHtml(field,item.values[field.id],project));
     });
     const tags=card.querySelector(".cardTags");
     (item.tagIds||[]).forEach(tagId=>{

@@ -11,15 +11,21 @@ function fieldControl(field,item,group,project,value,priorityOptions){
     iid:item.id,
     fieldid:field.id
   };
-  if (field.type==="priority" || field.type==="select" || field.type==="multi-select"){
+  if (field.type==="priority" || field.type==="select" || field.type==="multi-select" || field.type==="relation"){
     const control=document.createElement("select");
-    control.className=`form-control tableCell${field.type==="multi-select"?" tableMultiSelect":""}`;
+    const isMultiple=field.type==="multi-select"||field.type==="relation";
+    control.className=`form-control tableCell${isMultiple?" tableMultiSelect":""}`;
     Object.assign(control.dataset,dataset);
-    if (field.type==="multi-select"){
+    if (isMultiple){
       control.multiple=true;
-      control.size=Math.max(2,Math.min(3,(field.options||[]).length));
+      const options=field.type==="relation"
+        ? project.groups.flatMap(candidateGroup=>candidateGroup.items
+          .filter(candidate=>candidate.id!==item.id)
+          .map(candidate=>({id:candidate.id,label:`${candidate.title} (${candidateGroup.name})`})))
+        : field.options||[];
+      control.size=Math.max(2,Math.min(3,options.length));
       const selected=Array.isArray(value)?value:[];
-      (field.options||[]).forEach(option=>{
+      options.forEach(option=>{
         const element=document.createElement("option");
         element.value=option.id;
         element.textContent=option.label;
@@ -49,6 +55,13 @@ function fieldControl(field,item,group,project,value,priorityOptions){
     control.checked=value===true || value==="true" || value==="1" || value==="yes" || value===1;
     label.appendChild(control);
     return label;
+  }
+  if (field.type==="relation"){
+    const titles=new Map(project.groups.flatMap(candidateGroup=>candidateGroup.items).map(candidate=>[candidate.id,candidate.title]));
+    const control=document.createElement("span");
+    control.className="tableRelationValue";
+    control.textContent=(Array.isArray(value)?value:[]).map(id=>titles.get(id)).filter(Boolean).join(", ")||"-";
+    return control;
   }
   const control=document.createElement("input");
   control.className="form-control tableCell";
@@ -236,7 +249,7 @@ export class TableView {
         if (!item) return;
         const field=project.fields.find(candidate=>candidate.id===control.dataset.fieldid);
         const nextValue=field?.type==="checkbox"?(event.target.checked?"true":"")
-          : field?.type==="multi-select"?[...event.target.selectedOptions].map(option=>option.value)
+          : ["multi-select","relation"].includes(field?.type)?[...event.target.selectedOptions].map(option=>option.value)
           : field?.type==="number"?(event.target.value===""?"":Number(event.target.value))
           : event.target.value;
         item.values[control.dataset.fieldid]=nextValue;

@@ -53,7 +53,8 @@ test("Table group header visibility matches optional group cells",()=>{
 });
 
 test("Table field controls preserve the supported editable field types",()=>{
-  for (const fieldType of ["priority","select","multi-select","checkbox","number","url","email","date","start-date","due-date"]){
+  for (const fieldType of ["priority","select","multi-select","relation","checkbox","number","url","email","date","start-date","due-date"]){
     assert.ok(view.includes(`"${fieldType}"`),`missing ${fieldType} behavior`);
   }
+  assert.ok(view.includes('["multi-select","relation"].includes(field?.type)'));
 });

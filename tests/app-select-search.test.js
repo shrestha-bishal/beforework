@@ -27,8 +27,17 @@ function createElement(){
       contains(name){ return classes.has(name); }
     },
     setAttribute(name,value){ this.attributes[name]=value; },
+    getAttribute(name){ return this.attributes[name]; },
     addEventListener(name,callback){ listeners[name]=callback; },
-    appendChild(child){ this.children.push(child); child.parentNode=this; return child; },
+    appendChild(child){
+      if (child.parentNode){
+        const index=child.parentNode.children.indexOf(child);
+        if (index>=0) child.parentNode.children.splice(index,1);
+      }
+      this.children.push(child);
+      child.parentNode=this;
+      return child;
+    },
     append(...children){ children.forEach(child=>this.appendChild(child)); },
     insertBefore(child,reference){
       const index=this.children.indexOf(reference);
@@ -42,14 +51,16 @@ function createElement(){
   };
 }
 
-function createHarness(){
+function createHarness({multiple=false}={}){
   const document={createElement,body:createElement(),activeElement:null};
   activeDocument=document;
   const select=createElement();
+  select.multiple=multiple;
+  select.dataset.appSelectPlaceholder="Select options";
   select.options=[
-    {value:"todo",textContent:"To do"},
-    {value:"doing",textContent:"In progress"},
-    {value:"done",textContent:"Done"}
+    {value:"todo",textContent:"To do",selected:true},
+    {value:"doing",textContent:"In progress",selected:false},
+    {value:"done",textContent:"Done",selected:false}
   ];
   select.selectedIndex=0;
   select.value="todo";
@@ -59,7 +70,7 @@ function createHarness(){
   select.classList=Object.assign(select.classList,{add(){}});
   select.dispatchEvent=event=>{
     if (event.type==="change"){
-      select.selectedIndex=select.options.findIndex(option=>option.value===select.value);
+      if (!multiple) select.selectedIndex=select.options.findIndex(option=>option.value===select.value);
       select.listeners.change?.();
     }
   };
@@ -117,7 +128,35 @@ test("custom select resets search when reopened and selecting a result updates t
   assert.deepEqual(options.map(option=>option.hidden),[false,false,false]);
 });
 
+test("multiple appSelect toggles options, stays open, and preserves option order",()=>{
+  const {button,menu,search,select,options,optionList}=createHarness({multiple:true});
+  assert.equal(optionList.attributes["aria-multiselectable"],"true");
+  assert.equal(button.children[0].textContent,"To do");
+  button.onclick({stopPropagation(){}});
+  search.value="gress";
+  search.listeners.input();
+  options[1].onclick();
+  assert.equal(select.options[1].selected,true);
+  assert.equal(button.children[0].textContent,"To do, In progress");
+  assert.equal(menu.hidden,false);
+  assert.deepEqual(optionList.children.map(option=>option.dataset.value),["todo","doing","done"]);
+  assert.deepEqual(optionList.children.map(option=>option.hidden),[true,false,true]);
+  assert.equal(optionList.children[0].getAttribute("aria-selected"),"true");
+
+  options[0].onclick();
+  assert.equal(select.options[0].selected,false);
+  assert.equal(button.children[0].textContent,"In progress");
+  assert.deepEqual(optionList.children.map(option=>option.dataset.value),["todo","doing","done"]);
+  assert.equal(menu.hidden,false);
+});
+
+test("appSelect exposes reusable enhancement methods for other controls",()=>{
+  assert.match(appSource,/window\.BeforeworkAppSelect=\{\s*enhance:enhanceSelectControl,\s*enhanceAll:enhanceSelectControls\s*\}/);
+  assert.match(snippet,/const isMultiple=select\.multiple/);
+});
+
 test("selected option pill remains inside the scrollable option list",()=>{
   assert.match(appStyles,/\.appSelectOption\.selected::before\{left:4px;\}/);
   assert.match(appStyles,/\.appSelectOption\.selected\{padding-left:15px;/);
+  assert.match(appStyles,/\.itemModalSidebar \.appSelectButton\[aria-expanded="true"\]\{background:var\(--bg-soft\);\}/);
 });

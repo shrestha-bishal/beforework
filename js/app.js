@@ -52,6 +52,7 @@
     {value:"email", label:"Email", description:"Store a contact email address."},
     {value:"number", label:"Number", description:"Store a count, estimate, or other numeric value."},
     {value:"multi-select", label:"Multi-select", description:"Choose more than one option."},
+    {value:"relation", label:"Relations", description:"Link this item to other items in the same project."},
   ];
   const FIELD_TYPES = FIELD_TYPE_OPTIONS.map(option=>option.value);
   function fieldTypeLabel(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.label || "Text"; }
@@ -816,6 +817,7 @@
     const groupIds = new Map();
     const viewIds = new Map();
     const milestoneIds = new Map();
+    const itemIds = new Map();
     const now = Date.now();
     const fields = (project.fields||[]).map(field=>{
       const id = uid();
@@ -835,17 +837,21 @@
     const groups = project.groups||[];
     const views = project.views||[];
     groups.forEach(group=>groupIds.set(group.id, uid()));
+    groups.forEach(group=>(group.items||[]).forEach(item=>itemIds.set(item.id,uid())));
     views.forEach(view=>viewIds.set(view.id, uid()));
     (project.milestones||[]).forEach(milestone=>milestoneIds.set(milestone.id,uid()));
 
     const copyItem = item=>{
       const values = {};
       Object.entries(item.values||{}).forEach(([fieldId,value])=>{
-        values[fieldIds.get(fieldId)||fieldId] = optionIds.get(value)||value;
+        const sourceField=(project.fields||[]).find(field=>field.id===fieldId);
+        values[fieldIds.get(fieldId)||fieldId] = sourceField?.type==="relation"
+          ? (Array.isArray(value)?value.map(id=>itemIds.get(id)).filter(Boolean):[])
+          : optionIds.get(value)||value;
       });
       const copy = {
         ...item,
-        id:uid(),
+        id:itemIds.get(item.id),
         tagIds:(item.tagIds||[]).map(id=>tagIds.get(id)).filter(Boolean),
         milestoneId:milestoneIds.get(item.milestoneId)||null,
         attachments:(item.attachments||[]).map(attachment=>({...attachment})),
@@ -1387,11 +1393,29 @@
     if (titleInput) titleInput.focus();
   }
   function deleteItem(pid,gid,iid){
+    const project=getProject(pid);
     const g = getGroup(pid,gid);
     const item = g.items.find(candidate=>candidate.id===iid);
     queueGoogleEventDeletes(item);
     g.items = g.items.filter(i=>i.id!==iid);
+    removeItemRelations(project,[iid]);
     scheduleSave(); render();
+  }
+  function removeItemRelations(project,itemIds){
+    if (!project || !itemIds.length) return;
+    const removed=new Set(itemIds);
+    const now=Date.now();
+    project.groups.forEach(group=>group.items.forEach(item=>{
+      (project.fields||[]).filter(field=>field.type==="relation").forEach(field=>{
+        const linked=item.values?.[field.id];
+        if (!Array.isArray(linked)) return;
+        const next=linked.filter(id=>!removed.has(id));
+        if (next.length!==linked.length){
+          item.values[field.id]=next;
+          item.updatedAt=now;
+        }
+      });
+    }));
   }
   function makeDuplicateItem(source){
     const now = Date.now();
@@ -1485,6 +1509,7 @@
       g.items.forEach(item=>{ if (selectedItemIds.has(item.id)) queueGoogleEventDeletes(item); });
       g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
     });
+    removeItemRelations(project,[...selectedItemIds]);
     selectedItemIds.clear(); scheduleSave(); render(); renderProjectList();
   }
   async function bulkMove(project){
@@ -1852,7 +1877,7 @@
       }catch(error){ await showNotice("Couldn't download attachment",error.message); }
     };
   }
-  function fieldChipHtml(field, value){
+  function fieldChipHtml(field, value, project){
     if (!value) return "";
     if (field.type==="priority"){
       const opt = PRIORITY_OPTIONS.find(o=>o.id===value); if (!opt) return "";
@@ -1870,10 +1895,19 @@
         return opt ? `<span class="Label Label--secondary"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>` : "";
       }).join("");
     }
+    if (field.type==="relation"){
+      return relatedItemTitles(project,value)
+        .map(title=>`<span class="Label Label--secondary relationPill"><iconify-icon icon="mdi:link-variant" aria-hidden="true"></iconify-icon>${escapeHtml(title)}</span>`).join("");
+    }
     if (field.type==="checkbox") return value ? `<span class="Label Label--secondary">✓</span>` : "";
     return `<span class="Label Label--secondary">${escapeHtml(String(value))}</span>`;
   }
-  function fieldCellHtml(field, value){
+  function relatedItemTitles(project,value){
+    if (!project || !Array.isArray(value)) return [];
+    const titles=new Map(project.groups.flatMap(group=>group.items).map(item=>[item.id,item.title]));
+    return value.map(id=>titles.get(id)).filter(Boolean);
+  }
+  function fieldCellHtml(field, value, project){
     if (field.type==="priority"){
       const opt = PRIORITY_OPTIONS.find(o=>o.id===value);
       return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "-";
@@ -1884,6 +1918,10 @@
       return opt ? fieldChipHtml(field,value) : "-";
     }
     if (field.type==="multi-select") return fieldChipHtml(field,value) || "-";
+    if (field.type==="relation"){
+      const titles=relatedItemTitles(project,value);
+      return titles.length ? titles.map(title=>`<span class="Label Label--secondary relationPill"><iconify-icon icon="mdi:link-variant" aria-hidden="true"></iconify-icon>${escapeHtml(title)}</span>`).join("") : "-";
+    }
     if (field.type==="checkbox") return value ? "Yes" : "No";
     if (field.type==="url"){
       const href=safeUrlHref(value);
@@ -1994,11 +2032,12 @@
     });
   }
 
-  function csvFieldValue(field,value){
+  function csvFieldValue(field,value,project){
     if (value==null || value==="") return "";
     if (field.type==="priority") return PRIORITY_OPTIONS.find(option=>option.id===value)?.label||String(value);
     if (field.type==="select") return (field.options||[]).find(option=>option.id===value)?.label||String(value);
     if (field.type==="multi-select") return (Array.isArray(value)?value:[]).map(id=>(field.options||[]).find(option=>option.id===id)?.label||"").filter(Boolean).join("; ");
+    if (field.type==="relation") return relatedItemTitles(project,value).join("; ");
     if (field.type==="checkbox") return value===true || ["true","1","yes"].includes(String(value).toLowerCase()) ? "Yes" : "No";
     return String(value);
   }
@@ -2018,7 +2057,7 @@
     const columns=[
       {id:"title",label:"Title",value:row=>row.item.title},
       ...(showGroupColumn?[{id:"group",label:"Group",value:row=>row.group.name}]:[]),
-      ...project.fields.map(field=>({id:`field:${field.id}`,label:field.label,value:row=>csvFieldValue(field,row.item.values[field.id])})),
+      ...project.fields.map(field=>({id:`field:${field.id}`,label:field.label,value:row=>csvFieldValue(field,row.item.values[field.id],project)})),
       {id:"tags",label:"Tags",value:row=>(row.item.tagIds||[]).map(id=>project.tags.find(tag=>tag.id===id)?.name||"").filter(Boolean).join("; ")},
       ...(viewType==="list" && showProgressColumn?[{id:"progress",label:"Progress",value:row=>row.item.subitems.length?`${row.item.subitems.filter(subitem=>subitem.done).length}/${row.item.subitems.length}`:""}]:[]),
       ...(viewType==="list"?[{id:"updated",label:"Updated",value:row=>formatUpdatedAt(row.item.updatedAt)}]:[])
@@ -2610,7 +2649,9 @@
     const wrap = document.getElementById("fieldFilters");
     const selectedField = project.fields.find(field=>`field:${field.id}`===activeFilterCategory);
     const visibleOptions = selectedField ? [selectedField].map(f=>{
-      const opts = f.type==="priority" ? PRIORITY_OPTIONS : (f.options||[]);
+      const opts = f.type==="priority" ? PRIORITY_OPTIONS : f.type==="relation"
+        ? project.groups.flatMap(group=>group.items).map(item=>({id:item.id,label:item.title}))
+        : (f.options||[]);
       const current = boardFilterFields.get(f.id);
       let control;
       if (isDateField(f)) control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
@@ -3099,6 +3140,7 @@
   }
   function enhanceSelectControl(select){
     if (select.dataset.appSelectEnhanced || !select.options.length) return;
+    const isMultiple=select.multiple;
     select.dataset.appSelectEnhanced="true";
     const wrapper=document.createElement("div");
     wrapper.className="appSelectWrap";
@@ -3130,16 +3172,20 @@
     const optionList=document.createElement("div");
     optionList.className="appSelectOptions";
     optionList.setAttribute("role","listbox");
+    if (isMultiple) optionList.setAttribute("aria-multiselectable","true");
     const emptyState=document.createElement("div");
     emptyState.className="appSelectEmpty";
     emptyState.textContent="No options found";
     emptyState.hidden=true;
-    const options=[...select.options].map(option=>{
+    const nativeOptions=[...select.options];
+    const options=nativeOptions.map((option,index)=>{
       const item=document.createElement("button");
       item.type="button";
       item.className="appSelectOption";
       item.setAttribute("role","option");
       item.dataset.value=option.value;
+      item.dataset.index=String(index);
+      item.dataset.order=String(index);
       item.textContent=option.textContent;
       optionList.appendChild(item);
       return item;
@@ -3158,10 +3204,16 @@
       optionList.hidden=visibleCount===0;
     };
     const sync=()=>{
-      const selected=select.options[select.selectedIndex]||select.options[0];
-      label.textContent=selected.textContent;
+      if (isMultiple){
+        const selected=nativeOptions.filter(option=>option.selected);
+        label.textContent=selected.map(option=>option.textContent).join(", ")||select.dataset.appSelectPlaceholder||"Select options";
+      }else{
+        const selected=nativeOptions[select.selectedIndex]||nativeOptions[0];
+        label.textContent=selected.textContent;
+      }
       options.forEach((option,index)=>{
-        const active=select.options[index]===selected;
+        const nativeOption=nativeOptions[Number(option.dataset.index)];
+        const active=isMultiple ? nativeOption.selected : nativeOption===nativeOptions[select.selectedIndex];
         option.classList.toggle("selected",active);
         option.setAttribute("aria-selected",String(active));
       });
@@ -3179,9 +3231,12 @@
     };
     search.addEventListener("input",filterOptions);
     options.forEach(option=>option.onclick=()=>{
-      select.value=option.dataset.value;
+      const nativeOption=nativeOptions[Number(option.dataset.index)];
+      if (isMultiple) nativeOption.selected=!nativeOption.selected;
+      else select.value=option.dataset.value;
       select.dispatchEvent(new Event("change",{bubbles:true}));
-      sync(); close(); button.focus();
+      sync();
+      if (!isMultiple){ close(); button.focus(); }
     });
     menu.onkeydown=event=>{
       const visibleOptions=options.filter(option=>!option.hidden);
@@ -3200,8 +3255,13 @@
     sync();
   }
   function enhanceSelectControls(root=document){
+    if (root.matches?.("select:not([data-app-select-enhanced])")) enhanceSelectControl(root);
     root.querySelectorAll("select:not([data-app-select-enhanced])").forEach(enhanceSelectControl);
   }
+  window.BeforeworkAppSelect={
+    enhance:enhanceSelectControl,
+    enhanceAll:enhanceSelectControls
+  };
   function enhanceDateInput(input){
     if (input.dataset.datePickerEnhanced) return;
     input.dataset.datePickerEnhanced="true";
@@ -3468,7 +3528,7 @@
   function showDialog(options){ return dialogs.showDialog(options); }
   function showNotice(title, message){ return dialogs.showNotice(title, message); }
   function showConfirm(title, message, danger=false){ return dialogs.showConfirm(title, message, danger); }
-  function fieldInputHtml(field, item){
+  function fieldInputHtml(field, item, project){
     const val = item.values[field.id] ?? "";
     const isChecked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
     if (field.type==="priority"){
@@ -3485,6 +3545,18 @@
       const selected=new Set(Array.isArray(val) ? val : []);
       const options=(field.options||[]).map(option=>`<label class="multiSelectFieldOption"><input type="checkbox" class="fieldInput" data-fieldid="${field.id}" value="${option.id}" ${selected.has(option.id)?"checked":""}><span>${escapeHtml(option.label)}</span></label>`).join("");
       return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><div class="multiSelectFieldOptions">${options||`<span class="fieldOptionsEmpty">Add options to this column first.</span>`}</div></div>`;
+    }
+    if (field.type==="relation"){
+      const selected=new Set(Array.isArray(val)?val:[]);
+      const options=(project?.groups||[]).flatMap(group=>group.items
+        .filter(candidate=>candidate.id!==item.id)
+        .map(candidate=>({item:candidate,group})));
+      const optionHtml=options.map(({item:target})=>
+        `<option value="${escapeHtml(target.id)}" ${selected.has(target.id)?"selected":""}>${escapeHtml(target.title)}</option>`
+      ).join("");
+      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div>${options.length
+        ? `<select multiple class="form-control fieldInput relationFieldSelect" data-fieldid="${escapeHtml(field.id)}" data-app-select-placeholder="Select items" aria-label="${escapeHtml(field.label)}">${optionHtml}</select>`
+        : `<span class="fieldOptionsEmpty">Add another item to this project to create a relation.</span>`}</div>`;
     }
     if (["date","start-date","due-date"].includes(field.type)){
       return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
@@ -3532,7 +3604,7 @@
       </div>`).join("");
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
-    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).map(field=>fieldInputHtml(field,item)).join("");
+    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).map(field=>fieldInputHtml(field,item,project)).join("");
     const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
     const recurrence = normaliseRecurrence(item.recurrence);
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
@@ -3895,12 +3967,17 @@
         }
         if (isDateField(field) && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
         const nextValue = field?.type==="checkbox" ? (e.target.checked ? "true" : "")
+          : field?.type==="relation" ? [...el.selectedOptions].map(option=>option.value)
           : field?.type==="multi-select" ? [...modal.querySelectorAll(".fieldInput")].filter(input=>input.dataset.fieldid===el.dataset.fieldid && input.checked).map(input=>input.value)
           : field?.type==="number" ? (e.target.value==="" ? "" : Number(e.target.value))
           : e.target.value;
         item.values[el.dataset.fieldid] = nextValue;
-        if (isNew){ renderItemModal(); return; }
-        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
+        if (isNew){
+          if (field?.type!=="relation") renderItemModal();
+          return;
+        }
+        item.updatedAt = Date.now(); scheduleSave(); render();
+        if (field?.type!=="relation") renderItemModal();
       });
     });
     modal.querySelector("#itemDescInput").addEventListener("change", e=>{
