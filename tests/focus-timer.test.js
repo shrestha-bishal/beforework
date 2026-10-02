@@ -10,13 +10,16 @@ const source = fs.readFileSync(path.join(__dirname, "../js/features/focus-timer.
 const appStyles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
 const timerStyles = fs.readFileSync(path.join(__dirname, "../styles/focus-timer.css"), "utf8");
 const indexHtml = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+const stylesManifest = fs.readFileSync(path.join(__dirname, "../styles/manifest.css"), "utf8");
 
-test("Focus Timer styles are isolated and loaded after shared application styles",()=>{
+test("Focus Timer styles are isolated and included after shared application styles",()=>{
   assert.doesNotMatch(appStyles,/focusTimer|#focusTimerNav/);
   assert.match(timerStyles,/#focusTimerNav/);
   assert.match(timerStyles,/\.focusTimerPanel/);
   assert.match(timerStyles,/@media print\s*\{\s*\.focusTimerPanel/);
-  assert.ok(indexHtml.indexOf('href="styles/app.css"') < indexHtml.indexOf('href="styles/focus-timer.css"'));
+  assert.match(stylesManifest,/@import url\("app\.css"\);\s*@import url\("focus-timer\.css"\);/);
+  assert.match(indexHtml,/<link rel="stylesheet" href="styles\/manifest\.css">/);
+  assert.doesNotMatch(indexHtml,/href="styles\/(?:app|focus-timer|support)\.css"/);
 });
 
 function makeElement(){

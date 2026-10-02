@@ -34,6 +34,23 @@ function listFiles(directory){
   });
 }
 
+function expandStylesheetManifest(file, source){
+  const stylesDirectory=path.dirname(file);
+  const expanded=source.replace(/@import\s+url\(["']([^"']+)["']\)\s*;/g,(_match,relativePath)=>{
+    const importedFile=path.resolve(stylesDirectory,relativePath);
+    const relativeImport=path.relative(stylesDirectory,importedFile);
+    if (relativeImport.startsWith("..") || path.isAbsolute(relativeImport)){
+      throw new Error(`Stylesheet manifest import escapes its directory: ${relativePath}`);
+    }
+    if (!fs.existsSync(importedFile) || !fs.statSync(importedFile).isFile()){
+      throw new Error(`Stylesheet manifest import is missing: ${relativePath}`);
+    }
+    return fs.readFileSync(importedFile,"utf8");
+  });
+  if (/@import\b/.test(expanded)) throw new Error(`Unsupported @import syntax in stylesheet manifest: ${file}`);
+  return expanded;
+}
+
 async function minifyJavaScriptFile(file){
   const source=fs.readFileSync(file,"utf8");
   const isModule=/^\s*(?:import|export)\s/m.test(source);
@@ -59,8 +76,12 @@ async function build(){
     await minifyJavaScriptFile(file);
   }
 
-  for (const file of files.filter(file=>file.endsWith(".css"))){
-    const source=fs.readFileSync(file,"utf8");
+  const cssFiles=files.filter(file=>file.endsWith(".css")).sort((a,b)=>
+    Number(path.basename(a)==="manifest.css")-Number(path.basename(b)==="manifest.css")
+  );
+  for (const file of cssFiles){
+    let source=fs.readFileSync(file,"utf8");
+    if (path.basename(file)==="manifest.css") source=expandStylesheetManifest(file,source);
     const result=new CleanCSS().minify(source);
     if (result.errors.length) throw new Error(`CSS minification failed for ${file}: ${result.errors.join("; ")}`);
     fs.writeFileSync(file,result.styles);
