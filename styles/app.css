@@ -502,7 +502,7 @@
   .dialogSelectOption.selected,.appSelectOption.selected{position:relative;}
   .dialogSelectOption.selected::before,.appSelectOption.selected::before{position:absolute;top:4px;bottom:4px;width:4px;border-radius:999px;background:var(--accent);content:"";}
   .dialogSelectOption.selected::before{left:-7px;}
-  .appSelectOption.selected::before{left:-5px;}
+  .appSelectOption.selected::before{left:4px;}
   .dialogSelectOptionText{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;}
   .dialogSelectOptionLabel{display:block;line-height:1.4;}
   .dialogSelectOptionMeta{display:block;color:var(--fg-muted);font-size:11px;line-height:1.4;}
@@ -515,11 +515,16 @@
   .appSelectButton:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft);}
   .appSelectButton>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .appSelectButton>iconify-icon{flex:none;color:var(--muted);font-size:16px;}
-  .appSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;flex-direction:column;gap:2px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .appSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;flex-direction:column;gap:4px;overflow:hidden;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .appSelectMenu[hidden]{display:none;}
+  .appSelectSearch{flex:none;width:100%;min-height:30px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;}
+  .appSelectSearch:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 2px var(--accent-soft);}
+  .appSelectOptions{display:flex;min-height:0;flex-direction:column;gap:2px;overflow:auto;}
+  .appSelectOptions[hidden],.appSelectOption[hidden],.appSelectEmpty[hidden]{display:none;}
+  .appSelectEmpty{padding:8px 9px;color:var(--muted);font-size:12px;}
   .appSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
   .appSelectOption:hover,.appSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
-  .appSelectOption.selected{background:var(--bg-soft);color:var(--text);font-weight:600;}
+  .appSelectOption.selected{padding-left:15px;background:var(--bg-soft);color:var(--text);font-weight:600;}
   .tagColorGrid{display:grid;grid-template-columns:repeat(6,34px);gap:8px;align-items:center;}
   .tagColorOption,.tagColorCustomOption{position:relative;display:grid;place-items:center;width:34px;height:34px;border:1px solid transparent;border-radius:7px;cursor:pointer;}
   .tagColorOption input[type="radio"],.tagColorCustomOption input[type="radio"]{position:absolute;width:1px;height:1px;margin:0;opacity:0;}

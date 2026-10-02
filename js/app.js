@@ -3114,6 +3114,11 @@
     button.className="appSelectButton";
     button.setAttribute("aria-haspopup","listbox");
     button.setAttribute("aria-expanded","false");
+    const search=document.createElement("input");
+    search.type="search";
+    search.className="appSelectSearch";
+    search.placeholder="Search options";
+    search.setAttribute("aria-label","Search options");
     const label=document.createElement("span");
     const chevron=document.createElement("iconify-icon");
     chevron.setAttribute("icon","mdi:chevron-down");
@@ -3121,8 +3126,14 @@
     button.append(label,chevron);
     const menu=document.createElement("div");
     menu.className="appSelectMenu";
-    menu.setAttribute("role","listbox");
     menu.hidden=true;
+    const optionList=document.createElement("div");
+    optionList.className="appSelectOptions";
+    optionList.setAttribute("role","listbox");
+    const emptyState=document.createElement("div");
+    emptyState.className="appSelectEmpty";
+    emptyState.textContent="No options found";
+    emptyState.hidden=true;
     const options=[...select.options].map(option=>{
       const item=document.createElement("button");
       item.type="button";
@@ -3130,10 +3141,22 @@
       item.setAttribute("role","option");
       item.dataset.value=option.value;
       item.textContent=option.textContent;
-      menu.appendChild(item);
+      optionList.appendChild(item);
       return item;
     });
+    menu.append(search,optionList,emptyState);
     wrapper.append(button,menu);
+    const filterOptions=()=>{
+      const query=search.value.trim().toLocaleLowerCase();
+      let visibleCount=0;
+      options.forEach(option=>{
+        const matches=option.textContent.toLocaleLowerCase().includes(query);
+        option.hidden=!matches;
+        if (matches) visibleCount++;
+      });
+      emptyState.hidden=visibleCount>0;
+      optionList.hidden=visibleCount===0;
+    };
     const sync=()=>{
       const selected=select.options[select.selectedIndex]||select.options[0];
       label.textContent=selected.textContent;
@@ -3144,20 +3167,33 @@
       });
     };
     const close=()=>closeFloatingSelectMenu(menu);
-    const open=()=>{ openFloatingSelectMenu(button,menu); options.find(option=>option.dataset.value===select.value)?.focus(); };
+    const open=()=>{
+      search.value="";
+      filterOptions();
+      openFloatingSelectMenu(button,menu);
+      search.focus();
+    };
     button.onclick=event=>{ event.stopPropagation(); menu.hidden ? open() : close(); };
     button.onkeydown=event=>{
       if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
     };
+    search.addEventListener("input",filterOptions);
     options.forEach(option=>option.onclick=()=>{
       select.value=option.dataset.value;
       select.dispatchEvent(new Event("change",{bubbles:true}));
       sync(); close(); button.focus();
     });
     menu.onkeydown=event=>{
-      const current=Math.max(0,options.indexOf(document.activeElement));
-      if (event.key==="ArrowDown"){ event.preventDefault(); options[Math.min(options.length-1,current+1)]?.focus(); }
-      if (event.key==="ArrowUp"){ event.preventDefault(); options[Math.max(0,current-1)]?.focus(); }
+      const visibleOptions=options.filter(option=>!option.hidden);
+      const current=visibleOptions.indexOf(document.activeElement);
+      if (event.key==="ArrowDown"){
+        event.preventDefault();
+        visibleOptions[current<0?0:Math.min(visibleOptions.length-1,current+1)]?.focus();
+      }
+      if (event.key==="ArrowUp"){
+        event.preventDefault();
+        visibleOptions[current<0?visibleOptions.length-1:Math.max(0,current-1)]?.focus();
+      }
       if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
     };
     select.addEventListener("change",sync);
