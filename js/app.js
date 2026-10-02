@@ -73,6 +73,19 @@
     clonePageTemplate:name=>window.BeforeworkViewTemplates.clone(name)
   });
 
+  const __VIEW_IMPORT_HINTS = [
+    'import("./views/settings-view.js")',
+    'import("./views/overview-details-view.js")',
+    'import("./models/overview-details-model.js")',
+    'import("./views/milestones-view.js")',
+    'import("./views/roadmap-view.js")',
+    'import("./views/overview-view.js")',
+    'import("./views/list-view.js")',
+    'import("./views/table-view.js")',
+    'import("./views/board-view.js")',
+    'import("./views/calendar-view.js")'
+  ];
+
   let state = null;                 // { projects:[] }
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
   const workspaceCommands = window.BeforeworkWorkspaceCommands.create({
@@ -4138,7 +4151,7 @@
      own, since that would let the app "work" without ever settling on one
      file. Auth (if a provider is available) is initialized independently
      and never blocks or gates this flow. */
-  async function boot(){
+  async function boot({loadViewModules}){
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
     wireStaticControls();
@@ -4171,18 +4184,7 @@
       }catch(err){ /* Identity is optional; the workspace runs without it. */ }
     }
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await Promise.all([
-        import("./views/settings-view.js"),
-        import("./views/overview-details-view.js"),
-        import("./models/overview-details-model.js"),
-        import("./views/milestones-view.js"),
-        import("./views/roadmap-view.js"),
-        import("./views/overview-view.js"),
-        import("./views/list-view.js"),
-        import("./views/table-view.js"),
-        import("./views/board-view.js"),
-        import("./views/calendar-view.js")
-      ]);
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await loadViewModules();
       settingsView = createSettingsView(settingsModule.SettingsView);
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
         model:new overviewDetailsModelModule.OverviewDetailsModel(),
@@ -4349,4 +4351,11 @@
       showConnectGate();
     }
   }
-  boot();
+  window.BeforeworkApp = {
+    start(dependencies){
+      if (!dependencies || typeof dependencies.loadViewModules !== "function"){
+        throw new TypeError("Application startup requires a view-module loader.");
+      }
+      return boot(dependencies);
+    }
+  };
