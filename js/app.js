@@ -3594,11 +3594,16 @@
       </div>
     </div>` : "";
     const subitemCount = item.subitems.length
-      ? `<span class="subitemsProgressCount">${doneSubCount}/${item.subitems.length}</span>`
-      : "";
-    const subitemProgress = item.subitems.length
-      ? `<div class="progressTrack"><div class="progressFill" style="width:${subPct}%"></div></div>`
-      : "";
+      ? `<div class="subitemsProgressSummary">
+          <span class="subitemsProgressRing" role="progressbar" aria-label="Subitem completion" aria-valuemin="0" aria-valuemax="${item.subitems.length}" aria-valuenow="${doneSubCount}">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle class="subitemsProgressTrack" cx="10" cy="10" r="8"></circle>
+              <circle class="subitemsProgressValue" cx="10" cy="10" r="8" style="--subitems-progress-offset:${(1-subPct/100)*50.265}"></circle>
+            </svg>
+          </span>
+          <span class="subitemsProgressCount">${doneSubCount}/${item.subitems.length} complete</span>
+        </div>`
+      : `<span class="subitemsProgressCount">0 items</span>`;
     const existingItemDetails = !isNew ? `
       <div class="mainSection">
         <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
@@ -3640,7 +3645,6 @@
       description:escapeHtml(item.description),
       descriptionPreview,
       subitemCount,
-      subitemProgress,
       subitems:subitemsHtml,
       existingItemDetails,
       newItemAttachments,

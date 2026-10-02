@@ -21,14 +21,13 @@
       </div>
       <div class="itemDescriptionCopyStatus" id="descriptionCopyStatus" role="status" aria-live="polite"></div>
     </div>
-    <div class="mainSection">
-      <div class="mainSectionHead">
+    <div class="mainSection subitemsSection">
+      <div class="mainSectionHead subitemsSectionHead">
         <div class="mainSectionLabel">Subitems</div>
         {{subitemCount}}
       </div>
-      {{subitemProgress}}
       <div id="subitemsList">{{subitems}}</div>
-      <button class="btn btn-invisible btn-sm" data-action="addSub" style="align-self:flex-start;padding-left:6px;">+ Add subitem</button>
+      <button class="btn btn-invisible btn-sm subitemAddButton" data-action="addSub" type="button"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon><span>Add subitem</span></button>
     </div>
     {{existingItemDetails}}
     {{newItemAttachments}}

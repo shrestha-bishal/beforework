@@ -29,3 +29,19 @@ test("Markdown description editor and preview fill the available column width",(
   assert.match(itemDetailsStyles,/\.itemDescriptionCopyStatus\{position:absolute;width:1px;height:1px/);
   assert.match(appStyles,/\.itemModalActions\{position:relative;display:flex;align-items:center;gap:2px/);
 });
+
+test("subitems use a compact progress header, structured rows, and a clear add action",()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const itemModalTemplate=fs.readFileSync(path.join(__dirname,"../pages/item-modal.html"),"utf8");
+  assert.match(itemModalTemplate,/class="mainSection subitemsSection"/);
+  assert.match(itemModalTemplate,/class="mainSectionHead subitemsSectionHead"/);
+  assert.match(itemModalTemplate,/class="btn btn-invisible btn-sm subitemAddButton"/);
+  assert.match(appSource,/aria-label="Subitem completion" aria-valuemin="0"/);
+  assert.match(itemDetailsStyles,/\.subitemsProgressRing\{display:block;width:18px;height:18px;flex:none;transform:rotate\(-90deg\);\}/);
+  assert.match(itemDetailsStyles,/\.subitemsProgressValue\{stroke:var\(--color-success-fg\);stroke-dasharray:50\.265;stroke-dashoffset:var\(--subitems-progress-offset,50\.265\);stroke-linecap:round;animation:subitemsProgressFill/);
+  assert.match(appSource,/--subitems-progress-offset:\$\{\(1-subPct\/100\)\*50\.265\}/);
+  assert.match(itemDetailsStyles,/animation:subitemsProgressFill \.55s cubic-bezier\(\.2,\.7,\.3,1\) both/);
+  assert.doesNotMatch(appSource,/\$\{subPct\}%<\/span>/);
+  assert.match(itemDetailsStyles,/#subitemsList \.subitemRow:hover\{border-color:var\(--border\);background:var\(--bg-soft\);\}/);
+  assert.match(itemDetailsStyles,/\.subitemAddButton:hover\{background:var\(--bg-soft\);color:var\(--accent-strong\);\}/);
+});
