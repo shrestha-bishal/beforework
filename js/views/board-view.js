@@ -43,21 +43,16 @@ export class BoardView {
       });
       const groupMenuButton=column.querySelector('[data-action="groupMenu"]');
       const groupMenu=column.querySelector(".fieldColumnMenu");
+      const groupActionMenu=window.BeforeworkActionMenu.create().register(groupMenuButton,groupMenu);
       groupMenuButton.setAttribute("aria-label",`Group actions for ${group.name}`);
-      groupMenuButton.onclick=event=>{
-        event.stopPropagation();
-        const shouldOpen=!groupMenu.classList.contains("open");
-        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
-        groupMenu.classList.toggle("open",shouldOpen);
-      };
       groupMenu.querySelector('[data-group-action="edit"]').onclick=event=>{
         event.stopPropagation();
-        groupMenu.classList.remove("open");
+        groupActionMenu.close();
         editGroupName(project,group);
       };
       groupMenu.querySelector('[data-group-action="delete"]').onclick=event=>{
         event.stopPropagation();
-        groupMenu.classList.remove("open");
+        groupActionMenu.close();
         confirmDeleteGroup(project,group);
       };
       column.querySelector('[data-action="addItem"]').onclick=()=>openNewItemModal(project,group);

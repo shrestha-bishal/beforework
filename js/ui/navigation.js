@@ -15,10 +15,11 @@
     const element=id=>documentRef.getElementById(id);
     const workspaceSwitcherBtn=element("workspaceSwitcherBtn");
     const workspaceSwitcherMenu=element("workspaceSwitcherMenu");
+    const workspaceSwitcherActionMenu=global.BeforeworkActionMenu.create({documentRef})
+      .register(workspaceSwitcherBtn,workspaceSwitcherMenu,{styleTrigger:false});
 
     function closeWorkspaceSwitcher(){
-      workspaceSwitcherMenu.classList.remove("open");
-      workspaceSwitcherBtn.setAttribute("aria-expanded","false");
+      workspaceSwitcherActionMenu.close();
     }
 
     function toggleSidebar(){
@@ -40,11 +41,6 @@
       element("settingsNav").onclick=onSettings;
       element("supportNav").onclick=onSupport;
 
-      workspaceSwitcherBtn.onclick=event=>{
-        event.stopPropagation();
-        const open=workspaceSwitcherMenu.classList.toggle("open");
-        workspaceSwitcherBtn.setAttribute("aria-expanded",String(open));
-      };
       element("workspaceSwitchBtn").onclick=async()=>{
         closeWorkspaceSwitcher();
         await switchWorkspace();
@@ -57,9 +53,6 @@
       element("sidebarToggle").onclick=toggleSidebar;
       element("sidebarScrim").onclick=closeSidebarOnMobile;
 
-      documentRef.addEventListener("click",event=>{
-        if (!event.target.closest(".workspaceSwitcher")) closeWorkspaceSwitcher();
-      });
     }
 
     return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile});

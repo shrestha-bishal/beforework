@@ -36,11 +36,6 @@
 .itemDescriptionHead{flex:1;min-width:0;}
 .itemDescriptionCardHead .mainSectionLabel{color:var(--text);font-size:12px;letter-spacing:0;}
 .itemDescriptionActions{position:relative;z-index:3;flex:none;}
-.itemDescriptionMenuButton{display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);transition:background .14s ease,border-color .14s ease,color .14s ease;}
-.itemDescriptionMenuButton:hover,.itemDescriptionMenuButton[aria-expanded="true"]{border-color:var(--border);background:var(--bg-soft);color:var(--text);}
-.itemDescriptionMenuButton:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.itemDescriptionMenuButton iconify-icon{font-size:18px;}
-.itemDescriptionCard .itemModalActionMenu{top:calc(100% + 4px);}
 .itemDescriptionCopyStatus{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .itemDescriptionEditor{width:100%;min-width:0;}
 .itemMarkdownToolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:4px 8px;border-bottom:1px solid var(--border);background:var(--bg-soft);}

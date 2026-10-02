@@ -7,6 +7,7 @@ const test=require("node:test");
 
 const appStyles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 const itemDetailsStyles=fs.readFileSync(path.join(__dirname,"../styles/item-details.css"),"utf8");
+const actionMenuStyles=fs.readFileSync(path.join(__dirname,"../styles/action-menu.css"),"utf8");
 const stylesManifest=fs.readFileSync(path.join(__dirname,"../styles/manifest.css"),"utf8");
 
 test("item comments and activity styles are isolated and included in the manifest",()=>{
@@ -17,6 +18,7 @@ test("item comments and activity styles are isolated and included in the manifes
   assert.match(itemDetailsStyles,/#activityList/);
   assert.match(itemDetailsStyles,/\.itemDetailTabs/);
   assert.match(stylesManifest,/@import url\("item-details\.css"\);/);
+  assert.match(stylesManifest,/@import url\("action-menu\.css"\);/);
 });
 
 test("Markdown description editor and preview fill the available column width",()=>{
@@ -30,8 +32,15 @@ test("Markdown description editor and preview fill the available column width",(
   assert.match(itemDetailsStyles,/#itemDescInput\[hidden\],\.itemDescriptionPreview\[hidden\]\{display:none!important;\}/);
   assert.match(itemDetailsStyles,/\.itemDescriptionCard\{overflow:visible;border:1px solid var\(--border\);border-radius:10px;background:var\(--bg\);transition:border-color \.16s ease;\}/);
   assert.doesNotMatch(itemDetailsStyles,/\.itemDescriptionCard:focus-within/);
-  assert.match(itemDetailsStyles,/\.itemDescriptionMenuButton iconify-icon\{font-size:18px;\}/);
-  assert.match(itemDetailsStyles,/\.itemDescriptionMenuButton:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger iconify-icon\{font-size:18px;\}/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger\{[^}]*border:0;[^}]*background:transparent;/);
+  assert.doesNotMatch(actionMenuStyles,/\.action-menu__trigger:hover[^}]*border-color/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger:hover,\.action-menu__trigger:focus-visible,\.action-menu__trigger\[aria-expanded="true"\],\.action-menu__trigger\.active\{[^}]*background:var\(--bg-soft\);/);
+  assert.match(actionMenuStyles,/\.action-menu button:hover,\.action-menu button:focus-visible\{[^}]*background:var\(--bg-soft\);/);
+  assert.match(actionMenuStyles,/\.action-menu button:not\(\.danger\):not\(\.menu-item--danger\):hover,[\s\S]*?\.action-menu button:not\(\.danger\):not\(\.menu-item--danger\):focus-visible\{color:var\(--text\);\}/);
+  assert.match(actionMenuStyles,/\.action-menu--description\{top:calc\(100% \+ 4px\);\}/);
+  assert.match(actionMenuStyles,/\.action-menu\{[^}]*border:1px solid var\(--border-strong,var\(--border\)\);[^}]*box-shadow:var\(--shadow-modal\);/);
   assert.match(itemDetailsStyles,/\.itemDescriptionCopyStatus\{position:absolute;width:1px;height:1px/);
   assert.match(itemDetailsStyles,/\.markdownBody ul\.contains-task-list\{padding-left:0;list-style:none;\}/);
   assert.match(itemDetailsStyles,/\.markdownBody input\.markdownTaskCheckbox\{width:14px;height:14px/);

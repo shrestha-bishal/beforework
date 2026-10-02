@@ -2,6 +2,8 @@
   "use strict";
 
   function createItemModal({documentRef=global.document}={}){
+    const actionMenus=global.BeforeworkActionMenu.create({documentRef});
+
     function wire(modal,{onClose}={}){
       if (!modal || typeof modal.querySelector!=="function" || typeof modal.querySelectorAll!=="function"){
         throw new TypeError("An item modal requires a DOM element.");
@@ -11,35 +13,11 @@
       if (closeButton && typeof onClose==="function") closeButton.onclick=onClose;
 
       [
-        {button:modal.querySelector('[data-action="toggleItemMenu"]'),menu:modal.querySelector("#itemModalActionMenu"),container:".itemModalActions"},
-        {button:modal.querySelector('[data-action="toggleDescriptionMenu"]'),menu:modal.querySelector("#itemDescriptionActionMenu"),container:".itemDescriptionActions"}
-      ].forEach(({button,menu,container})=>{
+        {button:modal.querySelector('[data-action="toggleItemMenu"]'),menu:modal.querySelector("#itemActionMenu")},
+        {button:modal.querySelector('[data-action="toggleDescriptionMenu"]'),menu:modal.querySelector("#descriptionActionMenu")}
+      ].forEach(({button,menu})=>{
         if (!button || !menu) return;
-        const closeMenu=()=>{
-          menu.hidden=true;
-          button.setAttribute("aria-expanded","false");
-        };
-        button.onclick=()=>{
-          menu.hidden=!menu.hidden;
-          button.setAttribute("aria-expanded",String(!menu.hidden));
-          if (!menu.hidden) menu.querySelector('[role="menuitem"]')?.focus();
-        };
-        modal.addEventListener("click",event=>{
-          if (!event.target.closest(container)) closeMenu();
-        });
-        menu.addEventListener("keydown",event=>{
-          if (event.key==="Escape"){
-            closeMenu();
-            button.focus();
-          } else if (event.key==="ArrowDown" || event.key==="ArrowUp"){
-            const menuItems=[...menu.querySelectorAll('[role="menuitem"]')];
-            if (!menuItems.length) return;
-            const currentIndex=menuItems.indexOf(documentRef.activeElement);
-            const direction=event.key==="ArrowDown" ? 1 : -1;
-            menuItems[(currentIndex+direction+menuItems.length)%menuItems.length].focus();
-            event.preventDefault();
-          }
-        });
+        actionMenus.register(button,menu);
       });
 
       modal.querySelectorAll(".itemDetailTab").forEach(tab=>{

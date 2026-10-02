@@ -3,8 +3,8 @@
     <div class="groupHead">
       <input class="form-control groupTitle" type="text">
       <span class="Counter Counter--secondary" data-board-group-count></span>
-      <button class="btn btn-invisible btn-sm fieldColumnMenuBtn" data-action="groupMenu" type="button" title="Group actions" aria-label="Group actions">⋮</button>
-      <div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit</button><button type="button" data-group-action="delete" class="danger">Delete</button></div>
+      <button class="btn btn-invisible btn-sm fieldColumnMenuBtn action-menu__trigger" data-action="groupMenu" type="button" title="Group actions" aria-label="Group actions">⋮</button>
+      <div class="menu action-menu action-menu--field fieldColumnMenu" role="menu" hidden><button type="button" data-group-action="edit">Edit</button><button type="button" data-group-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button></div>
     </div>
     <div class="groupBody"></div>
     <button class="btn addItemBtn" data-action="addItem" type="button">+ Add item</button>

@@ -44,7 +44,22 @@ function createHarness(){
     getElementById:id=>elements[id],
     addEventListener(name,callback){ documentListeners[name]=callback; }
   };
-  const window={};
+  const window={
+    BeforeworkActionMenu:{
+      create:()=>({
+        register(button,menu){
+          return {
+            close(){
+              menu.classList.remove("open");
+              menu.hidden=true;
+              button.classList.remove("active");
+              button.setAttribute("aria-expanded","false");
+            }
+          };
+        }
+      })
+    }
+  };
   vm.runInNewContext(source,{window},{filename:"project-create-menu.js"});
   const menu=window.BeforeworkProjectCreateMenu.create({
     documentRef,
@@ -58,15 +73,16 @@ function createHarness(){
   return {elements,actions,documentListeners,menu};
 }
 
-test("project creation menu synchronizes open state and accessibility attributes",()=>{
+test("project creation menu uses the shared action menu and accessibility state",()=>{
   const {elements}=createHarness();
-  const event={stopPropagation(){}};
-  elements.projectCreateBtn.onclick(event);
-  assert.equal(elements.projectCreateMenu.classList.contains("open"),true);
-  assert.equal(elements.projectCreateBtn.classList.contains("active"),true);
-  assert.equal(elements.projectCreateBtn.attributes["aria-expanded"],"true");
-  elements.projectCreateBtn.onclick(event);
+  elements.projectCreateMenu.classList.add("open");
+  elements.projectCreateBtn.setAttribute("aria-expanded","true");
+  elements.projectCreateBtn.classList.add("active");
+  elements.projectCreateMenu.listeners.click({
+    target:{closest:selector=>selector==="button" ? elements.addProjectBtn : null}
+  });
   assert.equal(elements.projectCreateMenu.classList.contains("open"),false);
+  assert.equal(elements.projectCreateMenu.hidden,true);
   assert.equal(elements.projectCreateBtn.classList.contains("active"),false);
   assert.equal(elements.projectCreateBtn.attributes["aria-expanded"],"false");
 });
@@ -83,18 +99,19 @@ test("menu actions close the menu and invoke the corresponding app callback",()=
     });
     assert.equal(actions[index],action);
     assert.equal(elements.projectCreateMenu.classList.contains("open"),false);
-    elements.projectCreateBtn.onclick({stopPropagation(){}});
   }
 });
 
 test("outside clicks dismiss the menu and app delegates its UI wiring",()=>{
   const harness=createHarness();
-  harness.elements.projectCreateBtn.onclick({stopPropagation(){}});
-  harness.documentListeners.click({target:{closest:()=>null}});
+  harness.elements.projectCreateMenu.classList.add("open");
+  harness.elements.projectCreateBtn.setAttribute("aria-expanded","true");
+  harness.menu.close();
   assert.equal(harness.elements.projectCreateMenu.classList.contains("open"),false);
   assert.equal(harness.elements.projectCreateBtn.attributes["aria-expanded"],"false");
 
   assert.match(app,/window\.BeforeworkProjectCreateMenu\.create\(/);
   assert.doesNotMatch(app,/projectCreateBtn\.onclick/);
+  assert.ok(index.indexOf('src="js/ui/action-menu.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/ui/project-create-menu.js"')<index.indexOf('src="js/app.js"'));
 });

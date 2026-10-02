@@ -15,6 +15,7 @@ function makeElement(id){
   return {
     id,
     onclick:null,
+    hidden:false,
     attributes:{},
     classList:{
       add(name){ classes.add(name); },
@@ -27,7 +28,8 @@ function makeElement(id){
         return enabled;
       }
     },
-    setAttribute(name,value){ this.attributes[name]=value; }
+    setAttribute(name,value){ this.attributes[name]=value; },
+    addEventListener(){}
   };
 }
 
@@ -44,7 +46,22 @@ function createHarness(){
     getElementById:id=>elements[id],
     addEventListener(name,callback){ documentListeners[name]=callback; }
   };
-  const window={};
+  const window={
+    BeforeworkActionMenu:{
+      create:()=>({
+        register(button,menu){
+          return {
+            close(){
+              menu.classList.remove("open");
+              menu.hidden=true;
+              button.classList.remove("active");
+              button.setAttribute("aria-expanded","false");
+            }
+          };
+        }
+      })
+    }
+  };
   vm.runInNewContext(source,{window},{filename:"navigation.js"});
   const navigation=window.BeforeworkNavigation.create({
     documentRef,
@@ -72,14 +89,17 @@ test("navigation controls delegate each destination to its app callback",()=>{
 test("workspace switcher closes before invoking workspace actions",async()=>{
   const harness=createHarness();
   const {workspaceSwitcherBtn,workspaceSwitcherMenu,workspaceSwitchBtn,workspaceNewBtn}=harness.elements;
-  workspaceSwitcherBtn.onclick({stopPropagation(){}});
-  assert.equal(workspaceSwitcherMenu.classList.contains("open"),true);
+  workspaceSwitcherMenu.classList.add("open");
+  workspaceSwitcherMenu.hidden=false;
+  workspaceSwitcherBtn.setAttribute("aria-expanded","true");
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
 
   await workspaceSwitchBtn.onclick();
   assert.equal(workspaceSwitcherMenu.classList.contains("open"),false);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
-  workspaceSwitcherBtn.onclick({stopPropagation(){}});
+  workspaceSwitcherMenu.classList.add("open");
+  workspaceSwitcherMenu.hidden=false;
+  workspaceSwitcherBtn.setAttribute("aria-expanded","true");
   await workspaceNewBtn.onclick();
   assert.deepEqual(harness.calls,["switch","create"]);
   assert.equal(workspaceSwitcherMenu.classList.contains("open"),false);
@@ -100,14 +120,20 @@ test("navigation owns mobile sidebar open and close interactions",()=>{
   assert.equal(sidebarScrim.classList.contains("show"),false);
 });
 
-test("outside clicks close the workspace switcher and app delegates navigation wiring",()=>{
+test("workspace switcher uses the shared action menu component",()=>{
   const harness=createHarness();
   const {workspaceSwitcherBtn,workspaceSwitcherMenu}=harness.elements;
-  workspaceSwitcherBtn.onclick({stopPropagation(){}});
-  harness.documentListeners.click({target:{closest:()=>null}});
+  workspaceSwitcherMenu.classList.add("open");
+  workspaceSwitcherMenu.hidden=false;
+  workspaceSwitcherBtn.setAttribute("aria-expanded","true");
+  harness.navigation.closeSidebarOnMobile();
+  harness.elements.workspaceSwitchBtn.onclick();
   assert.equal(workspaceSwitcherMenu.classList.contains("open"),false);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
 
+  assert.match(source,/BeforeworkActionMenu\.create\(\{documentRef\}\)[\s\S]*?\.register\(workspaceSwitcherBtn,workspaceSwitcherMenu,\{styleTrigger:false\}\)/);
+  assert.match(index,/class="menu action-menu action-menu--workspace workspaceSwitcherMenu"/);
+  assert.ok(index.indexOf('src="js/ui/action-menu.js"')<index.indexOf('src="js/app.js"'));
   assert.match(app,/window\.BeforeworkNavigation\.create\(/);
   assert.doesNotMatch(app,/document\.getElementById\("workspaceSwitcherBtn"\)\.onclick/);
   assert.doesNotMatch(app,/document\.getElementById\("sidebarToggle"\)\.onclick/);

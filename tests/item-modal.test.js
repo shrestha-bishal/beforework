@@ -62,9 +62,9 @@ function createHarness(){
     querySelector(selector){
       return {
         '[data-action="close"]':closeButton,
-        "#itemModalActionMenu":actionMenu,
+        "#itemActionMenu":actionMenu,
         '[data-action="toggleItemMenu"]':actionMenuButton,
-        "#itemDescriptionActionMenu":descriptionMenu,
+        "#descriptionActionMenu":descriptionMenu,
         '[data-action="toggleDescriptionMenu"]':descriptionMenuButton
       }[selector]||null;
     },
@@ -76,6 +76,12 @@ function createHarness(){
     dispatch(name,event){ (listeners[name]||[]).forEach(listener=>listener(event)); }
   };
   const window={document:documentRef};
+  const registeredMenus=[];
+  window.BeforeworkActionMenu={
+    create:()=>({
+      register(button,menu){ registeredMenus.push({button,menu}); }
+    })
+  };
   vm.runInNewContext(source,{window},{filename:"item-modal.js"});
   return {
     modal,
@@ -87,12 +93,13 @@ function createHarness(){
     descriptionMenuButton,
     descriptionMenu,
     descriptionMenuItem,
+    registeredMenus,
     tabs,
     panels
   };
 }
 
-test("item modal wires close, accessible action menu, and detail tabs",()=>{
+test("item modal registers its shared action menus and wires detail tabs",()=>{
   const harness=createHarness();
   let closed=0;
   harness.itemModal.wire(harness.modal,{onClose:()=>closed++});
@@ -100,26 +107,11 @@ test("item modal wires close, accessible action menu, and detail tabs",()=>{
   harness.closeButton.onclick();
   assert.equal(closed,1);
 
-  harness.actionMenuButton.onclick();
-  assert.equal(harness.actionMenu.hidden,false);
-  assert.equal(harness.actionMenuButton.attributes["aria-expanded"],"true");
-  assert.equal(documentRef.activeElement,harness.menuItem);
-
-  const arrowEvent=harness.actionMenu.dispatch("keydown",{key:"ArrowDown"});
-  assert.equal(arrowEvent.defaultPrevented,true);
-  harness.actionMenu.dispatch("keydown",{key:"Escape"});
-  assert.equal(harness.actionMenu.hidden,true);
-  assert.equal(harness.actionMenuButton.attributes["aria-expanded"],"false");
-  assert.equal(documentRef.activeElement,harness.actionMenuButton);
-
-  harness.descriptionMenuButton.onclick();
-  assert.equal(harness.descriptionMenu.hidden,false);
-  assert.equal(harness.descriptionMenuButton.attributes["aria-expanded"],"true");
-  assert.equal(documentRef.activeElement,harness.descriptionMenuItem);
-  harness.descriptionMenu.dispatch("keydown",{key:"Escape"});
-  assert.equal(harness.descriptionMenu.hidden,true);
-  assert.equal(harness.descriptionMenuButton.attributes["aria-expanded"],"false");
-  assert.equal(documentRef.activeElement,harness.descriptionMenuButton);
+  assert.equal(harness.registeredMenus.length,2);
+  assert.equal(harness.registeredMenus[0].button,harness.actionMenuButton);
+  assert.equal(harness.registeredMenus[0].menu,harness.actionMenu);
+  assert.equal(harness.registeredMenus[1].button,harness.descriptionMenuButton);
+  assert.equal(harness.registeredMenus[1].menu,harness.descriptionMenu);
 
   harness.tabs[1].onclick();
   assert.equal(harness.tabs[0].classList.contains("active"),false);

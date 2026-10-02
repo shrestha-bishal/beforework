@@ -1,6 +1,5 @@
   .groupHead{position:relative;display:flex;align-items:center;gap:6px;padding:12px 12px 8px;}
-  .groupHead .fieldColumnMenuBtn{position:static;flex:none;width:24px;height:24px;opacity:1;visibility:visible;transform:none;}
-  .groupHead .fieldColumnMenu{top:calc(100% + 2px);right:8px;}
+  .groupHead .fieldColumnMenuBtn{position:static;flex:none;opacity:1;visibility:visible;transform:none;}
 /* These are just local aliases - every value points straight at a real
      Primer CSS custom property, so Primer's own [data-color-mode] rules
      (toggled in JS - see applyTheme) are what actually drives light/dark,
@@ -164,11 +163,6 @@
   .projectCreateBtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;color:var(--muted);}
   .projectCreateBtn:hover,.projectCreateBtn.active{background:var(--bg-soft2);color:var(--text);}
   .projectCreateBtn iconify-icon{font-size:16px;}
-  .projectCreateMenu{display:none;flex-direction:column;position:absolute;top:32px;right:0;z-index:40;min-width:176px;padding:5px;background:var(--bg);
-    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
-  .projectCreateMenu.open{display:flex;}
-  .projectCreateMenu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;white-space:nowrap;}
-  .projectCreateMenu button iconify-icon{font-size:15px;color:var(--muted);}
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;border:0;box-shadow:none;}
   #projectList .folderHeading{display:flex;align-items:center;gap:7px;min-width:0;margin-top:5px;padding:9px 10px 5px;
     font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;letter-spacing:0;
@@ -181,16 +175,10 @@
   #projectList .folderHeading:hover .folderCount{opacity:0;transform:scale(.8);}
   #projectList .folderHeading:has(.folderQuickMenu.open) .folderCount{opacity:0;transform:scale(.8);}
   #projectList .folderHeading .folderQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
-  #projectList .folderHeading .folderMenuBtn{flex:none;width:24px;height:20px;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease, visibility .14s ease, transform .14s ease, background-color .12s ease;}
+  #projectList .folderHeading .folderMenuBtn{flex:none;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease,visibility .14s ease,transform .14s ease,background-color .14s ease,border-color .14s ease,color .14s ease;}
   #projectList .folderHeading:hover .folderMenuBtn{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
-  #projectList .folderHeading .folderMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
-  #projectList .folderHeading .folderQuickMenu{position:absolute;right:0;top:calc(100% + 6px);display:none;flex-direction:column;min-width:150px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);z-index:50;}
-  #projectList .folderHeading .folderQuickMenu.open{display:flex;}
   #projectList .folderHeading:has(.folderQuickMenu.open),
   #projectList .SideNav-item:has(.projectQuickMenu.open){z-index:5;}
-  #projectList .folderHeading .folderQuickMenu button{border:0;background:transparent;padding:7px 8px;border-radius:6px;text-align:left;color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;}
-  #projectList .folderHeading .folderQuickMenu button:hover{background:var(--bg-soft2);}
-  #projectList .folderHeading .folderQuickMenu button.danger{color:var(--danger);}
   #projectList .SideNav-item.inFolder{padding-left:28px;}
   #projectList .SideNav-item{display:flex;align-items:center;gap:6px;position:relative;
     padding:7px 10px;border:0;border-radius:6px;cursor:pointer;font-size:13.5px;color:var(--muted);
@@ -205,14 +193,8 @@
   #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectList .SideNav-item .projectQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
-  #projectList .SideNav-item .projectMenuBtnSmall{flex:none;width:24px;height:20px;border:0;background:transparent;color:var(--muted);padding:2px 4px;border-radius:5px;line-height:1;cursor:pointer;font-size:16px;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease, visibility .14s ease, transform .14s ease, background-color .12s ease;}
+  #projectList .SideNav-item .projectMenuBtnSmall{flex:none;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease,visibility .14s ease,transform .14s ease,background-color .14s ease,border-color .14s ease,color .14s ease;}
   #projectList .SideNav-item:hover .projectMenuBtnSmall{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
-  #projectList .SideNav-item .projectMenuBtnSmall:hover{background:var(--bg-soft2);color:var(--text);}
-  #projectList .SideNav-item .projectQuickMenu{position:absolute;right:0;top:calc(100% + 6px);display:none;flex-direction:column;min-width:170px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);z-index:50;}
-  #projectList .SideNav-item .projectQuickMenu.open{display:flex;}
-  #projectList .SideNav-item .projectQuickMenu button{border:0;background:transparent;padding:7px 8px;border-radius:6px;text-align:left;color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;}
-  #projectList .SideNav-item .projectQuickMenu button:hover{background:var(--bg-soft2);}
-  #projectList .SideNav-item .projectQuickMenu button.danger{color:var(--danger);}
 
   .sideSection{padding-top:0;}
   .sideSection>.uiDivider{margin-bottom:16px;}
@@ -261,11 +243,6 @@
   #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
   .projectMenuWrap{position:relative;display:none;flex:none;}
   .projectMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;font-size:18px;line-height:1;}
-  .projectMenuBtn.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
-  .projectMenu{display:none;flex-direction:column;position:absolute;top:39px;right:0;z-index:30;min-width:170px;padding:5px;background:var(--bg);
-    border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);}
-  .projectMenu.open{display:flex;}
-  .projectMenu>button{display:flex;align-items:center;justify-content:flex-start;width:100%;text-align:left;}
   #boardFilterBar{display:block;position:relative;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg-soft);}
   .filterMainRow{display:flex;align-items:center;gap:8px;min-height:34px;}
   #boardSearch{flex:1;width:auto;min-width:180px;border-color:var(--border);background:var(--bg-soft);border-radius:8px;}
@@ -434,16 +411,9 @@
   .listTable th.columnDropTarget.columnDropAfter{box-shadow:inset -2px 0 var(--accent);}
   .fieldColumnMenuBtn{position:absolute;right:5px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:16px;line-height:1;opacity:0;visibility:hidden;transform:translateY(-50%) translateX(4px);transition:opacity .12s ease,visibility .12s ease,transform .12s ease,background-color .12s ease;}
   .fieldColumnHeader:hover .fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);}
-  .fieldColumnMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
   .listTable th.fieldColumnHeader.hasColumnFilter.hasColumnMenu{padding-right:60px!important;}
   .listTable.rearrangingColumns th.fieldColumnHeader.hasColumnFilter.hasColumnMenu,
   .listTable.rearrangingSingleColumn th.fieldColumnHeader.hasColumnFilter.hasColumnMenu{padding-right:82px!important;}
-  .fieldColumnMenu{position:absolute;top:calc(100% + 3px);right:4px;z-index:70;display:none;flex-direction:column;min-width:112px;padding:4px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);text-align:left;}
-  .listViewMenuWrap .listViewMenu{top:calc(100% + 3px);right:0;min-width:160px;}
-  .fieldColumnMenu.open{display:flex;}
-  .fieldColumnMenu button{padding:6px 8px;border:0;border-radius:5px;background:transparent;text-align:left;color:var(--text);font-size:12px;cursor:pointer;}
-  .fieldColumnMenu button:hover{background:var(--bg-soft2);}
-  .fieldColumnMenu button.danger{color:var(--danger);}
   .fieldColumnRearrangeAction{display:flex;align-items:center;gap:8px;}
   .manageColumnsPanel{display:flex;min-width:210px;max-height:260px;flex-direction:column;gap:6px;padding:6px 4px 2px;border-top:1px solid var(--border);}
   .manageColumnsPanel[hidden]{display:none;}
@@ -662,16 +632,6 @@
   #itemModal{width:min(1440px,calc(100vw - 32px));max-height:min(90vh,900px);max-height:min(90dvh,900px);padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
   .itemModalActions{position:relative;display:flex;align-items:center;gap:2px;flex:none;z-index:3;}
-  .itemModalMenuButton{display:grid;place-items:center;width:32px;height:32px;padding:0;border-radius:7px;color:var(--muted);}
-  .itemModalMenuButton:hover,.itemModalMenuButton[aria-expanded="true"]{background:var(--bg-soft2);color:var(--text);}
-  .itemModalMenuButton iconify-icon{font-size:18px;}
-  .itemModalActionMenu{position:absolute;top:calc(100% + 6px);right:0;display:flex;min-width:184px;flex-direction:column;gap:2px;padding:5px;border:1px solid var(--border);border-radius:8px;background:var(--bg);box-shadow:var(--shadow-modal);}
-  .itemModalActionMenu[hidden]{display:none;}
-  .itemModalActionMenu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:0;border-radius:5px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
-  .itemModalActionMenu button:hover,.itemModalActionMenu button:focus-visible{outline:none;background:var(--bg-soft2);}
-  .itemModalActionMenu button iconify-icon{width:16px;color:var(--muted);font-size:15px;}
-  .itemModalActionMenu button.danger,.itemModalActionMenu button.danger iconify-icon{color:var(--danger);}
-  .itemModalActionSeparator{height:1px;margin:3px 4px;background:var(--border);}
   .itemModalHeader{position:relative;flex:none;padding:16px 24px 14px;background:var(--bg);}
   .itemModalBreadcrumb{overflow:hidden;padding:0 10px;margin-bottom:2px;color:var(--muted);font-size:11px;line-height:1.4;text-overflow:ellipsis;white-space:nowrap;}
   .itemModalBreadcrumb span{padding:0 4px;color:var(--border);}
@@ -789,9 +749,6 @@
   .workspaceSwitcherBtn>iconify-icon:first-child{flex:none;color:var(--muted);font-size:16px;}
   #workspaceSwitcherLabel{overflow:hidden;flex:1;min-width:0;text-overflow:ellipsis;white-space:nowrap;}
   .workspaceSwitcherChevron{flex:none;color:var(--muted);font-size:15px;}
-  .workspaceSwitcherMenu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:45;display:none;flex-direction:column;gap:2px;padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-modal);}
-  .workspaceSwitcherMenu.open{display:flex;}
-  .workspaceSwitcherMenu button{display:flex;align-items:center;gap:9px;width:100%;min-width:0;text-align:left;}
   .workspaceSwitcherMenu button iconify-icon{flex:none;color:var(--muted);font-size:15px;}
 
   #fileImportInput{display:none;}

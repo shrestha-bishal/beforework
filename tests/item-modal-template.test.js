@@ -52,7 +52,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/Copy Markdown/);
   assert.match(appSource,/mdi:pencil-outline/);
   assert.match(rendered,/itemDescriptionCard/);
-  assert.match(appSource,/id="itemDescriptionActionMenu"/);
+  assert.match(appSource,/id="descriptionActionMenu"/);
+  assert.match(appSource,/class="menu action-menu action-menu--item"/);
+  assert.match(appSource,/role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"/);
   assert.match(rendered,/itemDescPreview/);
   assert.match(rendered,/class="itemMarkdownToolbar"/);
   assert.match(rendered,/data-description-tab="edit"/);

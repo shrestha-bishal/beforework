@@ -74,6 +74,7 @@
     clonePageTemplate:name=>window.BeforeworkViewTemplates.clone(name)
   });
   const modal = window.BeforeworkModal.create();
+  const actionMenus = window.BeforeworkActionMenu.create();
   const itemModalView = window.BeforeworkItemModal.create();
   const shortcutsModal = window.BeforeworkShortcutsModal.create({
     modal,
@@ -1748,7 +1749,7 @@
       });
     };
     const toggleColumnRearrange=(header,menu)=>{
-      menu.classList.remove("open");
+      actionMenus.close(menu);
       if (rearrangeMode==="single"&&rearrangeSource===header) setRearrangeMode(null);
       else setRearrangeMode("single",header);
     };
@@ -1767,15 +1768,19 @@
       }
       if (!menu){
         menu=document.createElement("div");
-        menu.className="fieldColumnMenu";
+        menu.className="menu action-menu action-menu--project fieldColumnMenu";
         th.appendChild(menu);
       }
+      menu.classList.remove("action-menu--field");
+      menu.classList.add("action-menu--project");
+      const columnActionMenu=actionMenus.register(menuButton,menu);
       th.classList.add("hasColumnMenu");
       let columnAction=menu.querySelector(".columnRearrangeAction");
       if (!columnAction){
         columnAction=document.createElement("button");
         columnAction.type="button";
-        columnAction.className="fieldColumnRearrangeAction columnRearrangeAction";
+        columnAction.className="menu-item fieldColumnRearrangeAction columnRearrangeAction";
+        columnAction.setAttribute("role","menuitem");
         columnAction.textContent="Rearrange";
         menu.insertBefore(columnAction,menu.firstChild);
       }
@@ -1783,23 +1788,18 @@
       if (!hideAction){
         hideAction=document.createElement("button");
         hideAction.type="button";
-        hideAction.className="columnHideAction";
+        hideAction.className="menu-item columnHideAction";
+        hideAction.setAttribute("role","menuitem");
         hideAction.textContent="Hide";
         columnAction.after(hideAction);
       }
-      menuButton.onclick=event=>{
-        event.stopPropagation();
-        const shouldOpen=!menu.classList.contains("open");
-        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
-        menu.classList.toggle("open",shouldOpen);
-      };
       columnAction.onclick=event=>{
         event.stopPropagation();
         toggleColumnRearrange(th,menu);
       };
       if (hideAction) hideAction.onclick=event=>{
           event.stopPropagation();
-          menu.classList.remove("open");
+          columnActionMenu.close();
           if (rearrangeMode==="single"&&rearrangeSource===th) setRearrangeMode(null);
           setTableColumnHidden(project,viewType,th.dataset.columnId,true);
           applyTableColumnVisibility(table,project,viewType);
@@ -1900,24 +1900,17 @@
       setRearrangeMode(null);
     });
     if (viewMenuButton&&viewMenu&&globalRearrangeAction){
-      viewMenuButton.onclick=event=>{
-        event.stopPropagation();
-        const shouldOpen=!viewMenu.classList.contains("open");
-        document.querySelectorAll(".fieldColumnMenu.open").forEach(other=>other.classList.remove("open"));
-        viewMenu.classList.toggle("open",shouldOpen);
-        viewMenuButton.setAttribute("aria-expanded",String(shouldOpen));
-      };
+      viewMenu.classList.add("action-menu--view");
+      const viewMenuController=actionMenus.register(viewMenuButton,viewMenu);
       globalRearrangeAction.onclick=event=>{
         event.stopPropagation();
-        viewMenu.classList.remove("open");
-        viewMenuButton.setAttribute("aria-expanded","false");
+        viewMenuController.close();
         setRearrangeMode(rearrangeMode==="all"?null:"all");
       };
       table.closest(".listWrap")?.addEventListener("keydown",event=>{
         if (event.key!=="Escape") return;
-        viewMenu.classList.remove("open");
-        viewMenuButton.setAttribute("aria-expanded","false");
-        table.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>menu.classList.remove("open"));
+        viewMenuController.close();
+        table.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>actionMenus.close(menu));
         if (rearrangeMode) setRearrangeMode(null);
       });
     }
@@ -1927,7 +1920,7 @@
     const menu = th.querySelector(".fieldColumnMenu");
     menu.querySelector('[data-column-action="edit"]').onclick = async event => {
       event.stopPropagation();
-      menu.classList.remove("open");
+      actionMenus.closeAll();
       const label = await showDialog({title:"Edit field", fields:[{label:"Field name", value:field.label}], confirmLabel:"Save"});
       if (!label || !label.trim()) return;
       field.label = label.trim();
@@ -1935,7 +1928,7 @@
     };
     menu.querySelector('[data-column-action="delete"]').onclick = async event => {
       event.stopPropagation();
-      menu.classList.remove("open");
+      actionMenus.closeAll();
       if (await showConfirm(`Delete column ${field.label}`, "This removes its values from every item in this project.", true)) deleteField(project, field.id);
     };
   }
@@ -1944,7 +1937,7 @@
     menu.querySelectorAll("[data-group-action]").forEach(button=>{
       button.onclick = async event=>{
         event.stopPropagation();
-        menu.classList.remove("open");
+        actionMenus.close(menu);
         const action = button.dataset.groupAction;
         const groupId = await showDialog({
           title:action==="edit" ? "Choose group to edit" : "Choose group to delete",
@@ -2360,12 +2353,14 @@
       wrap.className = "projectQuickMenuWrap";
       const menuBtn = document.createElement("button");
       menuBtn.type = "button";
-      menuBtn.className = "projectMenuBtnSmall";
+      menuBtn.className = "projectMenuBtnSmall action-menu__trigger";
       menuBtn.title = "Project actions";
       menuBtn.setAttribute("aria-label", `Project actions for ${p.name}`);
       menuBtn.textContent = "⋯";
       const menu = document.createElement("div");
-      menu.className = "projectQuickMenu";
+      menu.className = "menu action-menu action-menu--sidebar projectQuickMenu";
+      menu.setAttribute("role","menu");
+      menu.hidden=true;
       menu.innerHTML = `
         <button type="button" data-project-action="edit">Edit project</button>
         <button type="button" data-project-action="group">New group</button>
@@ -2374,15 +2369,10 @@
         <button type="button" data-project-action="move">Move to folder</button>
         <button type="button" data-project-action="undo">Undo</button>
         <button type="button" data-project-action="print">Print / PDF</button>
-        <button type="button" data-project-action="delete" class="danger">Delete</button>
+        <button type="button" data-project-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button>
       `;
-      const closeMenu = () => menu.classList.remove("open");
-      menuBtn.onclick = event => {
-        event.stopPropagation();
-        const isOpen = menu.classList.toggle("open");
-        if (!isOpen) return;
-        document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
-      };
+      const projectActionMenu=actionMenus.register(menuBtn,menu);
+      const closeMenu=()=>projectActionMenu.close();
       menu.querySelectorAll("[data-project-action]").forEach(button => {
         button.onclick = async event => {
           event.stopPropagation();
@@ -2443,26 +2433,23 @@
       wrap.className = "folderQuickMenuWrap";
       const menuBtn = document.createElement("button");
       menuBtn.type = "button";
-      menuBtn.className = "folderMenuBtn";
+      menuBtn.className = "folderMenuBtn action-menu__trigger";
       menuBtn.title = "Folder actions";
       menuBtn.setAttribute("aria-label", `Folder actions for ${folder.name}`);
       menuBtn.textContent = "⋯";
       const menu = document.createElement("div");
-      menu.className = "folderQuickMenu";
+      menu.className = "menu action-menu action-menu--folder folderQuickMenu";
+      menu.setAttribute("role","menu");
+      menu.hidden=true;
       menu.innerHTML = `
         <button type="button" data-folder-action="rename">Rename</button>
-        <button type="button" data-folder-action="delete" class="danger">Delete</button>
+        <button type="button" data-folder-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button>
       `;
-      menuBtn.onclick = event => {
-        event.stopPropagation();
-        const isOpen = menu.classList.toggle("open");
-        if (!isOpen) return;
-        document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(other => { if (other !== menu) other.classList.remove("open"); });
-      };
+      const folderActionMenu=actionMenus.register(menuBtn,menu);
       menu.querySelectorAll("[data-folder-action]").forEach(button => {
         button.onclick = async event => {
           event.stopPropagation();
-          menu.classList.remove("open");
+          folderActionMenu.close();
           const action = button.dataset.folderAction;
           if (action === "rename") {
             const updated = await showDialog({
@@ -2684,8 +2671,7 @@
       addGroupBtn.style.display = "none";
       moveFolderBtn.style.display = "none";
       projectMenuWrap.style.display = "none";
-      document.getElementById("projectMenu").classList.remove("open");
-      document.getElementById("projectMenuBtn").classList.remove("active");
+      actionMenus.close(document.getElementById("projectMenu"));
       viewTabs.style.display = "none";
       completionTabs.style.display = "none";
       if (activeProjectId===CALENDAR) calendarView.render(board, null);
@@ -4084,8 +4070,8 @@
         }).join("")
       : `<div class="commentEmpty">No activity yet.</div>`;
     const descriptionActions = !isNew ? `<div class="itemDescriptionActions">
-      <button class="btn btn-invisible btn-sm itemDescriptionMenuButton" type="button" data-action="toggleDescriptionMenu" aria-label="Description actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemDescriptionActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
-      <div class="itemModalActionMenu" id="itemDescriptionActionMenu" role="menu" hidden>
+      <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-action="toggleDescriptionMenu" aria-label="Description actions" aria-haspopup="menu" aria-expanded="false" aria-controls="descriptionActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+      <div class="menu action-menu action-menu--description" id="descriptionActionMenu" role="menu" hidden>
         ${descriptionEditing?"":`<button type="button" role="menuitem" data-action="toggleDescriptionEdit"><iconify-icon icon="mdi:pencil-outline" aria-hidden="true"></iconify-icon><span>Edit description</span></button>`}
         <button type="button" role="menuitem" data-action="copyDescriptionMarkdown"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Copy Markdown</span></button>
       </div>
@@ -4095,12 +4081,12 @@
       <button class="btn btn-primary btn-sm" type="button" data-action="saveDescriptionEdit">Save</button>
     </div>` : "";
     const itemActions = !isNew ? `<div class="itemModalActions">
-      <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
-      <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
+      <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+      <div class="menu action-menu action-menu--item" id="itemActionMenu" role="menu" hidden>
         <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
         <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
-        <div class="itemModalActionSeparator" role="separator"></div>
-        <button type="button" role="menuitem" class="danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
+        <div class="action-menu__separator" role="separator"></div>
+        <button type="button" role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
       </div>
     </div>` : "";
     const subitemCount = item.subitems.length
@@ -4416,9 +4402,7 @@
       }catch(error){
         await showNotice("Couldn't copy Markdown",error.message||"Clipboard access is unavailable.");
       }finally{
-        const menu=modal.querySelector("#itemDescriptionActionMenu");
-        menu.hidden=true;
-        modal.querySelector('[data-action="toggleDescriptionMenu"]').setAttribute("aria-expanded","false");
+        actionMenus.close(modal.querySelector("#descriptionActionMenu"));
       }
     };
     wireAttachmentControls(modal,item,{prefix:"item",isNew});
@@ -4538,15 +4522,6 @@
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    document.addEventListener("click", event=>{
-      const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
-      document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
-        if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
-      });
-      if (!event.target.closest(".fieldColumnHeader,.listViewMenu,.listViewMenuBtn")){
-        document.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>menu.classList.remove("open"));
-      }
-    });
     document.getElementById("importProjectCsvBtn").onclick = () => openCsvImportDialog("existing",activeProjectId);
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);

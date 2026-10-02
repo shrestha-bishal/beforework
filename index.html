@@ -69,12 +69,12 @@
         <div id="sidebarWrap">
           <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""><img class="markCollapsed" src="images/icon.png" alt=""></button></h1>
           <div class="workspaceSwitcher">
-            <button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+            <button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="workspaceSwitcherMenu">
               <iconify-icon icon="mdi:briefcase-outline" aria-hidden="true"></iconify-icon>
               <span id="workspaceSwitcherLabel">Workspace</span>
               <iconify-icon class="workspaceSwitcherChevron" icon="mdi:chevron-down" aria-hidden="true"></iconify-icon>
             </button>
-            <div class="workspaceSwitcherMenu" id="workspaceSwitcherMenu" role="menu">
+            <div class="menu action-menu action-menu--workspace workspaceSwitcherMenu" id="workspaceSwitcherMenu" role="menu" hidden>
               <button class="btn btn-sm btn-invisible" id="workspaceSwitchBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-swap-outline" aria-hidden="true"></iconify-icon><span>Open different workspace</span></button>
               <button class="btn btn-sm btn-invisible" id="workspaceNewBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>Create new workspace</span></button>
             </div>
@@ -94,8 +94,8 @@
           <div class="projectSectionHeader">
             <span class="sidebarSectionLabel">Projects</span>
             <div class="projectCreateWrap">
-              <button class="btn btn-sm btn-invisible projectCreateBtn" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
-              <div class="projectCreateMenu" id="projectCreateMenu" role="menu">
+              <button class="btn btn-sm btn-invisible projectCreateBtn action-menu__trigger action-menu__trigger--compact" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false" aria-controls="projectCreateMenu"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
+              <div class="menu action-menu action-menu--create" id="projectCreateMenu" role="menu" hidden>
                 <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
                 <button class="btn btn-sm btn-invisible" id="importProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:table-arrow-up" aria-hidden="true"></iconify-icon><span>Import project</span></button>
                 <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
@@ -139,17 +139,17 @@
           <div class="viewTabs" id="viewTabs" style="display:none;"></div>
           <!-- <div id="globalSaveStatus" role="status" aria-live="polite"></div> -->
           <div class="projectMenuWrap" id="projectMenuWrap">
-            <button class="btn btn-sm btn-invisible projectMenuBtn" id="projectMenuBtn" title="More project actions" aria-label="More project actions">⋮</button>
-            <div class="projectMenu" id="projectMenu">
+            <button class="btn btn-sm btn-invisible projectMenuBtn action-menu__trigger" id="projectMenuBtn" title="More project actions" aria-label="More project actions" aria-haspopup="menu" aria-expanded="false" aria-controls="projectMenu">⋮</button>
+            <div class="menu action-menu action-menu--project" id="projectMenu" role="menu" hidden>
               <button class="btn btn-sm btn-invisible" id="editProjectBtn">Edit project</button>
-              <button class="btn btn-sm btn-invisible" id="importProjectCsvBtn">Import from CSV</button>
               <button class="btn btn-sm btn-invisible" id="addGroupBtn">New group</button>
               <button class="btn btn-sm btn-invisible" id="addFieldBtn">Add field</button>
               <button class="btn btn-sm btn-invisible" id="duplicateProjectBtn">Duplicate project</button>
               <button class="btn btn-sm btn-invisible" id="moveProjectFolderBtn">Move to folder</button>
               <button class="btn btn-sm btn-invisible" id="undoBtn" title="Undo last change">Undo</button>
               <button class="btn btn-sm btn-invisible" id="printViewBtn">Print / PDF</button>
-              <button class="btn btn-sm btn-danger" id="deleteProjectBtn">Delete</button>
+              <button class="btn btn-sm btn-invisible" id="importProjectCsvBtn">Import from CSV</button>
+              <button type="button" data-project-action="delete" class="danger menu-item menu-item--danger" id="deleteProjectBtn" role="menuitem">Delete</button>
             </div>
           </div>
         </div>
@@ -213,6 +213,7 @@
     <script src="js/ui/board-filters.js"></script>
     <script src="js/ui/navigation.js"></script>
     <script src="js/ui/project-create-menu.js"></script>
+    <script src="js/ui/action-menu.js"></script>
     <script src="js/ui/project-actions-menu.js"></script>
     <script src="js/ui/modal.js"></script>
     <script src="js/ui/item-modal.js"></script>

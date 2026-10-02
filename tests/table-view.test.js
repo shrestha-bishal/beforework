@@ -10,7 +10,9 @@ const view=fs.readFileSync(path.join(__dirname,"../js/views/table-view.js"),"utf
 const listView=fs.readFileSync(path.join(__dirname,"../js/views/list-view.js"),"utf8");
 const template=fs.readFileSync(path.join(__dirname,"../pages/table-view.html"),"utf8");
 const listTemplate=fs.readFileSync(path.join(__dirname,"../pages/list-view.html"),"utf8");
+const boardTemplate=fs.readFileSync(path.join(__dirname,"../pages/board-view.html"),"utf8");
 const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
+const actionMenuStyles=fs.readFileSync(path.join(__dirname,"../styles/action-menu.css"),"utf8");
 
 test("Table view markup is supplied by reusable page templates",()=>{
   for (const id of [
@@ -81,7 +83,10 @@ test("Table and List expose searchable multi-select filters on every data column
 
 test("Table and List expose column rearranging through their context menus",()=>{
   for (const markup of [template,listTemplate]){
-    assert.match(markup,/class="btn btn-invisible btn-sm listViewMenuBtn"/);
+    assert.match(markup,/class="menu action-menu action-menu--project fieldColumnMenu" role="menu" hidden/);
+    assert.match(markup,/data-group-action="delete" class="danger menu-item menu-item--danger" role="menuitem"/);
+    assert.match(markup,/data-column-action="delete" class="danger menu-item menu-item--danger" role="menuitem"/);
+    assert.match(markup,/class="btn btn-invisible btn-sm listViewMenuBtn action-menu__trigger"/);
     assert.match(markup,/class="fieldColumnRearrangeAction" role="menuitem"/);
     assert.match(markup,/class="fieldColumnRearrangeAction" role="menuitem">Rearrange<\/button>/);
     assert.doesNotMatch(markup,/<button[^>]*class="fieldColumnRearrangeAction"[^>]*>[\s\S]*?<svg/);
@@ -95,6 +100,11 @@ test("Table and List expose column rearranging through their context menus",()=>
   assert.match(app,/table\.classList\.toggle\("rearrangingColumns",mode==="all"\)/);
   assert.match(app,/table\.classList\.toggle\("rearrangingSingleColumn",mode==="single"\)/);
   assert.match(app,/columnAction\.onclick=event=>/);
+  assert.match(app,/menu\.className="menu action-menu action-menu--project fieldColumnMenu"/);
+  assert.match(app,/menu\.classList\.remove\("action-menu--field"\);\s*menu\.classList\.add\("action-menu--project"\)/);
+  assert.match(app,/columnAction\.className="menu-item fieldColumnRearrangeAction columnRearrangeAction"/);
+  assert.match(app,/hideAction\.className="menu-item columnHideAction"/);
+  assert.match(app,/hideAction\.setAttribute\("role","menuitem"\)/);
   assert.match(app,/let menuButton=th\.querySelector\("\.fieldColumnMenuBtn:not\(\.columnFilterToggle\)"\)/);
   assert.match(app,/th\.classList\.add\("hasColumnMenu"\)/);
   assert.match(app,/columnAction\.textContent="Rearrange"/);
@@ -109,7 +119,9 @@ test("Table and List expose column rearranging through their context menus",()=>
   assert.match(styles,/\.listTable\.rearrangingColumns \.fieldColumnDragHandle,.listTable\.rearrangingSingleColumn \.columnRearrangeSource \.fieldColumnDragHandle\{display:inline-flex;\}/);
   assert.match(styles,/\.listViewToolbarActions\{position:relative;display:flex;align-items:center;gap:8px;margin-left:auto;\}/);
   assert.match(styles,/\.listViewMenuWrap\{position:relative;display:flex;align-items:center;\}/);
-  assert.match(styles,/\.listViewMenuWrap \.listViewMenu\{[^}]*min-width:160px;/);
+  assert.match(actionMenuStyles,/\.action-menu--view\{[^}]*min-width:160px;/);
+  assert.match(actionMenuStyles,/\.action-menu button\{[^}]*padding:8px 9px;[^}]*font-size:12\.5px;[^}]*font-weight:400;/);
+  assert.doesNotMatch(actionMenuStyles,/\.action-menu--(?:field|view) \.menu-item\{[^}]*font-size/);
   assert.match(styles,/\.listTable\.rearrangingColumns th\.fieldColumnHeader\[data-column-id\]\{padding-right:58px!important;\}/);
 });
 
@@ -119,7 +131,7 @@ test("Table and List columns can be hidden individually or through a searchable 
     assert.match(markup,/class="manageColumnsSearch" type="search" placeholder="Search columns"/);
     assert.match(markup,new RegExp(`class="manageColumnsOptions" role="group" aria-label="${viewLabel} columns"`));
   }
-  assert.match(app,/hideAction\.className="columnHideAction"/);
+  assert.match(app,/hideAction\.className="menu-item columnHideAction"/);
   assert.match(app,/setTableColumnHidden\(project,viewType,th\.dataset\.columnId,true\)/);
   assert.match(app,/checkbox\.checked=!hidden\.has\(header\.dataset\.columnId\)/);
   assert.match(app,/setTableColumnHidden\(project,viewType,header\.dataset\.columnId,!checkbox\.checked\)/);
@@ -128,6 +140,10 @@ test("Table and List columns can be hidden individually or through a searchable 
   assert.match(listView,/applyTableColumnVisibility\(table,project,"list"\)/);
   assert.match(view,/applyTableColumnVisibility\(table,project,"table"\)/);
   assert.match(styles,/\.manageColumnsOption\{display:flex;align-items:center;gap:8px;/);
+});
+
+test("all board, list, and table menu delete actions share danger menu-item classes",()=>{
+  assert.match(boardTemplate,/data-group-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete<\/button>/);
 });
 
 test("Table field controls preserve the supported editable field types",()=>{

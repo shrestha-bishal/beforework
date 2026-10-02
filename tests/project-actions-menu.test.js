@@ -13,10 +13,14 @@ const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
 function makeElement(id){
   const classes=new Set();
   const listeners={};
+  const attributes={};
   return {
     id,
     onclick:null,
+    hidden:false,
+    attributes,
     listeners,
+    setAttribute(name,value){ attributes[name]=value; },
     classList:{
       add(name){ classes.add(name); },
       remove(name){ classes.delete(name); },
@@ -39,21 +43,39 @@ function createHarness(){
     getElementById(id){ return id==="projectMenuBtn" ? button : menu; },
     addEventListener(name,callback){ documentListeners[name]=callback; }
   };
-  const window={};
+  const window={
+    BeforeworkActionMenu:{
+      create:()=>({
+        register(registeredButton,registeredMenu){
+          return {
+            close(){
+              registeredMenu.classList.remove("open");
+              registeredMenu.hidden=true;
+              registeredButton.classList.remove("active");
+              registeredButton.setAttribute("aria-expanded","false");
+            }
+          };
+        }
+      })
+    }
+  };
   vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
   const controller=window.BeforeworkProjectActionsMenu.create({documentRef});
   controller.wire();
   return {button,menu,documentListeners,controller};
 }
 
-test("project actions menu toggles its open state and active button state",()=>{
-  const {button,menu}=createHarness();
-  button.onclick({stopPropagation(){},currentTarget:button});
-  assert.equal(menu.classList.contains("open"),true);
-  assert.equal(button.classList.contains("active"),true);
-  button.onclick({stopPropagation(){},currentTarget:button});
-  assert.equal(menu.classList.contains("open"),false);
-  assert.equal(button.classList.contains("active"),false);
+test("project actions menu delegates shared state and exposes a close controller",()=>{
+  const harness=createHarness();
+  harness.menu.classList.add("open");
+  harness.menu.hidden=false;
+  harness.button.classList.add("active");
+  harness.controller.close();
+  assert.equal(harness.menu.classList.contains("open"),false);
+  assert.equal(harness.menu.hidden,true);
+  assert.equal(harness.button.classList.contains("active"),false);
+  assert.equal(harness.button.attributes["aria-expanded"],"false");
+  assert.equal(harness.button.onclick,null);
 });
 
 test("project actions menu defaults to the global document when options are omitted",()=>{
@@ -63,7 +85,10 @@ test("project actions menu defaults to the global document when options are omit
     getElementById(id){ return id==="projectMenuBtn" ? button : menu; },
     addEventListener(){}
   };
-  const window={document:documentRef};
+  const window={
+    document:documentRef,
+    BeforeworkActionMenu:{create:()=>({register:()=>({close(){}})})}
+  };
   vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
   const controller=window.BeforeworkProjectActionsMenu.create();
 
@@ -75,7 +100,6 @@ test("selecting a project action closes the menu without replacing action handle
   const {button,menu}=createHarness();
   let actionCalled=false;
   const actionButton={onclick(){ actionCalled=true; }};
-  button.onclick({stopPropagation(){},currentTarget:button});
   actionButton.onclick();
   menu.listeners.click({target:{closest:selector=>selector==="button" ? actionButton : null}});
   assert.equal(actionCalled,true);
@@ -85,11 +109,10 @@ test("selecting a project action closes the menu without replacing action handle
 
 test("outside clicks and the print action close the project actions menu",()=>{
   const harness=createHarness();
-  harness.button.onclick({stopPropagation(){},currentTarget:harness.button});
-  harness.documentListeners.click({target:{closest:()=>null}});
-  assert.equal(harness.menu.classList.contains("open"),false);
-  harness.button.onclick({stopPropagation(){},currentTarget:harness.button});
+  harness.menu.classList.add("open");
+  harness.menu.hidden=false;
   harness.controller.close();
+  assert.equal(harness.menu.classList.contains("open"),false);
   assert.equal(harness.button.classList.contains("active"),false);
 
   assert.match(app,/window\.BeforeworkProjectActionsMenu\.create\(/);
@@ -99,7 +122,10 @@ test("outside clicks and the print action close the project actions menu",()=>{
 
 test("project-level custom field actions are labeled Add field",()=>{
   assert.match(index,/<button class="btn btn-sm btn-invisible" id="addFieldBtn">Add field<\/button>/);
+  assert.match(index,/data-project-action="delete" class="danger menu-item menu-item--danger" id="deleteProjectBtn" role="menuitem">Delete<\/button>/);
   assert.match(app,/<button type="button" data-project-action="add-field">Add field<\/button>/);
+  assert.match(app,/data-project-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete<\/button>/);
+  assert.match(app,/data-folder-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete<\/button>/);
   assert.match(app,/const addFieldBtn = document\.getElementById\("addFieldBtn"\)/);
   assert.match(app,/action === "add-field"[\s\S]*?addFieldFlow\(await ensureProjectLoaded\(p\.id\)\)/);
   assert.match(app,/title:"Add field", fields:\[\s*\{label:"Field type"/);
