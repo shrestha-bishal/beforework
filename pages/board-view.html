@@ -7,7 +7,7 @@
       <div class="menu action-menu action-menu--field fieldColumnMenu" role="menu" hidden><button type="button" data-group-action="edit">Edit</button><button type="button" data-group-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button></div>
     </div>
     <div class="groupBody"></div>
-    <button class="btn addItemBtn" data-action="addItem" type="button">+ Add item</button>
+    <button class="btn addItemBtn" data-action="addItem" type="button"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon><span>Add item</span></button>
   </div>
 </template>
 
@@ -17,7 +17,7 @@
     <div class="cardMeta">
       <span class="Label Label--secondary cardArchived" hidden>Archived</span>
       <span class="Counter Counter--secondary cardSubitemCount" hidden></span>
-      <span class="Counter Counter--secondary cardCommentCount" title="Comments" hidden>💬 <span data-board-comment-count></span></span>
+      <span class="Counter Counter--secondary cardCommentCount" title="Comments" hidden><iconify-icon icon="mdi:comment-outline" aria-hidden="true"></iconify-icon><span data-board-comment-count></span></span>
       <span class="cardDateChips"></span>
       <span class="cardTags"></span>
     </div>
