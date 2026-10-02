@@ -1,0 +1,22 @@
+/* Comments, activity, and detail tabs in item modals */
+#commentsList{display:flex;flex-direction:column;gap:8px;margin-bottom:2px;}
+.commentRow{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg-soft);font-size:12.5px;}
+.commentRow .commentBody{flex:1;min-width:0;}
+.commentRow .commentMeta{font-size:10.5px;color:var(--faint);margin-bottom:2px;}
+.commentRow .commentText{color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.commentEmpty{font-size:12px;color:var(--faint);padding:2px 2px 4px 2px;}
+.itemDetailTabs{display:flex;align-items:flex-end;gap:8px;margin:0 0 10px;padding:0;border-bottom:1px solid var(--border);background:transparent;border-radius:0;}
+.itemDetailTab{position:relative;flex:none;padding:8px 10px 9px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;line-height:1.2;cursor:pointer;border-radius:0;}
+.itemDetailTab:hover{color:var(--text);}
+.itemDetailTab.active{color:var(--text);background:transparent;box-shadow:none;}
+.itemDetailTab.active::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:999px;background:var(--accent);}
+.itemDetailPanel{display:none;padding-top:2px;}
+.itemDetailPanel.active{display:block;}
+.itemDetailPanel[hidden]{display:none!important;}
+.itemDetailTabs .itemAttachmentCount{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+  padding:0 5px;margin-left:3px;border-radius:999px;background:var(--bg-soft);font-size:10px;}
+#activityList{display:flex;flex-direction:column;gap:0;margin:2px 0 0 0;}
+.activityRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border-soft, var(--border));font-size:12px;line-height:1.4;}
+.activityRow:last-child{border-bottom:none;padding-bottom:0;}
+.activityMeta{font-size:11px;color:var(--faint);white-space:nowrap;min-width:128px;text-align:right;}
+.activityBadge{font-weight:500;color:var(--text);line-height:1.4;flex:1;min-width:0;}

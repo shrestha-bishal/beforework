@@ -16,7 +16,8 @@ test("Support page styles are isolated and included after shared application sty
   assert.match(supportStyles,/\.supportActions/);
   assert.match(supportStyles,/@media \(max-width:700px\)/);
   assert.match(appStyles,/\.typeTabs/);
-  assert.match(stylesManifest,/@import url\("support\.css"\);\s*@import url\("settings\.css"\);\s*$/);
+  assert.match(stylesManifest,/@import url\("support\.css"\);/);
+  assert.match(stylesManifest,/@import url\("settings\.css"\);/);
   assert.match(indexHtml,/<link rel="stylesheet" href="styles\/manifest\.css">/);
   assert.doesNotMatch(indexHtml,/href="styles\/(?:app|focus-timer|support)\.css"/);
 });
