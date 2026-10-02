@@ -10,27 +10,29 @@
       const closeButton=modal.querySelector('[data-action="close"]');
       if (closeButton && typeof onClose==="function") closeButton.onclick=onClose;
 
-      const actionMenu=modal.querySelector("#itemModalActionMenu");
-      const actionMenuButton=modal.querySelector('[data-action="toggleItemMenu"]');
-      if (actionMenu && actionMenuButton){
-        const closeActionMenu=()=>{
-          actionMenu.hidden=true;
-          actionMenuButton.setAttribute("aria-expanded","false");
+      [
+        {button:modal.querySelector('[data-action="toggleItemMenu"]'),menu:modal.querySelector("#itemModalActionMenu"),container:".itemModalActions"},
+        {button:modal.querySelector('[data-action="toggleDescriptionMenu"]'),menu:modal.querySelector("#itemDescriptionActionMenu"),container:".itemDescriptionActions"}
+      ].forEach(({button,menu,container})=>{
+        if (!button || !menu) return;
+        const closeMenu=()=>{
+          menu.hidden=true;
+          button.setAttribute("aria-expanded","false");
         };
-        actionMenuButton.onclick=()=>{
-          actionMenu.hidden=!actionMenu.hidden;
-          actionMenuButton.setAttribute("aria-expanded",String(!actionMenu.hidden));
-          if (!actionMenu.hidden) actionMenu.querySelector('[role="menuitem"]')?.focus();
+        button.onclick=()=>{
+          menu.hidden=!menu.hidden;
+          button.setAttribute("aria-expanded",String(!menu.hidden));
+          if (!menu.hidden) menu.querySelector('[role="menuitem"]')?.focus();
         };
         modal.addEventListener("click",event=>{
-          if (!event.target.closest(".itemModalActions")) closeActionMenu();
+          if (!event.target.closest(container)) closeMenu();
         });
-        actionMenu.addEventListener("keydown",event=>{
+        menu.addEventListener("keydown",event=>{
           if (event.key==="Escape"){
-            closeActionMenu();
-            actionMenuButton.focus();
+            closeMenu();
+            button.focus();
           } else if (event.key==="ArrowDown" || event.key==="ArrowUp"){
-            const menuItems=[...actionMenu.querySelectorAll('[role="menuitem"]')];
+            const menuItems=[...menu.querySelectorAll('[role="menuitem"]')];
             if (!menuItems.length) return;
             const currentIndex=menuItems.indexOf(documentRef.activeElement);
             const direction=event.key==="ArrowDown" ? 1 : -1;
@@ -38,7 +40,7 @@
             event.preventDefault();
           }
         });
-      }
+      });
 
       modal.querySelectorAll(".itemDetailTab").forEach(tab=>{
         tab.onclick=()=>{

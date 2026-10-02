@@ -46,9 +46,12 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   for (const id of ["itemTitleInput","itemDescInput","itemDescPreview","itemCalendarType","itemTagChips","itemModalFooter"]){
     assert.ok(rendered.includes(`id="${id}"`) || rendered.includes(`class="${id}"`),`missing ${id}`);
   }
-  assert.match(appSource,/itemModalEditDescriptionButton/);
-  assert.ok(appSource.indexOf('data-action="toggleDescriptionEdit"')<appSource.indexOf('data-action="toggleItemMenu"'));
-  assert.match(appSource,/icon="mdi:pencil-outline"/);
+  assert.match(appSource,/data-action="toggleDescriptionMenu"/);
+  assert.match(appSource,/data-action="copyDescriptionMarkdown"/);
+  assert.match(appSource,/Copy Markdown/);
+  assert.match(appSource,/mdi:pencil-outline/);
+  assert.match(rendered,/itemDescriptionCard/);
+  assert.match(appSource,/id="itemDescriptionActionMenu"/);
   assert.match(rendered,/itemDescPreview/);
   assert.doesNotMatch(rendered,/itemDescriptionToolbar|data-description-mode/);
   assert.doesNotMatch(templateSource,/\{\{description(?:Input|Preview)Hidden\}\}/);

@@ -3577,8 +3577,14 @@
           return `<div class="activityRow"><div class="activityBadge">${escapeHtml(label)}</div><div class="activityMeta">${escapeHtml(formatUpdatedAt(event.at))}</div></div>`;
         }).join("")
       : `<div class="commentEmpty">No activity yet.</div>`;
+    const descriptionActions = !isNew ? `<div class="itemDescriptionActions">
+      <button class="btn btn-invisible btn-sm itemDescriptionMenuButton" type="button" data-action="toggleDescriptionMenu" aria-label="Description actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemDescriptionActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+      <div class="itemModalActionMenu" id="itemDescriptionActionMenu" role="menu" hidden>
+        <button type="button" role="menuitem" data-action="toggleDescriptionEdit"><iconify-icon icon="${descriptionEditing?"mdi:check":"mdi:pencil-outline"}" aria-hidden="true"></iconify-icon><span>${descriptionEditing?"Finish editing":"Edit description"}</span></button>
+        <button type="button" role="menuitem" data-action="copyDescriptionMarkdown"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Copy Markdown</span></button>
+      </div>
+    </div>` : "";
     const itemActions = !isNew ? `<div class="itemModalActions">
-      <button class="btn btn-invisible btn-sm itemModalMenuButton itemModalEditDescriptionButton" type="button" data-action="toggleDescriptionEdit" aria-label="Edit description" title="Edit description" aria-pressed="false"><iconify-icon icon="mdi:pencil-outline" aria-hidden="true"></iconify-icon></button>
       <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
       <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
         <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
@@ -3630,6 +3636,7 @@
       title:escapeHtml(item.title),
       itemActions,
       descriptionAttachments:attachmentSectionHtml(item,"item"),
+      descriptionActions,
       description:escapeHtml(item.description),
       descriptionPreview,
       subitemCount,
@@ -3655,14 +3662,6 @@
     const descriptionPreviewElement=modal.querySelector("#itemDescPreview");
     descriptionInput.hidden=!descriptionEditing;
     descriptionPreviewElement.hidden=descriptionEditing;
-    if (!isNew){
-      const descriptionEditButton=modal.querySelector('[data-action="toggleDescriptionEdit"]');
-      descriptionEditButton.setAttribute("aria-pressed",String(descriptionEditing));
-      descriptionEditButton.setAttribute("aria-label",descriptionEditing ? "Finish editing description" : "Edit description");
-      descriptionEditButton.title=descriptionEditing ? "Finish editing description" : "Edit description";
-      descriptionEditButton.querySelector("iconify-icon").setAttribute(
-        "icon",descriptionEditing ? "mdi:check" : "mdi:pencil-outline");
-    }
     if (isNew && openItemRef.globalNew){
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
@@ -3802,7 +3801,7 @@
     });
     const descriptionEditButton=modal.querySelector('[data-action="toggleDescriptionEdit"]');
     if (descriptionEditButton) descriptionEditButton.onclick=()=>{
-      const currentlyEditing=isNew||openItemRef.descriptionMode==="edit";
+      const currentlyEditing=openItemRef.descriptionMode==="edit";
       if (currentlyEditing){
         const nextDescription=descriptionInput.value;
         if (item.description!==nextDescription){
@@ -3818,19 +3817,26 @@
           || `<p class="markdownEmpty">No description yet.</p>`;
         descriptionInput.hidden=true;
         descriptionPreviewElement.hidden=false;
-        descriptionEditButton.setAttribute("aria-pressed","false");
-        descriptionEditButton.setAttribute("aria-label","Edit description");
-        descriptionEditButton.title="Edit description";
-        descriptionEditButton.querySelector("iconify-icon").setAttribute("icon","mdi:pencil-outline");
       }else{
         openItemRef.descriptionMode="edit";
         descriptionInput.hidden=false;
         descriptionPreviewElement.hidden=true;
-        descriptionEditButton.setAttribute("aria-pressed","true");
-        descriptionEditButton.setAttribute("aria-label","Finish editing description");
-        descriptionEditButton.title="Finish editing description";
-        descriptionEditButton.querySelector("iconify-icon").setAttribute("icon","mdi:check");
         descriptionInput.focus();
+      }
+      renderItemModal();
+      if (openItemRef.descriptionMode==="edit") modal.querySelector("#itemDescInput").focus();
+    };
+    const copyDescriptionButton=modal.querySelector('[data-action="copyDescriptionMarkdown"]');
+    if (copyDescriptionButton) copyDescriptionButton.onclick=async()=>{
+      try{
+        await navigator.clipboard.writeText(descriptionInput.value);
+        modal.querySelector("#descriptionCopyStatus").textContent="Description Markdown copied.";
+      }catch(error){
+        await showNotice("Couldn't copy Markdown",error.message||"Clipboard access is unavailable.");
+      }finally{
+        const menu=modal.querySelector("#itemDescriptionActionMenu");
+        menu.hidden=true;
+        modal.querySelector('[data-action="toggleDescriptionMenu"]').setAttribute("aria-expanded","false");
       }
     };
     wireAttachmentControls(modal,item,{prefix:"item",isNew});

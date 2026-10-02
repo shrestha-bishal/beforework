@@ -9,11 +9,17 @@
 <div class="itemModalBody">
   <div class="itemModalMain">
     <div class="mainSection">
-      <div class="itemDescriptionHead"><div class="mainSectionLabel">Description</div>{{descriptionAttachments}}</div>
-      <div class="itemDescriptionEditor">
-        <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">{{description}}</textarea>
-        <div class="markdownBody itemDescriptionPreview" id="itemDescPreview" aria-label="Description preview">{{descriptionPreview}}</div>
+      <div class="itemDescriptionCard">
+        <div class="itemDescriptionCardHead">
+          <div class="itemDescriptionHead"><div class="mainSectionLabel">Description</div>{{descriptionAttachments}}</div>
+          {{descriptionActions}}
+        </div>
+        <div class="itemDescriptionEditor">
+          <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">{{description}}</textarea>
+          <div class="markdownBody itemDescriptionPreview" id="itemDescPreview" aria-label="Description preview">{{descriptionPreview}}</div>
+        </div>
       </div>
+      <div class="itemDescriptionCopyStatus" id="descriptionCopyStatus" role="status" aria-live="polite"></div>
     </div>
     <div class="mainSection">
       <div class="mainSectionHead">

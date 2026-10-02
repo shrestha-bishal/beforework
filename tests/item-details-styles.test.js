@@ -20,7 +20,12 @@ test("item comments and activity styles are isolated and included in the manifes
 test("Markdown description editor and preview fill the available column width",()=>{
   assert.match(itemDetailsStyles,/\.itemDescriptionEditor\{width:100%;min-width:0;\}/);
   assert.match(itemDetailsStyles,/#itemDescInput,\.itemDescriptionPreview\{display:block;width:100%;min-width:0;box-sizing:border-box;\}/);
-  assert.match(itemDetailsStyles,/\.itemDescriptionPreview\{min-height:0;padding:0;border:0;background:transparent/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionPreview\{min-height:48px;padding:14px;border:0;background:transparent/);
   assert.match(itemDetailsStyles,/#itemDescInput\[hidden\],\.itemDescriptionPreview\[hidden\]\{display:none!important;\}/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionCard\{overflow:visible;border:1px solid var\(--border\);border-radius:10px;background:var\(--bg\);transition:border-color/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionCard:focus-within\{border-color:var\(--accent\);box-shadow:0 0 0 2px var\(--accent-soft\);\}/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionMenuButton iconify-icon\{font-size:18px;\}/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionMenuButton:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionCopyStatus\{position:absolute;width:1px;height:1px/);
   assert.match(appStyles,/\.itemModalActions\{position:relative;display:flex;align-items:center;gap:2px/);
 });

@@ -27,12 +27,12 @@ function makeElement(dataset={}){
       },
       contains(name){ return classes.has(name); }
     },
-    addEventListener(name,callback){ listeners[name]=callback; },
+    addEventListener(name,callback){ (listeners[name]??=[]).push(callback); },
     setAttribute(name,value){ attributes[name]=value; },
     focus(){ documentRef.activeElement=this; },
     dispatch(name,event={}){
       const dispatchedEvent={...event,target:this,defaultPrevented:false,preventDefault(){ this.defaultPrevented=true; }};
-      listeners[name]?.(dispatchedEvent);
+      (listeners[name]||[]).forEach(listener=>listener(dispatchedEvent));
       return dispatchedEvent;
     }
   };
@@ -45,19 +45,27 @@ function createHarness(){
   const actionMenuButton=makeElement();
   const menuItem=makeElement();
   const actionMenu=makeElement();
+  const descriptionMenuButton=makeElement();
+  const descriptionMenuItem=makeElement();
+  const descriptionMenu=makeElement();
   actionMenu.hidden=true;
   actionMenu.querySelector=()=>menuItem;
   actionMenu.querySelectorAll=()=>[menuItem];
+  descriptionMenu.hidden=true;
+  descriptionMenu.querySelector=()=>descriptionMenuItem;
+  descriptionMenu.querySelectorAll=()=>[descriptionMenuItem];
   const tabs=[makeElement({itemTab:"comments"}),makeElement({itemTab:"attachments"})];
   const panels=[makeElement({itemPanel:"comments"}),makeElement({itemPanel:"attachments"})];
   const listeners={};
   const modal={
-    addEventListener(name,callback){ listeners[name]=callback; },
+    addEventListener(name,callback){ (listeners[name]??=[]).push(callback); },
     querySelector(selector){
       return {
         '[data-action="close"]':closeButton,
         "#itemModalActionMenu":actionMenu,
-        '[data-action="toggleItemMenu"]':actionMenuButton
+        '[data-action="toggleItemMenu"]':actionMenuButton,
+        "#itemDescriptionActionMenu":descriptionMenu,
+        '[data-action="toggleDescriptionMenu"]':descriptionMenuButton
       }[selector]||null;
     },
     querySelectorAll(selector){
@@ -65,7 +73,7 @@ function createHarness(){
       if (selector===".itemDetailPanel") return panels;
       return [];
     },
-    dispatch(name,event){ listeners[name]?.(event); }
+    dispatch(name,event){ (listeners[name]||[]).forEach(listener=>listener(event)); }
   };
   const window={document:documentRef};
   vm.runInNewContext(source,{window},{filename:"item-modal.js"});
@@ -76,6 +84,9 @@ function createHarness(){
     actionMenuButton,
     actionMenu,
     menuItem,
+    descriptionMenuButton,
+    descriptionMenu,
+    descriptionMenuItem,
     tabs,
     panels
   };
@@ -100,6 +111,15 @@ test("item modal wires close, accessible action menu, and detail tabs",()=>{
   assert.equal(harness.actionMenu.hidden,true);
   assert.equal(harness.actionMenuButton.attributes["aria-expanded"],"false");
   assert.equal(documentRef.activeElement,harness.actionMenuButton);
+
+  harness.descriptionMenuButton.onclick();
+  assert.equal(harness.descriptionMenu.hidden,false);
+  assert.equal(harness.descriptionMenuButton.attributes["aria-expanded"],"true");
+  assert.equal(documentRef.activeElement,harness.descriptionMenuItem);
+  harness.descriptionMenu.dispatch("keydown",{key:"Escape"});
+  assert.equal(harness.descriptionMenu.hidden,true);
+  assert.equal(harness.descriptionMenuButton.attributes["aria-expanded"],"false");
+  assert.equal(documentRef.activeElement,harness.descriptionMenuButton);
 
   harness.tabs[1].onclick();
   assert.equal(harness.tabs[0].classList.contains("active"),false);
