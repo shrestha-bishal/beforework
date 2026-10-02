@@ -7,12 +7,20 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname,"../js/core/workspace-validation.js"),"utf8");
+const storageSource = fs.readFileSync(path.join(__dirname,"../js/services/storage/storage.js"),"utf8");
 const sandbox = {window:{}};
 vm.runInNewContext(source,sandbox,{filename:"workspace-validation.js"});
 const validate = sandbox.window.BeforeworkWorkspaceValidation.validate;
 const seederSandbox = {window:{},Blob};
 const seederSource = fs.readFileSync(path.join(__dirname,"../js/demo/demo-seeder.js"),"utf8");
 vm.runInNewContext(seederSource,seederSandbox,{filename:"demo-seeder.js"});
+
+test("clears stale remembered folder handles when workspace reconnection fails",()=>{
+  const start=storageSource.indexOf("async function tryReconnectFile()");
+  const end=storageSource.indexOf("async function reconnectPendingFile()",start);
+  const reconnectSource=storageSource.slice(start,end);
+  assert.match(reconnectSource,/if \(missingHandle\)\{[\s\S]*?workspaceRootHandle=null;\s*await rememberWorkspaceSelection\(null,null\);/);
+});
 
 test("accepts valid legacy workspaces without a schema version", ()=>{
   const result = validate({projects:[{

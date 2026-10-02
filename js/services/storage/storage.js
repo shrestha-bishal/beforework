@@ -453,7 +453,8 @@
             return true;
           }catch(recoveryError){/* Fall through to the normal connection gate. */}
         }
-        await rememberWorkspaceSelection(workspaceRootHandle,null).catch(()=>{});
+        workspaceRootHandle=null;
+        await rememberWorkspaceSelection(null,null);
         setSyncStatus("No workspace folder connected. Choose a workspace root or open a workspace.");
       }else{
         if (handle) pendingReconnectHandle=handle;
