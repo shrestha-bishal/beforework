@@ -26,5 +26,8 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.doesNotMatch(app,/\bboot\(\);/);
   assert.doesNotMatch(app,/BeforeworkBootstrap/);
   assert.match(app,/await loadViewModules\(\)/);
+  assert.match(index,/<a class="btn btn-sm btn-primary demoTryLink" id="tryBeforeworkLink" href="https:\/\/beforework\.netlify\.app\/" target="_blank" rel="noopener noreferrer" hidden>Try Beforework<\/a>/);
+  assert.match(app,/window\.BEFOREWORK_CONFIG\.initialWorkspace==="demo"/);
+  assert.match(app,/tryBeforeworkLink\.hidden=false/);
   assert.ok(index.indexOf('src="js/app.js"')<index.indexOf('src="js/bootstrap.js"'));
 });

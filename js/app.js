@@ -4162,6 +4162,10 @@
   async function boot({loadViewModules}){
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
+    const tryBeforeworkLink=document.getElementById("tryBeforeworkLink");
+    if (tryBeforeworkLink && window.BEFOREWORK_CONFIG.initialWorkspace==="demo"){
+      tryBeforeworkLink.hidden=false;
+    }
     navigation=window.BeforeworkNavigation.create({
       onOverview:()=>{
         activeProjectId=OVERVIEW;

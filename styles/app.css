@@ -229,6 +229,8 @@
   .projectHeading{flex:1;min-width:0;}
   #topbar h2{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectDescriptionLabel{overflow:hidden;margin:2px 0 0;color:var(--muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}
+  #tryBeforeworkLink[hidden]{display:none;}
+  .demoTryLink{flex:none;}
   .milestonesWrap{width:100%;min-width:0;overflow:auto;padding:4px 2px 20px;}
   .milestonesHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;}
   .milestonesHeader h3{margin:0;font-size:17px;}
