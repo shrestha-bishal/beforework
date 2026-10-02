@@ -2061,6 +2061,7 @@
       const count = Number.isFinite(p.itemCount) ? p.itemCount : (p.groups||[]).reduce((n,g)=>n+(g.items||[]).length,0);
       const li = document.createElement("li");
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
+      li.title = p.name;
       const icon = document.createElement("iconify-icon");
       icon.className = "projectIcon";
       icon.setAttribute("icon", p.icon || DEFAULT_PROJECT_ICON);

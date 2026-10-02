@@ -67,7 +67,7 @@
       <div id="sidebarScrim"></div>
       <div id="sidebar">
         <div id="sidebarWrap">
-          <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""></button></h1>
+          <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""><img class="markCollapsed" src="images/icon.png" alt=""></button></h1>
           <div class="workspaceSwitcher">
             <button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-haspopup="menu" aria-expanded="false">
               <iconify-icon icon="mdi:briefcase-outline" aria-hidden="true"></iconify-icon>
@@ -81,16 +81,16 @@
           </div>
           <div class="searchWrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input class="form-control" id="globalSearch" type="text" placeholder="Search or run a command" aria-label="Search projects, tasks, or actions" readonly>
+            <input class="form-control" id="globalSearch" type="text" placeholder="Search or run a command" aria-label="Search projects, tasks, or actions" title="Search or run a command" readonly>
             <kbd class="searchShortcut" aria-hidden="true">Ctrl K</kbd>
           </div>
         </div>
 
-        <div id="overviewNav"><iconify-icon icon="mdi:view-dashboard-outline" aria-hidden="true"></iconify-icon><span>Overview</span></div>
-        <div id="calendarNav"><iconify-icon icon="mdi:calendar-month-outline" aria-hidden="true"></iconify-icon><span>Calendar</span></div>
-        <div id="roadmapNav"><iconify-icon icon="mdi:chart-gantt" aria-hidden="true"></iconify-icon><span>Roadmap</span></div>
+        <div id="overviewNav" title="Overview" aria-label="Overview"><iconify-icon icon="mdi:view-dashboard-outline" aria-hidden="true"></iconify-icon><span>Overview</span></div>
+        <div id="calendarNav" title="Calendar" aria-label="Calendar"><iconify-icon icon="mdi:calendar-month-outline" aria-hidden="true"></iconify-icon><span>Calendar</span></div>
+        <div id="roadmapNav" title="Roadmap" aria-label="Roadmap"><iconify-icon icon="mdi:chart-gantt" aria-hidden="true"></iconify-icon><span>Roadmap</span></div>
 
-        <div>
+        <div class="sidebarProjects">
           <div class="projectSectionHeader">
             <span class="sidebarSectionLabel">Projects</span>
             <div class="projectCreateWrap">
@@ -116,8 +116,8 @@
         <div class="sidebarBottomNav">
           <div class="uiDivider sidebarNavDivider" aria-hidden="true"></div>
           <div id="focusTimerMount"></div>
-          <div id="integrationsNav"><iconify-icon icon="mdi:hub-outline" aria-hidden="true"></iconify-icon><span>Integrations</span></div>
-          <div id="settingsNav"><iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon><span>Settings</span></div>
+          <div id="integrationsNav" title="Integrations" aria-label="Integrations"><iconify-icon icon="mdi:hub-outline" aria-hidden="true"></iconify-icon><span>Integrations</span></div>
+          <div id="settingsNav" title="Settings" aria-label="Settings"><iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon><span>Settings</span></div>
           <div class="uiDivider supportNavDivider" aria-hidden="true"></div>
           <button id="supportNav" type="button" title="Support Beforework" aria-label="Support Beforework"><iconify-icon icon="mdi:heart-outline" aria-hidden="true"></iconify-icon><span>Support Beforework</span></button>
           <button id="feedbackNav" type="button" title="Feature requests and bug reports" aria-label="Feature requests and bug reports"><iconify-icon icon="mdi:message-alert-outline" aria-hidden="true"></iconify-icon><span>Feature requests &amp; bugs</span></button>

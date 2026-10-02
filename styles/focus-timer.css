@@ -5,6 +5,13 @@
 #focusTimerNav:hover{background:var(--bg-soft2);color:var(--text);}
 #focusTimerNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
 
+@media (min-width:861px){
+  #sidebar.collapsed #focusTimerNav{justify-content:center;width:42px;margin:0 auto;padding:9px;}
+  #sidebar.collapsed #focusTimerNav span{display:none;}
+  #sidebar.collapsed #focusTimerPanel.open{position:fixed;left:68px;bottom:12px;z-index:80;width:240px;
+    max-height:calc(100vh - 24px);overflow-y:auto;margin:0;}
+}
+
 .focusTimerPanel{position:static;width:auto;margin:5px 0 8px;padding:12px;background:var(--bg);
   border:1px solid var(--border);border-radius:var(--radius);box-shadow:none;display:none;}
 .focusTimerPanel.open{display:block;}

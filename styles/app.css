@@ -47,17 +47,63 @@
   #sidebar{width:264px;flex:none;background:var(--bg-soft);border-right:1px solid var(--border);
     display:flex;flex-direction:column;padding:18px 14px 12px;gap:12px;overflow-y:auto;z-index:60;
     transition:width .18s ease,padding .18s ease,border-color .18s ease;}
-  #sidebar.collapsed{width:0;padding:0;border-right-color:transparent;overflow:hidden;}
+  @media (min-width:861px){
+    #sidebar.collapsed{width:60px;padding:18px 8px 12px;overflow-x:hidden;}
+    #sidebar.collapsed #sidebarWrap{display:flex;flex-direction:column;gap:12px;}
+    #sidebar.collapsed .workspaceSwitcher{position:relative;margin:0;}
+    #sidebar.collapsed .workspaceSwitcherBtn{justify-content:center;width:42px;height:42px;margin:0 auto;padding:9px;}
+    #sidebar.collapsed .workspaceSwitcherBtn>iconify-icon:first-child{font-size:18px;}
+    #sidebar.collapsed #workspaceSwitcherLabel,
+    #sidebar.collapsed .workspaceSwitcherChevron{display:none;}
+    #sidebar.collapsed .workspaceSwitcherMenu{position:fixed;top:72px;left:68px;right:auto;width:max-content;min-width:190px;}
+    #sidebar.collapsed #sidebarWrap h1{justify-content:center;margin:0;}
+    #sidebar.collapsed #sidebarWrap .brandHomeBtn{display:flex;width:42px;height:42px;align-items:center;justify-content:center;margin:0 auto;}
+    #sidebar.collapsed #sidebarWrap .mark{display:none;}
+    #sidebar.collapsed #sidebarWrap .markCollapsed{display:block;width:32px;height:32px;object-fit:contain;}
+    #sidebar.collapsed .sidebarProjects{border-top:1px solid var(--border);padding-top:8px;}
+    #sidebar.collapsed .searchWrap{width:42px;height:42px;margin:0 auto;}
+    #sidebar.collapsed .searchWrap svg{left:14px;top:14px;transform:none;}
+    #sidebar.collapsed #globalSearch{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;}
+    #sidebar.collapsed .searchWrap:focus-within{outline:2px solid var(--accent);outline-offset:1px;border-radius:8px;}
+    #sidebar.collapsed .searchShortcut{display:none;}
+    #sidebar.collapsed .projectSectionHeader,
+    #sidebar.collapsed #tagsSection{display:none!important;}
+    #sidebar.collapsed .sidebarBottomNav .uiDivider{display:block;}
+    #sidebar.collapsed #overviewNav,
+    #sidebar.collapsed #calendarNav,
+    #sidebar.collapsed #roadmapNav,
+    #sidebar.collapsed #integrationsNav,
+    #sidebar.collapsed #settingsNav,
+    #sidebar.collapsed #supportNav,
+    #sidebar.collapsed #feedbackNav{justify-content:center;width:42px;padding:9px;margin-left:auto;margin-right:auto;}
+    #sidebar.collapsed #overviewNav span,
+    #sidebar.collapsed #calendarNav span,
+    #sidebar.collapsed #roadmapNav span,
+    #sidebar.collapsed #integrationsNav span,
+    #sidebar.collapsed #settingsNav span,
+    #sidebar.collapsed #supportNav span,
+    #sidebar.collapsed #feedbackNav span,
+    #sidebar.collapsed #projectList .projectName,
+    #sidebar.collapsed #projectList .cnt,
+    #sidebar.collapsed #projectList .projectQuickMenuWrap,
+    #sidebar.collapsed #projectList .folderName,
+    #sidebar.collapsed #projectList .folderCount,
+    #sidebar.collapsed #projectList .folderQuickMenuWrap,
+    #sidebar.collapsed #projectList .folderHeadingDivider{display:none;}
+    #sidebar.collapsed #projectList .SideNav-item{justify-content:center;padding:9px 10px;}
+    #sidebar.collapsed #projectList .folderHeading{justify-content:center;padding:9px 10px;}
+  }
   #app{position:relative;}
   #sidebarCollapseHandle{position:absolute;top:20px;left:252px;z-index:65;width:22px;height:22px;
     border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;
     align-items:center;justify-content:center;font-size:11px;color:var(--muted);cursor:pointer;
     box-shadow:var(--shadow-lift);transition:left .18s ease,color .12s,border-color .12s;padding:0;}
   #sidebarCollapseHandle:hover{color:var(--text);border-color:var(--border-strong);}
-  #sidebar.collapsed + #sidebarCollapseHandle{left:8px;}
+  @media (min-width:861px){#sidebar.collapsed + #sidebarCollapseHandle{left:42px;}}
   #sidebar h1{font-size:15px;font-weight:700;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;letter-spacing:-.01em;}
   #sidebar h1 .brandHomeBtn{display:block;padding:0;border:0;background:transparent;line-height:0;}
   #sidebar h1 .mark{display:block;width:190px;height:auto;flex:none;}
+  #sidebar h1 .markCollapsed{display:none;}
 
   .searchWrap{position:relative;}
   .searchWrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);}
@@ -180,7 +226,6 @@
 
   /* Main */
   #topbar{display:flex;align-items:center;gap:8px;padding:16px 20px 14px; border-bottom:1px solid var(--border);position:relative;background:var(--bg);}
-  @media (min-width:861px){#sidebar.collapsed~#main #topbar{padding-left:40px;}}
   .projectHeading{flex:1;min-width:0;}
   #topbar h2{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectDescriptionLabel{overflow:hidden;margin:2px 0 0;color:var(--muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}

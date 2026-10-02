@@ -242,7 +242,13 @@
   function setSyncStatus(text){
     syncStatusText = text;
     const workspaceLabel=document.getElementById("workspaceSwitcherLabel");
-    if (workspaceLabel) workspaceLabel.textContent=fileHandle?.name||"Workspace";
+    const workspaceName=fileHandle?.name||"Workspace";
+    if (workspaceLabel) workspaceLabel.textContent=workspaceName;
+    const workspaceButton=document.getElementById("workspaceSwitcherBtn");
+    if (workspaceButton){
+      workspaceButton.title=workspaceName;
+      workspaceButton.setAttribute("aria-label",`Current workspace: ${workspaceName}`);
+    }
     const globalStatus=document.getElementById("globalSaveStatus");
     if (globalStatus){
       globalStatus.textContent=text;

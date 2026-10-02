@@ -15,6 +15,8 @@ const stylesManifest = fs.readFileSync(path.join(__dirname, "../styles/manifest.
 test("Focus Timer styles are isolated and included after shared application styles",()=>{
   assert.doesNotMatch(appStyles,/focusTimer|#focusTimerNav/);
   assert.match(timerStyles,/#focusTimerNav/);
+  assert.match(timerStyles,/#sidebar\.collapsed #focusTimerNav span\{display:none;\}/);
+  assert.match(timerStyles,/#sidebar\.collapsed #focusTimerPanel\.open\{position:fixed/);
   assert.match(timerStyles,/\.focusTimerPanel/);
   assert.match(timerStyles,/@media print\s*\{\s*\.focusTimerPanel/);
   assert.match(stylesManifest,/@import url\("app\.css"\);\s*@import url\("focus-timer\.css"\);/);

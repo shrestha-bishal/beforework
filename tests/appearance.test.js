@@ -7,6 +7,8 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "../js/ui/appearance.js"), "utf8");
+const styles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
+const index = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 
 function createHarness({preferences={},prefersDark=false,storageThrows=false}={}){
   const values = new Map(Object.entries(preferences));
@@ -84,6 +86,22 @@ test("initializes and toggles the persisted sidebar state",()=>{
   assert.equal(harness.elements.sidebar.collapsed,false);
   assert.equal(harness.elements.sidebarCollapseHandle.textContent,"‹");
   assert.equal(harness.values.get("personal_dashboard_sidebar_collapsed_v1"),"0");
+});
+
+test("collapsed desktop sidebar keeps navigation and project icons visible",()=>{
+  assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\.collapsed\{width:60px;/);
+  assert.match(styles,/#sidebar\.collapsed #overviewNav,\s*#sidebar\.collapsed #calendarNav,\s*#sidebar\.collapsed #roadmapNav/);
+  assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherBtn\{justify-content:center;width:42px;height:42px/);
+  assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherMenu\{position:fixed;top:72px;left:68px/);
+  assert.match(styles,/#sidebar\.collapsed #projectList \.SideNav-item\{justify-content:center/);
+  assert.match(styles,/#sidebar\.collapsed \.sidebarProjects\{border-top:1px solid var\(--border\);padding-top:8px;\}/);
+  assert.match(styles,/#sidebar\.collapsed \.sidebarBottomNav \.uiDivider\{display:block;\}/);
+  assert.match(styles,/#sidebar\.collapsed #tagsSection\{display:none!important;\}/);
+  assert.match(styles,/#sidebar\.collapsed #globalSearch\{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
+  assert.match(index,/<img class="markCollapsed" src="images\/icon\.png" alt="">/);
+  assert.match(index,/<input class="form-control" id="globalSearch"[^>]*title="Search or run a command"/);
+  assert.match(styles,/@media \(min-width:861px\)\{#sidebar\.collapsed \+ #sidebarCollapseHandle\{left:42px;\}\}/);
+  assert.doesNotMatch(styles,/#sidebar\.collapsed\{width:0/);
 });
 
 test("keeps appearance controls usable when local storage is unavailable",()=>{
