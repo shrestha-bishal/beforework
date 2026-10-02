@@ -9,6 +9,10 @@ const output = path.join(root, "dist");
 const mode = process.env.BEFOREWORK_MODE === "demo" ? "demo" : "clean";
 const googleClientId = process.env.BEFOREWORK_GOOGLE_CLIENT_ID || "";
 const publishPaths = ["index.html", "robots.txt", "sitemap.xml", "images", "js", "pages", "styles"];
+const browserLibraries = [
+  {source:"node_modules/markdown-it/dist/browser/markdown-it.umd.min.js",target:"vendor/markdown-it.min.js"},
+  {source:"node_modules/dompurify/dist/purify.min.js",target:"vendor/purify.min.js"}
+];
 
 fs.rmSync(output, {recursive:true, force:true});
 fs.mkdirSync(output, {recursive:true});
@@ -18,6 +22,14 @@ for (const relativePath of publishPaths){
   if (fs.existsSync(source)){
     fs.cpSync(source, path.join(output, relativePath), {recursive:true});
   }
+}
+
+for (const library of browserLibraries){
+  const source=path.join(root,library.source);
+  if (!fs.existsSync(source)) throw new Error(`Required browser library is missing: ${library.source}`);
+  const target=path.join(output,library.target);
+  fs.mkdirSync(path.dirname(target),{recursive:true});
+  fs.copyFileSync(source,target);
 }
 
 const siteConfig = `window.BEFOREWORK_CONFIG = Object.freeze({
@@ -88,7 +100,12 @@ async function build(){
   }
 
   for (const file of files.filter(file=>file.endsWith(".html"))){
-    const source=fs.readFileSync(file,"utf8");
+    let source=fs.readFileSync(file,"utf8");
+    if (file===path.join(output,"index.html")){
+      for (const library of browserLibraries){
+        source=source.replaceAll(`src="${library.source}"`,`src="${library.target}"`);
+      }
+    }
     const minified=await minifyHtml(source,{
       collapseWhitespace:true,
       removeComments:true,

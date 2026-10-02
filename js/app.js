@@ -3562,11 +3562,14 @@
         <div class="commentRow" data-cid="${c.id}">
           <div class="commentBody">
             <div class="commentMeta">${escapeHtml(formatDateTime(c.createdAt))}</div>
-            <div class="commentText">${escapeHtml(c.text)}</div>
+            <div class="commentText markdownBody">${window.BeforeworkMarkdown.render(c.text)}</div>
           </div>
           <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
         </div>`).join("")
       : `<div class="commentEmpty">No comments yet.</div>`;
+    const descriptionEditing=isNew||openItemRef.descriptionMode==="edit";
+    const descriptionPreview=window.BeforeworkMarkdown.render(item.description||"")
+      || `<p class="markdownEmpty">No description yet.</p>`;
     const activityEvents = [...(item.activity||[])].sort((a,b)=>b.at-a.at);
     const activityHtml = activityEvents.length
       ? activityEvents.map(event=>{
@@ -3575,6 +3578,7 @@
         }).join("")
       : `<div class="commentEmpty">No activity yet.</div>`;
     const itemActions = !isNew ? `<div class="itemModalActions">
+      <button class="btn btn-invisible btn-sm itemModalMenuButton itemModalEditDescriptionButton" type="button" data-action="toggleDescriptionEdit" aria-label="Edit description" title="Edit description" aria-pressed="false"><iconify-icon icon="mdi:pencil-outline" aria-hidden="true"></iconify-icon></button>
       <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
       <div class="itemModalActionMenu" id="itemModalActionMenu" role="menu" hidden>
         <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
@@ -3598,9 +3602,12 @@
         </div>
         <div class="itemDetailPanel active" data-item-panel="comments">
           ${commentsHtml}
-          <div style="display:flex;gap:6px;margin-top:10px;">
-            <input class="form-control" type="text" id="newCommentInput" placeholder="Add a comment..." style="flex:1;">
-            <button class="btn btn-sm" data-action="addComment">Add</button>
+          <div class="commentComposer">
+            <textarea class="form-control" id="newCommentInput" rows="2" placeholder="Write a comment..."></textarea>
+            <div class="commentComposerFooter">
+              <span class="itemMarkdownHint">Markdown supported · Ctrl+Enter to add</span>
+              <button class="btn btn-sm" data-action="addComment">Add comment</button>
+            </div>
           </div>
         </div>
         <div class="itemDetailPanel" data-item-panel="attachments">
@@ -3624,6 +3631,7 @@
       itemActions,
       descriptionAttachments:attachmentSectionHtml(item,"item"),
       description:escapeHtml(item.description),
+      descriptionPreview,
       subitemCount,
       subitemProgress,
       subitems:subitemsHtml,
@@ -3643,6 +3651,18 @@
     });
 
     itemModalView.wire(modal,{onClose:closeItemModal});
+    const descriptionInput=modal.querySelector("#itemDescInput");
+    const descriptionPreviewElement=modal.querySelector("#itemDescPreview");
+    descriptionInput.hidden=!descriptionEditing;
+    descriptionPreviewElement.hidden=descriptionEditing;
+    if (!isNew){
+      const descriptionEditButton=modal.querySelector('[data-action="toggleDescriptionEdit"]');
+      descriptionEditButton.setAttribute("aria-pressed",String(descriptionEditing));
+      descriptionEditButton.setAttribute("aria-label",descriptionEditing ? "Finish editing description" : "Edit description");
+      descriptionEditButton.title=descriptionEditing ? "Finish editing description" : "Edit description";
+      descriptionEditButton.querySelector("iconify-icon").setAttribute(
+        "icon",descriptionEditing ? "mdi:check" : "mdi:pencil-outline");
+    }
     if (isNew && openItemRef.globalNew){
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
@@ -3780,6 +3800,39 @@
       if (isNew) return;
       item.updatedAt = Date.now(); scheduleSave(); render();
     });
+    const descriptionEditButton=modal.querySelector('[data-action="toggleDescriptionEdit"]');
+    if (descriptionEditButton) descriptionEditButton.onclick=()=>{
+      const currentlyEditing=isNew||openItemRef.descriptionMode==="edit";
+      if (currentlyEditing){
+        const nextDescription=descriptionInput.value;
+        if (item.description!==nextDescription){
+          item.description=nextDescription;
+          if (!isNew){
+            item.updatedAt=Date.now();
+            scheduleSave();
+            render();
+          }
+        }
+        openItemRef.descriptionMode="preview";
+        descriptionPreviewElement.innerHTML=window.BeforeworkMarkdown.render(nextDescription)
+          || `<p class="markdownEmpty">No description yet.</p>`;
+        descriptionInput.hidden=true;
+        descriptionPreviewElement.hidden=false;
+        descriptionEditButton.setAttribute("aria-pressed","false");
+        descriptionEditButton.setAttribute("aria-label","Edit description");
+        descriptionEditButton.title="Edit description";
+        descriptionEditButton.querySelector("iconify-icon").setAttribute("icon","mdi:pencil-outline");
+      }else{
+        openItemRef.descriptionMode="edit";
+        descriptionInput.hidden=false;
+        descriptionPreviewElement.hidden=true;
+        descriptionEditButton.setAttribute("aria-pressed","true");
+        descriptionEditButton.setAttribute("aria-label","Finish editing description");
+        descriptionEditButton.title="Finish editing description";
+        descriptionEditButton.querySelector("iconify-icon").setAttribute("icon","mdi:check");
+        descriptionInput.focus();
+      }
+    };
     wireAttachmentControls(modal,item,{prefix:"item",isNew});
     modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
       chip.onclick = () => {
@@ -3837,10 +3890,13 @@
           if (commentInput.value.trim()){
             addComment(projectId, groupId, itemId, commentInput.value);
             renderItemModal();
+            modal.querySelector("#newCommentInput")?.focus();
           }
         };
         addCommentBtn.onclick = submitComment;
-        commentInput.addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); submitComment(); } });
+        commentInput.addEventListener("keydown", e=>{
+          if (e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); submitComment(); }
+        });
       }
       modal.querySelectorAll('[data-action="delComment"]').forEach(btn=>{
         btn.onclick = () => { deleteComment(projectId, groupId, itemId, btn.dataset.cid); renderItemModal(); };

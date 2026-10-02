@@ -8,5 +8,9 @@
     "clean-css": "5.3.3",
     "html-minifier-terser": "7.2.0",
     "terser": "5.51.2"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.16",
+    "markdown-it": "^15.0.2"
   }
 }

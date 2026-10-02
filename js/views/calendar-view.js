@@ -277,9 +277,9 @@ export class CalendarView {
         addFact("Location",details.location);
         popover.appendChild(facts);
         if (details.description){
-          const description = document.createElement("p");
-          description.className = "calendarContextDescription";
-          description.textContent = details.description;
+          const description = document.createElement("div");
+          description.className = "calendarContextDescription markdownBody";
+          description.innerHTML = window.BeforeworkMarkdown.render(details.description);
           popover.appendChild(description);
         }
         if (details.type==="Task"){

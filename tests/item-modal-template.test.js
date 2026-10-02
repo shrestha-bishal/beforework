@@ -43,9 +43,17 @@ test("item modal markup lives in a separately loaded parameterized HTML template
 
   assert.ok(tokens.length>0);
   assert.doesNotMatch(rendered,/\{\{[a-zA-Z][a-zA-Z0-9_]*\}\}/);
-  for (const id of ["itemTitleInput","itemDescInput","itemCalendarType","itemTagChips","itemModalFooter"]){
+  for (const id of ["itemTitleInput","itemDescInput","itemDescPreview","itemCalendarType","itemTagChips","itemModalFooter"]){
     assert.ok(rendered.includes(`id="${id}"`) || rendered.includes(`class="${id}"`),`missing ${id}`);
   }
+  assert.match(appSource,/itemModalEditDescriptionButton/);
+  assert.ok(appSource.indexOf('data-action="toggleDescriptionEdit"')<appSource.indexOf('data-action="toggleItemMenu"'));
+  assert.match(appSource,/icon="mdi:pencil-outline"/);
+  assert.match(rendered,/itemDescPreview/);
+  assert.doesNotMatch(rendered,/itemDescriptionToolbar|data-description-mode/);
+  assert.doesNotMatch(templateSource,/\{\{description(?:Input|Preview)Hidden\}\}/);
+  assert.match(appSource,/descriptionPreviewElement\.hidden=descriptionEditing/);
+  assert.match(appSource,/descriptionEditButton\.onclick=/);
   assert.match(appSource,/BeforeworkViewTemplates\.render\("itemModal"/);
   assert.match(appSource,/modal\.open\(\{id:"itemOverlay",content,onBackdrop:closeItemModal\}\)/);
 });

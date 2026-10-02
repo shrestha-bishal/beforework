@@ -616,10 +616,11 @@
      footer, with a scrollable body split into a main column and a metadata sidebar. */
   #itemModal{width:min(1120px,calc(100vw - 48px));max-height:min(90vh,900px);padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
-  .itemModalActions{position:relative;flex:none;z-index:3;}
+  .itemModalActions{position:relative;display:flex;align-items:center;gap:2px;flex:none;z-index:3;}
   .itemModalMenuButton{display:grid;place-items:center;width:32px;height:32px;padding:0;border-radius:7px;color:var(--muted);}
   .itemModalMenuButton:hover,.itemModalMenuButton[aria-expanded="true"]{background:var(--bg-soft2);color:var(--text);}
   .itemModalMenuButton iconify-icon{font-size:18px;}
+  .itemModalEditDescriptionButton[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-strong);}
   .itemModalActionMenu{position:absolute;top:calc(100% + 6px);right:0;display:flex;min-width:184px;flex-direction:column;gap:2px;padding:5px;border:1px solid var(--border);border-radius:8px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .itemModalActionMenu[hidden]{display:none;}
   .itemModalActionMenu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:0;border-radius:5px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}

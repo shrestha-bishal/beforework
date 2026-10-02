@@ -126,9 +126,9 @@ export class RoadmapView {
       addFact("Date field",row.fieldLabel);
       popover.appendChild(facts);
       if (row.description){
-        const description=document.createElement("p");
-        description.className="calendarContextDescription";
-        description.textContent=row.description;
+        const description=document.createElement("div");
+        description.className="calendarContextDescription markdownBody";
+        description.innerHTML=window.BeforeworkMarkdown.render(row.description);
         popover.appendChild(description);
       }
       document.body.appendChild(popover);

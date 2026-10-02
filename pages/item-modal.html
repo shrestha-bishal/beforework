@@ -10,7 +10,10 @@
   <div class="itemModalMain">
     <div class="mainSection">
       <div class="itemDescriptionHead"><div class="mainSectionLabel">Description</div>{{descriptionAttachments}}</div>
-      <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">{{description}}</textarea>
+      <div class="itemDescriptionEditor">
+        <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">{{description}}</textarea>
+        <div class="markdownBody itemDescriptionPreview" id="itemDescPreview" aria-label="Description preview">{{descriptionPreview}}</div>
+      </div>
     </div>
     <div class="mainSection">
       <div class="mainSectionHead">

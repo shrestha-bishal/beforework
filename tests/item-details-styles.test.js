@@ -16,3 +16,11 @@ test("item comments and activity styles are isolated and included in the manifes
   assert.match(itemDetailsStyles,/\.itemDetailTabs/);
   assert.match(stylesManifest,/@import url\("item-details\.css"\);/);
 });
+
+test("Markdown description editor and preview fill the available column width",()=>{
+  assert.match(itemDetailsStyles,/\.itemDescriptionEditor\{width:100%;min-width:0;\}/);
+  assert.match(itemDetailsStyles,/#itemDescInput,\.itemDescriptionPreview\{display:block;width:100%;min-width:0;box-sizing:border-box;\}/);
+  assert.match(itemDetailsStyles,/\.itemDescriptionPreview\{min-height:0;padding:0;border:0;background:transparent/);
+  assert.match(itemDetailsStyles,/#itemDescInput\[hidden\],\.itemDescriptionPreview\[hidden\]\{display:none!important;\}/);
+  assert.match(appStyles,/\.itemModalActions\{position:relative;display:flex;align-items:center;gap:2px/);
+});

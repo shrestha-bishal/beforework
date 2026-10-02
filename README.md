@@ -29,6 +29,7 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 ## Features
 
 - Projects, folders, groups, tasks, and standalone calendar items
+- Markdown-formatted task descriptions and comments with a live preview; existing text stays compatible and raw HTML is disabled
 - List, table, board, calendar, roadmap, and milestone views with per-project view configuration
 - Workspace and project roadmaps with task duration bars from optional start dates to task dates, plus milestone markers
 - Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, URLs, email addresses, and numbers
