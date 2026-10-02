@@ -3567,7 +3567,7 @@
           <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
         </div>`).join("")
       : `<div class="commentEmpty">No comments yet.</div>`;
-    const descriptionEditing=isNew||openItemRef.descriptionMode==="edit";
+    const descriptionEditing=isNew||!!openItemRef.descriptionEditing;
     const descriptionPreview=window.BeforeworkMarkdown.render(item.description||"")
       || `<p class="markdownEmpty">No description yet.</p>`;
     const activityEvents = [...(item.activity||[])].sort((a,b)=>b.at-a.at);
@@ -3580,9 +3580,13 @@
     const descriptionActions = !isNew ? `<div class="itemDescriptionActions">
       <button class="btn btn-invisible btn-sm itemDescriptionMenuButton" type="button" data-action="toggleDescriptionMenu" aria-label="Description actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemDescriptionActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
       <div class="itemModalActionMenu" id="itemDescriptionActionMenu" role="menu" hidden>
-        <button type="button" role="menuitem" data-action="toggleDescriptionEdit"><iconify-icon icon="${descriptionEditing?"mdi:check":"mdi:pencil-outline"}" aria-hidden="true"></iconify-icon><span>${descriptionEditing?"Finish editing":"Edit description"}</span></button>
+        ${descriptionEditing?"":`<button type="button" role="menuitem" data-action="toggleDescriptionEdit"><iconify-icon icon="mdi:pencil-outline" aria-hidden="true"></iconify-icon><span>Edit description</span></button>`}
         <button type="button" role="menuitem" data-action="copyDescriptionMarkdown"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Copy Markdown</span></button>
       </div>
+    </div>` : "";
+    const descriptionEditControls=!isNew ? `<div class="itemDescriptionEditControls" hidden>
+      <button class="btn btn-sm" type="button" data-action="cancelDescriptionEdit">Cancel</button>
+      <button class="btn btn-primary btn-sm" type="button" data-action="saveDescriptionEdit">Save</button>
     </div>` : "";
     const itemActions = !isNew ? `<div class="itemModalActions">
       <button class="btn btn-invisible btn-sm itemModalMenuButton" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemModalActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
@@ -3642,6 +3646,7 @@
       itemActions,
       descriptionAttachments:attachmentSectionHtml(item,"item"),
       descriptionActions,
+      descriptionEditControls,
       description:escapeHtml(item.description),
       descriptionPreview,
       subitemCount,
@@ -3664,8 +3669,72 @@
     itemModalView.wire(modal,{onClose:closeItemModal});
     const descriptionInput=modal.querySelector("#itemDescInput");
     const descriptionPreviewElement=modal.querySelector("#itemDescPreview");
-    descriptionInput.hidden=!descriptionEditing;
-    descriptionPreviewElement.hidden=descriptionEditing;
+    const descriptionToolbar=modal.querySelector(".itemMarkdownToolbar");
+    const descriptionEditControlsElement=modal.querySelector(".itemDescriptionEditControls");
+    function setDescriptionMode(mode){
+      const editing=mode==="edit";
+      const editSession=isNew||!!openItemRef.descriptionEditing;
+      openItemRef.descriptionMode=mode;
+      descriptionInput.hidden=!editing;
+      descriptionPreviewElement.hidden=editing;
+      descriptionToolbar.hidden=!editSession;
+      if (descriptionEditControlsElement){
+        descriptionEditControlsElement.hidden=!editSession;
+      }
+      if (!editing){
+        descriptionPreviewElement.innerHTML=window.BeforeworkMarkdown.render(descriptionInput.value)
+          || `<p class="markdownEmpty">No description yet.</p>`;
+      }
+      modal.querySelectorAll("[data-description-tab]").forEach(tab=>{
+        const selected=tab.dataset.descriptionTab===mode;
+        tab.classList.toggle("active",selected);
+        tab.setAttribute("aria-selected",String(selected));
+      });
+    }
+    setDescriptionMode(descriptionEditing?(openItemRef.descriptionMode||"edit"):"preview");
+    modal.querySelectorAll("[data-description-tab]").forEach(tab=>{
+      tab.onmousedown=event=>event.preventDefault();
+      tab.onclick=()=>setDescriptionMode(tab.dataset.descriptionTab);
+    });
+    modal.querySelectorAll("[data-md-action]").forEach(button=>{
+      button.onmousedown=event=>event.preventDefault();
+      button.onclick=()=>{
+        const action=button.dataset.mdAction;
+        const value=descriptionInput.value;
+        const start=descriptionInput.selectionStart;
+        const end=descriptionInput.selectionEnd;
+        const inline={
+          bold:["**","**","bold text"],
+          italic:["*","*","italic text"],
+          strike:["~~","~~","strikethrough text"],
+          code:["`","`","code"],
+          link:["[","](url)","link text"]
+        }[action];
+        if (inline){
+          const selected=value.slice(start,end)||inline[2];
+          const replacement=`${inline[0]}${selected}${inline[1]}`;
+          descriptionInput.setRangeText(replacement,start,end,"select");
+          descriptionInput.setSelectionRange(start+inline[0].length,start+inline[0].length+selected.length);
+        }else{
+          const prefix={
+            heading:"## ",
+            quote:"> ",
+            "unordered-list":"- ",
+            "ordered-list":"1. ",
+            "task-list":"- [ ] "
+          }[action];
+          if (!prefix) return;
+          const lineStart=value.lastIndexOf("\n",Math.max(0,start-1))+1;
+          const nextLineBreak=value.indexOf("\n",end);
+          const lineEnd=nextLineBreak<0 ? value.length : nextLineBreak;
+          const selectedLines=value.slice(lineStart,lineEnd);
+          const replacement=selectedLines.split("\n").map(line=>`${prefix}${line}`).join("\n");
+          descriptionInput.setRangeText(replacement,lineStart,lineEnd,"select");
+          descriptionInput.setSelectionRange(lineStart,lineStart+replacement.length);
+        }
+        descriptionInput.focus();
+      };
+    });
     if (isNew && openItemRef.globalNew){
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
@@ -3799,36 +3868,34 @@
       });
     });
     modal.querySelector("#itemDescInput").addEventListener("change", e=>{
-      item.description = e.target.value;
-      if (isNew) return;
-      item.updatedAt = Date.now(); scheduleSave(); render();
+      if (isNew) item.description=e.target.value;
     });
     const descriptionEditButton=modal.querySelector('[data-action="toggleDescriptionEdit"]');
     if (descriptionEditButton) descriptionEditButton.onclick=()=>{
-      const currentlyEditing=openItemRef.descriptionMode==="edit";
-      if (currentlyEditing){
-        const nextDescription=descriptionInput.value;
-        if (item.description!==nextDescription){
-          item.description=nextDescription;
-          if (!isNew){
-            item.updatedAt=Date.now();
-            scheduleSave();
-            render();
-          }
-        }
-        openItemRef.descriptionMode="preview";
-        descriptionPreviewElement.innerHTML=window.BeforeworkMarkdown.render(nextDescription)
-          || `<p class="markdownEmpty">No description yet.</p>`;
-        descriptionInput.hidden=true;
-        descriptionPreviewElement.hidden=false;
-      }else{
-        openItemRef.descriptionMode="edit";
-        descriptionInput.hidden=false;
-        descriptionPreviewElement.hidden=true;
-        descriptionInput.focus();
-      }
+      openItemRef.descriptionEditing=true;
+      setDescriptionMode("edit");
       renderItemModal();
-      if (openItemRef.descriptionMode==="edit") modal.querySelector("#itemDescInput").focus();
+      modal.querySelector("#itemDescInput").focus();
+    };
+    const cancelDescriptionEditButton=modal.querySelector('[data-action="cancelDescriptionEdit"]');
+    if (cancelDescriptionEditButton) cancelDescriptionEditButton.onclick=()=>{
+      descriptionInput.value=item.description||"";
+      openItemRef.descriptionEditing=false;
+      setDescriptionMode("preview");
+      renderItemModal();
+    };
+    const saveDescriptionEditButton=modal.querySelector('[data-action="saveDescriptionEdit"]');
+    if (saveDescriptionEditButton) saveDescriptionEditButton.onclick=()=>{
+      const nextDescription=descriptionInput.value;
+      if (item.description!==nextDescription){
+        item.description=nextDescription;
+        item.updatedAt=Date.now();
+        scheduleSave();
+        render();
+      }
+      openItemRef.descriptionEditing=false;
+      setDescriptionMode("preview");
+      renderItemModal();
     };
     const copyDescriptionButton=modal.querySelector('[data-action="copyDescriptionMarkdown"]');
     if (copyDescriptionButton) copyDescriptionButton.onclick=async()=>{
@@ -3931,6 +3998,7 @@
         const targetGroup = getGroup(openItemRef.projectId, openItemRef.groupId) || targetProject.groups[0];
         if (!title || !targetProject || !targetGroup) return;
         item.title = title;
+        item.description=modal.querySelector("#itemDescInput").value;
         item.updatedAt = Date.now();
         recordItemActivity(item, "created");
         targetGroup.items.push(item);

@@ -30,9 +30,8 @@
 .subitemAddButton{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:2px;padding:5px 8px;border-radius:6px;color:var(--muted);font-size:12px;}
 .subitemAddButton:hover{background:var(--bg-soft);color:var(--accent-strong);}
 .subitemAddButton iconify-icon{font-size:15px;}
-.itemDescriptionCard{overflow:visible;border:1px solid var(--border);border-radius:10px;background:var(--bg);transition:border-color .16s ease,box-shadow .16s ease;}
+.itemDescriptionCard{overflow:visible;border:1px solid var(--border);border-radius:10px;background:var(--bg);transition:border-color .16s ease;}
 .itemDescriptionCard:hover{border-color:var(--border-strong);}
-.itemDescriptionCard:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
 .itemDescriptionCardHead{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:6px 10px 6px 14px;border-bottom:1px solid var(--border);}
 .itemDescriptionHead{flex:1;min-width:0;}
 .itemDescriptionCardHead .mainSectionLabel{color:var(--text);font-size:12px;letter-spacing:0;}
@@ -44,7 +43,23 @@
 .itemDescriptionCard .itemModalActionMenu{top:calc(100% + 4px);}
 .itemDescriptionCopyStatus{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .itemDescriptionEditor{width:100%;min-width:0;}
-#itemDescInput{min-height:104px;padding:10px 12px;border-color:transparent;background:transparent;box-shadow:none;resize:vertical;}
+.itemMarkdownToolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:4px 8px;border-bottom:1px solid var(--border);background:var(--bg-soft);}
+.itemMarkdownToolbar[hidden]{display:none!important;}
+.itemMarkdownModeTabs{display:flex;align-self:stretch;align-items:center;gap:2px;flex:none;}
+.itemMarkdownModeTab{align-self:stretch;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;cursor:pointer;}
+.itemMarkdownModeTab:hover{background:var(--bg);color:var(--text);}
+.itemMarkdownModeTab.active{background:var(--bg);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(31,35,40,.12);}
+.itemMarkdownModeTab:focus-visible,.itemMarkdownTools button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+.itemMarkdownTools{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto;}
+.itemMarkdownTools button{display:grid;place-items:center;width:28px;height:28px;flex:none;padding:0;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer;}
+.itemMarkdownTools button:hover{background:var(--bg);color:var(--text);}
+.itemMarkdownTools button iconify-icon{font-size:16px;}
+.itemMarkdownToolDivider{width:1px;height:18px;flex:none;margin:0 4px;background:var(--border);}
+.itemDescriptionEditControls{display:flex;justify-content:flex-end;gap:8px;margin-top:-2px;padding:0 2px;}
+.itemDescriptionEditControls[hidden]{display:none!important;}
+.itemDescriptionEditControls .btn{min-width:68px;}
+.itemDescriptionEditControls .btn:disabled{cursor:default;opacity:.5;}
+#itemDescInput{height:220px;min-height:180px;max-height:45vh;padding:12px 14px;border-color:transparent;background:transparent;box-shadow:none;resize:vertical;}
 #itemDescInput:hover{border-color:var(--border);}
 #itemDescInput:focus{border-color:var(--accent);background:var(--bg);box-shadow:0 0 0 2px var(--accent-soft);}
 #itemDescInput,.itemDescriptionPreview{display:block;width:100%;min-width:0;box-sizing:border-box;}
@@ -53,6 +68,11 @@
 .commentComposer textarea{min-height:52px;resize:vertical;}
 .commentComposerFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .itemDescriptionPreview{min-height:48px;padding:14px;border:0;background:transparent;overflow-wrap:anywhere;}
+@media (max-width:560px){
+  .itemMarkdownToolbar{align-items:flex-start;flex-direction:column;gap:4px;padding:6px 8px;}
+  .itemMarkdownModeTabs{min-height:28px;}
+  .itemMarkdownTools{width:100%;}
+}
 .markdownBody{color:var(--text);font-size:inherit;line-height:1.55;overflow-wrap:anywhere;}
 .markdownBody>:first-child{margin-top:0;}
 .markdownBody>:last-child{margin-bottom:0;}

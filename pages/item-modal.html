@@ -15,10 +15,32 @@
           {{descriptionActions}}
         </div>
         <div class="itemDescriptionEditor">
-          <textarea class="form-control" id="itemDescInput" placeholder="Add notes...">{{description}}</textarea>
-          <div class="markdownBody itemDescriptionPreview" id="itemDescPreview" aria-label="Description preview">{{descriptionPreview}}</div>
+          <div class="itemMarkdownToolbar" role="toolbar" aria-label="Markdown formatting">
+            <div class="itemMarkdownModeTabs" role="tablist" aria-label="Description mode">
+              <button type="button" class="itemMarkdownModeTab active" id="descriptionWriteTab" data-description-tab="edit" role="tab" aria-selected="true" aria-controls="itemDescInput">Write</button>
+              <button type="button" class="itemMarkdownModeTab" id="descriptionPreviewTab" data-description-tab="preview" role="tab" aria-selected="false" aria-controls="itemDescPreview">Preview</button>
+            </div>
+            <div class="itemMarkdownTools">
+              <button type="button" data-md-action="heading" aria-label="Heading" title="Heading"><iconify-icon icon="mdi:format-header-1" aria-hidden="true"></iconify-icon></button>
+              <span class="itemMarkdownToolDivider" aria-hidden="true"></span>
+              <button type="button" data-md-action="bold" aria-label="Bold" title="Bold"><iconify-icon icon="mdi:format-bold" aria-hidden="true"></iconify-icon></button>
+              <button type="button" data-md-action="italic" aria-label="Italic" title="Italic"><iconify-icon icon="mdi:format-italic" aria-hidden="true"></iconify-icon></button>
+              <button type="button" data-md-action="strike" aria-label="Strikethrough" title="Strikethrough"><iconify-icon icon="mdi:format-strikethrough" aria-hidden="true"></iconify-icon></button>
+              <span class="itemMarkdownToolDivider" aria-hidden="true"></span>
+              <button type="button" data-md-action="quote" aria-label="Quote" title="Quote"><iconify-icon icon="mdi:format-quote-close" aria-hidden="true"></iconify-icon></button>
+              <button type="button" data-md-action="code" aria-label="Code" title="Code"><iconify-icon icon="mdi:code-tags" aria-hidden="true"></iconify-icon></button>
+              <button type="button" data-md-action="link" aria-label="Link" title="Link"><iconify-icon icon="mdi:link-variant" aria-hidden="true"></iconify-icon></button>
+              <span class="itemMarkdownToolDivider" aria-hidden="true"></span>
+              <button type="button" data-md-action="unordered-list" aria-label="Bulleted list" title="Bulleted list"><iconify-icon icon="mdi:format-list-bulleted" aria-hidden="true"></iconify-icon></button>
+              <button type="button" data-md-action="ordered-list" aria-label="Numbered list" title="Numbered list"><iconify-icon icon="mdi:format-list-numbered" aria-hidden="true"></iconify-icon></button>
+              <button type="button" data-md-action="task-list" aria-label="Task list" title="Task list"><iconify-icon icon="mdi:format-list-checks" aria-hidden="true"></iconify-icon></button>
+            </div>
+          </div>
+          <textarea class="form-control" id="itemDescInput" aria-label="Write description in Markdown" aria-labelledby="descriptionWriteTab" placeholder="Add notes...">{{description}}</textarea>
+          <div class="markdownBody itemDescriptionPreview" id="itemDescPreview" role="tabpanel" aria-labelledby="descriptionPreviewTab" aria-label="Description preview">{{descriptionPreview}}</div>
         </div>
       </div>
+      {{descriptionEditControls}}
       <div class="itemDescriptionCopyStatus" id="descriptionCopyStatus" role="status" aria-live="polite"></div>
     </div>
     <div class="mainSection subitemsSection">

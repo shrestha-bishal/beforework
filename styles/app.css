@@ -627,7 +627,7 @@
   .itemModalActionMenu button iconify-icon{width:16px;color:var(--muted);font-size:15px;}
   .itemModalActionMenu button.danger,.itemModalActionMenu button.danger iconify-icon{color:var(--danger);}
   .itemModalActionSeparator{height:1px;margin:3px 4px;background:var(--border);}
-  .itemModalHeader{position:relative;flex:none;padding:16px 24px 14px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .itemModalHeader{position:relative;flex:none;padding:16px 24px 14px;background:var(--bg);}
   .itemModalBreadcrumb{overflow:hidden;padding:0 10px;margin-bottom:2px;color:var(--muted);font-size:11px;line-height:1.4;text-overflow:ellipsis;white-space:nowrap;}
   .itemModalBreadcrumb span{padding:0 4px;color:var(--border);}
   .itemModalTitleRow{display:flex;align-items:center;gap:8px;min-width:0;margin-top:16px;position:relative;}
