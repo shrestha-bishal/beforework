@@ -9,6 +9,7 @@ const vm=require("node:vm");
 const templatePath=path.join(__dirname,"../pages/item-modal.html");
 const templateSource=fs.readFileSync(templatePath,"utf8");
 const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const stylesSource=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 const templatesSource=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
 
 function loadTemplateModule(){
@@ -75,4 +76,10 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/descriptionEditButton\.onclick=/);
   assert.match(appSource,/BeforeworkViewTemplates\.render\("itemModal"/);
   assert.match(appSource,/modal\.open\(\{id:"itemOverlay",content,onBackdrop:closeItemModal\}\)/);
+});
+
+test("item modal overlays the sidebar and reflows with viewport size",()=>{
+  assert.match(stylesSource,/\.overlay\{[^}]*z-index:100;/);
+  assert.match(stylesSource,/@media \(max-width:900px\)\{[\s\S]*?#itemModal\{width:100%;max-height:calc\(100vh - 24px\);max-height:calc\(100dvh - 24px\);\}[\s\S]*?\.itemModalBody\{flex-direction:column;/);
+  assert.match(stylesSource,/@media \(max-width:560px\)\{[\s\S]*?#itemModal\{max-height:calc\(100vh - 16px\);max-height:calc\(100dvh - 16px\);/);
 });
