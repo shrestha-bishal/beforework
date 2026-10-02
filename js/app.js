@@ -1559,17 +1559,17 @@
   }
   async function addField(project, label, type){
     if (type==="date"&&/^(start|start date|starts on|due|due date|deadline)$/.test(label.trim().toLowerCase())){
-      await showNotice("Choose a date-specific column type",`Use Start date or Due date for "${label}". Choose Date for a different kind of date.`);
+      await showNotice("Choose a date-specific field type",`Use Start date or Due date for "${label}". Choose Date for a different kind of date.`);
       return;
     }
     if ((type==="start-date"||type==="due-date")&&project.fields.some(field=>field.type===type)){
-      await showNotice(`${type==="start-date"?"Start date":"Due date"} column already exists`,
-        "Each project can have one dedicated start date column and one dedicated due date column.");
+      await showNotice(`${type==="start-date"?"Start date":"Due date"} field already exists`,
+        "Each project can have one dedicated start date field and one dedicated due date field.");
       return;
     }
     const field = {id:uid(), label, type, options:[]};
     if (type==="select" || type==="multi-select"){
-      const opts = await showDialog({title:"Column options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create column"});
+      const opts = await showDialog({title:"Field options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create field"});
       if (opts === null) return;
       field.options = (opts||"").split(",").map(s=>s.trim()).filter(Boolean)
         .map((l,i)=>({id:uid(), label:l, color:TAG_COLORS[i % TAG_COLORS.length]}));
@@ -1584,20 +1584,20 @@
     if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
     scheduleSave(); renderAll();
   }
-  async function addColumnFlow(project){
+  async function addFieldFlow(project){
     const availableFieldTypes=FIELD_TYPE_OPTIONS.filter(option=>
       !["start-date","due-date"].includes(option.value)
       || !project.fields.some(field=>field.type===option.value));
-    const details = await showDialog({title:"Add column", fields:[
-      {label:"Column type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
-      {label:"Column name", placeholder:"e.g. Status, Type, Effort"}
-    ], confirmLabel:"Add column"});
+    const details = await showDialog({title:"Add field", fields:[
+      {label:"Field type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
+      {label:"Field name", placeholder:"e.g. Status, Type, Effort"}
+    ], confirmLabel:"Add field"});
     if (!details) return;
     const [type,label] = details;
     const fieldType=FIELD_TYPES.includes(type)?type:"select";
-    const columnName=label?.trim()||(fieldType==="start-date"?"Start date":fieldType==="due-date"?"Due date":"");
-    if (!columnName) return;
-    await addField(project,columnName,fieldType);
+    const fieldName=label?.trim()||(fieldType==="start-date"?"Start date":fieldType==="due-date"?"Due date":"");
+    if (!fieldName) return;
+    await addField(project,fieldName,fieldType);
   }
   function orderedTableColumns(project,viewType,columnIds){
     const saved=project.columnOrders?.[viewType]||[];
@@ -1683,7 +1683,7 @@
     menu.querySelector('[data-column-action="edit"]').onclick = async event => {
       event.stopPropagation();
       menu.classList.remove("open");
-      const label = await showDialog({title:"Edit column", fields:[{label:"Column name", value:field.label}], confirmLabel:"Save"});
+      const label = await showDialog({title:"Edit field", fields:[{label:"Field name", value:field.label}], confirmLabel:"Save"});
       if (!label || !label.trim()) return;
       field.label = label.trim();
       scheduleSave(); renderAll();
@@ -2085,7 +2085,7 @@
       menu.innerHTML = `
         <button type="button" data-project-action="edit">Edit project</button>
         <button type="button" data-project-action="group">New group</button>
-        <button type="button" data-project-action="add-column">Add column</button>
+        <button type="button" data-project-action="add-field">Add field</button>
         <button type="button" data-project-action="duplicate">Duplicate project</button>
         <button type="button" data-project-action="move">Move to folder</button>
         <button type="button" data-project-action="undo">Undo</button>
@@ -2108,8 +2108,8 @@
             await editProject(await ensureProjectLoaded(p.id));
           } else if (action === "duplicate") {
             await duplicateProject(await ensureProjectLoaded(p.id));
-          } else if (action === "add-column") {
-            await addColumnFlow(await ensureProjectLoaded(p.id));
+          } else if (action === "add-field") {
+            await addFieldFlow(await ensureProjectLoaded(p.id));
           } else if (action === "group") {
             const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
             if (name && name.trim()){
@@ -2370,7 +2370,7 @@
     const editBtn = document.getElementById("editProjectBtn");
     const duplicateBtn = document.getElementById("duplicateProjectBtn");
     const deleteBtn = document.getElementById("deleteProjectBtn");
-    const fieldsBtn = document.getElementById("manageFieldsBtn");
+    const addFieldBtn = document.getElementById("addFieldBtn");
     const addGroupBtn = document.getElementById("addGroupBtn");
     const moveFolderBtn = document.getElementById("moveProjectFolderBtn");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
@@ -2396,7 +2396,7 @@
       editBtn.style.display = "none";
       duplicateBtn.style.display = "none";
       deleteBtn.style.display = "none";
-      fieldsBtn.style.display = "none";
+      addFieldBtn.style.display = "none";
       addGroupBtn.style.display = "none";
       moveFolderBtn.style.display = "none";
       projectMenuWrap.style.display = "none";
@@ -2440,7 +2440,7 @@
     editBtn.style.display = "inline-block";
     duplicateBtn.style.display = "inline-block";
     deleteBtn.style.display = "inline-block";
-    fieldsBtn.style.display = "inline-block";
+    addFieldBtn.style.display = "inline-block";
     addGroupBtn.style.display = "inline-block";
     moveFolderBtn.style.display = "inline-block";
     projectMenuWrap.style.display = "inline-flex";
@@ -2463,7 +2463,7 @@
     renderFilterCategoryState(project);
     updateFilterSummary();
 
-    fieldsBtn.onclick = () => addColumnFlow(project);
+    addFieldBtn.onclick = () => addFieldFlow(project);
     moveFolderBtn.onclick = () => moveProjectToFolder(project);
     addGroupBtn.onclick = async () => {
       const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});

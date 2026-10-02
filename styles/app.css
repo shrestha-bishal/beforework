@@ -681,7 +681,7 @@
   .progressTrack{height:6px;border-radius:4px;background:var(--bg-soft2);overflow:hidden;}
   .progressFill{height:100%;border-radius:4px;background:var(--accent);transition:width .2s ease;}
   .sideItem{display:flex;flex-direction:column;gap:7px;}
-  .sideItem .sideItemLabel{font-size:10.5px;font-weight:650;color:var(--muted);letter-spacing:0.075em;text-transform:uppercase;}
+  .sideItem .sideItemLabel{font-size:11px;font-weight:400;color:var(--muted);letter-spacing:0.075em;}
   .sideItemCheckbox{gap:8px;}
   .checkboxFieldControl{display:inline-flex;align-items:center;gap:8px;width:max-content;padding:0;background:transparent;border:none;border-radius:0;cursor:pointer;user-select:none;}
   .checkboxFieldControl:hover{background:transparent;}

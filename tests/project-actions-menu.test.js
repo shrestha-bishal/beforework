@@ -96,3 +96,12 @@ test("outside clicks and the print action close the project actions menu",()=>{
   assert.doesNotMatch(app,/document\.getElementById\("projectMenuBtn"\)\.onclick/);
   assert.ok(index.indexOf('src="js/ui/project-actions-menu.js"')<index.indexOf('src="js/app.js"'));
 });
+
+test("project-level custom field actions are labeled Add field",()=>{
+  assert.match(index,/<button class="btn btn-sm btn-invisible" id="addFieldBtn">Add field<\/button>/);
+  assert.match(app,/<button type="button" data-project-action="add-field">Add field<\/button>/);
+  assert.match(app,/const addFieldBtn = document\.getElementById\("addFieldBtn"\)/);
+  assert.match(app,/action === "add-field"[\s\S]*?addFieldFlow\(await ensureProjectLoaded\(p\.id\)\)/);
+  assert.match(app,/title:"Add field", fields:\[\s*\{label:"Field type"/);
+  assert.doesNotMatch(app,/manageFieldsBtn|data-project-action="add-column"|addColumnFlow/);
+});
