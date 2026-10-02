@@ -8,11 +8,11 @@ Beforework is a serverless local-first project management workspace for projects
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ce98605e-02e2-4dea-a043-6bd452bb8ac5" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/4c1f8c79-466b-453f-a492-fbc421f0c7a5" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d5e9bf2a-0cdc-4fb2-8d67-c0b5d541963f" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/69d4a958-970b-4690-8baf-7d7eb675e5c4" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/eb09de72-36b0-46c4-8e97-9f3d08926a95" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/93efcddc-bbab-400a-81c5-2a2c1e70f861" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/5e930139-3644-414e-86e8-fcfe576fc497" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/0d3e7a7a-4cb2-45d2-9a2f-dfb15a8d751c" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/61c114d3-da65-4f30-8f70-15172d15af00" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d47de356-aeb4-4194-a6d9-be6983d1a87c" />
+<img width="1899" height="991" alt="image" src="https://github.com/user-attachments/assets/3687872e-f98f-4dde-b328-adce993f1a64" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/143a1b17-8a70-4777-9e0d-cb250ed2b051" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5f8a1fe-10cd-4cf9-85ac-430966c88c57" />
 <img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/84a4522a-244c-4591-9993-433b2fee19c7" />
