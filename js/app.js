@@ -2629,13 +2629,6 @@
     ];
     if (!categories.some(category=>category.id===activeFilterCategory)) activeFilterCategory = categories[0].id;
     wrap.innerHTML = categories.map(category=>`<button class="filterCategory" type="button" data-filter-category="${escapeHtml(category.id)}">${escapeHtml(category.label)}</button>`).join("");
-    wrap.querySelectorAll("[data-filter-category]").forEach(button=>{
-      button.onclick = () => {
-        activeFilterCategory = button.dataset.filterCategory;
-        renderFilterCategoryState(project);
-        renderFieldFilters(project);
-      };
-    });
   }
 
   function renderFilterCategoryState(project){
@@ -3955,11 +3948,6 @@
         document.getElementById("projectMenu").classList.remove("open");
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
-      const filterPanel = document.getElementById("filterPanel");
-      if (filterPanel.classList.contains("open") && !event.target.closest("#filterPanel") && !event.target.closest("#toggleFilters")){
-        filterPanel.classList.remove("open");
-        document.getElementById("toggleFilters").classList.remove("active");
-      }
       if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
       if (!event.target.closest(".workspaceSwitcher")) closeWorkspaceSwitcher();
       const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
@@ -4023,13 +4011,6 @@
         commandPalette.open(globalSearch.value);
       }
     });
-    document.getElementById("boardSearch").addEventListener("input", e=>{
-      boardFilterText = e.target.value.trim(); render();
-    });
-    document.getElementById("clearBoardFilters").onclick = () => {
-      boardFilterText=""; boardFilterGroups.clear(); boardFilterTags.clear(); boardFilterFields.clear();
-      render();
-    };
     document.getElementById("showArchivedToggle").addEventListener("change", e=>{
       showArchived = e.target.checked;
       render();
@@ -4038,27 +4019,6 @@
       document.getElementById("projectMenu").classList.remove("open");
       document.getElementById("projectMenuBtn").classList.remove("active");
       window.print();
-    };
-    document.getElementById("toggleFilters").onclick = () => {
-      const panel = document.getElementById("filterPanel");
-      const button = document.getElementById("toggleFilters");
-      const isOpen = panel.classList.toggle("open");
-      button.classList.toggle("active", isOpen);
-    };
-    document.getElementById("closeFilters").onclick = () => {
-      document.getElementById("filterPanel").classList.remove("open");
-      document.getElementById("toggleFilters").classList.remove("active");
-    };
-    document.querySelectorAll("[data-filter-category]").forEach(button=>{
-      button.onclick = () => {
-        document.querySelectorAll("[data-filter-category]").forEach(item=>item.classList.toggle("active", item===button));
-        document.querySelectorAll("#filterOptions > div").forEach(section=>section.classList.toggle("active", section.id===button.dataset.filterCategory));
-      };
-    });
-    document.getElementById("filterPanelDone").onclick = document.getElementById("closeFilters").onclick;
-    document.getElementById("filterPanelClear").onclick = () => {
-      boardFilterText=""; boardFilterGroups.clear(); boardFilterTags.clear(); boardFilterFields.clear();
-      render();
     };
     document.getElementById("sidebarToggle").onclick = toggleSidebar;
     document.getElementById("sidebarScrim").onclick = closeSidebarOnMobile;
@@ -4112,6 +4072,24 @@
   async function boot({loadViewModules}){
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
+    window.BeforeworkBoardFilters.create({
+      onSearchChange:value=>{
+        boardFilterText=value.trim();
+        render();
+      },
+      onClear:()=>{
+        boardFilterText="";
+        boardFilterGroups.clear();
+        boardFilterTags.clear();
+        boardFilterFields.clear();
+        render();
+      },
+      onSelectCategory:category=>{
+        activeFilterCategory=category;
+        const project=getProject(activeProjectId);
+        if (project) renderFieldFilters(project);
+      }
+    }).wire();
     wireStaticControls();
     connectGate = window.BeforeworkConnectGate.create({
       getSyncStatusText,
