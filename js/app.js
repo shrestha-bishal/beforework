@@ -74,6 +74,10 @@
   });
   const modal = window.BeforeworkModal.create();
   const itemModalView = window.BeforeworkItemModal.create();
+  const shortcutsModal = window.BeforeworkShortcutsModal.create({
+    modal,
+    cloneTemplate:()=>window.BeforeworkViewTemplates.clone("shortcutsModal")
+  });
 
   const __VIEW_IMPORT_HINTS = [
     'import("./views/settings-view.js")',
@@ -341,29 +345,7 @@
 
   /* ---------- Keyboard shortcuts modal ---------- */
   function showShortcutsModal(){
-    const overlay = document.createElement("div");
-    overlay.className = "overlay";
-    const rows = [
-      ["/", "Open search and commands"],
-      ["Ctrl/⌘ + K", "Open the command palette"],
-      ["n", "Quick-add an item to the open project"],
-      ["d", "Toggle dark / light mode"],
-      ["[", "Collapse / expand the sidebar"],
-      ["t", "Open or close the focus timer"],
-      ["Ctrl/⌘ + Z", "Undo the last change"],
-      ["Esc", "Close the open item or dialog"],
-      ["?", "Show this shortcuts list"],
-    ];
-    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
-      <button class="btn btn-invisible closeX" data-close>✕</button>
-      <h3>Keyboard shortcuts</h3>
-      <div>${rows.map(([key,desc])=>`<div class="shortcutRow"><span>${escapeHtml(desc)}</span><kbd>${escapeHtml(key)}</kbd></div>`).join("")}</div>
-      <div class="uiDivider modalDivider" aria-hidden="true"></div>
-      <div class="modalFooter"><button class="btn btn-primary btn-sm" data-close>Got it</button></div>
-    </div>`;
-    document.body.appendChild(overlay);
-    overlay.querySelectorAll("[data-close]").forEach(btn=>btn.onclick = ()=>overlay.remove());
-    overlay.addEventListener("click", e=>{ if (e.target===overlay) overlay.remove(); });
+    shortcutsModal.open();
   }
 
   function todayStr(offsetDays){

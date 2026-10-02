@@ -8,6 +8,7 @@ window.BeforeworkViewTemplates = (()=>{
     tableView:"pages/table-view.html",
     boardView:"pages/board-view.html",
     itemModal:"pages/item-modal.html",
+    shortcutsModal:"pages/shortcuts-modal.html",
     settings:"pages/settings.html",
     support:"pages/support.html",
     focusTimer:"pages/focus-timer.html"
