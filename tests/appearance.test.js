@@ -104,6 +104,12 @@ test("collapsed desktop sidebar keeps navigation and project icons visible",()=>
   assert.doesNotMatch(styles,/#sidebar\.collapsed\{width:0/);
 });
 
+test("sidebar project action trigger keeps shared menu behavior with compact custom styling",()=>{
+  assert.match(styles,/#projectList \.SideNav-item \.projectMenuBtnSmall\{[^}]*width:24px;height:20px;flex:0 0 auto;padding:2px 4px;border:0;border-radius:5px;background:transparent;color:var\(--muted\);font-size:16px;line-height:1;cursor:pointer;opacity:0;visibility:hidden;transform:translateX\(8px\) scale\(\.9\);transition:opacity \.14s,visibility \.14s,transform \.14s,background-color \.12s;/);
+  assert.match(styles,/#projectList \.SideNav-item \.projectMenuBtnSmall:hover,[\s\S]*?\.projectMenuBtnSmall\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
+  assert.match(styles,/#projectList \.SideNav-item:hover \.projectMenuBtnSmall\{opacity:1;visibility:visible;transform:translateX\(0\) scale\(1\);\}/);
+});
+
 test("keeps appearance controls usable when local storage is unavailable",()=>{
   const harness=createHarness({prefersDark:true,storageThrows:true});
 
