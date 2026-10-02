@@ -13,8 +13,13 @@ function createTimePicker(timeFormat,value,timers=[]){
   const snippet=appSource.slice(start,end);
   const makeElement=()=>{
     const listeners={};
+    const classNames=new Set();
     return {
-      children:[],dataset:{},style:{},attributes:{},classList:{add(){},toggle(){}},listeners,
+      children:[],dataset:{},style:{},attributes:{},classList:{
+        add(name){classNames.add(name);},
+        toggle(name,enabled){if(enabled) classNames.add(name); else classNames.delete(name);},
+        contains(name){return classNames.has(name);}
+      },listeners,
       setAttribute(name,value){this.attributes[name]=value;},
       getAttribute(name){return this.attributes[name]||null;},
       appendChild(child){this.children.push(child);child.parentNode=this;return child;},
@@ -88,7 +93,8 @@ function clickTarget(popover,selector,dataset){
 }
 
 test("time wheel follows 24-hour preference and only saves on confirmation",()=>{
-  const {button,input,popover}=createTimePicker("24","08:15");
+  const {button,input,popover}=createTimePicker("24","");
+  assert.equal(button.classList.contains("is-placeholder"),true);
   button.onclick({stopPropagation(){}});
   assert.match(popover.innerHTML,/Select time/);
   assert.match(popover.innerHTML,/role="listbox" aria-label="Hour"/);
@@ -102,6 +108,7 @@ test("time wheel follows 24-hour preference and only saves on confirmation",()=>
   assert.equal(input.value,"08:15");
   clickTarget(popover,"[data-time-action]",{timeAction:"save"});
   assert.equal(input.value,"17:45");
+  assert.equal(button.classList.contains("is-placeholder"),false);
   assert.deepEqual(input.events,["input","change"]);
 
   button.onclick({stopPropagation(){}});
@@ -110,6 +117,12 @@ test("time wheel follows 24-hour preference and only saves on confirmation",()=>
   assert.equal(input.value,"17:45");
   assert.equal(popover.hidden,true);
   assert.deepEqual(input.events,["input","change"]);
+});
+
+test("10px placeholder styling is scoped to the date picker's time control",()=>{
+  const css=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
+  assert.match(css,/\.datePickerPopover \.timePickerWrap \.timePickerButton\.is-placeholder>span\{font-size:10px;\}/);
+  assert.doesNotMatch(css,/\.timePickerButton\.is-placeholder>span\{font-size:10px;\}/);
 });
 
 test("time wheel follows 12-hour preference and saves AM/PM selection",()=>{

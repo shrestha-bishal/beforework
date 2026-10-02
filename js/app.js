@@ -3294,6 +3294,10 @@
     icon.setAttribute("icon","mdi:clock-outline");
     icon.setAttribute("aria-hidden","true");
     button.append(label,icon);
+    const updateLabel=()=>{
+      label.textContent=input.value ? formatTimeValue(input.value) : "Choose time";
+      button.classList.toggle("is-placeholder",!input.value);
+    };
     const popover=document.createElement("div");
     popover.className="timePickerPopover";
     popover.hidden=true;
@@ -3367,7 +3371,7 @@
         button.focus();
       }else if (action==="save"){
         input.value=`${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`;
-        label.textContent=formatTime();
+        updateLabel();
         emitChange();
         close();
         button.focus();
@@ -3404,8 +3408,8 @@
       scrollSelected();
     };
     button.onkeydown=event=>{ if (event.key==="Enter" || event.key===" "){ event.preventDefault(); button.click(); } };
-    input.addEventListener("change",()=>{ label.textContent=formatTime(); });
-    label.textContent=formatTime();
+    input.addEventListener("change",updateLabel);
+    updateLabel();
   }
   function enhanceTimeInputs(root=document){
     const selector='input[type="time"]:not([data-time-picker-enhanced])';
@@ -3418,7 +3422,10 @@
   function refreshTimePickerLabels(){
     document.querySelectorAll(".timePickerWrap input[type=time]").forEach(input=>{
       const label=input.parentNode.querySelector(".timePickerButton span");
-      if (label) label.textContent=input.value ? formatTimeValue(input.value) : "Choose time";
+      if (label){
+        label.textContent=input.value ? formatTimeValue(input.value) : "Choose time";
+        label.parentNode.classList.toggle("is-placeholder",!input.value);
+      }
     });
   }
   function showDialog(options){ return dialogs.showDialog(options); }

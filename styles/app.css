@@ -533,6 +533,7 @@
   .datePickerFooter button{padding:3px 4px;border:0;background:transparent;color:var(--accent-strong);font:inherit;font-size:11px;cursor:pointer;}
   .datePickerFooter button:hover,.datePickerFooter button:focus{outline:0;text-decoration:underline;}
   .timePickerButton{min-width:112px;}
+  .datePickerPopover .timePickerWrap .timePickerButton.is-placeholder>span{font-size:11px;}
   .timePickerPopover{position:fixed;top:0;left:0;z-index:120;width:278px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .timePickerPopover[hidden]{display:none;}
   .timePickerHeader{margin-bottom:10px;color:var(--text);font-size:13px;font-weight:600;text-align:center;}
