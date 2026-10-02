@@ -73,6 +73,7 @@
     clonePageTemplate:name=>window.BeforeworkViewTemplates.clone(name)
   });
   const modal = window.BeforeworkModal.create();
+  const itemModalView = window.BeforeworkItemModal.create();
 
   const __VIEW_IMPORT_HINTS = [
     'import("./views/settings-view.js")',
@@ -3544,35 +3545,7 @@
       footerActions
     });
 
-    modal.querySelector('[data-action="close"]').onclick = closeItemModal;
-    const actionMenu = modal.querySelector("#itemModalActionMenu");
-    const actionMenuButton = modal.querySelector('[data-action="toggleItemMenu"]');
-    if (actionMenu && actionMenuButton){
-      const closeActionMenu = () => {
-        actionMenu.hidden = true;
-        actionMenuButton.setAttribute("aria-expanded","false");
-      };
-      actionMenuButton.onclick = () => {
-        actionMenu.hidden = !actionMenu.hidden;
-        actionMenuButton.setAttribute("aria-expanded",String(!actionMenu.hidden));
-        if (!actionMenu.hidden) actionMenu.querySelector('[role="menuitem"]')?.focus();
-      };
-      modal.addEventListener("click", event=>{
-        if (!event.target.closest(".itemModalActions")) closeActionMenu();
-      });
-      actionMenu.addEventListener("keydown", event=>{
-        if (event.key==="Escape"){
-          closeActionMenu();
-          actionMenuButton.focus();
-        } else if (event.key==="ArrowDown" || event.key==="ArrowUp"){
-          const menuItems = [...actionMenu.querySelectorAll('[role="menuitem"]')];
-          const currentIndex = menuItems.indexOf(document.activeElement);
-          const direction = event.key==="ArrowDown" ? 1 : -1;
-          menuItems[(currentIndex+direction+menuItems.length)%menuItems.length].focus();
-          event.preventDefault();
-        }
-      });
-    }
+    itemModalView.wire(modal,{onClose:closeItemModal});
     if (isNew && openItemRef.globalNew){
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
@@ -3711,21 +3684,6 @@
       item.updatedAt = Date.now(); scheduleSave(); render();
     });
     wireAttachmentControls(modal,item,{prefix:"item",isNew});
-    modal.querySelectorAll(".itemDetailTab").forEach(tab=>{
-      tab.onclick=()=>{
-        const target=tab.dataset.itemTab;
-        modal.querySelectorAll(".itemDetailTab").forEach(button=>{
-          const active=button===tab;
-          button.classList.toggle("active",active);
-          button.setAttribute("aria-selected",String(active));
-        });
-        modal.querySelectorAll(".itemDetailPanel").forEach(panel=>{
-          const active=panel.dataset.itemPanel===target;
-          panel.classList.toggle("active",active);
-          panel.hidden=!active;
-        });
-      };
-    });
     modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
       chip.onclick = () => {
         const tid = chip.dataset.tagfilter;
@@ -3789,20 +3747,6 @@
       }
       modal.querySelectorAll('[data-action="delComment"]').forEach(btn=>{
         btn.onclick = () => { deleteComment(projectId, groupId, itemId, btn.dataset.cid); renderItemModal(); };
-      });
-      modal.querySelectorAll(".itemDetailTab").forEach(tab=>{
-        tab.onclick = () => {
-          const target = tab.dataset.itemTab;
-          modal.querySelectorAll(".itemDetailTab").forEach(btn=>{
-            const active = btn===tab;
-            btn.classList.toggle("active", active);
-            btn.setAttribute("aria-selected", String(active));
-          });
-          modal.querySelectorAll(".itemDetailPanel").forEach(panel=>{
-            panel.classList.toggle("active", panel.dataset.itemPanel===target);
-            panel.hidden = panel.dataset.itemPanel!==target;
-          });
-        };
       });
       const archiveBtn = modal.querySelector('[data-action="toggleArchive"]');
       if (archiveBtn) archiveBtn.onclick = () => { toggleArchiveItem(projectId, groupId, itemId); renderItemModal(); };
