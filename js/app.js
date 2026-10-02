@@ -89,6 +89,7 @@
   let state = null;                 // { projects:[] }
   let connectGate = null;
   let navigation = null;
+  let projectActionsMenu = null;
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
   const workspaceCommands = window.BeforeworkWorkspaceCommands.create({
     getState:()=>state,
@@ -3884,23 +3885,7 @@
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    document.getElementById("projectMenuBtn").onclick = event => {
-      event.stopPropagation();
-      const menu = document.getElementById("projectMenu");
-      const open = menu.classList.toggle("open");
-      event.currentTarget.classList.toggle("active", open);
-    };
-    document.getElementById("projectMenu").addEventListener("click", event=>{
-      if (event.target.closest("button")){
-        document.getElementById("projectMenu").classList.remove("open");
-        document.getElementById("projectMenuBtn").classList.remove("active");
-      }
-    });
     document.addEventListener("click", event=>{
-      if (!event.target.closest("#projectMenuWrap")){
-        document.getElementById("projectMenu").classList.remove("open");
-        document.getElementById("projectMenuBtn").classList.remove("active");
-      }
       const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
         if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
@@ -3954,8 +3939,7 @@
       render();
     });
     document.getElementById("printViewBtn").onclick = () => {
-      document.getElementById("projectMenu").classList.remove("open");
-      document.getElementById("projectMenuBtn").classList.remove("active");
+      projectActionsMenu.close();
       window.print();
     };
     document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
@@ -4020,6 +4004,11 @@
     projectCreateMenu.wire();
   }
 
+  function wireProjectActionsMenu(){
+    projectActionsMenu=window.BeforeworkProjectActionsMenu.create();
+    projectActionsMenu.wire();
+  }
+
   /* ---------- Boot ----------
      There is no in-memory-only or browser-storage-only mode: the connected
      file is the single source of truth. Boot either silently resumes the
@@ -4053,6 +4042,7 @@
     });
     navigation.wire();
     wireProjectCreateMenu();
+    wireProjectActionsMenu();
     window.BeforeworkBoardFilters.create({
       onSearchChange:value=>{
         boardFilterText=value.trim();
