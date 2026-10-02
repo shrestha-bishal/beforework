@@ -637,7 +637,7 @@
   .itemModalHeader #itemTitleInput:focus{background:var(--bg-soft);border-color:var(--border);box-shadow:none;}
   .itemModalBody{flex:1;min-height:0;display:flex;overflow-x:hidden;overflow-y:auto;margin-bottom: 16px;}
   .itemModalMain{flex:1;min-width:0;padding:26px 30px 24px;display:flex;flex-direction:column;gap:20px;}
-  .itemModalSidebar{width:330px;flex:none;border-left:1px solid var(--border);background:var(--bg);
+  .itemModalSidebar{width:330px;flex:none;background:var(--bg);
     padding:24px 22px;display:flex;flex-direction:column;gap:14px;}
   .itemModalSidebar>.sideItem{padding-bottom:14px;border-bottom:1px solid var(--border);}
   .itemModalSidebar>.sideItem:last-child{padding-bottom:0;border-bottom:0;}

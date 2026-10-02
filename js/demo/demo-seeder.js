@@ -71,7 +71,19 @@
       views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", milestones:launchMilestones, groups:launchGroups
     };
     launchGroups[0].items.push(
-      makeItem("Publish the release overview", "Summarise what is changing, who it helps, and where to find the updated workflows.", {[priorityField.id]:"medium", [startDateField.id]:todayStr(1), [dueDateField.id]:todayStr(5), [reviewDateField.id]:todayStr(4), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], attachments:[{id:SAMPLE_ATTACHMENT.id,name:SAMPLE_ATTACHMENT.name,size:SAMPLE_ATTACHMENT.content.length,type:SAMPLE_ATTACHMENT.type}], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}]}),
+      makeItem("Publish the release overview", [
+        "## What's included",
+        "",
+        "Beforework is a **private, local-first workspace** for organising projects, tasks, and schedules.",
+        "",
+        "This release adds **Markdown descriptions**, a formatting toolbar, and _task-list checkboxes_.",
+        "",
+        "### Before publishing",
+        "- [x] Confirm the release scope",
+        "- [ ] Explore [Beforework](https://beforework.netlify.app/) and review the guide",
+        "",
+        "Use `Copy Markdown` to reuse these notes."
+      ].join("\n"), {[priorityField.id]:"medium", [startDateField.id]:todayStr(1), [dueDateField.id]:todayStr(5), [reviewDateField.id]:todayStr(4), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[launchTag.id, customerTag.id], attachments:[{id:SAMPLE_ATTACHMENT.id,name:SAMPLE_ATTACHMENT.name,size:SAMPLE_ATTACHMENT.content.length,type:SAMPLE_ATTACHMENT.type}], subitems:[{id:uid(), title:"Confirm the release scope", done:true}, {id:uid(), title:"Review copy with support", done:false}], comments:[{id:uid(), text:"The preview is ready. **Support** has one final wording change before we publish.", createdAt:now-1800000}]}),
       makeItem("Prepare the onboarding guide", "Create a concise guide that helps new teams set up projects, groups, and their first workspace file.", {[priorityField.id]:"low", [startDateField.id]:todayStr(3), [dueDateField.id]:todayStr(8), [reviewDateField.id]:todayStr(7), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id, designTag.id]}),
       makeItem("Explore post-launch improvements", "Capture follow-up ideas after the release and turn them into a new project plan.", {[priorityField.id]:"low", [startDateField.id]:todayStr(12), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[featureTag.id]}),
       makeItem("Collect customer feedback", "Gather feedback after the release and bring themes to the post-launch review.", {[priorityField.id]:"medium", [reviewDateField.id]:todayStr(14), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id]})

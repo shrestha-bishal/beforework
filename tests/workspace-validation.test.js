@@ -136,6 +136,14 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   const betaTasks=launch.groups.flatMap(group=>group.items).filter(item=>item.milestoneId===betaMilestone.id);
   assert.equal(betaTasks.length,3);
   assert.equal(betaTasks.filter(item=>item.completedAt).length,1);
+  const releaseOverview=launchItems.find(item=>item.title==="Publish the release overview");
+  assert.match(releaseOverview.description,/^## What's included/m);
+  assert.match(releaseOverview.description,/Beforework is a \*\*private, local-first workspace\*\*/);
+  assert.match(releaseOverview.description,/- \[x\] Confirm the release scope/);
+  assert.match(releaseOverview.description,/- \[ \] Explore \[Beforework\]\(https:\/\/beforework\.netlify\.app\/\)/);
+  assert.ok(releaseOverview.comments.some(comment=>comment.text.includes("**Support**")));
+  assert.equal(releaseOverview.subitems.filter(subitem=>subitem.done).length,1);
+  assert.equal(releaseOverview.subitems.length,2);
   const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
   assert.ok(onboarding.description);
   const checkboxField=onboarding.fields.find(field=>field.type==="checkbox");
