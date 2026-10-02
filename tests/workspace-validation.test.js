@@ -52,6 +52,84 @@ test("clears a missing remembered workspace root before create or open can reuse
   assert.deepEqual(storedValues,[["workspaceRootHandle",null],["fileHandle",null],["workspaceName",null]]);
 });
 
+test("reuses a valid remembered root for create and open without showing the picker",async()=>{
+  const helperStart=storageSource.indexOf("function isMissingWorkspaceHandleError(");
+  const helperEnd=storageSource.indexOf("async function readRecoverySnapshots()",helperStart);
+  const helperSource=storageSource.slice(helperStart,helperEnd);
+  let pickerCalls=0;
+  const rememberedRoot={
+    name:"Workspace root",
+    requestPermission:async()=> "granted",
+    values:()=>({next:async()=>({done:true})})
+  };
+  const sandbox={
+    window:{showDirectoryPicker:async()=>{ pickerCalls++; throw new Error("Picker should not be shown."); }},
+    idbSet:async()=>{},
+    workspaceRootHandle:rememberedRoot,
+    getFolderWorkspace:()=>({isWorkspace:async()=>false})
+  };
+  const roots=await vm.runInNewContext(`
+    ${helperSource}
+    Promise.all([chooseWorkspaceRoot(),chooseWorkspaceRoot({forCreate:true})]);
+  `,sandbox);
+
+  assert.equal(roots[0],rememberedRoot);
+  assert.equal(roots[1],rememberedRoot);
+  assert.equal(pickerCalls,0);
+});
+
+test("falls back to the folder picker when the remembered root is stale",async()=>{
+  const helperStart=storageSource.indexOf("function isMissingWorkspaceHandleError(");
+  const helperEnd=storageSource.indexOf("async function readRecoverySnapshots()",helperStart);
+  const helperSource=storageSource.slice(helperStart,helperEnd);
+  const stored=[];
+  let pickerCalls=0;
+  const selectedRoot={
+    name:"Fresh folder",
+    requestPermission:async()=> "granted",
+    values:()=>({next:async()=>({done:true})})
+  };
+  const staleRoot={
+    name:"Stale folder",
+    requestPermission:async()=> "granted",
+    values:()=>({next:async()=>{
+      const error=new Error("A requested file or directory could not be found at the time an operation was processed.");
+      error.name="NotFoundError";
+      throw error;
+    }})
+  };
+  const sandbox={
+    window:{showDirectoryPicker:async options=>{
+      pickerCalls++;
+      assert.deepEqual(JSON.parse(JSON.stringify(options)),{mode:"readwrite"});
+      return selectedRoot;
+    }},
+    idbSet:async(key,value)=>stored.push([key,value]),
+    workspaceRootHandle:staleRoot,
+    getFolderWorkspace:()=>({isWorkspace:async()=>false})
+  };
+  const root=await vm.runInNewContext(`
+    ${helperSource}
+    chooseWorkspaceRoot();
+  `,sandbox);
+  const createStart=storageSource.indexOf("async function chooseWorkspaceDirectory()");
+  const createEnd=storageSource.indexOf("async function chooseWorkspaceFromRoot(",createStart);
+  const createSource=storageSource.slice(createStart,createEnd);
+  const openStart=storageSource.indexOf("async function openExistingWorkspaceFolder()");
+  const openEnd=storageSource.indexOf("async function openExistingFile()",openStart);
+  const openSource=storageSource.slice(openStart,openEnd);
+
+  assert.equal(root,selectedRoot);
+  assert.equal(pickerCalls,1);
+  assert.equal(sandbox.workspaceRootHandle,selectedRoot);
+  assert.deepEqual(stored.map(([key,value])=>[key,value?.name||null]),[
+    ["workspaceRootHandle",null],
+    ["workspaceRootHandle","Fresh folder"]
+  ]);
+  assert.match(createSource,/chooseWorkspaceRoot\(\{forCreate:true\}\)/);
+  assert.match(openSource,/chooseWorkspaceRoot\(\)/);
+});
+
 test("accepts valid legacy workspaces without a schema version", ()=>{
   const result = validate({projects:[{
     id:"project-1",name:"Launch",groups:[{

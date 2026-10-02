@@ -93,6 +93,10 @@
   function isMissingWorkspaceHandleError(err){
     return err?.name==="NotFoundError" || /requested file or directory could not be found/i.test(err?.message||"");
   }
+  async function clearRememberedWorkspaceRoot(){
+    workspaceRootHandle=null;
+    await idbSet("workspaceRootHandle",null);
+  }
   async function clearRememberedWorkspaceSelection(){
     workspaceRootHandle=null;
     fileHandle=null;
@@ -111,6 +115,27 @@
       return null;
     }
     return await getFolderWorkspace().isWorkspace(candidate) ? candidate : null;
+  }
+  async function chooseWorkspaceRoot({forCreate=false}={}){
+    let parent=workspaceRootHandle;
+    if (parent){
+      try{
+        if (await parent.requestPermission({mode:"readwrite"})==="granted"){
+          await parent.values().next();
+          if (!forCreate || !(await getFolderWorkspace().isWorkspace(parent))) return parent;
+        }
+      }catch(err){
+        if (!isMissingWorkspaceHandleError(err)) throw err;
+      }
+      await clearRememberedWorkspaceRoot();
+    }
+    if (!("showDirectoryPicker" in window)) throw new Error("This browser does not support workspace folders.");
+    parent=await window.showDirectoryPicker({mode:"readwrite"});
+    const permission=await parent.requestPermission({mode:"readwrite"});
+    if (permission!=="granted") throw new Error("Read-write access is required for the workspace root folder.");
+    workspaceRootHandle=parent;
+    await idbSet("workspaceRootHandle",parent);
+    return parent;
   }
 
   async function readRecoverySnapshots(){
@@ -502,17 +527,7 @@
 
   async function chooseWorkspaceDirectory(){
     if (!("showDirectoryPicker" in window)) throw new Error("This browser does not support workspace folders.");
-    let parent=workspaceRootHandle;
-    if (parent && await getFolderWorkspace().isWorkspace(parent)){
-      workspaceRootHandle=null;
-      await idbSet("workspaceRootHandle",null);
-      parent=null;
-    }
-    parent=parent || await window.showDirectoryPicker({mode:"readwrite"});
-    const permission=await parent.requestPermission({mode:"readwrite"});
-    if (permission!=="granted") throw new Error("Read-write access is required for the workspace root folder.");
-    workspaceRootHandle=parent;
-    await idbSet("workspaceRootHandle",parent);
+    const parent=await chooseWorkspaceRoot({forCreate:true});
     const folderName=await showDialog({
       title:"Create a workspace",
       message:`Beforework will create a workspace folder inside ${parent.name}. Each project gets its own JSON shard.`,
@@ -585,9 +600,7 @@
       return;
     }
     try{
-      const root=workspaceRootHandle || await window.showDirectoryPicker({mode:"readwrite"});
-      const permission=await root.requestPermission({mode:"readwrite"});
-      if (permission!=="granted"){ showNotice("Permission needed","Read-write access is required for this workspace folder."); return; }
+      const root=await chooseWorkspaceRoot();
       const rootIsWorkspace=await getFolderWorkspace().isWorkspace(root);
       workspaceRootHandle=rootIsWorkspace ? null : root;
       await idbSet("workspaceRootHandle",workspaceRootHandle);
