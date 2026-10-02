@@ -2353,7 +2353,7 @@
       wrap.className = "projectQuickMenuWrap";
       const menuBtn = document.createElement("button");
       menuBtn.type = "button";
-      menuBtn.className = "projectMenuBtnSmall action-menu__trigger";
+      menuBtn.className = "projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar";
       menuBtn.title = "Project actions";
       menuBtn.setAttribute("aria-label", `Project actions for ${p.name}`);
       menuBtn.textContent = "⋯";
@@ -2433,7 +2433,7 @@
       wrap.className = "folderQuickMenuWrap";
       const menuBtn = document.createElement("button");
       menuBtn.type = "button";
-      menuBtn.className = "folderMenuBtn action-menu__trigger";
+      menuBtn.className = "folderMenuBtn action-menu__trigger action-menu__trigger--sidebar";
       menuBtn.title = "Folder actions";
       menuBtn.setAttribute("aria-label", `Folder actions for ${folder.name}`);
       menuBtn.textContent = "⋯";

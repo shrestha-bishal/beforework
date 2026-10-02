@@ -19,6 +19,19 @@
 }
 .action-menu__trigger:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .action-menu__trigger iconify-icon{font-size:18px;}
+.action-menu__trigger--sidebar{
+  width:24px;
+  height:20px;
+  flex:0 0 auto;
+  padding:2px 4px;
+  border-radius:5px;
+  font-size:16px;
+  transition:opacity .14s,visibility .14s,transform .14s,background-color .12s;
+}
+.action-menu__trigger--sidebar:hover,
+.action-menu__trigger--sidebar:focus-visible,
+.action-menu__trigger--sidebar[aria-expanded="true"],
+.action-menu__trigger--sidebar.active{background:var(--bg-soft);color:var(--text);}
 
 .action-menu{
   position:absolute;

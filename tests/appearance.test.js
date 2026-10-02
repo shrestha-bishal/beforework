@@ -7,7 +7,9 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "../js/ui/appearance.js"), "utf8");
+const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
 const styles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
+const actionMenuStyles = fs.readFileSync(path.join(__dirname, "../styles/action-menu.css"), "utf8");
 const index = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 
 function createHarness({preferences={},prefersDark=false,storageThrows=false}={}){
@@ -105,9 +107,11 @@ test("collapsed desktop sidebar keeps navigation and project icons visible",()=>
 });
 
 test("sidebar project action trigger keeps shared menu behavior with compact custom styling",()=>{
-  assert.match(styles,/#projectList \.SideNav-item \.projectMenuBtnSmall\{[^}]*width:24px;height:20px;flex:0 0 auto;padding:2px 4px;border:0;border-radius:5px;background:transparent;color:var\(--muted\);font-size:16px;line-height:1;cursor:pointer;opacity:0;visibility:hidden;transform:translateX\(8px\) scale\(\.9\);transition:opacity \.14s,visibility \.14s,transform \.14s,background-color \.12s;/);
-  assert.match(styles,/#projectList \.SideNav-item \.projectMenuBtnSmall:hover,[\s\S]*?\.projectMenuBtnSmall\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
-  assert.match(styles,/#projectList \.SideNav-item:hover \.projectMenuBtnSmall\{opacity:1;visibility:visible;transform:translateX\(0\) scale\(1\);\}/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar\{[^}]*width:24px;[^}]*height:20px;[^}]*flex:0 0 auto;[^}]*padding:2px 4px;[^}]*border-radius:5px;[^}]*font-size:16px;/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar:hover,[\s\S]*?\.action-menu__trigger--sidebar\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
+  assert.match(app,/menuBtn\.className = "projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar"/);
+  assert.match(app,/menuBtn\.className = "folderMenuBtn action-menu__trigger action-menu__trigger--sidebar"/);
+  assert.match(styles,/#projectList \.folderHeading:hover \.folderMenuBtn,[\s\S]*?#projectList \.SideNav-item:has\(\.projectQuickMenu\.open\) \.projectMenuBtnSmall\{opacity:1;visibility:visible;transform:translateX\(0\) scale\(1\);\}/);
 });
 
 test("keeps appearance controls usable when local storage is unavailable",()=>{

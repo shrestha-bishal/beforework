@@ -175,8 +175,14 @@
   #projectList .folderHeading:hover .folderCount{opacity:0;transform:scale(.8);}
   #projectList .folderHeading:has(.folderQuickMenu.open) .folderCount{opacity:0;transform:scale(.8);}
   #projectList .folderHeading .folderQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
-  #projectList .folderHeading .folderMenuBtn{flex:none;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s ease,visibility .14s ease,transform .14s ease,background-color .14s ease,border-color .14s ease,color .14s ease;}
-  #projectList .folderHeading:hover .folderMenuBtn{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
+  #projectList .folderHeading .folderMenuBtn,
+  #projectList .SideNav-item .projectMenuBtnSmall{opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);}
+  #projectList .folderHeading:hover .folderMenuBtn,
+  #projectList .folderHeading:focus-within .folderMenuBtn,
+  #projectList .folderHeading:has(.folderQuickMenu.open) .folderMenuBtn,
+  #projectList .SideNav-item:hover .projectMenuBtnSmall,
+  #projectList .SideNav-item:focus-within .projectMenuBtnSmall,
+  #projectList .SideNav-item:has(.projectQuickMenu.open) .projectMenuBtnSmall{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
   #projectList .folderHeading:has(.folderQuickMenu.open),
   #projectList .SideNav-item:has(.projectQuickMenu.open){z-index:5;}
   #projectList .SideNav-item.inFolder{padding-left:28px;}
@@ -193,12 +199,6 @@
   #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectList .SideNav-item .projectQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
-  #projectList .SideNav-item .projectMenuBtnSmall{width:24px;height:20px;flex:0 0 auto;padding:2px 4px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);transition:opacity .14s,visibility .14s,transform .14s,background-color .12s;}
-  #projectList .SideNav-item .projectMenuBtnSmall:hover,
-  #projectList .SideNav-item .projectMenuBtnSmall:focus-visible,
-  #projectList .SideNav-item .projectMenuBtnSmall[aria-expanded="true"],
-  #projectList .SideNav-item .projectMenuBtnSmall.active{background:var(--bg-soft);color:var(--text);}
-  #projectList .SideNav-item:hover .projectMenuBtnSmall{opacity:1;visibility:visible;transform:translateX(0) scale(1);}
 
   .sideSection{padding-top:0;}
   .sideSection>.uiDivider{margin-bottom:16px;}
