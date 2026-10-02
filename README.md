@@ -114,7 +114,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/commands/` - workspace-specific command definitions
 - `js/core/` - workspace validation, schema migrations, and data-version compatibility
 - `pages/` - HTML templates for application views, dialogs, and features
-- `styles/app.css` - application styles
+- `styles/` - application styles
 - `images/` - icons and image assets
 - `scripts/build-site.js` - static production build and minification
 - `tests/` - Node.js regression tests

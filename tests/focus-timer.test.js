@@ -7,6 +7,17 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "../js/features/focus-timer.js"), "utf8");
+const appStyles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
+const timerStyles = fs.readFileSync(path.join(__dirname, "../styles/focus-timer.css"), "utf8");
+const indexHtml = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+
+test("Focus Timer styles are isolated and loaded after shared application styles",()=>{
+  assert.doesNotMatch(appStyles,/focusTimer|#focusTimerNav/);
+  assert.match(timerStyles,/#focusTimerNav/);
+  assert.match(timerStyles,/\.focusTimerPanel/);
+  assert.match(timerStyles,/@media print\s*\{\s*\.focusTimerPanel/);
+  assert.ok(indexHtml.indexOf('href="styles/app.css"') < indexHtml.indexOf('href="styles/focus-timer.css"'));
+});
 
 function makeElement(){
   const listeners={};

@@ -100,11 +100,6 @@
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #integrationsNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #focusTimerNav{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:8px;
-    background:transparent;text-align:left;font-size:13.5px;color:var(--muted);font-weight:500;}
-  #focusTimerNav iconify-icon{font-size:16px;}
-  #focusTimerNav:hover{background:var(--bg-soft2);color:var(--text);}
-  #focusTimerNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #settingsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin:0;padding-top:8px;font-weight:500;}
   #settingsNav:hover{background:var(--bg-soft2);color:var(--text);}
@@ -946,32 +941,6 @@
   .activityMeta{font-size:11px;color:var(--faint);white-space:nowrap;min-width:128px;text-align:right;}
   .activityBadge{font-weight:500;color:var(--text);line-height:1.4;flex:1;min-width:0;}
 
-  /* Focus timer */
-  .focusTimerPanel{position:static;width:auto;margin:5px 0 8px;padding:12px;background:var(--bg);
-    border:1px solid var(--border);border-radius:var(--radius);box-shadow:none;display:none;}
-  .focusTimerPanel.open{display:block;}
-  .focusTimerHeader{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px;}
-  .focusTimerClose{padding:2px 5px;line-height:1;}
-  .focusTimerPanel h4{margin:0;font-size:12px;font-weight:600;color:var(--text);}
-  .focusTimerDurationRow label{font-size:10px;font-weight:600;color:var(--muted);}
-  .focusTimerDisplay{font-size:32px;font-weight:600;text-align:center;margin:5px 0 9px;font-variant-numeric:tabular-nums;line-height:1.15;}
-  .focusTimerDurationRow{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
-  .focusTimerDurationControl{display:flex;align-items:center;gap:6px;}
-  #focusDurationInput{width:100%;min-width:0;height:30px;padding:3px 7px;text-align:center;font-variant-numeric:tabular-nums;}
-  #focusDurationApplyBtn{height:30px;}
-  .focusTimerQuickRow{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
-  .focusTimerQuickRow>span{font-size:10px;font-weight:600;color:var(--muted);}
-  #focusTimerQuickOptions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;}
-  #focusTimerQuickOptions button{min-width:0;padding:4px 2px;font-size:11px;font-variant-numeric:tabular-nums;}
-  #focusTimerQuickOptions button.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);}
-  .focusTimerModeRow{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:8px;padding:2px;
-    border:1px solid var(--border);border-radius:6px;background:var(--bg-soft);}
-  .focusTimerModeRow button{width:100%;min-width:0;padding:4px 6px;border:0;background:transparent;color:var(--muted);}
-  .focusTimerModeRow button.selected{background:var(--bg);color:var(--text);box-shadow:var(--shadow-lift);}
-  .focusTimerModeRow button:hover{color:var(--text);}
-  .focusTimerBtnRow{display:flex;gap:6px;}
-  .focusTimerBtnRow button:first-child{flex:1;}
-
   /* Analytics bars (Overview) */
   .barRow{display:flex;align-items:center;gap:9px;margin-bottom:8px;font-size:12.5px;}
   .barLabel{width:78px;flex:none;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1001,7 +970,7 @@
   #gateLegacyRow div{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
 
   @media print{
-    #sidebar,#sidebarScrim,.focusTimerPanel,.projectMenuWrap,.viewTabs,
+    #sidebar,#sidebarScrim,.projectMenuWrap,.viewTabs,
     #boardFilterBar,.overlay,.iconBtn,#themeToggle,#connectGate,#sidebarCollapseHandle{display:none!important;}
     .bulkBar{position:static;transform:none;box-shadow:none;}
     #app{height:auto;display:block;}
