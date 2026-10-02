@@ -984,13 +984,12 @@
     const nextButton=overlay.querySelector("[data-csv-next]");
     const mappingSection=overlay.querySelector("[data-csv-mapping]");
     const mappingFields=overlay.querySelector("[data-csv-mapping-fields]");
+    const mappingFieldTemplate=templateFragment.querySelector("#csvImportMappingFieldTemplate");
+    const dateFormatTemplate=templateFragment.querySelector("#csvImportDateFormatTemplate");
     const previewSummary=overlay.querySelector("[data-csv-preview-summary]");
     const previewHead=overlay.querySelector("[data-csv-preview-head]");
     const previewBody=overlay.querySelector("[data-csv-preview-body]");
     const confirmButton=overlay.querySelector("[data-csv-confirm]");
-    let dateFormatSelect=null;
-    let dateFormatControl=null;
-    let dateFormatTargetKeys=new Set();
     const context={parsed:null,project:null,fields:[],targets:[],selectionToken:0,closed:false,step:1};
 
     const close=()=>{
@@ -1124,7 +1123,9 @@
           if (target.kind==="priority"){ priorityFieldId=target.fieldId; priorityFieldIndex=target.fieldIndex; }
         }
       }
-      if (dateFormatControl) dateFormatControl.hidden=![...dateFormatTargetKeys].some(key=>selectedTargets.has(key));
+      if (mappingRenderer.dateFormatControl){
+        mappingRenderer.dateFormatControl.hidden=![...mappingRenderer.dateFormatTargetKeys].some(key=>selectedTargets.has(key));
+      }
       const hasTitle=Object.hasOwn(mapping,"title");
       const nameValid=destination.value!=="new" || !!newName.value.trim();
       const selectedProject=project;
@@ -1132,7 +1133,7 @@
         ? selectedProject.groups.map(group=>group.name)
         : (PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank).groups;
       const prepared=context.parsed && hasTitle
-        ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,dateFormatSelect?.value||"DMY")
+        ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,mappingRenderer.dateFormatSelect?.value||"DMY")
         : null;
       previewHead.replaceChildren();
       previewBody.replaceChildren();
@@ -1185,61 +1186,17 @@
         prepared};
     }
 
+    const mappingRenderer=window.BeforeworkCsvImportDialog.createMappingRenderer({
+      documentRef:document,
+      mappingFields,
+      mappingFieldTemplate,
+      dateFormatTemplate,
+      makeTargets,
+      guessTarget,
+      onChange:refreshPreview
+    });
     function renderMapping(){
-      if (!context.parsed) return;
-      context.targets=makeTargets(context.project);
-      mappingFields.replaceChildren();
-      dateFormatSelect=null;
-      dateFormatControl=null;
-      dateFormatTargetKeys=new Set();
-      context.targets.forEach(target=>{
-        const label=document.createElement("div");
-        label.className="csvImportField";
-        const caption=document.createElement("span");
-        caption.textContent=target.required ? `${target.label} (required)` : target.label;
-        const select=document.createElement("select");
-        select.className="form-control";
-        select.dataset.csvTarget=target.key;
-        const selectId=`csvImportTarget-${target.key.replace(/[^a-z0-9_-]/gi,"-")}`;
-        select.id=selectId;
-        caption.htmlFor=selectId;
-        const skip=document.createElement("option");
-        skip.value="";
-        skip.textContent="Don't import";
-        select.appendChild(skip);
-        context.parsed.headers.forEach((header,index)=>{
-          const option=document.createElement("option");
-          option.value=String(index);
-          option.textContent=header;
-          if (guessTarget(target,header)) option.selected=true;
-          select.appendChild(option);
-        });
-        select.addEventListener("change",refreshPreview);
-        label.append(caption,select);
-        if ((target.kind==="dueDate"||target.kind==="startDate")&&!dateFormatControl){
-          dateFormatControl=document.createElement("div");
-          dateFormatControl.className="csvImportDateFormatControl";
-          dateFormatControl.hidden=true;
-          const formatLabel=document.createElement("label");
-          formatLabel.className="csvImportDateFormatLabel";
-          formatLabel.htmlFor="csvImportDateFormat";
-          formatLabel.textContent="Date format";
-          dateFormatSelect=document.createElement("select");
-          dateFormatSelect.className="form-control";
-          dateFormatSelect.id="csvImportDateFormat";
-          dateFormatSelect.dataset.csvDateFormat="";
-          dateFormatSelect.innerHTML=`
-            <option value="DMY" selected>Day / Month / Year (29/12/2024)</option>
-            <option value="MDY">Month / Day / Year (12/29/2024)</option>
-            <option value="YMD">Year / Month / Day (2024-12-29)</option>`;
-          dateFormatSelect.addEventListener("change",refreshPreview);
-          dateFormatControl.append(formatLabel,dateFormatSelect);
-          label.appendChild(dateFormatControl);
-        }
-        if (target.kind==="dueDate"||target.kind==="startDate"||target.kind==="customDate") dateFormatTargetKeys.add(target.key);
-        mappingFields.appendChild(label);
-      });
-      refreshPreview();
+      mappingRenderer.render(context);
     }
 
     async function refreshProjectAndMapping(){

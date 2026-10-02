@@ -68,3 +68,21 @@
     </section>
   </div>
 </template>
+<template id="csvImportMappingFieldTemplate">
+  <div class="csvImportField">
+    <label data-csv-mapping-caption></label>
+    <select class="form-control" data-csv-mapping-select>
+      <option value="">Don't import</option>
+    </select>
+  </div>
+</template>
+<template id="csvImportDateFormatTemplate">
+  <div class="csvImportDateFormatControl" hidden>
+    <label class="csvImportDateFormatLabel" for="csvImportDateFormat">Date format</label>
+    <select class="form-control" id="csvImportDateFormat" data-csv-date-format>
+      <option value="DMY" selected>Day / Month / Year (29/12/2024)</option>
+      <option value="MDY">Month / Day / Year (12/29/2024)</option>
+      <option value="YMD">Year / Month / Day (2024-12-29)</option>
+    </select>
+  </div>
+</template>
