@@ -6,7 +6,15 @@
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn" type="button">+ Add item</button>
         <div class="listViewMenuWrap">
           <button class="btn btn-invisible btn-sm listViewMenuBtn" type="button" aria-label="List actions" aria-haspopup="menu" aria-expanded="false" aria-controls="listViewActionsMenu">⋮</button>
-          <div id="listViewActionsMenu" class="fieldColumnMenu listViewMenu" role="menu"><button type="button" class="fieldColumnRearrangeAction" role="menuitem"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 15v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2zm4 4v-2h2v2zm0-4V9h2v2z"></path></svg><span>Rearrange</span></button></div>
+          <div id="listViewActionsMenu" class="fieldColumnMenu listViewMenu" role="menu">
+            <button type="button" class="fieldColumnRearrangeAction" role="menuitem">Rearrange</button>
+            <button type="button" class="manageColumnsToggle" aria-expanded="false">Manage columns</button>
+            <div class="manageColumnsPanel" hidden>
+              <input class="manageColumnsSearch" type="search" placeholder="Search columns" aria-label="Search columns">
+              <div class="manageColumnsOptions" role="group" aria-label="List columns"></div>
+              <div class="manageColumnsEmpty" hidden>No columns found</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -30,7 +38,7 @@
             <button type="button" class="fieldColumnDragHandle" draggable="false" aria-label="Reorder Title column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Title</span><span class="arrow"></span>
           </th>
           <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader groupColumnHeader" data-field="group" data-column-id="group" data-list-group-header hidden>
-            <button type="button" class="fieldColumnDragHandle" draggable="false" aria-label="Reorder Group column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit group</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div>
+            <button type="button" class="fieldColumnDragHandle" draggable="false" aria-label="Reorder Group column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Group</span><span class="arrow"></span><button type="button" class="fieldColumnMenuBtn" aria-label="Group actions" title="Group actions">⋮</button><div class="fieldColumnMenu"><button type="button" data-group-action="edit">Edit</button><button type="button" data-group-action="delete" class="danger">Delete group</button></div>
           </th>
           <th class="p-2 text-left color-bg-subtle color-fg-muted text-bold f6 border-bottom fieldColumnHeader" data-column-id="tags">
             <button type="button" class="fieldColumnDragHandle" draggable="false" aria-label="Reorder Tags column" title="Drag to reorder column"><iconify-icon icon="mdi:drag-horizontal" aria-hidden="true"></iconify-icon></button><span class="fieldColumnLabel">Tags</span>

@@ -35,7 +35,8 @@ export class ListView {
       fieldCellHtml,
       formatUpdatedAt,
       openItemModal,
-      applyTableColumnOrder
+      applyTableColumnOrder,
+      applyTableColumnVisibility
     } = this.dependencies;
     const templates=this.cloneTemplate();
     const wrap=templates.querySelector("#listViewTemplate").content.firstElementChild.cloneNode(true);
@@ -138,6 +139,7 @@ export class ListView {
       emptyCell.textContent="No items match the current filters.";
       tbody.appendChild(emptyRow);
       applyTableColumnOrder(table,project,"list");
+      applyTableColumnVisibility(table,project,"list");
       return;
     }
     const rowTemplate=templates.querySelector("#listViewRowTemplate");
@@ -187,6 +189,7 @@ export class ListView {
       };
     });
     applyTableColumnOrder(table,project,"list");
+    applyTableColumnVisibility(table,project,"list");
     updateSelection();
   }
 }

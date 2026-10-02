@@ -913,7 +913,7 @@
     scheduleSave(); render(); renderProjectList();
   }
   async function editGroupName(project, group){
-    const name = await showDialog({title:"Edit group", fields:[{label:"Group name", value:group.name}], confirmLabel:"Save"});
+    const name = await showDialog({title:"Edit", fields:[{label:"Group name", value:group.name}], confirmLabel:"Save"});
     if (!name || !name.trim()) return;
     group.name = name.trim();
     scheduleSave(); renderAll();
@@ -1631,6 +1631,17 @@
     columnIds.forEach(id=>{ if (!order.includes(id)) order.push(id); });
     return order;
   }
+  function hiddenTableColumns(project,viewType,columnIds){
+    const hidden=project.columnVisibility?.[viewType];
+    return new Set(Array.isArray(hidden)?hidden.filter(id=>columnIds.includes(id)):[]);
+  }
+  function setTableColumnHidden(project,viewType,columnId,hidden){
+    if (!project.columnVisibility || typeof project.columnVisibility!=="object") project.columnVisibility={};
+    const current=new Set(Array.isArray(project.columnVisibility[viewType])?project.columnVisibility[viewType]:[]);
+    if (hidden) current.add(columnId);
+    else current.delete(columnId);
+    project.columnVisibility[viewType]=[...current];
+  }
   function reorderTableColumn(project,viewType,columnIds,sourceId,targetId,position){
     if (!columnIds.includes(sourceId) || !columnIds.includes(targetId) || sourceId===targetId) return false;
     const order=orderedTableColumns(project,viewType,columnIds);
@@ -1658,6 +1669,21 @@
     reorderRow(headerRow);
     [...table.tBodies].forEach(body=>[...body.rows].forEach(reorderRow));
   }
+  function applyTableColumnVisibility(table,project,viewType){
+    const headers=[...table.tHead.rows[0].cells].filter(cell=>cell.dataset.columnId);
+    const columnIds=headers.map(header=>header.dataset.columnId);
+    const hidden=hiddenTableColumns(project,viewType,columnIds);
+    headers.forEach(header=>{ header.hidden=hidden.has(header.dataset.columnId); });
+    [...table.tBodies].forEach(body=>[...body.rows].forEach(row=>{
+      [...row.cells].filter(cell=>cell.dataset.columnId).forEach(cell=>{
+        cell.hidden=hidden.has(cell.dataset.columnId);
+      });
+    }));
+    table.querySelectorAll("[data-table-empty-cell],[data-list-empty-cell]").forEach(cell=>{
+      const utilityCells=[...table.tHead.rows[0].cells].filter(header=>!header.dataset.columnId&&!header.hidden).length;
+      cell.colSpan=columnIds.length-hidden.size+utilityCells;
+    });
+  }
   function wireTableColumnReordering(table,project,viewType){
     const getColumnIds=()=>[...table.tHead.rows[0].cells].filter(cell=>cell.dataset.columnId).map(cell=>cell.dataset.columnId);
     const toolbar=table.closest(".listWrap")?.querySelector(".listViewToolbarActions");
@@ -1679,6 +1705,9 @@
       if (globalRearrangeAction) globalRearrangeAction.querySelector("span").textContent=mode?"Done":"Rearrange";
       table.querySelectorAll(".columnRearrangeAction").forEach(action=>{
         action.textContent=mode==="single"&&action.closest("th")===source?"Done":"Rearrange";
+      });
+      table.querySelectorAll(".columnHideAction").forEach(action=>{
+        action.disabled=mode==="all"||(mode==="single"&&action.closest("th")===source);
       });
     };
     const toggleColumnRearrange=(header,menu)=>{
@@ -1712,6 +1741,14 @@
         columnAction.textContent="Rearrange";
         menu.insertBefore(columnAction,menu.firstChild);
       }
+      let hideAction=menu.querySelector(".columnHideAction");
+      if (!hideAction){
+        hideAction=document.createElement("button");
+        hideAction.type="button";
+        hideAction.className="columnHideAction";
+        hideAction.textContent="Hide";
+        columnAction.after(hideAction);
+      }
       menuButton.onclick=event=>{
         event.stopPropagation();
         const shouldOpen=!menu.classList.contains("open");
@@ -1722,6 +1759,15 @@
         event.stopPropagation();
         toggleColumnRearrange(th,menu);
       };
+      if (hideAction) hideAction.onclick=event=>{
+          event.stopPropagation();
+          menu.classList.remove("open");
+          if (rearrangeMode==="single"&&rearrangeSource===th) setRearrangeMode(null);
+          setTableColumnHidden(project,viewType,th.dataset.columnId,true);
+          applyTableColumnVisibility(table,project,viewType);
+          refreshManageColumns();
+          scheduleSave();
+        };
       const dragHandle=th.querySelector(".fieldColumnDragHandle");
       if (!dragHandle) return;
       dragHandle.draggable=false;
@@ -1758,6 +1804,59 @@
         }
       });
     });
+    const manageColumnsToggle=viewMenu?.querySelector(".manageColumnsToggle");
+    const manageColumnsPanel=viewMenu?.querySelector(".manageColumnsPanel");
+    const manageColumnsSearch=viewMenu?.querySelector(".manageColumnsSearch");
+    const manageColumnsOptions=viewMenu?.querySelector(".manageColumnsOptions");
+    const manageColumnsEmpty=viewMenu?.querySelector(".manageColumnsEmpty");
+    const refreshManageColumns=()=>{
+      if (!manageColumnsOptions) return;
+      const headers=[...table.tHead.rows[0].cells].filter(header=>header.dataset.columnId);
+      const hidden=hiddenTableColumns(project,viewType,headers.map(header=>header.dataset.columnId));
+      manageColumnsOptions.replaceChildren();
+      headers.forEach(header=>{
+        const option=document.createElement("label");
+        option.className="manageColumnsOption";
+        const checkbox=document.createElement("input");
+        checkbox.type="checkbox";
+        checkbox.checked=!hidden.has(header.dataset.columnId);
+        checkbox.dataset.columnId=header.dataset.columnId;
+        const name=document.createElement("span");
+        name.textContent=header.querySelector(".fieldColumnLabel")?.textContent||header.dataset.columnId;
+        option.append(checkbox,name);
+        manageColumnsOptions.appendChild(option);
+        checkbox.addEventListener("change",()=>{
+          setTableColumnHidden(project,viewType,header.dataset.columnId,!checkbox.checked);
+          applyTableColumnVisibility(table,project,viewType);
+          scheduleSave();
+        });
+      });
+      filterManageColumns();
+    };
+    const filterManageColumns=()=>{
+      if (!manageColumnsOptions||!manageColumnsSearch||!manageColumnsEmpty) return;
+      const query=manageColumnsSearch.value.trim().toLocaleLowerCase();
+      let visibleCount=0;
+      manageColumnsOptions.querySelectorAll(".manageColumnsOption").forEach(option=>{
+        option.hidden=!option.textContent.toLocaleLowerCase().includes(query);
+        if (!option.hidden) visibleCount++;
+      });
+      manageColumnsEmpty.hidden=visibleCount>0;
+    };
+    if (manageColumnsToggle&&manageColumnsPanel){
+      manageColumnsToggle.onclick=event=>{
+        event.stopPropagation();
+        manageColumnsPanel.hidden=!manageColumnsPanel.hidden;
+        manageColumnsToggle.setAttribute("aria-expanded",String(!manageColumnsPanel.hidden));
+        if (!manageColumnsPanel.hidden){
+          refreshManageColumns();
+          manageColumnsSearch.value="";
+          filterManageColumns();
+          manageColumnsSearch.focus();
+        }
+      };
+      manageColumnsSearch.addEventListener("input",filterManageColumns);
+    }
     table.closest(".listWrap")?.addEventListener("click",event=>{
       if (!rearrangeMode || event.target.closest("th[data-column-id],.fieldColumnRearrangeAction")) return;
       setRearrangeMode(null);
@@ -1784,6 +1883,7 @@
         if (rearrangeMode) setRearrangeMode(null);
       });
     }
+    refreshManageColumns();
   }
   function wireCustomColumnHeader(th, field, project){
     const menu = th.querySelector(".fieldColumnMenu");
@@ -4478,6 +4578,7 @@
         formatUpdatedAt,
         openItemModal,
         applyTableColumnOrder,
+        applyTableColumnVisibility,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")
       });
       tableView = new tableViewModule.TableView({
@@ -4505,6 +4606,7 @@
         scheduleSave,
         renderProjectList,
         applyTableColumnOrder,
+        applyTableColumnVisibility,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("tableView")
       });
       boardView = new boardViewModule.BoardView({

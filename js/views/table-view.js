@@ -106,7 +106,8 @@ export class TableView {
       getItem,
       scheduleSave,
       renderProjectList,
-      applyTableColumnOrder
+      applyTableColumnOrder,
+      applyTableColumnVisibility
     }=this.dependencies;
     const templates=this.cloneTemplate();
     const wrap=templates.querySelector("#tableViewTemplate").content.firstElementChild.cloneNode(true);
@@ -195,6 +196,7 @@ export class TableView {
       emptyCell.textContent="No rows match the current filters.";
       tbody.appendChild(emptyRow);
       applyTableColumnOrder(table,project,"table");
+      applyTableColumnVisibility(table,project,"table");
       return;
     }
     const rowTemplate=templates.querySelector("#tableViewRowTemplate");
@@ -258,6 +260,7 @@ export class TableView {
       });
     });
     applyTableColumnOrder(table,project,"table");
+    applyTableColumnVisibility(table,project,"table");
     updateSelection();
   }
 }

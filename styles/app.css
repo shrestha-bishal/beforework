@@ -432,13 +432,23 @@
   .fieldColumnHeader:hover .fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);}
   .fieldColumnMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
   .fieldColumnMenu{position:absolute;top:calc(100% + 3px);right:4px;z-index:70;display:none;flex-direction:column;min-width:112px;padding:4px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);text-align:left;}
-  .listViewMenuWrap .listViewMenu{top:calc(100% + 3px);right:0;}
+  .listViewMenuWrap .listViewMenu{top:calc(100% + 3px);right:0;min-width:160px;}
   .fieldColumnMenu.open{display:flex;}
   .fieldColumnMenu button{padding:6px 8px;border:0;border-radius:5px;background:transparent;text-align:left;color:var(--text);font-size:12px;cursor:pointer;}
   .fieldColumnMenu button:hover{background:var(--bg-soft2);}
   .fieldColumnMenu button.danger{color:var(--danger);}
   .fieldColumnRearrangeAction{display:flex;align-items:center;gap:8px;}
-  .listViewMenu .fieldColumnRearrangeAction svg{width:14px;height:14px;flex:none;}
+  .manageColumnsPanel{display:flex;min-width:210px;max-height:260px;flex-direction:column;gap:6px;padding:6px 4px 2px;border-top:1px solid var(--border);}
+  .manageColumnsPanel[hidden]{display:none;}
+  .manageColumnsSearch{width:100%;min-height:30px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font:inherit;font-size:12px;}
+  .manageColumnsOptions{display:flex;min-height:0;flex-direction:column;gap:2px;overflow:auto;}
+  .manageColumnsOption{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:5px;color:var(--text);font-size:12px;cursor:pointer;}
+  .manageColumnsOption:hover{background:var(--bg-soft2);}
+  .manageColumnsOption input{flex:none;width:14px;height:14px;min-height:0;margin:0;accent-color:var(--accent);}
+  .manageColumnsOption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .manageColumnsOption[hidden],.manageColumnsEmpty[hidden]{display:none;}
+  .manageColumnsEmpty{padding:6px;color:var(--muted);font-size:12px;}
+  .columnHideAction:disabled{opacity:.5;cursor:default;}
   .fieldFilterGroup,.tagFilterGroup{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 9px;
     border-radius:7px;background:var(--accent-soft);color:var(--accent-strong);}
   .fieldFilterGroup .removeFieldFilter,.tagFilterGroup .removeFieldFilter{padding:2px 5px;font-size:11px;}
