@@ -19,7 +19,37 @@ test("clears stale remembered folder handles when workspace reconnection fails",
   const start=storageSource.indexOf("async function tryReconnectFile()");
   const end=storageSource.indexOf("async function reconnectPendingFile()",start);
   const reconnectSource=storageSource.slice(start,end);
-  assert.match(reconnectSource,/if \(missingHandle\)\{[\s\S]*?workspaceRootHandle=null;\s*await rememberWorkspaceSelection\(null,null\);/);
+  assert.match(reconnectSource,/if \(missingHandle\)\{[\s\S]*?await clearRememberedWorkspaceSelection\(\);/);
+});
+
+test("clears a missing remembered workspace root before create or open can reuse it",async()=>{
+  const start=storageSource.indexOf("async function rememberWorkspaceSelection(");
+  const end=storageSource.indexOf("async function readRecoverySnapshots()",start);
+  const rememberedWorkspaceSource=storageSource.slice(start,end);
+  const storedValues=[];
+  const sandbox={
+    idbGet:async key=>key==="workspaceName" ? "Old workspace" : null,
+    idbSet:async(key,value)=>storedValues.push([key,value]),
+    getFolderWorkspace:()=>({isWorkspace:async()=>false}),
+    root:{getDirectoryHandle:async()=>{
+      const error=new Error("A requested file or directory could not be found at the time an operation was processed.");
+      error.name="NotFoundError";
+      throw error;
+    }},
+    workspaceRootHandle:null,
+    fileHandle:{name:"stale"},
+    pendingReconnectHandle:{name:"stale"}
+  };
+  const result=await vm.runInNewContext(`
+    ${rememberedWorkspaceSource}
+    findRememberedWorkspace(root);
+  `,sandbox);
+
+  assert.equal(result,null);
+  assert.equal(sandbox.workspaceRootHandle,null);
+  assert.equal(sandbox.fileHandle,null);
+  assert.equal(sandbox.pendingReconnectHandle,null);
+  assert.deepEqual(storedValues,[["workspaceRootHandle",null],["fileHandle",null],["workspaceName",null]]);
 });
 
 test("accepts valid legacy workspaces without a schema version", ()=>{

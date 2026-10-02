@@ -90,14 +90,27 @@
     await idbSet("fileHandle",workspace||null);
     await idbSet("workspaceName",workspace?.name||null);
   }
+  function isMissingWorkspaceHandleError(err){
+    return err?.name==="NotFoundError" || /requested file or directory could not be found/i.test(err?.message||"");
+  }
+  async function clearRememberedWorkspaceSelection(){
+    workspaceRootHandle=null;
+    fileHandle=null;
+    pendingReconnectHandle=null;
+    await rememberWorkspaceSelection(null,null);
+  }
   async function findRememberedWorkspace(root){
     const name=await idbGet("workspaceName");
     if (!root || !name) return null;
     if (await getFolderWorkspace().isWorkspace(root)) return root;
-    try{
-      const candidate=await root.getDirectoryHandle(name);
-      return await getFolderWorkspace().isWorkspace(candidate) ? candidate : null;
-    }catch(err){ return null; }
+    let candidate;
+    try{ candidate=await root.getDirectoryHandle(name); }
+    catch(err){
+      if (!isMissingWorkspaceHandleError(err)) throw err;
+      await clearRememberedWorkspaceSelection();
+      return null;
+    }
+    return await getFolderWorkspace().isWorkspace(candidate) ? candidate : null;
   }
 
   async function readRecoverySnapshots(){
@@ -436,7 +449,7 @@
       return false;
     }catch(err){
       fileHandle=null;
-      const missingHandle=err?.name==="NotFoundError" || /requested file or directory could not be found/i.test(err?.message||"");
+      const missingHandle=isMissingWorkspaceHandleError(err);
       if (missingHandle){
         pendingReconnectHandle=null;
         const recovered=await findRememberedWorkspace(workspaceRootHandle);
@@ -453,8 +466,7 @@
             return true;
           }catch(recoveryError){/* Fall through to the normal connection gate. */}
         }
-        workspaceRootHandle=null;
-        await rememberWorkspaceSelection(null,null);
+        await clearRememberedWorkspaceSelection();
         setSyncStatus("No workspace folder connected. Choose a workspace root or open a workspace.");
       }else{
         if (handle) pendingReconnectHandle=handle;
