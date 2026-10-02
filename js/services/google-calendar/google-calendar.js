@@ -1,6 +1,7 @@
 /* Google Calendar integration */
   let googleSyncFeedbackMessage = "";
   let googleSyncProgress = null;
+  let googlePendingConflictCount = 0;
   let googleResumeRetryCount = 0;
   let googleResumeRetryTimer = null;
   function googleCalendarUrl(entry){
@@ -195,16 +196,18 @@
   }
   function googleEventBody(entry){
     const details = [entry.item.description, entry.project ? `Project: ${entry.project.name}` : "Beforework Calendar", entry.group ? `Group: ${entry.group.name}` : ""].filter(Boolean).join("\n");
+    const ownerId = entry.project ? entry.project.id : "__calendar__";
+    const timeZone = entry.item.calendarTimeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const extendedProperties={private:{beforeworkItemId:entry.item.id,beforeworkOwnerId:ownerId,beforeworkFieldId:entry.field.id}};
     if (entry.item.startTime && entry.item.endTime){
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
         start:{dateTime:`${entry.date}T${entry.item.startTime}:00`,timeZone},
-        end:{dateTime:`${entry.endDate}T${entry.item.endTime}:00`,timeZone}};
+        end:{dateTime:`${entry.endDate}T${entry.item.endTime}:00`,timeZone},extendedProperties};
     }
     const nextDate = calendarDateCode(entry.endDate,1);
     const endDate = `${nextDate.slice(0,4)}-${nextDate.slice(4,6)}-${nextDate.slice(6)}`;
     return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
-      start:{date:entry.date}, end:{date:endDate}};
+      start:{date:entry.date}, end:{date:endDate},extendedProperties};
   }
   function googleEventDate(event, key){
     const value = event[key]?.date || event[key]?.dateTime || "";
@@ -229,18 +232,57 @@
     entry.item.location = event.location || "";
     entry.item.startTime = googleEventTime(event, "start");
     entry.item.endTime = googleEventTime(event, "end");
+    entry.item.calendarTimeZone=event.start?.timeZone||event.end?.timeZone||entry.item.calendarTimeZone||"";
     if (entry.field.id === "__schedule__" || entry.field.id === "__standalone__") entry.item.endDate = endDate || startDate;
     else entry.item.values[entry.field.id] = startDate;
     entry.item.endDate = endDate || startDate;
     entry.item.updatedAt = Date.now();
   }
-  function findLinkedGoogleEntry(calendarId, eventId){
-    return calendarEntries(null).find(entry=>{
-      const ownerId = entry.project ? entry.project.id : "__calendar__";
-      const key = `${calendarId}:${ownerId}:${entry.field.id}`;
-      const legacyKey = `${ownerId}:${entry.field.id}`;
-      return entry.item.googleEventIds?.[key]===eventId || (calendarId==="primary" && entry.item.googleEventIds?.[legacyKey]===eventId);
-    });
+  function linkedFieldId(item,calendarId,ownerId,eventId){
+    for (const [key,id] of Object.entries(item.googleEventIds||{})){
+      if (id!==eventId) continue;
+      const prefix=`${calendarId}:${ownerId}:`;
+      if (key.startsWith(prefix)) return key.slice(prefix.length);
+      const legacyPrefix=`${ownerId}:`;
+      if (calendarId==="primary"&&key.startsWith(legacyPrefix)) return key.slice(legacyPrefix.length);
+    }
+    return "";
+  }
+  async function findLinkedGoogleEntry(calendarId,event){
+    const eventId=event.id;
+    const marker=event.extendedProperties?.private||{};
+    const standaloneItems=state.calendarItems||[];
+    let standalone=standaloneItems.find(item=>
+      (marker.beforeworkOwnerId==="__calendar__"&&marker.beforeworkItemId===item.id)
+      || linkedFieldId(item,calendarId,"__calendar__",eventId)==="__standalone__");
+    if (standalone){
+      return {entry:{project:null,group:null,item:standalone,field:{id:"__standalone__",label:"Calendar",type:"date"}},linkedByMarker:marker.beforeworkItemId===standalone.id};
+    }
+    for (const projectRecord of projectRecords()){
+      const loadedProject=(state.projects||[]).find(project=>project.id===projectRecord.id);
+      const candidates=loadedProject
+        ? loadedProject.groups.flatMap(group=>(group.items||[]).map(item=>({item,group})))
+        : (projectRecord.itemIndex||[]).map(item=>({item,group:projectRecord.groups.find(group=>group.id===item.groupId)||{id:item.groupId,name:item.groupName}}));
+      const candidate=candidates.find(({item})=>{
+        const fieldId=linkedFieldId(item,calendarId,projectRecord.id,eventId);
+        return (marker.beforeworkOwnerId===projectRecord.id&&marker.beforeworkItemId===item.id)
+          || !!fieldId;
+      });
+      if (!candidate) continue;
+      const project=state.folderLazy ? await ensureProjectLoaded(projectRecord.id) : projectRecord;
+      if (!project) continue;
+      const group=project.groups.find(candidateGroup=>candidateGroup.id===candidate.group.id)
+        || project.groups.find(candidateGroup=>candidateGroup.items?.some(item=>item.id===candidate.item.id));
+      const item=group?.items.find(candidateItem=>candidateItem.id===candidate.item.id);
+      if (!item) continue;
+      const fieldId=marker.beforeworkOwnerId===project.id&&marker.beforeworkItemId===item.id
+        ? marker.beforeworkFieldId||""
+        : linkedFieldId(item,calendarId,project.id,eventId);
+      const field=calendarDateFields(project).find(candidateField=>candidateField.id===fieldId)
+        || {id:"__schedule__",label:"Schedule",type:"date"};
+      return {entry:{project,group,item,field},linkedByMarker:marker.beforeworkOwnerId===project.id&&marker.beforeworkItemId===item.id};
+    }
+    return null;
   }
   async function googleCalendarEvents(calendarId, syncToken=state.googleCalendarSyncTokens?.[calendarId]){
     const events = [];
@@ -257,12 +299,13 @@
     }while(pageToken);
     return {events,nextSyncToken};
   }
-  async function importGoogleCalendarEvents(){
-    if (!googleAccessToken || googleImportInFlight || googleSyncInFlight) return;
+  async function importGoogleCalendarEvents({duringSync=false,throwOnError=false}={}){
+    if (!googleAccessToken || googleImportInFlight || (googleSyncInFlight&&!duringSync)) return {importedCount:0,conflictCount:0};
     const calendarIds = linkedGoogleCalendarIds();
-    if (!calendarIds.length) return;
+    if (!calendarIds.length) return {importedCount:0,conflictCount:0};
     googleImportInFlight = true;
     let importedCount = 0;
+    let conflictCount = 0;
     let tokenChanged = false;
     const nextTokens = {...(state.googleCalendarSyncTokens||{})};
     try{
@@ -283,18 +326,27 @@
         }
         for (const event of result.events){
           if (!event.id) continue;
-          const entry = findLinkedGoogleEntry(calendarId, event.id);
+          const linked = await findLinkedGoogleEntry(calendarId,event);
+          const entry = linked?.entry;
           if (event.status==="cancelled"){
             if (entry){
               const ownerId = entry.project ? entry.project.id : "__calendar__";
               const key = `${calendarId}:${ownerId}:${entry.field.id}`;
-              if (!entry.project){
+              const linkedField=linkedFieldId(entry.item,calendarId,ownerId,event.id);
+              const linkedMetaKey=linkedField?`${calendarId}:${ownerId}:${linkedField}`:key;
+              const previous=entry.item.googleSyncMeta?.[key]||entry.item.googleSyncMeta?.[linkedMetaKey];
+              const localChanged=!!previous&&Number(entry.item.updatedAt||0)>Number(previous.localUpdatedAt||0);
+              if (!entry.project&&!localChanged){
                 state.calendarItems = state.calendarItems.filter(item=>item.id!==entry.item.id);
               } else {
                 entry.item.googleEventIds = entry.item.googleEventIds || {};
                 entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
-                delete entry.item.googleEventIds[key];
-                entry.item.googleSyncMeta[key] = {remoteDeletedAt:Date.now(), localUpdatedAt:entry.item.updatedAt};
+                Object.entries(entry.item.googleEventIds).forEach(([eventKey,eventId])=>{
+                  if (eventId===event.id) delete entry.item.googleEventIds[eventKey];
+                });
+                entry.item.googleSyncMeta[key] = {remoteDeletedAt:Date.now(), localUpdatedAt:previous?.localUpdatedAt??entry.item.updatedAt};
+                if (localChanged) conflictCount++;
+                if (state.folderLazy) saveGoogleState();
               }
               importedCount++;
             }
@@ -303,13 +355,41 @@
           if (entry){
             const ownerId = entry.project ? entry.project.id : "__calendar__";
             const key = `${calendarId}:${ownerId}:${entry.field.id}`;
-            const previous = entry.item.googleSyncMeta?.[key];
-            if (!previous || Date.parse(event.updated||"") > Date.parse(previous.googleUpdatedAt||"")){
+            const linkedField=linkedFieldId(entry.item,calendarId,ownerId,event.id);
+            const linkedMetaKey=linkedField?`${calendarId}:${ownerId}:${linkedField}`:key;
+            const previous=entry.item.googleSyncMeta?.[key]||entry.item.googleSyncMeta?.[linkedMetaKey];
+            const remoteUpdatedAt=event.updated||new Date().toISOString();
+            const remoteTime=Date.parse(remoteUpdatedAt)||0;
+            const previousRemoteTime=Date.parse(previous?.googleUpdatedAt||"")||0;
+            const localUpdatedAt=Number(entry.item.updatedAt)||0;
+            const localChanged=previous
+              ? localUpdatedAt>Number(previous.localUpdatedAt||0)
+              : linked.linkedByMarker&&localUpdatedAt>remoteTime;
+            const remoteChanged=!previous||remoteTime>previousRemoteTime;
+            const localWins=localChanged&&remoteChanged&&localUpdatedAt>remoteTime;
+            const wasLinked=entry.item.googleEventIds?.[key]===event.id;
+            const importedBefore=importedCount;
+            if (remoteChanged&&!localWins){
               applyGoogleEventToItem(entry, event);
-              entry.item.googleSyncMeta = entry.item.googleSyncMeta || {};
-              entry.item.googleSyncMeta[key] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt};
               importedCount++;
             }
+            entry.item.calendarTimeZone=event.start?.timeZone||event.end?.timeZone||entry.item.calendarTimeZone||"";
+            entry.item.googleEventIds=entry.item.googleEventIds||{};
+            entry.item.googleSyncMeta=entry.item.googleSyncMeta||{};
+            entry.item.googleEventIds[key]=event.id;
+            entry.item.googleSyncMeta[key]={
+              googleUpdatedAt:remoteUpdatedAt,
+              localUpdatedAt:localWins?(previous?.localUpdatedAt||0):entry.item.updatedAt
+            };
+            if (localWins){
+              conflictCount++;
+              if (!duringSync){
+                googlePendingConflictCount++;
+                googleSyncQueued=true;
+              }
+            }
+            if (!wasLinked&&importedCount===importedBefore) importedCount++;
+            if (entry.project&&state.folderLazy&&(remoteChanged||!wasLinked)){ saveGoogleState(); }
             continue;
           }
           const startDate = googleEventDate(event, "start");
@@ -321,7 +401,7 @@
             exclusiveEnd.setDate(exclusiveEnd.getDate()-1);
             endDate = calendarDateKey(exclusiveEnd);
           }
-          const item = {id:uid(), title:event.summary||"Google Calendar event", description:String(event.description||"").split("\n").filter(line=>!line.startsWith("Project: ")&&!line.startsWith("Group: ")).join("\n").trim(), calendarType:"event", startTime:googleEventTime(event,"start"), endTime:googleEventTime(event,"end"), location:event.location||"", endDate, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now(), googleEventIds:{}, googleSyncMeta:{}};
+          const item = {id:uid(), title:event.summary||"Google Calendar event", description:String(event.description||"").split("\n").filter(line=>!line.startsWith("Project: ")&&!line.startsWith("Group: ")).join("\n").trim(), calendarType:"event", startTime:googleEventTime(event,"start"), endTime:googleEventTime(event,"end"), calendarTimeZone:event.start?.timeZone||event.end?.timeZone||"", location:event.location||"", endDate, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now(), googleEventIds:{}, googleSyncMeta:{}};
           item.googleEventIds[`${calendarId}:__calendar__:__standalone__`] = event.id;
           item.googleSyncMeta[`${calendarId}:__calendar__:__standalone__`] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:item.updatedAt};
           state.calendarItems.push(item);
@@ -359,19 +439,61 @@
         detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
       }catch(parseError){ }
       updateGoogleCalendarStatus(error.status===401 ? "Google connection expired - reconnect in Integrations" : `Google Calendar check failed: ${detail}`, null);
+      if (throwOnError) throw error;
     }finally{
       googleImportInFlight = false;
-      if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length && !googleSyncInFlight){
+      if (!duringSync&&googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length && !googleSyncInFlight){
         googleSyncQueued = false;
         clearTimeout(googleAutoSyncTimer);
         googleAutoSyncTimer = setTimeout(()=>syncGoogleCalendar(null), 0);
       }
     }
+    return {importedCount,conflictCount};
   }
   function startGoogleCalendarPolling(){
     if (googlePollTimer) return;
-    googlePollTimer = setInterval(importGoogleCalendarEvents, 30000);
-    importGoogleCalendarEvents();
+    googlePollTimer = setInterval(pollGoogleCalendar, 30000);
+    pollGoogleCalendar();
+  }
+  function standaloneCalendarEntriesNeedSync(calendarIds=linkedGoogleCalendarIds()){
+    const entries = new Map();
+    calendarEntries(null).forEach(entry=>{
+      if (!entry.project&&!entries.has(entry.item.id)) entries.set(entry.item.id,entry);
+    });
+    for (const entry of entries.values()){
+      const ownerId="__calendar__";
+      const legacyKey=`${ownerId}:${entry.field.id}`;
+      for (const calendarId of calendarIds){
+        const key=`${calendarId}:${ownerId}:${entry.field.id}`;
+        const linkedKey=Object.keys(entry.item.googleEventIds||{}).find(candidate=>
+          candidate===key||(calendarId==="primary"&&candidate===legacyKey)
+          ||candidate.startsWith(`${calendarId}:${ownerId}:`));
+        const previous=entry.item.googleSyncMeta?.[key]
+          ||(linkedKey?entry.item.googleSyncMeta?.[linkedKey]:null)
+          ||(calendarId==="primary"?entry.item.googleSyncMeta?.[legacyKey]:null);
+        const eventId=entry.item.googleEventIds?.[key]
+          ||(linkedKey?entry.item.googleEventIds?.[linkedKey]:"")
+          ||(calendarId==="primary"?entry.item.googleEventIds?.[legacyKey]:"");
+        const updatedAt=Number(entry.item.updatedAt||0);
+        if (!eventId||!previous||updatedAt>Number(previous.localUpdatedAt||0)) return true;
+      }
+    }
+    return false;
+  }
+  async function pollGoogleCalendar(){
+    const pullResult=await importGoogleCalendarEvents();
+    if (!googleAccessToken||googleSyncInFlight||googleImportInFlight||googleAutoSyncTimer||!standaloneCalendarEntriesNeedSync()) return;
+    await syncGoogleCalendar(null,{standaloneOnly:true,pullResult});
+  }
+  async function materializeCalendarEntry(entry){
+    if (!entry.project||!state.folderLazy) return entry;
+    const project=await ensureProjectLoaded(entry.project.id);
+    if (!project) throw new Error(`Project ${entry.project.name||entry.project.id} could not be loaded for Google Calendar sync.`);
+    const group=project.groups.find(candidate=>candidate.id===entry.group.id);
+    const item=group?.items.find(candidate=>candidate.id===entry.item.id);
+    if (!group||!item) return null;
+    const field=calendarDateFields(project).find(candidate=>candidate.id===entry.field.id)||entry.field;
+    return {...entry,project,group,item,field};
   }
   function resumeGoogleCalendarSync(){
     if (!state || !linkedGoogleCalendarIds().length) return;
@@ -394,7 +516,7 @@
     googleSilentAuth = true;
     try{ googleTokenClient.requestAccessToken({prompt:"none"}); }catch(error){ googleSilentAuth = false; }
   }
-  async function syncGoogleCalendar(scopeProject){
+  async function syncGoogleCalendar(scopeProject,{standaloneOnly=false,pullResult=null}={}){
     if (!googleAccessToken) return;
     if (googleSyncInFlight || googleImportInFlight){
       googleSyncQueued = true;
@@ -402,26 +524,48 @@
     }
     clearTimeout(googleAutoSyncTimer);
     googleSyncInFlight = true;
-    updateGoogleCalendarStatus("Starting Google Calendar sync...", null);
+    updateGoogleCalendarStatus("Starting Google Calendar sync...",{completed:0,total:1});
     updateGoogleCalendarButtons();
     try{
-      const entries = calendarEntries(scopeProject);
-      if (!entries.length){
-        updateGoogleCalendarStatus("No dated items to sync");
-        await showNotice("Nothing to sync", "Add a project date or a Schedule end date to an item first. A time without a date is not enough to create a Google Calendar event.");
-        return;
-      }
       const calendarIds = linkedGoogleCalendarIds();
       if (!calendarIds.length){
         updateGoogleCalendarStatus("Link a calendar first");
         await showNotice("No Google calendars linked", "Choose Link calendars first, then select one or more writable Google calendars.");
         return;
       }
+      updateGoogleCalendarStatus("Checking linked Google calendars...",{completed:0,total:1});
+      pullResult=pullResult||await importGoogleCalendarEvents({duringSync:true,throwOnError:true});
+      let conflictCount=pullResult.conflictCount+googlePendingConflictCount;
+      googlePendingConflictCount=0;
+      let entries = calendarEntries(scopeProject);
+      if (standaloneOnly){
+        const standaloneEntries=new Map();
+        entries.forEach(entry=>{
+          if (!entry.project&&!standaloneEntries.has(entry.item.id)) standaloneEntries.set(entry.item.id,entry);
+        });
+        entries=[...standaloneEntries.values()];
+      }
+      if (!entries.length){
+        await processGoogleDeletions();
+        state.googleLastSyncAt=Date.now();
+        saveGoogleState();
+        await flushSave();
+        const lastSync=`Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}`;
+        document.querySelectorAll("[data-integration-last-sync]").forEach(element=>{ element.textContent=lastSync; });
+        const summaryParts=pullResult.importedCount
+          ? [`Imported ${pullResult.importedCount} Google Calendar change${pullResult.importedCount===1?"":"s"}`]
+          : ["Google calendars checked · no dated local items to sync"];
+        if (conflictCount) summaryParts.push(`resolved ${conflictCount} conflict${conflictCount===1?"":"s"} by keeping the newest update`);
+        updateGoogleCalendarStatus(summaryParts.join(" · "),{completed:1,total:1});
+        return;
+      }
       const total = entries.length * calendarIds.length;
       let completed = 0;
       updateGoogleCalendarStatus("Preparing calendar items...", {completed,total});
       for (const calendarId of calendarIds){
-        for (const entry of entries){
+        for (const sourceEntry of entries){
+          const entry=await materializeCalendarEntry(sourceEntry);
+          if (!entry) continue;
           const calendar = (state.googleCalendarCatalog||[]).find(item=>item.id===calendarId);
           const calendarName = calendar?.summary || (calendarId==="primary" ? "Primary calendar" : calendarId);
           const itemName = entry.item.title || "Untitled item";
@@ -431,14 +575,22 @@
           const ownerId = entry.project ? entry.project.id : "__calendar__";
           const key = `${calendarId}:${ownerId}:${entry.field.id}`;
           const legacyKey = `${ownerId}:${entry.field.id}`;
-          const eventId = entry.item.googleEventIds[key] || (calendarId==="primary" ? entry.item.googleEventIds[legacyKey] : "");
-          const previous = entry.item.googleSyncMeta[key] || null;
-          if (previous?.remoteDeletedAt && Number(entry.item.updatedAt||0) <= Number(previous.remoteDeletedAt)){
+          const linkedKey=Object.keys(entry.item.googleEventIds).find(candidate=>
+            candidate===key||(calendarId==="primary"&&candidate===legacyKey)
+            ||candidate.startsWith(`${calendarId}:${ownerId}:`));
+          const eventId=entry.item.googleEventIds[key]||(linkedKey?entry.item.googleEventIds[linkedKey]:"")
+            ||(calendarId==="primary"?entry.item.googleEventIds[legacyKey]:"");
+          const previous=entry.item.googleSyncMeta[key]||(linkedKey?entry.item.googleSyncMeta[linkedKey]:null)
+            ||(calendarId==="primary"?entry.item.googleSyncMeta[legacyKey]:null)||null;
+          if (previous?.remoteDeletedAt && Number(entry.item.updatedAt||0) <= Number(previous.localUpdatedAt||0)){
             completed++;
             updateGoogleCalendarStatus(`Synced ${completed} of ${total} calendar operations`, {completed,total});
             continue;
           }
-          if (previous?.remoteDeletedAt) delete entry.item.googleSyncMeta[key].remoteDeletedAt;
+          if (previous?.remoteDeletedAt){
+            const metaKey=entry.item.googleSyncMeta[key]?key:linkedKey||legacyKey;
+            if (entry.item.googleSyncMeta[metaKey]) delete entry.item.googleSyncMeta[metaKey].remoteDeletedAt;
+          }
           let remote = null;
           if (eventId){
             try{
@@ -455,6 +607,7 @@
             const previousRemoteTime = Date.parse(previous?.googleUpdatedAt||"") || 0;
             const localChanged = !previous || Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
             const remoteChanged = !!previous && remoteTime > previousRemoteTime;
+            if (localChanged&&remoteChanged) conflictCount++;
             if (remoteChanged && (!localChanged || remoteTime >= Number(entry.item.updatedAt||0))){
               applyGoogleEventToItem(entry, remote);
               pushLocal = false;
@@ -471,6 +624,11 @@
           }
           entry.item.googleEventIds[key] = saved.id;
           entry.item.googleSyncMeta[key] = {googleUpdatedAt:saved.updated||remote?.updated||new Date().toISOString(), localUpdatedAt:entry.item.updatedAt||Date.now()};
+          if (linkedKey&&linkedKey!==key) {
+            delete entry.item.googleEventIds[linkedKey];
+            delete entry.item.googleSyncMeta[linkedKey];
+          }
+          if (entry.project&&state.folderLazy) saveGoogleState();
           completed++;
           updateGoogleCalendarStatus(`Synced ${completed} of ${total} calendar operations`, {completed,total});
         }
@@ -480,21 +638,24 @@
       state.googleLastSyncAt = Date.now();
       saveGoogleState();
       await flushSave();
-      const syncLabel = `Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`;
+      const summaryParts=[`Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`];
+      if (pullResult.importedCount) summaryParts.push(`imported ${pullResult.importedCount} change${pullResult.importedCount===1?"":"s"}`);
+      if (conflictCount) summaryParts.push(`resolved ${conflictCount} conflict${conflictCount===1?"":"s"} by keeping the newest update`);
       const lastSync = `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}`;
       document.querySelectorAll("[data-integration-last-sync]").forEach(element=>{ element.textContent = lastSync; });
-      updateGoogleCalendarStatus(syncLabel, null);
+      updateGoogleCalendarStatus(summaryParts.join(" · "), null);
     }catch(error){
       if (error.status===401){
         handleGoogleAuthFailure();
       }
-      let detail = "Google rejected the sync request.";
+      let detail = error.message||"Google rejected the sync request.";
       try{
         const payload = JSON.parse(error.detail || "{}");
         detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
       }catch(parseError){ }
       updateGoogleCalendarStatus(error.status===401 ? "Google connection expired - reconnect in Integrations" : `Sync failed: ${detail}`, null);
-      await showNotice("Google Calendar sync failed", `${detail} Connect again and make sure Calendar access was approved.`);
+      await showNotice(error.status===401?"Google Calendar connection expired":"Google Calendar sync failed",
+        error.status===401?`${detail} Reconnect and approve Calendar access.`:detail);
     }finally{
       googleSyncInFlight = false;
       updateGoogleCalendarButtons();
@@ -598,4 +759,3 @@
       };
     });
   }
-

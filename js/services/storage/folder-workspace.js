@@ -116,6 +116,9 @@
       startTime:item.startTime||"",
       endTime:item.endTime||"",
       endDate:item.endDate||"",
+      googleEventIds:item.googleEventIds||{},
+      googleSyncMeta:item.googleSyncMeta||{},
+      calendarTimeZone:item.calendarTimeZone||"",
       attachments:item.attachments||[],
       recurrence:item.recurrence||null,
       reminderAt:item.reminderAt||null
