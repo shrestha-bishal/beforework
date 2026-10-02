@@ -3883,13 +3883,6 @@
 
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
-    const projectCreateMenu = document.getElementById("projectCreateMenu");
-    const projectCreateBtn = document.getElementById("projectCreateBtn");
-    const closeProjectCreateMenu = () => {
-      projectCreateMenu.classList.remove("open");
-      projectCreateBtn.classList.remove("active");
-      projectCreateBtn.setAttribute("aria-expanded", "false");
-    };
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     document.getElementById("projectMenuBtn").onclick = event => {
       event.stopPropagation();
@@ -3903,21 +3896,11 @@
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
     });
-    projectCreateBtn.onclick = event => {
-      event.stopPropagation();
-      const open = projectCreateMenu.classList.toggle("open");
-      projectCreateBtn.classList.toggle("active", open);
-      projectCreateBtn.setAttribute("aria-expanded", String(open));
-    };
-    projectCreateMenu.addEventListener("click", event=>{
-      if (event.target.closest("button")) closeProjectCreateMenu();
-    });
     document.addEventListener("click", event=>{
       if (!event.target.closest("#projectMenuWrap")){
         document.getElementById("projectMenu").classList.remove("open");
         document.getElementById("projectMenuBtn").classList.remove("active");
       }
-      if (!event.target.closest(".projectCreateWrap")) closeProjectCreateMenu();
       const quickMenuWrap = event.target.closest(".projectQuickMenuWrap, .folderQuickMenuWrap");
       document.querySelectorAll(".projectQuickMenu.open, .folderQuickMenu.open").forEach(menu=>{
         if (!quickMenuWrap || !quickMenuWrap.contains(menu)) menu.classList.remove("open");
@@ -3926,20 +3909,7 @@
         document.querySelectorAll(".fieldColumnMenu.open").forEach(menu=>menu.classList.remove("open"));
       }
     });
-    document.getElementById("addProjectBtn").onclick = async () => {
-      const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
-      const result = await showDialog({title:"New project", fields:[
-        {label:"Project name", placeholder:"e.g. Marketing launch"},
-        {label:"Description", type:"textarea", placeholder:"What is this project about?"},
-        {label:"Template", type:"select", options:templateOptions, value:"taskboard"}
-      ], confirmLabel:"Create project"});
-      if (!result) return;
-      const [name, description, templateKey] = result;
-      if (name && name.trim()) await addProject(name.trim(), templateKey, description.trim()||null);
-    };
-    document.getElementById("importProjectBtn").onclick = () => openCsvImportDialog("new");
     document.getElementById("importProjectCsvBtn").onclick = () => openCsvImportDialog("existing",activeProjectId);
-    document.getElementById("addFolderBtn").onclick = createFolder;
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);
       if (!project) return;
@@ -4027,6 +3997,29 @@
     });
   }
 
+  async function createProjectFromMenu(){
+    const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
+    const result = await showDialog({title:"New project", fields:[
+      {label:"Project name", placeholder:"e.g. Marketing launch"},
+      {label:"Description", type:"textarea", placeholder:"What is this project about?"},
+      {label:"Template", type:"select", options:templateOptions, value:"taskboard"}
+    ], confirmLabel:"Create project"});
+    if (!result) return;
+    const [name, description, templateKey] = result;
+    if (name && name.trim()) await addProject(name.trim(), templateKey, description.trim()||null);
+  }
+
+  function wireProjectCreateMenu(){
+    const projectCreateMenu=window.BeforeworkProjectCreateMenu.create({
+      actions:{
+        createProject:createProjectFromMenu,
+        importProject:()=>openCsvImportDialog("new"),
+        createFolder
+      }
+    });
+    projectCreateMenu.wire();
+  }
+
   /* ---------- Boot ----------
      There is no in-memory-only or browser-storage-only mode: the connected
      file is the single source of truth. Boot either silently resumes the
@@ -4059,6 +4052,7 @@
       createWorkspace:startNewFileFromMenu
     });
     navigation.wire();
+    wireProjectCreateMenu();
     window.BeforeworkBoardFilters.create({
       onSearchChange:value=>{
         boardFilterText=value.trim();
