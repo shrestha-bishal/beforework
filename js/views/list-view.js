@@ -28,6 +28,7 @@ export class ListView {
       setListSort,
       wireGroupColumnHeader,
       wireCustomColumnHeader,
+      wireColumnFilterHeader,
       render,
       sortProjectRows,
       tagById,
@@ -36,13 +37,15 @@ export class ListView {
       formatUpdatedAt,
       openItemModal,
       applyTableColumnOrder,
-      applyTableColumnVisibility
+      applyTableColumnVisibility,
+      applyColumnFilterVisibility,
+      scheduleSave
     } = this.dependencies;
     const templates=this.cloneTemplate();
     const wrap=templates.querySelector("#listViewTemplate").content.firstElementChild.cloneNode(true);
     const showGroupColumn = project.groups.length>1;
     const showProgressColumn = project.groups.some(group=>group.items.some(item=>
-      itemMatchesFilter(project,item,group) && Array.isArray(item.subitems) && item.subitems.length>0));
+      itemMatchesFilter(project,item,group,true) && Array.isArray(item.subitems) && item.subitems.length>0));
     board.appendChild(wrap);
     const table=wrap.querySelector(".listTable");
     const headerRow=table.tHead.rows[0];
@@ -66,6 +69,7 @@ export class ListView {
       menuButton.title="Column actions";
       tagsHeader.before(fieldHeader);
     });
+    headerRow.querySelectorAll("th[data-column-id]").forEach(th=>wireColumnFilterHeader(th,project));
     wireTableColumnReordering(table,project,"list");
 
     const doQuickAdd = () => {
@@ -128,7 +132,7 @@ export class ListView {
       };
     });
 
-    const rows=sortProjectRows(project,rowsForSelection(project));
+    const rows=sortProjectRows(project,rowsForSelection(project,true));
 
     const tbody = wrap.querySelector("#listTbody");
     const colCount = 4 + project.fields.length + (showGroupColumn?1:0) + (showProgressColumn?1:0);
@@ -140,6 +144,7 @@ export class ListView {
       tbody.appendChild(emptyRow);
       applyTableColumnOrder(table,project,"list");
       applyTableColumnVisibility(table,project,"list");
+      applyColumnFilterVisibility(table,project);
       return;
     }
     const rowTemplate=templates.querySelector("#listViewRowTemplate");
@@ -172,13 +177,33 @@ export class ListView {
         const cell=document.createElement("td");
         cell.className="p-2 border-bottom";
         cell.dataset.columnId=`field:${field.id}`;
-        appendMarkup(cell,fieldCellHtml(field,item.values[field.id],project));
+        if (field.type==="multi-select"){
+          const control=document.createElement("select");
+          control.multiple=true;
+          control.className="form-control listMultiSelect";
+          Object.assign(control.dataset,{pid:project.id,gid:group.id,iid:item.id,fieldid:field.id});
+          const selected=Array.isArray(item.values[field.id])?item.values[field.id]:[];
+          (field.options||[]).forEach(option=>{
+            const element=document.createElement("option");
+            element.value=option.id;
+            element.textContent=option.label;
+            element.selected=selected.includes(option.id);
+            control.appendChild(element);
+          });
+          control.addEventListener("change",()=>{
+            item.values[field.id]=[...control.selectedOptions].map(option=>option.value);
+            item.updatedAt=Date.now();
+            scheduleSave();
+          });
+          cell.appendChild(control);
+        } else appendMarkup(cell,fieldCellHtml(field,item.values[field.id],project));
         tagsCell.before(cell);
       });
       tbody.appendChild(row);
     });
     tbody.querySelectorAll("tr[data-iid]").forEach(tr=>{
       tr.onclick = e => {
+        if (e.target.closest(".appSelectWrap")) return;
         if (e.target.matches("input[data-item-select]")){
           if (e.target.checked) selectedItemIds.add(e.target.dataset.itemSelect);
           else selectedItemIds.delete(e.target.dataset.itemSelect);
@@ -190,6 +215,7 @@ export class ListView {
     });
     applyTableColumnOrder(table,project,"list");
     applyTableColumnVisibility(table,project,"list");
+    applyColumnFilterVisibility(table,project);
     updateSelection();
   }
 }

@@ -62,3 +62,14 @@ test("List headers stay aligned with optional group and progress cells",()=>{
   assert.ok(view.includes("else groupCell.remove();"));
   assert.ok(view.includes("else progressCell.remove();"));
 });
+
+test("List multi-select field cells use appSelect and save selections",()=>{
+  assert.ok(view.includes('if (field.type==="multi-select"){'));
+  assert.ok(view.includes("control.multiple=true;"));
+  assert.ok(view.includes('control.className="form-control listMultiSelect";'));
+  assert.ok(view.includes('Object.assign(control.dataset,{pid:project.id,gid:group.id,iid:item.id,fieldid:field.id});'));
+  assert.ok(view.includes('item.values[field.id]=[...control.selectedOptions].map(option=>option.value);'));
+  assert.ok(view.includes("scheduleSave();"));
+  assert.ok(view.includes('if (e.target.closest(".appSelectWrap")) return;'));
+  assert.match(app,/listView = new listViewModule\.ListView\(\{[\s\S]*?scheduleSave,[\s\S]*?cloneTemplate:\(\)=>window\.BeforeworkViewTemplates\.clone\("listView"\)/);
+});

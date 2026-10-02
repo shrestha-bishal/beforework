@@ -553,11 +553,12 @@ test("date picker month arrows navigate in both directions", ()=>{
 
 test("filters numeric values and any selected multi-select option", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start=appSource.indexOf("function itemMatchesFilter");
+  const start=appSource.indexOf("function columnDateKey");
   const end=appSource.indexOf("function rowsForSelection",start);
   const snippet=appSource.slice(start,end);
   const context={showArchived:false,activeProjectId:"project",completionFilter:"open",isItemCompleted:()=>false,
-    boardFilterGroups:new Set(),boardFilterTags:new Set(),boardFilterFields:new Map(),boardFilterText:""};
+    boardFilterGroups:new Set(),boardFilterTags:new Set(),boardFilterFields:new Map(),boardFilterColumns:new Map(),
+    COLUMN_FILTER_NONE:"__none__",boardFilterText:"",isDateField:field=>["date","start-date","due-date"].includes(field?.type)};
   const result=JSON.parse(vm.runInNewContext(`${snippet};
     const project={id:"project",fields:[{id:"count",type:"number"},{id:"areas",type:"multi-select"},{id:"contact",type:"email"}]};
     const group={id:"group"};
@@ -570,9 +571,72 @@ test("filters numeric values and any selected multi-select option", ()=>{
     boardFilterFields.clear();
     boardFilterFields.set("contact","example.com");
     const emailMatches=itemMatchesFilter(project,{values:{contact:"alex@example.com"}},group);
-    JSON.stringify({zeroMatches,selectedMatches,otherDoesNotMatch,emailMatches});`,context));
+    boardFilterFields.clear();
+    boardFilterColumns.set("field:areas",new Set(["design"]));
+    const columnMultiSelectMatches=itemMatchesFilter(project,{values:{areas:["docs","design"]}},group);
+    const columnMultiSelectRejects=itemMatchesFilter(project,{values:{areas:["docs"]}},group);
+    boardFilterColumns.clear();
+    boardFilterColumns.set("group",new Set(["other-group"]));
+    const groupRejects=itemMatchesFilter(project,{values:{}},group);
+    JSON.stringify({zeroMatches,selectedMatches,otherDoesNotMatch,emailMatches,columnMultiSelectMatches,columnMultiSelectRejects,groupRejects});`,context));
 
-  assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true});
+  assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true,columnMultiSelectMatches:true,columnMultiSelectRejects:false,groupRejects:false});
+});
+
+test("deleted custom fields discard their saved column filters",()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function pruneColumnFilters");
+  const end=appSource.indexOf("function persistActiveFilters",start);
+  const snippet=appSource.slice(start,end);
+  const result=JSON.parse(vm.runInNewContext(`${snippet};
+    boardFilterColumns.set("field:removed",new Set(["old-value"]));
+    boardFilterColumns.set("field:kept",new Set(["keep-value"]));
+    boardFilterColumns.set("tags",new Set(["tag-id"]));
+    pruneColumnFilters({fields:[{id:"kept"}]});
+    JSON.stringify([...boardFilterColumns.keys()]);`,{boardFilterColumns:new Map()}));
+
+  assert.deepEqual(result,["field:kept","tags"]);
+});
+
+test("column selections migrate into the main filter state",()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function sharedColumnField");
+  const end=appSource.indexOf("function restoreProjectFilters",start);
+  const snippet=appSource.slice(start,end);
+  const result=JSON.parse(vm.runInNewContext(`${snippet};
+    boardFilterGroups.add("old-group");
+    boardFilterTags.add("old-tag");
+    boardFilterFields.set("priority",["medium"]);
+    boardFilterColumns.set("group",new Set(["new-group"]));
+    boardFilterColumns.set("tags",new Set(["new-tag"]));
+    boardFilterColumns.set("field:priority",new Set(["high","low"]));
+    migrateColumnFiltersToMain({fields:[{id:"priority",type:"priority"}]});
+    JSON.stringify({groups:[...boardFilterGroups],tags:[...boardFilterTags],priority:boardFilterFields.get("priority"),columns:[...boardFilterColumns.keys()]});`,{
+      boardFilterGroups:new Set(),boardFilterTags:new Set(),boardFilterFields:new Map(),boardFilterColumns:new Map()
+    }));
+
+  assert.deepEqual(result,{groups:["old-group","new-group"],tags:["old-tag","new-tag"],priority:["medium","high","low"],columns:[]});
+});
+
+test("column selections update the visible main filter checkboxes",()=>{
+  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const start=appSource.indexOf("function sharedColumnField");
+  const end=appSource.indexOf("function wireColumnFilterHeader",start);
+  const snippet=appSource.slice(start,end);
+  const fieldInputs=["high","medium","low"].map(value=>({
+    dataset:{fieldOption:"priority"},value,checked:false
+  }));
+  const context={
+    boardFilterGroups:new Set(),boardFilterTags:new Set(),boardFilterFields:new Map(),boardFilterColumns:new Map(),
+    document:{querySelectorAll:()=>fieldInputs},fieldInputs
+  };
+  const result=JSON.parse(vm.runInNewContext(`${snippet};
+    const project={fields:[{id:"priority",type:"priority"}]};
+    setColumnFilterSelection(project,"field:priority",["high","low"]);
+    syncMainFilterSelection(project,"field:priority",["high","low"]);
+    JSON.stringify({selected:columnFilterSelection(project,"field:priority").size,checks:fieldInputs.map(input=>input.checked)});`,context));
+
+  assert.deepEqual(result,{selected:2,checks:[true,false,true]});
 });
 
 test("exports filtered view columns in saved order as safe CSV", ()=>{

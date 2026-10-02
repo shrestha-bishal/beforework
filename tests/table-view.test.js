@@ -55,6 +55,30 @@ test("Table group header visibility matches optional group cells",()=>{
   assert.ok(view.includes("else groupCell.remove();"));
 });
 
+test("Table and List expose searchable multi-select filters on every data column",()=>{
+  for (const source of [view,listView]){
+    assert.ok(source.includes('headerRow.querySelectorAll("th[data-column-id]").forEach(th=>wireColumnFilterHeader(th,project))'));
+    assert.ok(source.includes("rowsForSelection(project,true)"));
+    assert.ok(source.includes("applyColumnFilterVisibility(table,project)"));
+  }
+  assert.match(app,/select\.multiple=true;/);
+  assert.match(app,/select\.dataset\.appSelectButtonClass="fieldColumnMenuBtn columnFilterToggle"/);
+  assert.match(app,/select\.dataset\.appSelectWrapClass="columnFilterSelectWrap"/);
+  assert.match(app,/select\.dataset\.appSelectIcon="mdi:filter-outline"/);
+  assert.match(app,/select\.dataset\.appSelectMenuTitle=/);
+  assert.match(app,/enhanceSelectControl\(select\)/);
+  assert.match(app,/setColumnFilterSelection\(project,columnId,values\)/);
+  assert.match(app,/syncMainFilterSelection\(project,columnId,values\)/);
+  assert.match(app,/function applyColumnFilterVisibility\(table,project\)/);
+  assert.match(app,/row\.hidden=!item \|\| !itemMatchesFilter\(project,item,group\)/);
+  assert.match(styles,/\.appSelectOption\.selected::before\{left:4px;\}/);
+  assert.match(app,/th\.classList\.add\("hasColumnFilter"\)/);
+  assert.match(styles,/\.listTable \.columnFilterSelectWrap\{position:absolute;top:50%;right:5px/);
+  assert.match(styles,/\.listTable \.fieldColumnHeader\.hasColumnMenu \.columnFilterSelectWrap\{right:32px;\}/);
+  assert.match(styles,/\.fieldColumnHeader:hover \.fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible\{opacity:1;visibility:visible;transform:translateY\(-50%\) translateX\(0\);\}/);
+  assert.match(styles,/@media \(pointer:coarse\)\{\.listTable \.fieldColumnHeader \.columnFilterSelectWrap \.columnFilterToggle\{opacity:1;visibility:visible;/);
+});
+
 test("Table and List expose column rearranging through their context menus",()=>{
   for (const markup of [template,listTemplate]){
     assert.match(markup,/class="btn btn-invisible btn-sm listViewMenuBtn"/);
@@ -71,6 +95,8 @@ test("Table and List expose column rearranging through their context menus",()=>
   assert.match(app,/table\.classList\.toggle\("rearrangingColumns",mode==="all"\)/);
   assert.match(app,/table\.classList\.toggle\("rearrangingSingleColumn",mode==="single"\)/);
   assert.match(app,/columnAction\.onclick=event=>/);
+  assert.match(app,/let menuButton=th\.querySelector\("\.fieldColumnMenuBtn:not\(\.columnFilterToggle\)"\)/);
+  assert.match(app,/th\.classList\.add\("hasColumnMenu"\)/);
   assert.match(app,/columnAction\.textContent="Rearrange"/);
   assert.doesNotMatch(app,/columnAction\.innerHTML=.*<svg/);
   assert.match(app,/setRearrangeMode\("single",header\)/);

@@ -11,6 +11,9 @@ const appStyles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8")
 const start=appSource.indexOf("function enhanceSelectControl(select)");
 const end=appSource.indexOf("function enhanceSelectControls(root=document)",start);
 const snippet=appSource.slice(start,end);
+const positionStart=appSource.indexOf("function positionFloatingSelectMenu(button,menu)");
+const positionEnd=appSource.indexOf("function openFloatingSelectMenu",positionStart);
+const positionSnippet=appSource.slice(positionStart,positionEnd);
 let activeDocument;
 
 function createElement(){
@@ -51,12 +54,13 @@ function createElement(){
   };
 }
 
-function createHarness({multiple=false}={}){
+function createHarness({multiple=false,selectDataset={}}={}){
   const document={createElement,body:createElement(),activeElement:null};
   activeDocument=document;
   const select=createElement();
   select.multiple=multiple;
   select.dataset.appSelectPlaceholder="Select options";
+  Object.assign(select.dataset,selectDataset);
   select.options=[
     {value:"todo",textContent:"To do",selected:true},
     {value:"doing",textContent:"In progress",selected:false},
@@ -88,11 +92,11 @@ function createHarness({multiple=false}={}){
   };
   vm.runInNewContext(`${snippet}; enhanceSelectControl(select);`,{...sandbox,select});
   const wrapper=select.parentNode;
-  const button=wrapper.children.find(child=>child.className==="appSelectButton");
+  const button=wrapper.children.find(child=>child.getAttribute("aria-haspopup")==="listbox");
   const menu=wrapper.children.find(child=>child.className==="appSelectMenu");
   const search=menu.children.find(child=>child.className==="appSelectSearch");
   const optionList=menu.children.find(child=>child.className==="appSelectOptions");
-  return {button,document,menu,optionList,search,select,options:optionList.children};
+  return {button,document,menu,optionList,search,select,wrapper,options:optionList.children};
 }
 
 test("custom select filters options as the search input changes",()=>{
@@ -133,12 +137,14 @@ test("multiple appSelect toggles options, stays open, and preserves option order
   assert.equal(optionList.attributes["aria-multiselectable"],"true");
   assert.equal(button.children[0].textContent,"To do");
   button.onclick({stopPropagation(){}});
+  assert.equal(button.getAttribute("aria-expanded"),"true");
   search.value="gress";
   search.listeners.input();
   options[1].onclick();
   assert.equal(select.options[1].selected,true);
   assert.equal(button.children[0].textContent,"To do, In progress");
   assert.equal(menu.hidden,false);
+  assert.equal(button.getAttribute("aria-expanded"),"true");
   assert.deepEqual(optionList.children.map(option=>option.dataset.value),["todo","doing","done"]);
   assert.deepEqual(optionList.children.map(option=>option.hidden),[true,false,true]);
   assert.equal(optionList.children[0].getAttribute("aria-selected"),"true");
@@ -150,6 +156,34 @@ test("multiple appSelect toggles options, stays open, and preserves option order
   assert.equal(menu.hidden,false);
 });
 
+test("appSelect accepts a column-filter icon, class, title, and search label",()=>{
+  const {button,menu,search,wrapper}=createHarness({multiple:true,selectDataset:{
+    appSelectWrapClass:"columnFilterSelectWrap",
+    appSelectButtonClass:"fieldColumnMenuBtn columnFilterToggle",
+    appSelectIcon:"mdi:filter-outline",
+    appSelectMenuWidth:"320",
+    appSelectMenuTitle:"Filter by relation",
+    appSelectSearchPlaceholder:"Filter relations"
+  }});
+  const menuTitle=menu.children.find(child=>child.className==="appSelectMenuTitle");
+  assert.equal(wrapper.className,"appSelectWrap columnFilterSelectWrap");
+  assert.equal(button.className,"fieldColumnMenuBtn columnFilterToggle");
+  assert.equal(button.children[1].getAttribute("icon"),"mdi:filter-outline");
+  assert.equal(menu.dataset.selectWidth,"320");
+  assert.equal(menuTitle.textContent,"Filter by relation");
+  assert.equal(search.placeholder,"Filter relations");
+});
+
+test("appSelect can widen a menu beyond its compact header trigger",()=>{
+  const button={isConnected:true,getBoundingClientRect:()=>({width:24,left:450,right:474,top:100,bottom:124})};
+  const menu={hidden:false,dataset:{selectWidth:"320"},scrollHeight:120,style:{}};
+  vm.runInNewContext(`${positionSnippet}; positionFloatingSelectMenu(button,menu);`,{
+    window:{innerWidth:1280,innerHeight:800},button,menu
+  });
+  assert.equal(menu.style.width,"320px");
+  assert.equal(menu.style.left,"450px");
+});
+
 test("appSelect exposes reusable enhancement methods for other controls",()=>{
   assert.match(appSource,/window\.BeforeworkAppSelect=\{\s*enhance:enhanceSelectControl,\s*enhanceAll:enhanceSelectControls\s*\}/);
   assert.match(snippet,/const isMultiple=select\.multiple/);
@@ -159,4 +193,5 @@ test("selected option pill remains inside the scrollable option list",()=>{
   assert.match(appStyles,/\.appSelectOption\.selected::before\{left:4px;\}/);
   assert.match(appStyles,/\.appSelectOption\.selected\{padding-left:15px;/);
   assert.match(appStyles,/\.itemModalSidebar \.appSelectButton\[aria-expanded="true"\]\{background:var\(--bg-soft\);\}/);
+  assert.match(appStyles,/\.listTable \.columnFilterSelectWrap \.columnFilterToggle\[aria-expanded="true"\]\{opacity:1;visibility:visible;transform:translateX\(0\);background:var\(--bg-soft2\);color:var\(--text\);\}/);
 });

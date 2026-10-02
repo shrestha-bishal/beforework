@@ -420,7 +420,11 @@
   .listTable th.fieldColumnHeader[data-column-id]{padding-right:34px!important;}
   .listTable.rearrangingColumns th.fieldColumnHeader[data-column-id]{padding-right:58px!important;}
   .listTable.rearrangingSingleColumn th.fieldColumnHeader[data-column-id]{padding-right:58px!important;}
+  .listTable th.fieldColumnHeader.hasColumnFilter.hasColumnMenu{padding-right:60px!important;}
+  .listTable.rearrangingColumns th.fieldColumnHeader.hasColumnFilter.hasColumnMenu,
+  .listTable.rearrangingSingleColumn th.fieldColumnHeader.hasColumnFilter.hasColumnMenu{padding-right:82px!important;}
   .fieldColumnDragHandle{position:absolute;right:32px;top:50%;display:none;align-items:center;justify-content:center;width:22px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--faint);cursor:grab;transform:translateY(-50%);}
+  .fieldColumnHeader.hasColumnFilter .fieldColumnDragHandle{right:58px;}
   .listTable.rearrangingColumns .fieldColumnDragHandle,.listTable.rearrangingSingleColumn .columnRearrangeSource .fieldColumnDragHandle{display:inline-flex;}
   .fieldColumnDragHandle:hover{background:var(--bg-soft2);color:var(--text);}
   .fieldColumnDragHandle:active{cursor:grabbing;}
@@ -431,6 +435,9 @@
   .fieldColumnMenuBtn{position:absolute;right:5px;top:50%;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:16px;line-height:1;opacity:0;visibility:hidden;transform:translateY(-50%) translateX(4px);transition:opacity .12s ease,visibility .12s ease,transform .12s ease,background-color .12s ease;}
   .fieldColumnHeader:hover .fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0);}
   .fieldColumnMenuBtn:hover{background:var(--bg-soft2);color:var(--text);}
+  .listTable th.fieldColumnHeader.hasColumnFilter.hasColumnMenu{padding-right:60px!important;}
+  .listTable.rearrangingColumns th.fieldColumnHeader.hasColumnFilter.hasColumnMenu,
+  .listTable.rearrangingSingleColumn th.fieldColumnHeader.hasColumnFilter.hasColumnMenu{padding-right:82px!important;}
   .fieldColumnMenu{position:absolute;top:calc(100% + 3px);right:4px;z-index:70;display:none;flex-direction:column;min-width:112px;padding:4px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-modal);text-align:left;}
   .listViewMenuWrap .listViewMenu{top:calc(100% + 3px);right:0;min-width:160px;}
   .fieldColumnMenu.open{display:flex;}
@@ -528,6 +535,14 @@
   .dialogSelectOptionMeta{display:block;color:var(--fg-muted);font-size:11px;line-height:1.4;}
   .appSelectWrap{position:relative;display:inline-flex;min-width:0;}
   .listTable .appSelectWrap{display:flex;width:100%!important;min-width:0;}
+  .listTable .columnFilterSelectWrap{position:absolute;top:50%;right:5px;z-index:1;width:24px!important;height:24px;min-width:24px;transform:translateY(-50%);}
+  .listTable .fieldColumnHeader.hasColumnMenu .columnFilterSelectWrap{right:32px;}
+  .listTable .columnFilterSelectWrap .columnFilterToggle{position:relative;top:auto;right:auto;width:24px;height:24px;transform:translateX(4px);}
+  .listTable .fieldColumnHeader:hover .columnFilterSelectWrap .columnFilterToggle,
+  .listTable .columnFilterSelectWrap .columnFilterToggle:focus-visible{transform:translateX(0);}
+  .listTable .columnFilterSelectWrap .columnFilterToggle[aria-expanded="true"]{opacity:1;visibility:visible;transform:translateX(0);background:var(--bg-soft2);color:var(--text);}
+  .columnFilterSelectWrap .columnFilterToggle>span{display:none;}
+  .columnFilterSelectWrap .columnFilterToggle iconify-icon{font-size:15px;}
   .appSelectNative{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;}
   .appSelectButton{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-width:112px;min-height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
   .listTable .appSelectButton{min-width:0;}
@@ -537,11 +552,14 @@
   .appSelectButton>iconify-icon{flex:none;color:var(--muted);font-size:16px;}
   .appSelectMenu{position:fixed;z-index:160;display:flex;max-height:220px;flex-direction:column;gap:4px;overflow:hidden;padding:4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .appSelectMenu[hidden]{display:none;}
+  .appSelectMenuTitle{padding:4px 6px 2px;color:var(--text);font-size:13px;font-weight:600;}
   .appSelectSearch{flex:none;width:100%;min-height:30px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;}
   .appSelectSearch:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 2px var(--accent-soft);}
   .appSelectOptions{display:flex;min-height:0;flex-direction:column;gap:2px;overflow:auto;}
   .appSelectOptions[hidden],.appSelectOption[hidden],.appSelectEmpty[hidden]{display:none;}
   .appSelectEmpty{padding:8px 9px;color:var(--muted);font-size:12px;}
+  @media (pointer:coarse){.listTable .fieldColumnHeader .columnFilterSelectWrap .columnFilterToggle{opacity:1;visibility:visible;transform:translateX(0);}}
+  @media (prefers-reduced-motion:reduce){.listTable .columnFilterSelectWrap .columnFilterToggle{transition:none;}}
   .appSelectOption{display:flex;align-items:center;width:100%;min-height:30px;padding:6px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
   .appSelectOption:hover,.appSelectOption:focus{outline:0;background:var(--bg-soft2);color:var(--text);}
   .appSelectOption.selected{padding-left:15px;background:var(--bg-soft);color:var(--text);font-weight:600;}

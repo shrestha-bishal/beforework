@@ -98,6 +98,7 @@ export class TableView {
       setListSort,
       wireGroupColumnHeader,
       wireCustomColumnHeader,
+      wireColumnFilterHeader,
       render,
       sortProjectRows,
       tagById,
@@ -107,7 +108,8 @@ export class TableView {
       scheduleSave,
       renderProjectList,
       applyTableColumnOrder,
-      applyTableColumnVisibility
+      applyTableColumnVisibility,
+      applyColumnFilterVisibility
     }=this.dependencies;
     const templates=this.cloneTemplate();
     const wrap=templates.querySelector("#tableViewTemplate").content.firstElementChild.cloneNode(true);
@@ -132,6 +134,7 @@ export class TableView {
       menuButton.title="Column actions";
       tagsHeader.before(fieldHeader);
     });
+    headerRow.querySelectorAll("th[data-column-id]").forEach(th=>wireColumnFilterHeader(th,project));
     wireTableColumnReordering(table,project,"table");
 
     wrap.querySelector("#quickAddBtn").onclick=()=>openNewItemModal(project,project.groups[0]);
@@ -186,7 +189,7 @@ export class TableView {
       };
     });
 
-    const rows=sortProjectRows(project,rowsForSelection(project));
+    const rows=sortProjectRows(project,rowsForSelection(project,true));
     const tbody=wrap.querySelector("#tableTbody");
     const colCount=3+project.fields.length+(showGroupColumn?1:0);
     if (!rows.length){
@@ -197,6 +200,7 @@ export class TableView {
       tbody.appendChild(emptyRow);
       applyTableColumnOrder(table,project,"table");
       applyTableColumnVisibility(table,project,"table");
+      applyColumnFilterVisibility(table,project);
       return;
     }
     const rowTemplate=templates.querySelector("#tableViewRowTemplate");
@@ -261,6 +265,7 @@ export class TableView {
     });
     applyTableColumnOrder(table,project,"table");
     applyTableColumnVisibility(table,project,"table");
+    applyColumnFilterVisibility(table,project);
     updateSelection();
   }
 }
