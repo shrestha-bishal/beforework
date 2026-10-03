@@ -634,8 +634,10 @@
   .dialogChoiceList[hidden]{display:none;}
   .dialogChoiceList h4{margin:0;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
   .dialogChoiceHint{margin:0;color:var(--muted);font-size:12px;line-height:1.4;}
-  .dialogChoiceRow{display:flex;min-height:36px;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--border);border-radius:7px;}
-  .dialogChoiceVisibility{display:grid;place-items:center;flex:none;width:24px;height:24px;cursor:pointer;}
+  .dialogChoiceList [data-dialog-choice-rows]{display:flex;flex-direction:column;gap:2px;}
+  .dialogChoiceRow{display:flex;min-height:40px;align-items:center;gap:10px;padding:5px 8px;border:0;border-radius:6px;transition:background .14s ease;}
+  .dialogChoiceRow:hover{background:var(--bg-soft);}
+  .dialogChoiceVisibility{display:grid;place-items:center;flex:none;width:28px;height:28px;cursor:pointer;}
   .dialogChoiceName{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;}
   .dialogChoiceInput{min-width:0;flex:1;height:30px;padding:4px 7px;font-size:13px;}
   .dialogChoiceInput[hidden],.dialogChoiceName[hidden]{display:none;}

@@ -259,7 +259,7 @@
           choice.label=input.value;
           name.textContent=input.value;
           checkbox.setAttribute("aria-label",`Show ${input.value} in field`);
-          editButton.setAttribute("aria-label",`Edit ${input.value}`);
+          editButton.setAttribute("aria-label",`${input.hidden?"Edit":"Finish editing"} ${input.value}`);
           deleteButton.setAttribute("aria-label",`Delete ${input.value}`);
         });
 
@@ -275,6 +275,9 @@
         editButton.addEventListener("click",()=>{
           input.hidden=!input.hidden;
           name.hidden=!input.hidden;
+          editIcon.setAttribute("icon",input.hidden?"mdi:pencil-outline":"mdi:check");
+          editButton.title=input.hidden?"Edit choice":"Finish editing choice";
+          editButton.setAttribute("aria-label",`${input.hidden?"Edit":"Finish editing"} ${choice.label}`);
           if (!input.hidden){ input.focus(); input.select(); }
         });
 
