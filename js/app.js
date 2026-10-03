@@ -2051,6 +2051,34 @@
     }
   }
 
+  const projectActionHandlers={
+    edit:async project=>{
+      const loaded=await ensureProjectLoaded(project.id);
+      if (loaded) await editProject(loaded);
+    },
+    "overview-visibility":project=>toggleProjectOverviewVisibility(project.id),
+    move:async project=>{
+      const loaded=await ensureProjectLoaded(project.id);
+      if (loaded) await moveProjectToFolder(loaded);
+    },
+    duplicate:async project=>{
+      const loaded=await ensureProjectLoaded(project.id);
+      if (loaded) await duplicateProject(loaded);
+    },
+    "add-field":async project=>{
+      const loaded=await ensureProjectLoaded(project.id);
+      if (loaded) await addFieldFlow(loaded);
+    },
+    "import-csv":project=>openCsvImportDialog("existing",project.id),
+    undo:()=>undoLastChange(),
+    print:()=>window.print(),
+    delete:async project=>{
+      if (await showConfirm(`Delete project ${project.name}`,"This will delete everything in the project.",true)){
+        await deleteProject(project.id);
+      }
+    }
+  };
+
   function renderProjectList(){
     document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
     document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
@@ -2078,66 +2106,13 @@
       cnt.textContent = String(count);
       const wrap = document.createElement("div");
       wrap.className = "projectQuickMenuWrap";
-      const menuBtn = document.createElement("button");
-      menuBtn.type = "button";
-      menuBtn.className = "projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar";
-      menuBtn.title = "Project actions";
-      menuBtn.setAttribute("aria-label", `Project actions for ${p.name}`);
-      menuBtn.textContent = "⋯";
-      const menu = document.createElement("div");
-      menu.className = "menu action-menu action-menu--sidebar projectQuickMenu";
-      menu.setAttribute("role","menu");
-      menu.hidden=true;
-      menu.innerHTML = `
-        <button type="button" data-project-action="edit">Edit project</button>
-        <button type="button" data-project-action="overview-visibility">${p.hiddenFromOverview?"Show on Overview":"Hide from Overview"}</button>
-        <button type="button" data-project-action="move">Move to folder</button>
-        <button type="button" data-project-action="duplicate">Duplicate project</button>
-        <div class="action-menu__separator" role="separator"></div>
-        <button type="button" data-project-action="group">New group</button>
-        <button type="button" data-project-action="add-field">Add field</button>
-        <button type="button" data-project-action="import-csv">Import from CSV</button>
-        <div class="action-menu__separator" role="separator"></div>
-        <button type="button" data-project-action="undo">Undo</button>
-        <button type="button" data-project-action="print">Print / PDF</button>
-        <div class="action-menu__separator" role="separator"></div>
-        <button type="button" data-project-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button>
-      `;
-      const projectActionMenu=actionMenus.register(menuBtn,menu);
-      const closeMenu=()=>projectActionMenu.close();
-      menu.querySelectorAll("[data-project-action]").forEach(button => {
-        button.onclick = async event => {
-          event.stopPropagation();
-          closeMenu();
-          const action = button.dataset.projectAction;
-          if (action === "edit") {
-            await editProject(await ensureProjectLoaded(p.id));
-          } else if (action === "overview-visibility") {
-            await toggleProjectOverviewVisibility(p.id);
-          } else if (action === "duplicate") {
-            await duplicateProject(await ensureProjectLoaded(p.id));
-          } else if (action === "add-field") {
-            await addFieldFlow(await ensureProjectLoaded(p.id));
-          } else if (action === "import-csv") {
-            await openCsvImportDialog("existing",p.id);
-          } else if (action === "group") {
-            const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
-            if (name && name.trim()){
-              await ensureProjectLoaded(p.id);
-              addGroup(p.id, name.trim());
-            }
-          } else if (action === "move") {
-            await moveProjectToFolder(await ensureProjectLoaded(p.id));
-          } else if (action === "undo") {
-            undoLastChange();
-          } else if (action === "print") {
-            window.print();
-          } else if (action === "delete") {
-            if (await showConfirm(`Delete project ${p.name}`, "This will delete everything in the project.", true)) deleteProject(p.id);
-          }
-        };
+      window.BeforeworkProjectActionsMenu.create({
+        documentRef:document,
+        container:wrap,
+        variant:"sidebar",
+        project:p,
+        actions:projectActionHandlers
       });
-      wrap.append(menuBtn, menu);
       li.append(icon, name, cnt, wrap);
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
@@ -2373,13 +2348,6 @@
 
   function render(){
     const filterBar = document.getElementById("boardFilterBar");
-    const editBtn = document.getElementById("editProjectBtn");
-    const duplicateBtn = document.getElementById("duplicateProjectBtn");
-    const deleteBtn = document.getElementById("deleteProjectBtn");
-    const addFieldBtn = document.getElementById("addFieldBtn");
-    const addGroupBtn = document.getElementById("addGroupBtn");
-    const moveFolderBtn = document.getElementById("moveProjectFolderBtn");
-    const overviewVisibilityBtn = document.getElementById("projectOverviewVisibilityBtn");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
     const viewTabs = document.getElementById("viewTabs");
     const completionTabs = document.getElementById("completionTabs");
@@ -2400,14 +2368,8 @@
       if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
       if (activeProjectId===SUPPORT) topLabel.textContent = "Support Beforework";
       filterBar.style.display = "none";
-      editBtn.style.display = "none";
-      duplicateBtn.style.display = "none";
-      deleteBtn.style.display = "none";
-      addFieldBtn.style.display = "none";
-      addGroupBtn.style.display = "none";
-      moveFolderBtn.style.display = "none";
       projectMenuWrap.style.display = "none";
-      actionMenus.close(document.getElementById("projectMenu"));
+      projectActionsMenu.close();
       viewTabs.style.display = "none";
       completionTabs.style.display = "none";
       if (activeProjectId===CALENDAR) calendarView.render(board, null);
@@ -2443,13 +2405,8 @@
     descriptionLabel.textContent = project.description||"";
     descriptionLabel.hidden = !project.description;
     filterBar.style.display = "block";
-    editBtn.style.display = "inline-block";
-    duplicateBtn.style.display = "inline-block";
-    deleteBtn.style.display = "inline-block";
-    addFieldBtn.style.display = "inline-block";
-    addGroupBtn.style.display = "inline-block";
-    moveFolderBtn.style.display = "inline-block";
     projectMenuWrap.style.display = "inline-flex";
+    projectActionsMenu.setProject(project);
     if (!Array.isArray(project.views) || !project.views.length){
       project.views = [{id:uid(), type:"list", name:"List"}];
     }
@@ -2468,20 +2425,6 @@
     renderFieldFilters(project);
     renderFilterCategoryState(project);
     updateFilterSummary();
-
-    addFieldBtn.onclick = () => addFieldFlow(project);
-    moveFolderBtn.onclick = () => moveProjectToFolder(project);
-    addGroupBtn.onclick = async () => {
-      const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
-      if (name && name.trim()) addGroup(project.id, name.trim());
-    };
-    editBtn.onclick = () => editProject(project);
-    duplicateBtn.onclick = () => duplicateProject(project);
-    deleteBtn.onclick = async () => {
-      if (await showConfirm(`Delete project ${project.name}`, "This will delete everything in the project.", true)) deleteProject(project.id);
-    };
-    overviewVisibilityBtn.textContent=project.hiddenFromOverview?"Show on Overview":"Hide from Overview";
-    overviewVisibilityBtn.onclick=()=>toggleProjectOverviewVisibility(project.id);
 
     const activeView = project.views.find(v=>v.id===project.activeViewId) || project.views[0];
     if (activeView.type==="milestones"){
@@ -4281,7 +4224,6 @@
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    document.getElementById("importProjectCsvBtn").onclick = () => openCsvImportDialog("existing",activeProjectId);
     document.getElementById("manageTagsBtn").onclick = async () => {
       const project = getProject(activeProjectId);
       if (!project) return;
@@ -4325,12 +4267,7 @@
       showArchived = e.target.checked;
       render();
     });
-    document.getElementById("printViewBtn").onclick = () => {
-      projectActionsMenu.close();
-      window.print();
-    };
     document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
-    document.getElementById("undoBtn").onclick = undoLastChange;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
       if (e.target.files[0]) workspaceRecovery.importJSON(e.target.files[0]);
       e.target.value = "";
@@ -4392,8 +4329,13 @@
   }
 
   function wireProjectActionsMenu(){
-    projectActionsMenu=window.BeforeworkProjectActionsMenu.create();
-    projectActionsMenu.wire();
+    const container=document.getElementById("projectMenuWrap");
+    projectActionsMenu=window.BeforeworkProjectActionsMenu.create({
+      documentRef:document,
+      container,
+      variant:"header",
+      actions:projectActionHandlers
+    });
   }
 
   /* ---------- Boot ----------

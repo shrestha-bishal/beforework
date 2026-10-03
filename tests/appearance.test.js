@@ -8,6 +8,7 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "../js/ui/appearance.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+const projectActionsMenu = fs.readFileSync(path.join(__dirname, "../js/ui/project-actions-menu.js"), "utf8");
 const styles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
 const actionMenuStyles = fs.readFileSync(path.join(__dirname, "../styles/action-menu.css"), "utf8");
 const index = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -109,7 +110,7 @@ test("collapsed desktop sidebar keeps navigation and project icons visible",()=>
 test("sidebar project action trigger keeps shared menu behavior with compact custom styling",()=>{
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar\{[^}]*width:24px;[^}]*height:20px;[^}]*flex:0 0 auto;[^}]*padding:2px 4px;[^}]*border-radius:5px;[^}]*font-size:16px;/);
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar:hover,[\s\S]*?\.action-menu__trigger--sidebar\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
-  assert.match(app,/menuBtn\.className = "projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar"/);
+  assert.match(projectActionsMenu,/"projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar"/);
   assert.match(app,/menuBtn\.className = "folderMenuBtn action-menu__trigger action-menu__trigger--sidebar"/);
   assert.match(styles,/#projectList \.folderHeading:hover \.folderMenuBtn,[\s\S]*?#projectList \.SideNav-item:has\(\.projectQuickMenu\.open\) \.projectMenuBtnSmall\{opacity:1;visibility:visible;transform:translateX\(0\) scale\(1\);\}/);
 });

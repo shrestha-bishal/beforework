@@ -10,49 +10,48 @@ const source=fs.readFileSync(path.join(__dirname,"../js/ui/project-actions-menu.
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
 
-function makeElement(id){
+function makeElement(tagName){
   const classes=new Set();
-  const listeners={};
   const attributes={};
+  const listeners={};
+  const children=[];
   return {
-    id,
-    onclick:null,
-    hidden:false,
+    tagName,
+    children,
+    dataset:{},
     attributes,
     listeners,
-    setAttribute(name,value){ attributes[name]=value; },
+    className:"",
+    textContent:"",
+    hidden:false,
+    type:"",
     classList:{
-      add(name){ classes.add(name); },
-      remove(name){ classes.delete(name); },
-      contains(name){ return classes.has(name); },
-      toggle(name){
-        if (classes.has(name)){ classes.delete(name); return false; }
-        classes.add(name);
-        return true;
-      }
+      add(...names){ names.forEach(name=>classes.add(name)); },
+      remove(...names){ names.forEach(name=>classes.delete(name)); },
+      contains(name){ return classes.has(name); }
     },
-    addEventListener(name,callback){ listeners[name]=callback; }
+    setAttribute(name,value){ attributes[name]=value; },
+    addEventListener(name,callback){ listeners[name]=callback; },
+    append(...elements){ children.push(...elements); },
+    appendChild(element){ children.push(element); return element; },
+    querySelector(selector){
+      const match=selector.match(/data-project-action="([^"]+)"/);
+      return children.find(child=>match&&child.dataset.projectAction===match[1])||null;
+    }
   };
 }
 
 function createHarness(){
-  const button=makeElement("projectMenuBtn");
-  const menu=makeElement("projectMenu");
-  const documentListeners={};
-  const documentRef={
-    getElementById(id){ return id==="projectMenuBtn" ? button : menu; },
-    addEventListener(name,callback){ documentListeners[name]=callback; }
-  };
+  const container=makeElement("div");
+  const documentRef={createElement:makeElement};
   const window={
     BeforeworkActionMenu:{
       create:()=>({
-        register(registeredButton,registeredMenu){
+        register(button,menu){
           return {
             close(){
-              registeredMenu.classList.remove("open");
-              registeredMenu.hidden=true;
-              registeredButton.classList.remove("active");
-              registeredButton.setAttribute("aria-expanded","false");
+              menu.hidden=true;
+              button.setAttribute("aria-expanded","false");
             }
           };
         }
@@ -60,104 +59,83 @@ function createHarness(){
     }
   };
   vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
-  const controller=window.BeforeworkProjectActionsMenu.create({documentRef});
-  controller.wire();
-  return {button,menu,documentListeners,controller};
+  const calls=[];
+  const actions=Object.fromEntries(
+    ["edit","overview-visibility","move","duplicate","add-field","import-csv","undo","print","delete"]
+      .map(action=>[action,(project)=>calls.push([action,project])])
+  );
+  const menu=window.BeforeworkProjectActionsMenu.create({
+    documentRef,container,project:{id:"project-1",name:"Launch"},
+    actions
+  });
+  return {container,menu,calls,actions};
 }
 
-test("project actions menu delegates shared state and exposes a close controller",()=>{
-  const harness=createHarness();
-  harness.menu.classList.add("open");
-  harness.menu.hidden=false;
-  harness.button.classList.add("active");
-  harness.controller.close();
-  assert.equal(harness.menu.classList.contains("open"),false);
-  assert.equal(harness.menu.hidden,true);
-  assert.equal(harness.button.classList.contains("active"),false);
-  assert.equal(harness.button.attributes["aria-expanded"],"false");
-  assert.equal(harness.button.onclick,null);
+test("both project action menu variants are generated from the same ordered action catalog",()=>{
+  const {container}=createHarness();
+  const labels=container.children[1].children.map(item=>item.textContent);
+
+  assert.deepEqual(labels,[
+    "Edit project","Hide from Overview","Move to folder","Duplicate project","",
+    "Add field","Import from CSV","",
+    "Undo","Print / PDF","",
+    "Delete"
+  ]);
+
+  const sourceWindow={BeforeworkActionMenu:{create:()=>({register:()=>({close(){}})})}};
+  vm.runInNewContext(source,{window:sourceWindow});
+  const sidebarContainer=makeElement("div");
+  sourceWindow.BeforeworkProjectActionsMenu.create({
+    documentRef:{createElement:makeElement},
+    container:sidebarContainer,
+    variant:"sidebar",
+    project:{id:"project-2",name:"Tax Return",hiddenFromOverview:true},
+    actions:createHarness().actions
+  });
+  assert.deepEqual(
+    sidebarContainer.children[1].children.map(item=>item.textContent),
+    ["Edit project","Show on Overview","Move to folder","Duplicate project","","Add field","Import from CSV","","Undo","Print / PDF","","Delete"]
+  );
+  assert.equal(sidebarContainer.children[1].children.some(item=>item.textContent==="New group"),false);
 });
 
-test("project actions menu defaults to the global document when options are omitted",()=>{
-  const button=makeElement("projectMenuBtn");
-  const menu=makeElement("projectMenu");
-  const documentRef={
-    getElementById(id){ return id==="projectMenuBtn" ? button : menu; },
-    addEventListener(){}
-  };
-  const window={
-    document:documentRef,
-    BeforeworkActionMenu:{create:()=>({register:()=>({close(){}})})}
-  };
-  vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
-  const controller=window.BeforeworkProjectActionsMenu.create();
+test("project visibility action label tracks the selected project",()=>{
+  const {container,menu}=createHarness();
+  const visibility=container.children[1].querySelector('[data-project-action="overview-visibility"]');
+  assert.equal(visibility.textContent,"Hide from Overview");
 
-  assert.equal(typeof controller.wire,"function");
-  assert.equal(typeof controller.close,"function");
+  menu.setProject({id:"project-1",name:"Launch",hiddenFromOverview:true});
+
+  assert.equal(visibility.textContent,"Show on Overview");
+  assert.equal(container.children[0].attributes["aria-label"],"Project actions for Launch");
 });
 
-test("selecting a project action closes the menu without replacing action handlers",()=>{
-  const {button,menu}=createHarness();
-  let actionCalled=false;
-  const actionButton={onclick(){ actionCalled=true; }};
-  actionButton.onclick();
-  menu.listeners.click({target:{closest:selector=>selector==="button" ? actionButton : null}});
-  assert.equal(actionCalled,true);
-  assert.equal(menu.classList.contains("open"),false);
-  assert.equal(button.classList.contains("active"),false);
+test("selecting a project action calls its matching handler with the current project",()=>{
+  const {container,calls,menu}=createHarness();
+  const item=container.children[1].querySelector('[data-project-action="edit"]');
+  container.children[1].listeners.click({
+    target:{closest:selector=>selector==='[data-project-action]'?item:null}
+  });
+
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[["edit",{id:"project-1",name:"Launch"}]]);
+  menu.close();
+  assert.equal(container.children[1].hidden,true);
+  assert.equal(container.children[0].attributes["aria-expanded"],"false");
 });
 
-test("outside clicks and the print action close the project actions menu",()=>{
-  const harness=createHarness();
-  harness.menu.classList.add("open");
-  harness.menu.hidden=false;
-  harness.controller.close();
-  assert.equal(harness.menu.classList.contains("open"),false);
-  assert.equal(harness.button.classList.contains("active"),false);
+test("app uses the shared component for header and sidebar menus, keeping operations in app",()=>{
+  assert.match(app,/BeforeworkProjectActionsMenu\.create\(\{[\s\S]*container:wrap,[\s\S]*variant:"sidebar"/);
+  assert.match(app,/BeforeworkProjectActionsMenu\.create\(\{[\s\S]*container,[\s\S]*variant:"header"/);
+  assert.match(app,/const projectActionHandlers=\{/);
+  assert.match(app,/edit:async project=>\{[\s\S]*?ensureProjectLoaded\(project\.id\)/);
+  assert.match(app,/"overview-visibility":project=>toggleProjectOverviewVisibility\(project\.id\)/);
+  assert.match(app,/delete:async project=>\{[\s\S]*?deleteProject\(project\.id\)/);
+  assert.doesNotMatch(app,/handleProjectAction/);
+  assert.doesNotMatch(app,/menu\.innerHTML = `[\s\S]*data-project-action/);
+});
 
-  assert.match(app,/window\.BeforeworkProjectActionsMenu\.create\(/);
-  assert.doesNotMatch(app,/document\.getElementById\("projectMenuBtn"\)\.onclick/);
+test("index contains only a mount point for the generated header actions menu",()=>{
+  assert.match(index,/<div class="projectMenuWrap" id="projectMenuWrap"><\/div>/);
+  assert.doesNotMatch(index,/data-project-action=|id="editProjectBtn"|id="importProjectCsvBtn"/);
   assert.ok(index.indexOf('src="js/ui/project-actions-menu.js"')<index.indexOf('src="js/app.js"'));
-});
-
-test("project-level custom field actions are labeled Add field",()=>{
-  assert.match(index,/<button class="btn btn-sm btn-invisible" id="addFieldBtn">Add field<\/button>/);
-  assert.match(index,/data-project-action="delete" class="danger menu-item menu-item--danger" id="deleteProjectBtn" role="menuitem">Delete<\/button>/);
-  assert.match(app,/<button type="button" data-project-action="add-field">Add field<\/button>/);
-  assert.match(app,/data-project-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete<\/button>/);
-  assert.match(app,/data-folder-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete<\/button>/);
-  assert.match(app,/const addFieldBtn = document\.getElementById\("addFieldBtn"\)/);
-  assert.match(app,/action === "add-field"[\s\S]*?addFieldFlow\(await ensureProjectLoaded\(p\.id\)\)/);
-  assert.match(app,/title:"Add field", fields:\[\s*\{label:"Field type"/);
-  assert.doesNotMatch(app,/manageFieldsBtn|data-project-action="add-column"|addColumnFlow/);
-});
-
-test("project menu offers a reversible Overview visibility action",()=>{
-  assert.match(app,/data-project-action="overview-visibility"/);
-  assert.match(app,/\$\{p\.hiddenFromOverview\?"Show on Overview":"Hide from Overview"\}/);
-  assert.match(app,/async function toggleProjectOverviewVisibility\(projectId\)/);
-  assert.match(app,/project\.hiddenFromOverview=!project\.hiddenFromOverview/);
-  assert.match(app,/if \(state\.folderLazy\) registerProjectSummary\(project\)/);
-  assert.match(app,/getElementById\("projectOverviewVisibilityBtn"\)/);
-  assert.match(app,/overviewVisibilityBtn\.onclick=\(\)=>toggleProjectOverviewVisibility\(project\.id\)/);
-  assert.match(index,/<button class="btn btn-sm btn-invisible" id="projectOverviewVisibilityBtn">Hide from Overview<\/button>/);
-});
-
-test("project action menus group project, work, and utility actions before Delete",()=>{
-  const headerMenuStart=index.indexOf('<div class="menu action-menu action-menu--project" id="projectMenu"');
-  const headerMenuEnd=index.indexOf(">Delete</button>",headerMenuStart);
-  const headerMenu=index.slice(headerMenuStart,headerMenuEnd+">Delete</button>".length);
-  const sidebarMenu=app.match(/menu\.innerHTML = `([\s\S]*?)`;/)?.[1]||"";
-  const orderedActions=["Edit project","Overview","Move to folder","Duplicate project","New group","Add field","Import from CSV","Undo","Print / PDF","Delete"];
-
-  for (const menu of [headerMenu,sidebarMenu]){
-    let previous=-1;
-    for (const label of orderedActions){
-      const position=menu.indexOf(label);
-      assert.ok(position>previous,`${label} should follow the preceding project menu actions`);
-      previous=position;
-    }
-    assert.equal((menu.match(/action-menu__separator/g)||[]).length,3);
-  }
-  assert.match(app,/action === "import-csv"[\s\S]*?openCsvImportDialog\("existing",p\.id\)/);
 });
