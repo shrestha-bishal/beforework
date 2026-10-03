@@ -16,7 +16,7 @@ test("field editor templates render escaped labels, values, and settings control
   assert.match(html,/data-fieldid="text&quot;&lt;"/);
   assert.match(html,/value="&lt;script&gt;alert\(1\)&lt;\/script&gt;"/);
   assert.match(html,/data-action="openFieldControl"/);
-  assert.match(html,/icon="mdi:cog-outline"/);
+  assert.match(html,/icon="mdi:dots-horizontal"/);
 });
 
 test("field types preserve their existing selectors, values, and empty states",()=>{
