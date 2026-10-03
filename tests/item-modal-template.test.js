@@ -67,9 +67,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/itemFieldRenderer\.render\(field,item,project\)/);
   assert.match(appSource,/itemFieldRenderer\.renderLocation\(locationField,item\)/);
   assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
-  assert.match(appSource,/data-field-menu-action="edit"/);
-  assert.match(appSource,/data-field-menu-action="delete"/);
-  assert.match(appSource,/actionMenus\.register\(button,menu\)/);
+  assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailSettings"\)/);
+  assert.match(appSource,/editFieldFromMenu\(event,field,project\)/);
+  assert.doesNotMatch(fieldTemplateSource,/fieldDetailMenu|data-field-menu-action/);
   assert.match(appSource,/enhanceSelectControls\(modal\)/);
   assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
   assert.match(stylesSource,/\.fieldDetailSettings\{appearance:none;-webkit-appearance:none;display:grid/);
@@ -108,8 +108,7 @@ test("Tags controls are rendered by the optional Tags field and retain tag assig
 
   assert.match(html,/id="itemTagChips"/);
   assert.match(html,/data-app-select-button-class="appSelectButton tagSelectButton"/);
-  assert.match(html,/data-field-menu-action="edit"/);
-  assert.match(html,/data-field-menu-action="delete"/);
+  assert.doesNotMatch(html,/fieldDetailMenu|data-field-menu-action|data-action-menu-trigger/);
   assert.match(html,/class="tagPill selected" data-tag="release"/);
   assert.doesNotMatch(html,/data-tagfilter/);
   assert.match(html,/data-app-select-enhance-empty="true"/);

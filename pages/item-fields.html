@@ -1,14 +1,10 @@
 <template data-view-partial="fieldLabel">
   <div class="sideItemLabel fieldDetailLabel">
     <span>{{label}}</span>
-    <div class="fieldDetailMenuWrap">
-      <button type="button" class="fieldDetailSettings" data-action-menu-trigger data-fieldid="{{fieldId}}" aria-label="More actions for {{label}}" title="More field actions">
-        <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
+    <div class="fieldDetailSettingsWrap">
+      <button type="button" class="fieldDetailSettings" data-fieldid="{{fieldId}}" aria-label="Edit {{label}}" title="Edit field">
+        <iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon>
       </button>
-      <div class="menu action-menu action-menu--field fieldDetailMenu" hidden>
-        <button type="button" data-field-menu-action="edit">Edit</button>
-        <button type="button" data-field-menu-action="delete" class="danger">Delete</button>
-      </div>
     </div>
   </div>
 </template>

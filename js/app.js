@@ -3822,17 +3822,10 @@
 
     itemModalView.wire(modal,{onClose:closeItemModal});
     enhanceSelectControls(modal);
-    modal.querySelectorAll(".fieldDetailMenuWrap").forEach(wrapper=>{
-      const button=wrapper.querySelector("[data-action-menu-trigger]");
-      const menu=wrapper.querySelector(".fieldDetailMenu");
-      actionMenus.register(button,menu);
-      menu.querySelector('[data-field-menu-action="edit"]').onclick=event=>{
+    modal.querySelectorAll(".fieldDetailSettings").forEach(button=>{
+      button.onclick=event=>{
         const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
         if (field) editFieldFromMenu(event,field,project);
-      };
-      menu.querySelector('[data-field-menu-action="delete"]').onclick=event=>{
-        const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
-        if (field) deleteFieldFromMenu(event,field,project);
       };
     });
     const descriptionInput=modal.querySelector("#itemDescInput");
