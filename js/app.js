@@ -24,10 +24,6 @@
     "mdi:school-outline","mdi:bank-outline"
   ];
   const PRIORITY_OPTIONS=fieldTypes.get("priority").options;
-  const FIELD_TYPE_OPTIONS=fieldTypes.list();
-  const FIELD_TYPES=FIELD_TYPE_OPTIONS.map(option=>option.value);
-  function fieldTypeLabel(type){ return fieldTypes.get(type)?.label||"Text"; }
-  function fieldTypeDescription(type){ return fieldTypes.get(type)?.description||""; }
   const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
@@ -1303,72 +1299,6 @@
       scheduleSave(); renderAll();
     }catch(err){ showNotice("Undo failed", "Could not undo that change: " + err.message); }
   }
-  async function addField(project, label, type){
-    if (type==="date"&&/^(start|start date|starts on|due|due date|deadline)$/.test(label.trim().toLowerCase())){
-      await showNotice("Choose a date-specific field type",`Use Start date or Due date for "${label}". Choose Date for a different kind of date.`);
-      return;
-    }
-    if (!fieldTypes.canAddToProject(type,project.fields)){
-      await showNotice(`${fieldTypeLabel(type)} field already exists`,`Each project can have only one ${fieldTypeLabel(type)} field.`);
-      return;
-    }
-    const definition=fieldTypes.get(type);
-    if (!definition) throw new Error(`Unknown field type: ${type}`);
-    const storageType=definition.storageType||type;
-    const field = {
-      id:uid(),label,type:storageType,options:[],
-      ...(storageType!==type?{offeringType:type}:{})
-    };
-    if (storageType==="select" || storageType==="multi-select"){
-      const opts = await showDialog({title:"Field options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create field"});
-      if (opts === null) return;
-      field.options = (opts||"").split(",").map(s=>s.trim()).filter(Boolean)
-        .map((l,i)=>({id:uid(), label:l, color:SELECT_COLORS[i % SELECT_COLORS.length]}));
-    }
-    project.fields.push(field);
-    scheduleSave(); renderAll();
-  }
-  function deleteField(project, fid){
-    const field=project.fields.find(candidate=>candidate.id===fid);
-    project.fields = project.fields.filter(f=>f.id!==fid);
-    projectItemEntries(project).forEach(({item})=>{
-      delete item.values[fid];
-      if (field?.type==="location") item.location="";
-      if (field?.type==="schedule"){
-        queueGoogleEventDeletes(item);
-        item.startTime="";
-        item.endTime="";
-        item.endDate="";
-        item.recurrence=null;
-        item.reminderAt=null;
-      }
-    });
-    project.views?.forEach(view=>{ if (view.groupByFieldId===fid) delete view.groupByFieldId; });
-    boardFilterFields.delete(fid);
-    if (field?.type==="tags") boardFilterColumns.delete("tags");
-    if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
-    scheduleSave(); renderAll();
-  }
-  async function addFieldFlow(project){
-    const availableFieldTypes=FIELD_TYPE_OPTIONS.filter(option=>
-      fieldTypes.canAddToProject(option.value,project.fields));
-    const details = await showDialog({title:"Add field", fields:[
-      {label:"Field type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
-      {label:"Field name", placeholder:"e.g. Status, Type, Effort"}
-    ], confirmLabel:"Add field"});
-    if (!details) return;
-    const [type,label] = details;
-    const fieldType=FIELD_TYPES.includes(type)?type:"select";
-    const fieldName=label?.trim()||(type==="group"?"Group":({
-      tags:"Tags",
-      location:"Location",
-      schedule:"Schedule",
-      "start-date":"Start date",
-      "due-date":"Due date"
-    }[type]||""));
-    if (!fieldName) return;
-    await addField(project,fieldName,type);
-  }
   function orderedTableColumns(project,viewType,columnIds){
     const saved=project.columnOrders?.[viewType]||[];
     const available=new Set(columnIds);
@@ -1622,27 +1552,6 @@
       });
     }
     refreshManageColumns();
-  }
-  function wireCustomColumnHeader(th, field, project){
-    const menu = th.querySelector(".fieldColumnMenu");
-    menu.querySelector('[data-column-action="edit"]').onclick=event=>editFieldFromMenu(event,field,project);
-    menu.querySelector('[data-column-action="delete"]').onclick=event=>deleteFieldFromMenu(event,field,project);
-  }
-  async function editFieldFromMenu(event,field,project){
-    event.stopPropagation();
-    actionMenus.closeAll();
-    const label=await showDialog({title:"Edit field",fields:[{label:"Field name",value:field.label}],confirmLabel:"Save"});
-    if (!label||!label.trim()) return;
-    field.label=label.trim();
-    scheduleSave(); renderAll();
-  }
-  async function deleteFieldFromMenu(event,field,project){
-    event.stopPropagation();
-    actionMenus.closeAll();
-    const message=field.type==="tags"
-      ? "Tags and their assignments will stay saved but hidden. Add the Tags field again to restore them."
-      : "This removes its values from every item in this project.";
-    if (await showConfirm(`Delete column ${field.label}`,message,true)) deleteField(project,field.id);
   }
   function wireGroupColumnHeader(th, project){
     const menu = th.querySelector(".fieldColumnMenu");
@@ -2069,7 +1978,7 @@
     },
     "add-field":async project=>{
       const loaded=await ensureProjectLoaded(project.id);
-      if (loaded) await addFieldFlow(loaded);
+      if (loaded) await fieldFeature.addFieldFlow(loaded);
     },
     "import-csv":project=>openCsvImportDialog("existing",project.id),
     undo:()=>undoLastChange(),
@@ -3605,6 +3514,23 @@
   function showDialog(options){ return dialogs.showDialog(options); }
   function showNotice(title, message){ return dialogs.showNotice(title, message); }
   function showConfirm(title, message, danger=false){ return dialogs.showConfirm(title, message, danger); }
+  const fieldFeature=window.BeforeworkFieldFeature.create({
+    uid,
+    fieldTypes,
+    selectColors:SELECT_COLORS,
+    projectItemEntries,
+    queueGoogleEventDeletes,
+    getBoardFilterFields:()=>boardFilterFields,
+    getBoardFilterColumns:()=>boardFilterColumns,
+    getListSort:()=>listSort,
+    setListSort:value=>{ listSort=value; },
+    showDialog,
+    showNotice,
+    showConfirm,
+    scheduleSave,
+    renderAll,
+    closeAllActionMenus:()=>actionMenus.closeAll()
+  });
   const itemFieldRenderer=window.BeforeworkItemFields.create({
     escapeHtml,
     tagPillHtml,
@@ -3825,7 +3751,7 @@
     modal.querySelectorAll(".fieldDetailSettings").forEach(button=>{
       button.onclick=event=>{
         const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
-        if (field) editFieldFromMenu(event,field,project);
+        if (field) fieldFeature.editField(event,field,project);
       };
     });
     const descriptionInput=modal.querySelector("#itemDescInput");
@@ -4428,7 +4354,7 @@
         getListSort:()=>listSort,
         setListSort:value=>{ listSort=value; },
         wireGroupColumnHeader,
-        wireCustomColumnHeader,
+        wireCustomColumnHeader:fieldFeature.wireCustomColumnHeader,
         wireColumnFilterHeader,
         render,
         sortProjectRows,
@@ -4460,7 +4386,7 @@
         getListSort:()=>listSort,
         setListSort:value=>{ listSort=value; },
         wireGroupColumnHeader,
-        wireCustomColumnHeader,
+        wireCustomColumnHeader:fieldFeature.wireCustomColumnHeader,
         wireColumnFilterHeader,
         render,
         sortProjectRows,

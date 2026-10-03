@@ -10,6 +10,7 @@ const {createItemFieldRenderer,templateSource:fieldTemplateSource}=require("./he
 const templatePath=path.join(__dirname,"../pages/item-modal.html");
 const templateSource=fs.readFileSync(templatePath,"utf8");
 const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const fieldFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
 const stylesSource=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 const templatesSource=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
 
@@ -68,7 +69,7 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/itemFieldRenderer\.renderLocation\(locationField,item\)/);
   assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
   assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailSettings"\)/);
-  assert.match(appSource,/editFieldFromMenu\(event,field,project\)/);
+  assert.match(appSource,/fieldFeature\.editField\(event,field,project\)/);
   assert.doesNotMatch(fieldTemplateSource,/fieldDetailMenu|data-field-menu-action/);
   assert.match(appSource,/enhanceSelectControls\(modal\)/);
   assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
@@ -113,12 +114,10 @@ test("Tags controls are rendered by the optional Tags field and retain tag assig
   assert.doesNotMatch(html,/data-tagfilter/);
   assert.match(html,/data-app-select-enhance-empty="true"/);
   assert.doesNotMatch(html,/Add new tag/);
-  assert.match(appSource,/fieldTypes\.canAddToProject\(option\.value,project\.fields\)/);
-  assert.match(appSource,/Tags and their assignments will stay saved but hidden/);
-  const deleteStart=appSource.indexOf("function deleteField");
-  const deleteEnd=appSource.indexOf("async function addFieldFlow",deleteStart);
-  assert.match(appSource.slice(deleteStart,deleteEnd),/project\.fields\s*=\s*project\.fields\.filter\(f=>f\.id!==fid\)/);
-  assert.doesNotMatch(appSource.slice(deleteStart,deleteEnd),/tagIds/);
+  assert.match(fieldFeatureSource,/fieldTypes\.canAddToProject\(option\.value,project\.fields\)/);
+  assert.match(fieldFeatureSource,/Tags and their assignments will stay saved but hidden/);
+  assert.match(fieldFeatureSource,/project\.fields=project\.fields\.filter\(candidate=>candidate\.id!==fieldId\)/);
+  assert.doesNotMatch(fieldFeatureSource,/tagIds/);
 });
 
 test("item modal overlays the sidebar and reflows with viewport size",()=>{
