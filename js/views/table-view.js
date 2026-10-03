@@ -137,10 +137,25 @@ export class TableView {
     const table=wrap.querySelector(".listTable");
     const headerRow=table.tHead.rows[0];
     const groupHeader=headerRow.querySelector("[data-table-group-header]");
-    const tagsHeader=headerRow.querySelector('[data-column-id="tags"]');
+    const tagsEnabled=project.fields.some(field=>field.type==="tags");
+    let tagsHeader=headerRow.querySelector('[data-column-id="tags"]');
+    const tagsField=project.fields.find(field=>field.type==="tags");
+    if (!tagsEnabled) tagsHeader.remove();
+    else {
+      const fieldHeader=templates.querySelector("#tableViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
+      fieldHeader.dataset.field=tagsField.id;
+      fieldHeader.dataset.columnId="tags";
+      fieldHeader.querySelector(".fieldColumnLabel").textContent=tagsField.label;
+      fieldHeader.querySelector(".fieldColumnDragHandle").setAttribute("aria-label",`Reorder ${tagsField.label} column`);
+      fieldHeader.querySelector(".fieldColumnMenuBtn").setAttribute("aria-label",`Actions for ${tagsField.label}`);
+      fieldHeader.querySelector(".fieldColumnMenuBtn").title="Column actions";
+      tagsHeader.replaceWith(fieldHeader);
+      tagsHeader=fieldHeader;
+      wireCustomColumnHeader(tagsHeader,tagsField,project);
+    }
     if (showGroupColumn) groupHeader.hidden=false;
     else groupHeader.remove();
-    project.fields.forEach(field=>{
+    project.fields.filter(field=>field.type!=="tags").forEach(field=>{
       const fieldHeader=templates.querySelector("#tableViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=field.id;
       fieldHeader.dataset.columnId=`field:${field.id}`;
@@ -151,7 +166,8 @@ export class TableView {
       const menuButton=fieldHeader.querySelector(".fieldColumnMenuBtn");
       menuButton.setAttribute("aria-label",`Actions for ${field.label}`);
       menuButton.title="Column actions";
-      tagsHeader.before(fieldHeader);
+      if (tagsHeader) tagsHeader.before(fieldHeader);
+      else headerRow.appendChild(fieldHeader);
     });
     headerRow.querySelectorAll("th[data-column-id]").forEach(th=>wireColumnFilterHeader(th,project));
     wireTableColumnReordering(table,project,"table");
@@ -190,7 +206,9 @@ export class TableView {
     wrap.querySelector("#bulkIncomplete").onclick=()=>bulkSetCompleted(project,false);
     wrap.querySelector("#bulkMove").onclick=()=>bulkMove(project);
     wrap.querySelector("#bulkDuplicate").onclick=()=>bulkDuplicate(project);
-    wrap.querySelector("#bulkTag").onclick=()=>bulkTag(project);
+    const bulkTagButton=wrap.querySelector("#bulkTag");
+    if (tagsEnabled) bulkTagButton.onclick=()=>bulkTag(project);
+    else bulkTagButton.remove();
     wrap.querySelector("#bulkDelete").onclick=()=>bulkDelete(project);
 
     wrap.querySelectorAll("th[data-field]").forEach(th=>{
@@ -238,17 +256,20 @@ export class TableView {
       if (showGroupColumn) groupCell.textContent=group.name;
       else groupCell.remove();
       const tags=row.querySelector("[data-table-tags]");
-      const itemTags=(item.tagIds||[]).map(id=>tagById(project,id)).filter(Boolean);
-      if (itemTags.length) itemTags.forEach(tag=>appendMarkup(tags,tagPillHtml(tag)));
-      else tags.textContent="-";
+      if (tagsEnabled){
+        const itemTags=(item.tagIds||[]).map(id=>tagById(project,id)).filter(Boolean);
+        if (itemTags.length) itemTags.forEach(tag=>appendMarkup(tags,tagPillHtml(tag)));
+        else tags.textContent="-";
+      } else tags.closest("[data-column-id='tags']").remove();
       const tagsCell=row.querySelector('[data-column-id="tags"]');
-      project.fields.forEach(field=>{
+      project.fields.filter(field=>field.type!=="tags").forEach(field=>{
         const cell=templates.querySelector("#tableViewFieldCellTemplate").content.firstElementChild.cloneNode(true);
         cell.dataset.columnId=`field:${field.id}`;
         const value=field.type==="location" ? item.values[field.id]??item.location??"" : item.values[field.id]??"";
         const control=fieldControl(field,item,group,project,value,priorityOptions,scheduleFieldValue);
         cell.appendChild(control);
-        tagsCell.before(cell);
+        if (tagsCell) tagsCell.before(cell);
+        else row.appendChild(cell);
       });
       tbody.appendChild(row);
     });

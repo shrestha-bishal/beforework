@@ -607,9 +607,15 @@ test("filters numeric values and any selected multi-select option", ()=>{
     boardFilterColumns.clear();
     boardFilterColumns.set("group",new Set(["other-group"]));
     const groupRejects=itemMatchesFilter(project,{values:{}},group);
-    JSON.stringify({zeroMatches,selectedMatches,otherDoesNotMatch,emailMatches,columnMultiSelectMatches,columnMultiSelectRejects,groupRejects});`,context));
+    boardFilterColumns.clear();
+    boardFilterGroups.clear();
+    boardFilterTags.add("release");
+    const tagsIgnoredWithoutField=itemMatchesFilter(project,{tagIds:[]},group);
+    project.fields.push({id:"tags",type:"tags"});
+    const tagsFilterAppliesAfterAddingField=itemMatchesFilter(project,{tagIds:[]},group);
+    JSON.stringify({zeroMatches,selectedMatches,otherDoesNotMatch,emailMatches,columnMultiSelectMatches,columnMultiSelectRejects,groupRejects,tagsIgnoredWithoutField,tagsFilterAppliesAfterAddingField});`,context));
 
-  assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true,columnMultiSelectMatches:true,columnMultiSelectRejects:false,groupRejects:false});
+  assert.deepEqual(result,{zeroMatches:true,selectedMatches:true,otherDoesNotMatch:false,emailMatches:true,columnMultiSelectMatches:true,columnMultiSelectRejects:false,groupRejects:false,tagsIgnoredWithoutField:true,tagsFilterAppliesAfterAddingField:false});
 });
 
 test("deleted custom fields discard their saved column filters",()=>{
@@ -621,7 +627,7 @@ test("deleted custom fields discard their saved column filters",()=>{
     boardFilterColumns.set("field:removed",new Set(["old-value"]));
     boardFilterColumns.set("field:kept",new Set(["keep-value"]));
     boardFilterColumns.set("tags",new Set(["tag-id"]));
-    pruneColumnFilters({fields:[{id:"kept"}]});
+    pruneColumnFilters({fields:[{id:"kept"},{id:"tags",type:"tags"}]});
     JSON.stringify([...boardFilterColumns.keys()]);`,{boardFilterColumns:new Map()}));
 
   assert.deepEqual(result,["field:kept","tags"]);
@@ -688,7 +694,8 @@ test("exports filtered view columns in saved order as safe CSV", ()=>{
       fields:[
         {id:"status",label:"Status",type:"select",options:[{id:"blocked",label:"Blocked"}]},
         {id:"areas",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},
-        {id:"cost",label:"Cost",type:"number"}
+        {id:"cost",label:"Cost",type:"number"},
+        {id:"tags",label:"Tags",type:"tags"}
       ],
       tags:[{id:"tag1",name:"release"}],
       columnOrders:{table:["tags","title","group","field:status","field:areas","field:cost"]}
@@ -697,6 +704,7 @@ test("exports filtered view columns in saved order as safe CSV", ()=>{
     JSON.stringify({
       table:buildProjectCsv(project,"table",false,rows),
       list:buildProjectCsv(project,"list",true,rows),
+      noTags:buildProjectCsv({...project,fields:project.fields.filter(field=>field.type!=="tags")},"table",false,rows),
       escaped:serializeCsvRows([["Header"],[csvTestValue],["=SUM(A1)"]])
     });`,context);
   const resultObject=JSON.parse(result);
@@ -704,6 +712,7 @@ test("exports filtered view columns in saved order as safe CSV", ()=>{
   assert.match(resultObject.table,/^"Tags","Title","Group","Status","Areas","Cost"/);
   assert.match(resultObject.table,/"release","'=1\+1","Planning","Blocked","Docs; Design","-12"/);
   assert.match(resultObject.list,/"Progress","Updated"/);
+  assert.doesNotMatch(resultObject.noTags,/Tags|release/);
   assert.ok(resultObject.escaped.includes("\"Comma, quote \"\" and newline\nnext\""));
   assert.match(resultObject.escaped,/"'=SUM\(A1\)"/);
 });

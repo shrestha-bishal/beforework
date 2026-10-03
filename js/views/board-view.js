@@ -130,10 +130,12 @@ export class BoardView {
       appendMarkup(dateChips,fieldChipHtml(field,item.values[field.id],project));
     });
     const tags=card.querySelector(".cardTags");
-    (item.tagIds||[]).forEach(tagId=>{
-      const tag=tagById(project,tagId);
-      if (tag) appendMarkup(tags,tagPillHtml(tag));
-    });
+    if (project.fields.some(field=>field.type==="tags")){
+      (item.tagIds||[]).forEach(tagId=>{
+        const tag=tagById(project,tagId);
+        if (tag) appendMarkup(tags,tagPillHtml(tag));
+      });
+    } else tags.remove();
     card.onclick=()=>openItemModal(project.id,group.id,item.id);
     card.addEventListener("dragstart",event=>{
       card.classList.add("dragging");

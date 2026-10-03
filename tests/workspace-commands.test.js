@@ -17,7 +17,7 @@ test("provides quick actions and workspace search entries", ()=>{
     name:"Product launch",
     icon:"mdi:rocket-launch-outline",
     tags:[{id:"tag-1",name:"release"}],
-    fields:[{id:"field-1",label:"Status",options:[{id:"option-1",label:"In review"}]}],
+    fields:[{id:"field-1",label:"Status",options:[{id:"option-1",label:"In review"}]},{id:"tags-field",label:"Tags",type:"tags"}],
     groups:[{id:"group-1",name:"Review",items:[{
       id:"item-1",title:"Review calendar behavior",description:"Check recurring dates",calendarType:"task",
       values:{"field-1":"option-1"},tagIds:["tag-1"],subitems:[{title:"Check month ends"}]
@@ -53,4 +53,11 @@ test("provides quick actions and workspace search entries", ()=>{
     ["openProjectItem","project-1","group-1","item-1"],
     ["openTag","project-1","tag-1"]
   ]);
+});
+
+test("hides tag commands until the project has a Tags field",()=>{
+  const project={id:"project-1",name:"Clean",tags:[{id:"tag-1",name:"Hidden"}],fields:[],groups:[]};
+  const commands=createCommands({getState:()=>({projects:[project],calendarItems:[]}),actions:{}}).getCommands();
+
+  assert.equal(commands.some(command=>command.id==="tag:project-1:tag-1"),false);
 });

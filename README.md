@@ -33,11 +33,11 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 - List, table, board, calendar, roadmap, and milestone views with per-project view configuration
 - Workspace and project roadmaps with task duration bars from optional start dates to task dates, plus milestone markers
 - Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, relations to other project items, URLs, email addresses, numbers, and optional Location and Schedule controls
-- Tags, subtasks, comments, activity history, archiving, recurring schedules, and reminders; add a Schedule field to a project to show date/time, reminder, and recurrence controls on its items
+- Optional Tags fields with colored tags, filters, bulk tagging, and tag pills across project views; remove the field to hide tags without deleting their data. Existing projects are migrated with Tags enabled to preserve their current behavior. Also includes subtasks, comments, activity history, archiving, recurring schedules, and reminders; add a Schedule field to show date/time, reminder, and recurrence controls on items
 - Multiple file attachments per item in folder workspaces, plus project and calendar item attachments
 - Drag-and-drop data-column ordering saved independently for List and Table views
 - CSV export of the current filtered List or Table view, in visible column and row order
-- CSV import with column mapping and preview into an existing or new project. It supports task titles, descriptions, due dates, priority, status/groups, and tags; select the date format used by the CSV (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`).
+- CSV import with column mapping and preview into an existing or new project. It supports task titles, descriptions, due dates, priority, status/groups, and tags when the project has a Tags field; select the date format used by the CSV (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`).
 - Searchable overview statistics, workload and progress summaries, and a focus timer
 - Hide individual projects and their activity from the Overview dashboard without removing them from the workspace
 - Keyboard shortcuts, a command palette, and quick actions for common workspace tasks

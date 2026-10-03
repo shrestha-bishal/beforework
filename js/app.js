@@ -43,6 +43,7 @@
   const FIELD_TYPE_OPTIONS = [
     {value:"priority", label:"Priority", description:"Best for urgency or ranking."},
     {value:"group", label:"Group", description:"Create a single-select field for organising items into Board columns."},
+    {value:"tags", label:"Tags", description:"Add colored tags, filters, and bulk tagging to this project."},
     {value:"location", label:"Location", description:"Add an optional location or link to each item."},
     {value:"schedule", label:"Schedule", description:"Add dates, times, reminders, and recurrence controls to items."},
     {value:"select", label:"Single select", description:"Pick one answer from a fixed list."},
@@ -520,7 +521,8 @@
     localStorage.setItem(FILTER_KEY, JSON.stringify(filterPrefs));
   }
   function pruneColumnFilters(project){
-    const validColumns=new Set(["title","group","tags","progress","updated",...project.fields.map(field=>`field:${field.id}`)]);
+    const validColumns=new Set(["title","group","progress","updated",...project.fields.filter(field=>field.type!=="tags").map(field=>`field:${field.id}`)]);
+    if (project.fields.some(field=>field.type==="tags")) validColumns.add("tags");
     for (const columnId of boardFilterColumns.keys()) if (!validColumns.has(columnId)) boardFilterColumns.delete(columnId);
   }
   function persistActiveFilters(){
@@ -686,6 +688,7 @@
     return true;
   }
   function tagById(project,tid){ return project.tags.find(t=>t.id===tid); }
+  function hasTagsField(project){ return !!project?.fields?.some(field=>field?.type==="tags"); }
   function priorityField(project){ return project.fields.find(f=>f.type==="priority"); }
   function isDateField(field){ return ["date","start-date","due-date"].includes(field?.type); }
   function dateFields(project){ return project.fields.filter(isDateField); }
@@ -1181,7 +1184,7 @@
         {key:"startDate",kind:"startDate",label:"Start date"},
         {key:"dueDate",kind:"dueDate",label:"Due date"},
         {key:"status",kind:"status",label:"Status / group"},
-        {key:"tags",kind:"tags",label:"Tags"}
+        ...(hasTagsField(project||{fields})?[{key:"tags",kind:"tags",label:"Tags"}]:[])
       ];
       const startField=fields.find(field=>field.type==="start-date")
         || fields.find(field=>field.type==="date"&&/^(start|start date|starts on)$/.test(String(field.label||"").trim().toLowerCase()));
@@ -1476,7 +1479,7 @@
             if (imported.customDates[key]) item.values[field.id]=imported.customDates[key];
           });
           if (priorityField && imported.priority) item.values[priorityField.id]=imported.priority;
-          imported.tags.forEach(name=>{
+          if (hasTagsField(project)) imported.tags.forEach(name=>{
             const key=name.trim().toLowerCase();
             let tag=tags.get(key);
             if (!tag){ tag=createTag(project,name); tags.set(key,tag); }
@@ -1667,7 +1670,7 @@
     selectedItemIds.clear(); scheduleSave(); render();
   }
   async function bulkTag(project){
-    if (!selectedItemIds.size) return;
+    if (!hasTagsField(project) || !selectedItemIds.size) return;
     const name = await showDialog({title:"Tag selected items", message:`Add a tag to ${selectedItemIds.size} selected item(s).`, fields:[{label:"Tag name", value:project.tags[0]?.name || "", placeholder:"e.g. urgent"}], confirmLabel:"Apply tag"});
     if (!name || !name.trim()) return;
     let tag = project.tags.find(t=>t.name.toLowerCase()===name.trim().toLowerCase());
@@ -1733,6 +1736,10 @@
         "Each project can have one dedicated start date field and one dedicated due date field.");
       return;
     }
+    if (type==="tags"&&hasTagsField(project)){
+      await showNotice("Tags field already exists","Each project can have one Tags field.");
+      return;
+    }
     const field = {id:uid(), label, type, options:[]};
     if (type==="select" || type==="multi-select"){
       const opts = await showDialog({title:"Field options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create field"});
@@ -1760,12 +1767,13 @@
     });
     project.views?.forEach(view=>{ if (view.groupByFieldId===fid) delete view.groupByFieldId; });
     boardFilterFields.delete(fid);
+    if (field?.type==="tags") boardFilterColumns.delete("tags");
     if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
     scheduleSave(); renderAll();
   }
   async function addFieldFlow(project){
     const availableFieldTypes=FIELD_TYPE_OPTIONS.filter(option=>
-      !["start-date","due-date","location","schedule"].includes(option.value)
+      !["tags","start-date","due-date","location","schedule"].includes(option.value)
       || !project.fields.some(field=>field.type===option.value));
     const details = await showDialog({title:"Add field", fields:[
       {label:"Field type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
@@ -1774,16 +1782,20 @@
     if (!details) return;
     const [type,label] = details;
     const fieldType=type==="group"?"select":FIELD_TYPES.includes(type)?type:"select";
-    const fieldName=label?.trim()||({
-      group:"Group",
+    const fieldName=label?.trim()||(type==="group"?"Group":({
+      tags:"Tags",
       location:"Location",
       schedule:"Schedule",
       "start-date":"Start date",
       "due-date":"Due date"
-    }[type]||"");
+    }[type]||""));
     if (["location","schedule"].includes(fieldType)&&project.fields.some(field=>field.type===fieldType)){
       await showNotice(`${fieldType==="location"?"Location":"Schedule"} field already exists`,
         `Each project can have one ${fieldType} field.`);
+      return;
+    }
+    if (fieldType==="tags"&&hasTagsField(project)){
+      await showNotice("Tags field already exists","Each project can have one Tags field.");
       return;
     }
     if (!fieldName) return;
@@ -2056,7 +2068,10 @@
     menu.querySelector('[data-column-action="delete"]').onclick = async event => {
       event.stopPropagation();
       actionMenus.closeAll();
-      if (await showConfirm(`Delete column ${field.label}`, "This removes its values from every item in this project.", true)) deleteField(project, field.id);
+      const message=field.type==="tags"
+        ? "Tags and their assignments will stay saved but hidden. Add the Tags field again to restore them."
+        : "This removes its values from every item in this project.";
+      if (await showConfirm(`Delete column ${field.label}`, message, true)) deleteField(project, field.id);
     };
   }
   function wireGroupColumnHeader(th, project){
@@ -2343,7 +2358,7 @@
     if (item.archived && !showArchived) return false;
     if (project && project.id===activeProjectId && isItemCompleted(item)!==(completionFilter==="completed")) return false;
     if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
-    if (boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
+    if (project?.fields?.some(field=>field.type==="tags") && boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
       const field = project?.fields?.find(candidate=>candidate.id===fid);
       const val = field?.type==="schedule" ? scheduleFieldValue(project,item) : (item.values||{})[fid] ?? "";
@@ -2444,10 +2459,10 @@
     const columns=[
       {id:"title",label:"Title",value:row=>row.item.title},
       ...(showGroupColumn?[{id:"group",label:"Group",value:row=>row.group.name}]:[]),
-      ...project.fields.map(field=>({id:`field:${field.id}`,label:field.label,value:row=>field.type==="schedule"
+      ...project.fields.filter(field=>field.type!=="tags").map(field=>({id:`field:${field.id}`,label:field.label,value:row=>field.type==="schedule"
         ? scheduleFieldValue(project,row.item)
         : csvFieldValue(field,row.item.values[field.id],project)})),
-      {id:"tags",label:"Tags",value:row=>(row.item.tagIds||[]).map(id=>project.tags.find(tag=>tag.id===id)?.name||"").filter(Boolean).join("; ")},
+      ...(project.fields.some(field=>field.type==="tags")?[{id:"tags",label:project.fields.find(field=>field.type==="tags").label,value:row=>(row.item.tagIds||[]).map(id=>project.tags.find(tag=>tag.id===id)?.name||"").filter(Boolean).join("; ")}]:[]),
       ...(viewType==="list" && showProgressColumn?[{id:"progress",label:"Progress",value:row=>row.item.subitems.length?`${row.item.subitems.filter(subitem=>subitem.done).length}/${row.item.subitems.length}`:""}]:[]),
       ...(viewType==="list"?[{id:"updated",label:"Updated",value:row=>formatUpdatedAt(row.item.updatedAt)}]:[])
     ];
@@ -2740,9 +2755,9 @@
     const wrap = document.getElementById("sideTagsList");
     const label = document.getElementById("tagsSectionLabel");
     const project = getProject(activeProjectId);
-    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===ROADMAP || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project){ section.style.display = "none"; return; }
+    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===ROADMAP || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project || !hasTagsField(project)){ section.style.display = "none"; return; }
     section.style.display = "block";
-    label.textContent = "Tags in " + project.name;
+    label.textContent = project.fields.find(field=>field.type==="tags").label + " in " + project.name;
     wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("")
       || `<div style="font-size:12px;color:var(--faint);">No tags yet</div>`;
     wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
@@ -3021,20 +3036,21 @@
     const wrap = document.getElementById("filterCategoryList");
     const categories = [
       ...(projectGroups(project).length>1 ? [{id:"groupFilters", label:"Groups"}] : []),
-      {id:"boardTagFilters", label:"Tags"},
-      ...project.fields.map(field=>({id:`field:${field.id}`, label:field.label}))
+      ...(hasTagsField(project)?[{id:"boardTagFilters", label:project.fields.find(field=>field.type==="tags").label}]:[]),
+      ...project.fields.filter(field=>field.type!=="tags").map(field=>({id:`field:${field.id}`, label:field.label}))
     ];
-    if (!categories.some(category=>category.id===activeFilterCategory)) activeFilterCategory = categories[0].id;
+    if (!categories.some(category=>category.id===activeFilterCategory)) activeFilterCategory = categories[0]?.id||"";
     wrap.innerHTML = categories.map(category=>`<button class="filterCategory" type="button" data-filter-category="${escapeHtml(category.id)}">${escapeHtml(category.label)}</button>`).join("");
   }
 
   function renderFilterCategoryState(project){
     document.querySelectorAll("[data-filter-category]").forEach(button=>button.classList.toggle("active", button.dataset.filterCategory===activeFilterCategory));
-    document.querySelectorAll("#filterOptions > div").forEach(section=>section.classList.toggle("active", section.id===activeFilterCategory || (activeFilterCategory.startsWith("field:") && section.id==="fieldFilters")));
+    document.querySelectorAll("#filterOptions > div").forEach(section=>section.classList.toggle("active", section.id===activeFilterCategory || ((activeFilterCategory||"").startsWith("field:") && section.id==="fieldFilters")));
   }
 
   function renderBoardTagFilters(project){
     const wrap = document.getElementById("boardTagFilters");
+    if (!hasTagsField(project)){ wrap.replaceChildren(); return; }
     wrap.innerHTML = `<div class="filterControlBody filterOptionList">${project.tags.length ? project.tags.map(tag=>`<label class="filterOptionCheck"><input type="checkbox" data-tag-filter="${tag.id}" ${boardFilterTags.has(tag.id)?"checked":""}><span class="filterValuePill tagPill" style="--pill-color:${tag.color}"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span></label>`).join("") : `<span class="filterEmpty">No tags in this project</span>`}</div>`;
     wrap.querySelectorAll("[data-tag-filter]").forEach(input=>{
       input.onchange = () => {
@@ -3096,7 +3112,7 @@
     const summary = document.getElementById("filterSummary");
     if (!summary) return;
     const fieldCount = [...boardFilterFields.values()].filter(value=>Array.isArray(value) ? value.length : value!=="__all__").length;
-    const count = fieldCount + boardFilterGroups.size + boardFilterTags.size + boardFilterColumns.size + (boardFilterText ? 1 : 0);
+    const count = fieldCount + boardFilterGroups.size + (hasTagsField(getProject(activeProjectId))?boardFilterTags.size:0) + boardFilterColumns.size + (boardFilterText ? 1 : 0);
     summary.innerHTML = count ? `<strong>${count}</strong> filter${count===1?"":"s"} applied` : "All items";
   }
 
@@ -4092,6 +4108,15 @@
   function fieldInputHtml(field, item, project){
     const val = field.type==="location" ? item.values[field.id]??item.location??"" : item.values[field.id] ?? "";
     const isChecked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
+    if (field.type==="tags"){
+      const chips=(project.tags||[]).map(tag=>tagDotHtml(tag,(item.tagIds||[]).includes(tag.id))).join("");
+      return `<div class="sideItem">
+        <div class="sideItemLabel">${escapeHtml(field.label)}</div>
+        <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${chips}<button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
+        </div>
+      </div>`;
+    }
     if (field.type==="priority"){
       const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
         `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
@@ -4164,7 +4189,6 @@
         <button class="btn btn-invisible btn-sm" data-action="delSub">✕</button>
       </div>`).join("");
 
-    const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
     const fieldsHtml=fieldsWithStartBeforeDue(project.fields).filter(field=>field.type!=="schedule"&&field.type!=="location").map(field=>fieldInputHtml(field,item,project)).join("");
     const locationField=project.fields.find(field=>field.type==="location");
     const locationHtml=locationField?`<div class="sideItem">
@@ -4337,7 +4361,6 @@
       eventTabClass:item.calendarType==="event" ? "active" : "",
       milestoneSelector,
       fields:fieldsHtml,
-      tagChips,
       location:locationHtml,
       schedule:scheduleSectionHtml,
       footerNote:isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`,
@@ -4600,14 +4623,16 @@
         item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       };
     });
-    modal.querySelector('[data-action="newTagFromItem"]').onclick = async () => {
+    const addItemTagButton=modal.querySelector('[data-action="newTagFromItem"]');
+    if (addItemTagButton) addItemTagButton.onclick = async () => {
       const result = await showDialog({title:"New tag", fields:[
         {label:"Tag name", placeholder:"e.g. urgent"},
         {label:"Pill color", type:"tagColor", value:TAG_COLOR_OPTIONS[project.tags.length % TAG_COLOR_OPTIONS.length].value}
       ], confirmLabel:"Create tag"});
       if (result && result[0] && result[0].trim()){
         const t = createTag(project, result[0].trim(), result[1]);
-        item.tagIds.push(t.id);
+        if (!item.tagIds.includes(t.id)) item.tagIds.push(t.id);
+        item.updatedAt=Date.now();
         scheduleSave(); renderSidebarTags(); render(); renderItemModal();
       }
     };

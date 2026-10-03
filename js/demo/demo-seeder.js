@@ -67,7 +67,7 @@
     ];
     const launch = {
       id:uid(), name:"Product launch", description:"Coordinate the release from final quality checks through customer communication and post-launch follow-up.", icon:"mdi:rocket-launch-outline", folderId:productFolder.id, createdAt:now,
-      tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[priorityField, startDateField, dueDateField, reviewDateField, launchStatus],
+      tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[makeField("Tags","tags"), priorityField, startDateField, dueDateField, reviewDateField, launchStatus],
       views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", milestones:launchMilestones, groups:launchGroups
     };
     launchGroups[0].items.push(
@@ -144,7 +144,7 @@
     const onboardingGroup = {id:uid(), name:"Customer success", items:[]};
     const onboarding = {
       id:uid(), name:"Customer onboarding", description:"Track customer setup, follow-up dates, contacts, and onboarding needs in one place.", icon:"mdi:account-group-outline", folderId:operationsFolder.id, createdAt:now,
-      tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[onboardingStatus, onboardingDate, onboardingPriority, onboardingEmailSent, onboardingReference, onboardingContact, onboardingSeats, onboardingTopics],
+      tags:[makeTag("customer", TAG_COLORS[5]), makeTag("research", TAG_COLORS[2])], fields:[makeField("Tags","tags"), onboardingStatus, onboardingDate, onboardingPriority, onboardingEmailSent, onboardingReference, onboardingContact, onboardingSeats, onboardingTopics],
       views:onboardingViews, activeViewId:onboardingViews[0].id, itemDefaultType:"task", groups:[onboardingGroup]
     };
     onboardingGroup.items.push(
@@ -171,7 +171,7 @@
     ];
     const personalPlanning = {
       id:uid(), name:"Personal planning", description:"Keep household tasks, learning goals, and recurring routines organized by status and target date.", icon:"mdi:home-heart-outline", folderId:personalFolder.id, createdAt:now,
-      tags:[homeTag, learningTag, wellbeingTag], fields:[personalStatus, personalPriority, personalDate],
+      tags:[homeTag, learningTag, wellbeingTag], fields:[makeField("Tags","tags"), personalStatus, personalPriority, personalDate],
       views:personalViews, activeViewId:personalViews[0].id, itemDefaultType:"task", groups:personalGroups
     };
     personalGroups[0].items.push(
@@ -192,7 +192,7 @@
     const calendarGroup = {id:uid(), name:"Team schedule", items:[]};
     const teamCalendar = {
       id:uid(), name:"Team calendar", description:"A shared schedule for recurring team rituals, planning sessions, and release events.", icon:"mdi:calendar-month-outline", folderId:operationsFolder.id, createdAt:now,
-      tags:[makeTag("meeting", TAG_COLORS[5]), makeTag("milestone", TAG_COLORS[1])], fields:[calendarDate],
+      tags:[makeTag("meeting", TAG_COLORS[5]), makeTag("milestone", TAG_COLORS[1])], fields:[makeField("Tags","tags"), calendarDate],
       views:calendarViews, activeViewId:calendarViews[0].id, itemDefaultType:"event", groups:[calendarGroup]
     };
     calendarGroup.items.push(

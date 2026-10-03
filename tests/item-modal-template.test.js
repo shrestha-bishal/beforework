@@ -44,9 +44,10 @@ test("item modal markup lives in a separately loaded parameterized HTML template
 
   assert.ok(tokens.length>0);
   assert.doesNotMatch(rendered,/\{\{[a-zA-Z][a-zA-Z0-9_]*\}\}/);
-  for (const id of ["itemTitleInput","itemDescInput","itemDescPreview","itemCalendarType","itemTagChips","itemModalFooter"]){
+  for (const id of ["itemTitleInput","itemDescInput","itemDescPreview","itemCalendarType","itemModalFooter"]){
     assert.ok(rendered.includes(`id="${id}"`) || rendered.includes(`class="${id}"`),`missing ${id}`);
   }
+  assert.match(appSource,/if \(field\.type==="tags"\)[\s\S]*?id="itemTagChips"/);
   assert.match(appSource,/data-action="toggleDescriptionMenu"/);
   assert.match(appSource,/data-action="copyDescriptionMarkdown"/);
   assert.match(appSource,/Copy Markdown/);
@@ -84,6 +85,30 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/descriptionEditButton\.onclick=/);
   assert.match(appSource,/BeforeworkViewTemplates\.render\("itemModal"/);
   assert.match(appSource,/modal\.open\(\{id:"itemOverlay",content,onBackdrop:closeItemModal\}\)/);
+});
+
+test("Tags controls are rendered by the optional Tags field and retain tag assignments when removed",()=>{
+  const start=appSource.indexOf("function fieldInputHtml");
+  const end=appSource.indexOf("function renderItemModal",start);
+  const context={
+    escapeHtml:value=>String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char])),
+    tagDotHtml:(tag,selected)=>`<span data-tag="${tag.id}" data-selected="${selected}">${tag.name}</span>`
+  };
+  const html=vm.runInNewContext(`${appSource.slice(start,end)}; fieldInputHtml(
+    {id:"tags-field",label:"Tags",type:"tags"},
+    {tagIds:["release"],values:{}},
+    {tags:[{id:"release",name:"Release",color:"blue"}]}
+  );`,context);
+
+  assert.match(html,/id="itemTagChips"/);
+  assert.match(html,/data-tag="release" data-selected="true"/);
+  assert.match(html,/data-action="newTagFromItem"/);
+  assert.match(appSource,/type==="tags"&&hasTagsField\(project\)/);
+  assert.match(appSource,/Tags and their assignments will stay saved but hidden/);
+  const deleteStart=appSource.indexOf("function deleteField");
+  const deleteEnd=appSource.indexOf("async function addFieldFlow",deleteStart);
+  assert.match(appSource.slice(deleteStart,deleteEnd),/project\.fields\s*=\s*project\.fields\.filter\(f=>f\.id!==fid\)/);
+  assert.doesNotMatch(appSource.slice(deleteStart,deleteEnd),/tagIds/);
 });
 
 test("item modal overlays the sidebar and reflows with viewport size",()=>{

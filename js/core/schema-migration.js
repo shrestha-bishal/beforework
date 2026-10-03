@@ -155,6 +155,16 @@
           }
         });
         return state;
+      },
+      11: state=>{
+        state.projects.forEach(project=>{
+          if (!Array.isArray(project.fields)) project.fields=[];
+          if (!Array.isArray(project.tags)) project.tags=[];
+          if (!project.fields.some(field=>field?.type==="tags")){
+            project.fields.push({id:uid(),label:"Tags",type:"tags",options:[]});
+          }
+        });
+        return state;
       }
     };
     const schemaVersion = Math.max(...Object.keys(migrations).map(Number));

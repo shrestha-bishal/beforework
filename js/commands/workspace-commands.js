@@ -33,8 +33,10 @@
             ? (project.itemIndex||[]).filter(item=>item.groupId===group.id)
             : (group.items||[]);
           groupItems.filter(item=>!item.archived).forEach(item=>{
-            const tagNames=(item.tagIds||[]).map(tagId=>(project.tags||[]).find(tag=>tag.id===tagId)?.name||"").join(" ");
-            const fieldValues=(project.fields||[]).map(field=>{
+            const tagNames=(project.fields||[]).some(field=>field.type==="tags")
+              ? (item.tagIds||[]).map(tagId=>(project.tags||[]).find(tag=>tag.id===tagId)?.name||"").join(" ")
+              : "";
+            const fieldValues=(project.fields||[]).filter(field=>field.type!=="tags").map(field=>{
               const value=item.values?.[field.id];
               if (!value) return "";
               return `${field.label} ${(field.options||[]).find(option=>option.id===value)?.label||value}`;
@@ -50,7 +52,7 @@
             });
           });
         });
-        (project.tags||[]).forEach(tag=>commands.push({
+        if ((project.fields||[]).some(field=>field.type==="tags")) (project.tags||[]).forEach(tag=>commands.push({
           id:`tag:${project.id}:${tag.id}`,
           title:tag.name,
           category:"Tags",
