@@ -42,10 +42,12 @@ test("project-management template uses an optional Status field instead of fixed
 
 test("Add field offers an optional Group field backed by single-select options",()=>{
   assert.match(groupDefinition,/value:"group",label:"Group",description:"Create a single-select field for organising items into Board columns\."/);
+  assert.match(groupDefinition,/maxPerProject:1/);
   assert.match(app,/const FIELD_TYPE_OPTIONS=fieldTypes\.list\(\)/);
-  assert.match(app,/const fieldType=type==="group"\?"select"/);
+  assert.match(app,/const fieldType=FIELD_TYPES\.includes\(type\)\?type:"select"/);
   assert.match(app,/const fieldName=label\?\.trim\(\)\|\|\(type==="group"\?"Group"/);
-  assert.match(app,/if \(type==="select" \|\| type==="multi-select"\)/);
+  assert.match(app,/offeringType:type/);
+  assert.match(app,/if \(storageType==="select" \|\| storageType==="multi-select"\)/);
 });
 
 test("CSV status values can extend Status options without duplicating case-insensitive matches",()=>{

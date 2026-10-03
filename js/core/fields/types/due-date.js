@@ -2,6 +2,7 @@
   "use strict";
   global.BeforeworkFieldTypes.register({
     value:"due-date",label:"Due date",description:"When this task should be completed.",
+    maxPerProject:1,
     filter:{
       kind:"date",
       getValues:({value,dateKey,noneValue="__none__"})=>[dateKey(value,noneValue)],

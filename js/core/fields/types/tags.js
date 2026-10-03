@@ -17,6 +17,7 @@
 
   global.BeforeworkFieldTypes.register({
     value:"tags",label:"Tags",description:"Add colored tags, filters, and bulk tagging to this project.",
+    maxPerProject:1,
     colors,colorOptions,
     filter:{
       kind:"tags",

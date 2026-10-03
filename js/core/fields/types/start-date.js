@@ -2,6 +2,7 @@
   "use strict";
   global.BeforeworkFieldTypes.register({
     value:"start-date",label:"Start date",description:"When work on this task should begin.",
+    maxPerProject:1,
     filter:{
       kind:"date",
       getValues:({value,dateKey,noneValue="__none__"})=>[dateKey(value,noneValue)],

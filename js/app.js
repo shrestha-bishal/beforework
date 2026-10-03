@@ -1624,17 +1624,18 @@
       await showNotice("Choose a date-specific field type",`Use Start date or Due date for "${label}". Choose Date for a different kind of date.`);
       return;
     }
-    if ((type==="start-date"||type==="due-date")&&project.fields.some(field=>field.type===type)){
-      await showNotice(`${type==="start-date"?"Start date":"Due date"} field already exists`,
-        "Each project can have one dedicated start date field and one dedicated due date field.");
+    if (!fieldTypes.canAddToProject(type,project.fields)){
+      await showNotice(`${fieldTypeLabel(type)} field already exists`,`Each project can have only one ${fieldTypeLabel(type)} field.`);
       return;
     }
-    if (type==="tags"&&hasTagsField(project)){
-      await showNotice("Tags field already exists","Each project can have one Tags field.");
-      return;
-    }
-    const field = {id:uid(), label, type, options:[]};
-    if (type==="select" || type==="multi-select"){
+    const definition=fieldTypes.get(type);
+    if (!definition) throw new Error(`Unknown field type: ${type}`);
+    const storageType=definition.storageType||type;
+    const field = {
+      id:uid(),label,type:storageType,options:[],
+      ...(storageType!==type?{offeringType:type}:{})
+    };
+    if (storageType==="select" || storageType==="multi-select"){
       const opts = await showDialog({title:"Field options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create field"});
       if (opts === null) return;
       field.options = (opts||"").split(",").map(s=>s.trim()).filter(Boolean)
@@ -1666,15 +1667,14 @@
   }
   async function addFieldFlow(project){
     const availableFieldTypes=FIELD_TYPE_OPTIONS.filter(option=>
-      !["tags","start-date","due-date","location","schedule"].includes(option.value)
-      || !project.fields.some(field=>field.type===option.value));
+      fieldTypes.canAddToProject(option.value,project.fields));
     const details = await showDialog({title:"Add field", fields:[
       {label:"Field type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
       {label:"Field name", placeholder:"e.g. Status, Type, Effort"}
     ], confirmLabel:"Add field"});
     if (!details) return;
     const [type,label] = details;
-    const fieldType=type==="group"?"select":FIELD_TYPES.includes(type)?type:"select";
+    const fieldType=FIELD_TYPES.includes(type)?type:"select";
     const fieldName=label?.trim()||(type==="group"?"Group":({
       tags:"Tags",
       location:"Location",
@@ -1682,17 +1682,8 @@
       "start-date":"Start date",
       "due-date":"Due date"
     }[type]||""));
-    if (["location","schedule"].includes(fieldType)&&project.fields.some(field=>field.type===fieldType)){
-      await showNotice(`${fieldType==="location"?"Location":"Schedule"} field already exists`,
-        `Each project can have one ${fieldType} field.`);
-      return;
-    }
-    if (fieldType==="tags"&&hasTagsField(project)){
-      await showNotice("Tags field already exists","Each project can have one Tags field.");
-      return;
-    }
     if (!fieldName) return;
-    await addField(project,fieldName,fieldType);
+    await addField(project,fieldName,type);
   }
   function orderedTableColumns(project,viewType,columnIds){
     const saved=project.columnOrders?.[viewType]||[];

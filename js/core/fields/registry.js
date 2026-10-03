@@ -30,6 +30,22 @@
     return [...definitions.values()];
   }
 
+  function isFieldType(field,type){
+    const definition=get(type);
+    if (!definition) return false;
+    if (field?.type===type||field?.fieldType===type||field?.offeringType===type) return true;
+    return type==="group"&&field?.type===definition.storageType
+      &&String(field.label||"").trim().toLowerCase()==="group";
+  }
+
+  function canAddToProject(type,fields=[]){
+    const definition=get(type);
+    if (!definition) return false;
+    if (definition.maxPerProject==null) return true;
+    const count=fields.filter(field=>isFieldType(field,type)).length;
+    return count<definition.maxPerProject;
+  }
+
   function getFilterValues(field,context){
     const behavior=behaviorFor(field?.type);
     if (behavior?.filter?.getValues) return behavior.filter.getValues({...context,field});
@@ -80,7 +96,7 @@
   }
 
   global.BeforeworkFieldTypes=Object.freeze({
-    register,get,list,getFilter,getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
+    register,get,list,isFieldType,canAddToProject,getFilter,getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
     normalizeInput,sortValue,formatValue
   });
 })(window);

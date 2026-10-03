@@ -103,7 +103,7 @@ test("Tags controls are rendered by the optional Tags field and retain tag assig
   assert.match(html,/id="itemTagChips"/);
   assert.match(html,/data-tag="release" data-selected="true"/);
   assert.match(html,/data-action="newTagFromItem"/);
-  assert.match(appSource,/type==="tags"&&hasTagsField\(project\)/);
+  assert.match(appSource,/fieldTypes\.canAddToProject\(option\.value,project\.fields\)/);
   assert.match(appSource,/Tags and their assignments will stay saved but hidden/);
   const deleteStart=appSource.indexOf("function deleteField");
   const deleteEnd=appSource.indexOf("async function addFieldFlow",deleteStart);

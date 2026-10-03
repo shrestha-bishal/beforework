@@ -43,6 +43,24 @@ test("every field type is registered once with its own catalog metadata",()=>{
   assert.throws(()=>fieldTypes.register({value:"text",label:"Duplicate"}),/already registered/);
 });
 
+test("field definitions declare project-level instance limits",()=>{
+  const singleInstanceTypes=["priority","group","tags","location","schedule","start-date","due-date"];
+  const allTypes=fieldTypes.list().map(definition=>definition.value);
+
+  for (const type of singleInstanceTypes){
+    assert.equal(fieldTypes.get(type).maxPerProject,1,type);
+    assert.equal(fieldTypes.canAddToProject(type,[]),true,type);
+    assert.equal(fieldTypes.canAddToProject(type,[{type}]),false,type);
+  }
+  for (const type of allTypes.filter(value=>!singleInstanceTypes.includes(value))){
+    assert.equal(fieldTypes.get(type).maxPerProject,undefined,type);
+    assert.equal(fieldTypes.canAddToProject(type,[{type},{type}]),true,type);
+  }
+  assert.equal(fieldTypes.canAddToProject("group",[{type:"select",label:"Group"}]),false);
+  assert.equal(fieldTypes.canAddToProject("group",[{type:"select",label:"Status"}]),true);
+  assert.equal(fieldTypes.canAddToProject("group",[{type:"select",offeringType:"group",label:"Board lane"}]),false);
+});
+
 test("field types own their filter matching and column values",()=>{
   const number={id:"estimate",type:"number"};
   const multiSelect={id:"areas",type:"multi-select"};
