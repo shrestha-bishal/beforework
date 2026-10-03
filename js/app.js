@@ -159,15 +159,8 @@
   });
   function toggleFocusTimer(){ focusTimer.togglePanel(); }
   // View type is per-project now (project.views + project.activeViewId), not global.
-  const VIEW_DEFS = [
-    {type:"list", label:"List"},
-    {type:"table", label:"Table"},
-    {type:"kanban", label:"Board"},
-    {type:"calendar", label:"Calendar"},
-    {type:"milestones", label:"Milestones"},
-    {type:"roadmap", label:"Roadmap"},
-  ];
-  function viewLabel(type){ return (VIEW_DEFS.find(v=>v.type===type)||{}).label || type; }
+  const VIEW_DEFS=window.BeforeworkViewRegistry.list();
+  function viewLabel(type){ return window.BeforeworkViewRegistry.label(type); }
   const PROJECT_TEMPLATES = {
     simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:[]},
     table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:[]},
