@@ -41,6 +41,10 @@ test("Board view retains app-owned group actions and drag-and-drop",()=>{
   assert.ok(app.includes('else boardView.render(project, board, activeView)'));
   assert.ok(view.includes("view?.groupByFieldId"));
   assert.ok(view.includes("groupingField.id,group.fieldOptionId"));
+  assert.ok(view.includes("hiddenInField:option.hiddenInField===true"));
+  assert.ok(view.includes("!column.hiddenInField||column.entries.length"));
+  assert.ok(view.includes("addItemButton.hidden=!!group.hiddenInField"));
+  assert.ok(view.includes("if (group.hiddenInField) return;"));
   assert.doesNotMatch(index,/boardGroupBy/);
   assert.doesNotMatch(app,/getElementById\("boardGroupBy/);
   assert.ok(app.includes("boardView.render(project, board, activeView)"));

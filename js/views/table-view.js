@@ -34,12 +34,12 @@ function fieldControl(field,item,group,project,value,priorityOptions,scheduleFie
     Object.assign(control.dataset,dataset);
     if (isMultiple){
       control.multiple=true;
+      const selected=Array.isArray(value)?value:[];
       const options=field.type==="relation"
         ? projectEntries(project).filter(({item:candidate})=>candidate.id!==item.id)
           .map(({item:candidate,group:candidateGroup})=>({id:candidate.id,label:`${candidate.title} (${candidateGroup.name})`}))
-        : field.options||[];
+        : window.BeforeworkFieldTypes.getInputChoices(field,{project,selected});
       control.size=Math.max(2,Math.min(3,options.length));
-      const selected=Array.isArray(value)?value:[];
       options.forEach(option=>{
         const element=document.createElement("option");
         element.value=option.id;
@@ -48,7 +48,7 @@ function fieldControl(field,item,group,project,value,priorityOptions,scheduleFie
         control.appendChild(element);
       });
     } else {
-      const options=field.type==="priority"?priorityOptions:field.options||[];
+      const options=field.type==="priority"?priorityOptions:window.BeforeworkFieldTypes.getInputChoices(field,{project,selected:[value]});
       [{id:"",label:"None"},...options].forEach(option=>{
         const element=document.createElement("option");
         element.value=option.id;

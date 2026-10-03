@@ -206,7 +206,9 @@ export class ListView {
           control.className="form-control listMultiSelect";
           Object.assign(control.dataset,{pid:project.id,gid:group.id,iid:item.id,fieldid:field.id});
           const selected=Array.isArray(item.values[field.id])?item.values[field.id]:[];
-          (field.options||[]).forEach(option=>{
+          window.BeforeworkFieldTypes.getInputChoices(field,{
+            project,selected
+          }).forEach(option=>{
             const element=document.createElement("option");
             element.value=option.id;
             element.textContent=option.label;

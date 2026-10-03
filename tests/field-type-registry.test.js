@@ -41,6 +41,9 @@ test("every field type is registered once with its own catalog metadata",()=>{
   }
   assert.doesNotMatch(app,/const FIELD_TYPE_OPTIONS\s*=\s*\[/);
   assert.throws(()=>fieldTypes.register({value:"text",label:"Duplicate"}),/already registered/);
+  assert.throws(()=>fieldTypes.register({
+    value:"incomplete",label:"Incomplete",choiceEditor:{getChoices:()=>[]}
+  }),/incomplete choice editor/);
 });
 
 test("field definitions declare project-level instance limits",()=>{
@@ -108,4 +111,114 @@ test("field types own input normalization, sorting, and CSV formatting",()=>{
   assert.equal(fieldTypes.sortValue(number,{value:2})<fieldTypes.sortValue(number,{value:10}),true);
   assert.equal(fieldTypes.formatValue(select,{field:select,value:"ready"}),"Ready");
   assert.equal(fieldTypes.formatValue(checkbox,{value:"true"}),"Yes");
+});
+
+test("choice editors are declared by option-owning field types only",()=>{
+  const tags={id:"tags-field",type:"tags"};
+  const select={id:"status",type:"select",options:[
+    {id:"ready",label:"Ready"},
+    {id:"hidden",label:"Hidden",hiddenInField:true}
+  ]};
+  const project={tags:[
+    {id:"release",name:"Release"},
+    {id:"hidden-tag",name:"Hidden tag",hiddenInField:true}
+  ]};
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getEditableChoices(tags,{project}))),
+    [
+      {id:"release",label:"Release",hiddenInField:false},
+      {id:"hidden-tag",label:"Hidden tag",hiddenInField:true}
+    ]
+  );
+  assert.equal(fieldTypes.getEditableChoices({id:"notes",type:"text"},{project}),null);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getInputChoices(select,{project,selected:[]}))),
+    [{id:"ready",label:"Ready"}]
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getFilterOptions(select,{field:select}))),
+    [{value:"ready",label:"Ready"},{value:"hidden",label:"Hidden"}]
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getInputChoices(select,{project,selected:["hidden"]}))),
+    [
+      {id:"ready",label:"Ready"},
+      {id:"hidden",label:"Hidden",hiddenInField:true}
+    ]
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getChoiceDeleteConfirmation(select,{choices:[{label:"Ready"}]}))),
+    {
+      title:"Delete option: Ready",
+      message:"This removes this option from the field and clears it from item values."
+    }
+  );
+});
+
+test("tag and select modules apply their own visibility and deletion semantics",()=>{
+  const tagsField={id:"tags-field",type:"tags"};
+  const statusField={id:"status",type:"select",options:[
+    {id:"ready",label:"Ready"},
+    {id:"blocked",label:"Blocked"}
+  ]};
+  const areasField={id:"areas",type:"multi-select",options:[
+    {id:"docs",label:"Docs"},
+    {id:"design",label:"Design"}
+  ]};
+  const tagItem={tagIds:["release","urgent"],values:{}};
+  const statusItem={tagIds:[],values:{status:"blocked"}};
+  const areasItem={tagIds:[],values:{areas:["docs","design"]}};
+  const project={
+    tags:[{id:"release",name:"Release"},{id:"urgent",name:"Urgent"}],
+    fields:[tagsField,statusField,areasField],
+    groups:[{items:[tagItem,statusItem,areasItem]}]
+  };
+  const boardFilterTags=new Set(["release","urgent"]);
+  const boardFilterFields=new Map([
+    ["status",["ready","blocked"]],
+    ["areas",["docs","design"]]
+  ]);
+  const boardFilterColumns=new Map([
+    ["tags",new Set(["release","urgent"])],
+    ["status",new Set(["ready","blocked"])],
+    ["areas",new Set(["docs","design"])]
+  ]);
+  const context={
+    project,
+    projectItemEntries:value=>value.groups.flatMap(group=>group.items.map(item=>({group,item}))),
+    getBoardFilterTags:()=>boardFilterTags,
+    getBoardFilterFields:()=>boardFilterFields,
+    getBoardFilterColumns:()=>boardFilterColumns
+  };
+
+  fieldTypes.applyChoiceEdits(tagsField,context,[
+    {id:"release",label:"Release",hiddenInField:true},
+    {id:"urgent",label:"Urgent",deleted:true}
+  ]);
+  fieldTypes.applyChoiceEdits(statusField,context,[
+    {id:"ready",label:"Ready",hiddenInField:true},
+    {id:"blocked",label:"Blocked",deleted:true}
+  ]);
+  fieldTypes.applyChoiceEdits(areasField,context,[
+    {id:"docs",label:"Docs",hiddenInField:true},
+    {id:"design",label:"Design",deleted:true}
+  ]);
+
+  assert.deepEqual(project.tags,[{id:"release",name:"Release",hiddenInField:true}]);
+  assert.deepEqual(tagItem.tagIds,["release"]);
+  assert.deepEqual([...boardFilterTags],["release"]);
+  assert.deepEqual(statusField.options,[{id:"ready",label:"Ready",hiddenInField:true}]);
+  assert.deepEqual(statusItem.values,{});
+  assert.deepEqual(areasField.options,[{id:"docs",label:"Docs",hiddenInField:true}]);
+  assert.deepEqual(areasItem.values,{areas:["docs"]});
+  assert.deepEqual([...boardFilterFields],[
+    ["status",["ready"]],
+    ["areas",["docs"]]
+  ]);
+  assert.deepEqual([...boardFilterColumns].map(([id,values])=>[id,[...values]]),[
+    ["tags",["release"]],
+    ["status",["ready"]],
+    ["areas",["docs"]]
+  ]);
 });

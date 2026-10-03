@@ -19,9 +19,42 @@
     value:"tags",label:"Tags",description:"Add colored tags, filters, and bulk tagging to this project.",
     maxPerProject:1,
     colors,colorOptions,
+    choiceEditor:{
+      getChoices:({project})=>project.tags||[],
+      getLabel:tag=>tag.name,
+      getDeleteConfirmation:({choices})=>({
+        title:`Delete ${choices.length===1?"tag":"tags"}: ${choices.map(choice=>choice.label).join(", ")}`,
+        message:`This deletes ${choices.length===1?"this tag":"these tags"} and removes ${choices.length===1?"it":"them"} from all item assignments.`
+      }),
+      applyChanges:({project,changes,projectItemEntries,getBoardFilterTags,getBoardFilterColumns})=>{
+        const tags=new Map((project.tags||[]).map(tag=>[tag.id,tag]));
+        changes.forEach(change=>{
+          const tag=tags.get(change.id);
+          if (!tag) return;
+          if (change.deleted){
+            project.tags=project.tags.filter(candidate=>candidate.id!==tag.id);
+            projectItemEntries(project).forEach(({item})=>{
+              item.tagIds=(item.tagIds||[]).filter(id=>id!==tag.id);
+            });
+            getBoardFilterTags().delete(tag.id);
+            return;
+          }
+          tag.name=change.label.trim();
+          if (change.hiddenInField) tag.hiddenInField=true;
+          else delete tag.hiddenInField;
+        });
+        const columnFilters=getBoardFilterColumns();
+        const columnFilter=columnFilters.get("tags");
+        if (columnFilter&&typeof columnFilter.delete==="function"){
+          changes.filter(change=>change.deleted).forEach(change=>columnFilter.delete(change.id));
+          if (!columnFilter.size) columnFilters.delete("tags");
+        }
+      }
+    },
     filter:{
       kind:"tags",
-      getOptions:({project})=>(project.tags||[]).map(tag=>({value:String(tag.id),label:tag.name,color:tag.color})),
+      getOptions:({project})=>(project.tags||[])
+        .map(tag=>({value:String(tag.id),label:tag.name,color:tag.color})),
       getValues:({item,noneValue=none})=>(item.tagIds||[]).length?item.tagIds.map(String):[noneValue],
       matches:({item,mode,selected,noneValue=none})=>{
         const assigned=item.tagIds||[];

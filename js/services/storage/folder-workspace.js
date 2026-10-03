@@ -166,7 +166,10 @@
       completedItemCount:items.filter(item=>!item.archived && !!item.completedAt).length,
       groups,
       itemIndex:items,
-      tags:(project.tags||[]).map(tag=>({id:tag.id,name:tag.name,color:tag.color})),
+      tags:(project.tags||[]).map(tag=>({
+        id:tag.id,name:tag.name,color:tag.color,
+        ...(tag.hiddenInField===true?{hiddenInField:true}:{})
+      })),
       fields:(project.fields||[]).map(field=>({id:field.id,label:field.label,type:field.type,options:field.options||[]})),
       views:project.views||[],
       activeViewId:project.activeViewId||null,

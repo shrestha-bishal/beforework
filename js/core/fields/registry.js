@@ -10,6 +10,11 @@
     if (definitions.has(definition.value)){
       throw new Error(`Field type "${definition.value}" is already registered.`);
     }
+    if (definition.choiceEditor&&[
+      "getChoices","getLabel","getDeleteConfirmation","applyChanges"
+    ].some(method=>typeof definition.choiceEditor[method]!=="function")){
+      throw new TypeError(`Field type "${definition.value}" has an incomplete choice editor.`);
+    }
     definitions.set(definition.value,Object.freeze({...definition}));
   }
 
@@ -19,6 +24,42 @@
 
   function getFilter(field){
     return behaviorFor(field?.type)?.filter||null;
+  }
+
+  function getChoiceEditor(field){
+    return behaviorFor(field?.type)?.choiceEditor||null;
+  }
+
+  function getFieldChoices(field,context){
+    return getChoiceEditor(field)?.getChoices({...context,field})||[];
+  }
+
+  function getInputChoices(field,context={}){
+    const choices=getFieldChoices(field,context);
+    const selected=new Set(context.selected||[]);
+    return choices.filter(choice=>!choice.hiddenInField||selected.has(choice.id));
+  }
+
+  function getEditableChoices(field,context){
+    const editor=getChoiceEditor(field);
+    if (!editor) return null;
+    return editor.getChoices({...context,field}).map(choice=>({
+      id:choice.id,
+      label:editor.getLabel(choice),
+      hiddenInField:choice.hiddenInField===true
+    }));
+  }
+
+  function applyChoiceEdits(field,context,changes){
+    const editor=getChoiceEditor(field);
+    if (!editor) throw new Error(`Field type "${field?.type}" does not support choice editing.`);
+    return editor.applyChanges({...context,field,changes});
+  }
+
+  function getChoiceDeleteConfirmation(field,context){
+    const editor=getChoiceEditor(field);
+    if (!editor?.getDeleteConfirmation) throw new Error(`Field type "${field?.type}" does not define choice deletion.`);
+    return editor.getDeleteConfirmation({...context,field});
   }
 
   function behaviorFor(type){
@@ -96,7 +137,9 @@
   }
 
   global.BeforeworkFieldTypes=Object.freeze({
-    register,get,list,isFieldType,canAddToProject,getFilter,getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
+    register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,
+    applyChoiceEdits,getChoiceDeleteConfirmation,
+    getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
     normalizeInput,sortValue,formatValue
   });
 })(window);

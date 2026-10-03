@@ -6,10 +6,12 @@ window.BeforeworkItemFields=(()=>{
       escapeHtml,
       tagPillHtml,
       projectItemEntries,
+      fieldTypes,
       priorityOptions,
       renderPartial
     }=dependencies||{};
-    if ([escapeHtml,tagPillHtml,projectItemEntries,renderPartial].some(value=>typeof value!=="function")){
+    if ([escapeHtml,tagPillHtml,projectItemEntries,renderPartial].some(value=>typeof value!=="function")
+      ||!fieldTypes||typeof fieldTypes.getInputChoices!=="function"){
       throw new TypeError("Item field rendering requires its UI dependencies.");
     }
     if (!Array.isArray(priorityOptions)) throw new TypeError("Item field rendering requires priority options.");
@@ -32,7 +34,7 @@ window.BeforeworkItemFields=(()=>{
         const selectedTagIds=new Set(item.tagIds||[]);
         const selectedTags=(project.tags||[]).filter(tag=>selectedTagIds.has(tag.id));
         const chips=selectedTags.map(tag=>tagPillHtml(tag,true,false)).join("");
-        const tags=project.tags||[];
+        const tags=fieldTypes.getInputChoices(field,{project,selected:selectedTagIds});
         const selector=renderPartial("tagSelector",{
           fieldId,
           ariaLabel:escapeHtml(field.label),
@@ -47,7 +49,7 @@ window.BeforeworkItemFields=(()=>{
       if (field.type==="priority"||field.type==="select"){
         const options=field.type==="priority"
           ? [{id:"",label:"None"},...priorityOptions]
-          : [{id:"",label:"None"},...(field.options||[])];
+          : [{id:"",label:"None"},...fieldTypes.getInputChoices(field,{project,selected:[value]})];
         return renderPartial("select",{
           labelHtml:label,
           fieldId,
@@ -56,7 +58,7 @@ window.BeforeworkItemFields=(()=>{
       }
       if (field.type==="multi-select"){
         const selected=new Set(Array.isArray(value)?value:[]);
-        const options=(field.options||[]).map(option=>
+        const options=fieldTypes.getInputChoices(field,{project,selected}).map(option=>
           `<option value="${escapeHtml(option.id)}" ${selected.has(option.id)?"selected":""}>${escapeHtml(option.label)}</option>`
         ).join("");
         return renderPartial(options?"multiSelect":"emptyOptions",{

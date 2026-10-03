@@ -3522,6 +3522,7 @@
     queueGoogleEventDeletes,
     getBoardFilterFields:()=>boardFilterFields,
     getBoardFilterColumns:()=>boardFilterColumns,
+    getBoardFilterTags:()=>boardFilterTags,
     getListSort:()=>listSort,
     setListSort:value=>{ listSort=value; },
     showDialog,
@@ -3536,6 +3537,7 @@
     escapeHtml,
     tagPillHtml,
     projectItemEntries,
+    fieldTypes,
     priorityOptions:PRIORITY_OPTIONS,
     renderPartial:(name,values)=>window.BeforeworkViewTemplates.renderPartial("itemFields",name,values)
   });

@@ -85,6 +85,10 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   const workspace=createWorkspaceModule();
   const directory=createMemoryDirectory();
   const state=stateWithTwoProjects();
+  state.projects[0].tags=[{id:"release",name:"Release",hiddenInField:true}];
+  state.projects[0].fields=[{id:"status",label:"Status",type:"select",options:[
+    {id:"ready",label:"Ready",hiddenInField:true}
+  ]}];
   state.projects[0].groups.push({id:"group-1",name:"Tasks",items:[{
     id:"item-1",title:"Prepare release",description:"Get signoff",location:"Conference room",startDate:"2026-09-25",milestoneId:"milestone-1",
     googleEventIds:{"primary:project-a:due":"google-event-1"},googleSyncMeta:{"primary:project-a:due":{googleUpdatedAt:"2026-09-25T12:00:00.000Z",localUpdatedAt:123}},calendarTimeZone:"America/New_York"
@@ -102,6 +106,12 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.equal(revision.projectSummaries["project-a"].hiddenFromOverview,true);
   assert.equal(revision.projectSummaries["project-b"].hiddenFromOverview,false);
   assert.equal(revision.projectSummaries["project-b"].description,null);
+  assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].tags)),[
+    {id:"release",name:"Release",hiddenInField:true}
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].fields[0].options)),[
+    {id:"ready",label:"Ready",hiddenInField:true}
+  ]);
   assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].milestones)),[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}]);
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].description,"Get signoff");
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].location,"Conference room");

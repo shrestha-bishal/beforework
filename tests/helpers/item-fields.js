@@ -3,6 +3,7 @@
 const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
+const {createFieldTypes}=require("./field-types");
 
 const moduleSource=fs.readFileSync(path.join(__dirname,"../../js/ui/item-fields.js"),"utf8");
 const templateSource=fs.readFileSync(path.join(__dirname,"../../pages/item-fields.html"),"utf8");
@@ -27,6 +28,7 @@ function createItemFieldRenderer(dependencies={}){
     })[char]),
     tagPillHtml:(tag,selected,filterable)=>`<span class="tagPill${selected?" selected":""}" data-tag="${tag.id}"${filterable?' data-tagfilter="true"':""}>${tag.name}</span>`,
     projectItemEntries:project=>(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({group,item}))),
+    fieldTypes:createFieldTypes(),
     priorityOptions:[],
     renderPartial,
     ...dependencies

@@ -39,6 +39,7 @@ export class BoardView {
           id:option.id,
           name:option.label,
           fieldOptionId:option.id,
+          hiddenInField:option.hiddenInField===true,
           fieldGrouping:true,
           entries:[]
         })),
@@ -55,6 +56,9 @@ export class BoardView {
           || columns.find(candidate=>candidate.fieldOptionId==="");
         column.entries.push(entry);
       });
+      columns.splice(0,columns.length,...columns.filter(column=>
+        !column.hiddenInField||column.entries.length
+      ));
     }
     columns.forEach(group=>{
       const column=templates.querySelector("#boardGroupTemplate").content.firstElementChild.cloneNode(true);
@@ -85,7 +89,9 @@ export class BoardView {
         groupActionMenu.close();
         confirmDeleteGroup(project,group);
       };
-      column.querySelector('[data-action="addItem"]').onclick=()=>groupingField
+      const addItemButton=column.querySelector('[data-action="addItem"]');
+      addItemButton.hidden=!!group.hiddenInField;
+      addItemButton.onclick=()=>groupingField
         ? openNewItemModal(project,storageGroups[0],null,{fieldId:groupingField.id,value:group.fieldOptionId})
         : openNewItemModal(project,group);
 
@@ -94,6 +100,7 @@ export class BoardView {
         priorityField,dateFields,fieldsWithStartBeforeDue,fieldChipHtml,tagById,tagPillHtml,openItemModal
       })));
       column.addEventListener("dragover",event=>{
+        if (group.hiddenInField) return;
         event.preventDefault();
         column.classList.add("dragover");
       });
@@ -101,6 +108,7 @@ export class BoardView {
       column.addEventListener("drop",event=>{
         event.preventDefault();
         column.classList.remove("dragover");
+        if (group.hiddenInField) return;
         const data=JSON.parse(event.dataTransfer.getData("text/plain"));
         if (groupingField) setItemFieldValue(project.id,data.groupId,data.itemId,groupingField.id,group.fieldOptionId);
         else moveItem(project.id,data.groupId,group.id,data.itemId,null);

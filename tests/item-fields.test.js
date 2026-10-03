@@ -92,25 +92,42 @@ test("Tags, Location, and Schedule use field templates without changing their co
   assert.match(templateSource,/<template data-view-partial="schedule">/);
 });
 
-test("Tags editor shows selected pills and offers every tag through its picker",()=>{
+test("Tags editor shows selected pills and offers visible tags through its picker",()=>{
   const renderer=createItemFieldRenderer();
   const html=renderer.render(
     {id:"tags",label:"Tags",type:"tags"},
-    {tagIds:["urgent"],values:{}},
+    {tagIds:["urgent","hidden"],values:{}},
     {tags:[
       {id:"urgent",name:"Urgent"},
-      {id:"follow-up",name:"Follow up"}
+      {id:"follow-up",name:"Follow up"},
+      {id:"hidden",name:"Hidden",hiddenInField:true}
     ]}
   );
 
   assert.match(html,/class="tagPill selected" data-tag="urgent"/);
+  assert.match(html,/class="tagPill selected" data-tag="hidden"/);
   assert.doesNotMatch(html,/data-tagfilter/);
   assert.doesNotMatch(html,/data-tag="follow-up"/);
   assert.match(html,/value="urgent" selected/);
   assert.match(html,/value="follow-up"/);
+  assert.match(html,/value="hidden" selected/);
   assert.match(html,/data-app-select-empty-label="No tags yet"/);
   assert.doesNotMatch(html,/Add new tag/);
   assert.doesNotMatch(html,/class="itemTagAddButton"/);
+});
+
+test("hidden select choices stay selected but are not offered for new assignments",()=>{
+  const renderer=createItemFieldRenderer();
+  const field={id:"status",label:"Status",type:"select",options:[
+    {id:"ready",label:"Ready"},
+    {id:"old",label:"Old",hiddenInField:true}
+  ]};
+  const existing=renderer.render(field,{values:{status:"old"}},{});
+  const unassigned=renderer.render(field,{values:{}},{});
+
+  assert.match(existing,/value="old" selected/);
+  assert.doesNotMatch(unassigned,/value="old"/);
+  assert.match(unassigned,/value="ready"/);
 });
 
 test("Tags editor keeps an empty picker available when the project has no tags",()=>{

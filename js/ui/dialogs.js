@@ -229,6 +229,75 @@
       return root;
     }
 
+    function renderChoiceList(container,choiceList){
+      if (!choiceList) return null;
+      const choices=choiceList.items.map(choice=>({...choice}));
+      const rows=container.querySelector("[data-dialog-choice-rows]");
+      container.hidden=false;
+      choices.forEach(choice=>{
+        const row=document.createElement("div");
+        row.className="dialogChoiceRow";
+        const visibilityLabel=document.createElement("label");
+        visibilityLabel.className="dialogChoiceVisibility";
+        const checkbox=document.createElement("input");
+        checkbox.type="checkbox";
+        checkbox.checked=!choice.hiddenInField;
+        checkbox.setAttribute("aria-label",`Show ${choice.label} in field`);
+        checkbox.addEventListener("change",()=>{ choice.hiddenInField=!checkbox.checked; });
+        visibilityLabel.appendChild(checkbox);
+
+        const name=document.createElement("span");
+        name.className="dialogChoiceName";
+        name.textContent=choice.label;
+        const input=document.createElement("input");
+        input.className="form-control dialogChoiceInput";
+        input.type="text";
+        input.value=choice.label;
+        input.setAttribute("aria-label",`Choice name: ${choice.label}`);
+        input.hidden=true;
+        input.addEventListener("input",()=>{
+          choice.label=input.value;
+          name.textContent=input.value;
+          checkbox.setAttribute("aria-label",`Show ${input.value} in field`);
+          editButton.setAttribute("aria-label",`Edit ${input.value}`);
+          deleteButton.setAttribute("aria-label",`Delete ${input.value}`);
+        });
+
+        const editButton=document.createElement("button");
+        editButton.type="button";
+        editButton.className="btn btn-invisible dialogChoiceAction";
+        editButton.setAttribute("aria-label",`Edit ${choice.label}`);
+        editButton.title="Edit choice";
+        const editIcon=document.createElement("iconify-icon");
+        editIcon.setAttribute("icon","mdi:pencil-outline");
+        editIcon.setAttribute("aria-hidden","true");
+        editButton.appendChild(editIcon);
+        editButton.addEventListener("click",()=>{
+          input.hidden=!input.hidden;
+          name.hidden=!input.hidden;
+          if (!input.hidden){ input.focus(); input.select(); }
+        });
+
+        const deleteButton=document.createElement("button");
+        deleteButton.type="button";
+        deleteButton.className="btn btn-invisible dialogChoiceAction danger";
+        deleteButton.setAttribute("aria-label",`Delete ${choice.label}`);
+        deleteButton.title="Delete choice";
+        const deleteIcon=document.createElement("iconify-icon");
+        deleteIcon.setAttribute("icon","mdi:trash-can-outline");
+        deleteIcon.setAttribute("aria-hidden","true");
+        deleteButton.appendChild(deleteIcon);
+        deleteButton.addEventListener("click",()=>{
+          choice.deleted=true;
+          row.remove();
+        });
+
+        row.append(visibilityLabel,name,input,editButton,deleteButton);
+        rows.appendChild(row);
+      });
+      return choices;
+    }
+
     function showDialog(options){
       const sequence=++requestSequence;
       return loadTemplates().then(templates=>{
@@ -236,7 +305,7 @@
         if (finishActive) finishActive(null);
         return new Promise(resolve=>{
           const overlay=cloneTemplate(templates,"dialogShell");
-          const {title,message="",fields=[],confirmLabel="Continue",secondaryLabel="",danger=false,cancelLabel="Cancel",actionMenu}=options;
+          const {title,message="",fields=[],confirmLabel="Continue",secondaryLabel="",danger=false,cancelLabel="Cancel",actionMenu,choiceList}=options;
           const dialog=overlay.querySelector('[role="dialog"]');
           dialog.querySelector("[data-dialog-title]").textContent=title;
           if (actionMenu){
@@ -268,6 +337,7 @@
           const selectedIconValues=fields.map(field=>field.type==="iconPicker"?(field.value||defaultProjectIcon):null);
           const fieldsContainer=dialog.querySelector("[data-dialog-fields]");
           fields.forEach((field,index)=>fieldsContainer.appendChild(makeField(templates,field,index,selectedIconValues)));
+          const choiceChanges=renderChoiceList(dialog.querySelector("[data-dialog-choice-list]"),choiceList);
           document.body.appendChild(overlay);
           const finish=value=>{
             overlay.remove();
@@ -284,7 +354,8 @@
               const selected=overlay.querySelector(`input[name="dialogField${index}"]:checked`);
               return selected?.value==="__custom__"?overlay.querySelector(`#dialogColor${index}`).value:selected?.value;
             });
-            finish(values.length===1?values[0]:values.length?values:"__confirm__");
+            const result=values.length===1?values[0]:values.length?values:"__confirm__";
+            finish(choiceChanges?{values,choices:choiceChanges}:result);
           };
           overlay.addEventListener("click",event=>{ if (event.target===overlay) finish(null); });
           const first=overlay.querySelector("input:not([type='hidden']), textarea, select, .dialogSelectButton");

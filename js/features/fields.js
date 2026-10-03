@@ -3,7 +3,7 @@
 
   function create({
     uid,fieldTypes,selectColors,projectItemEntries,queueGoogleEventDeletes,
-    getBoardFilterFields,getBoardFilterColumns,getListSort,setListSort,
+    getBoardFilterFields,getBoardFilterColumns,getBoardFilterTags,getListSort,setListSort,
     showDialog,showNotice,showConfirm,scheduleSave,renderAll,refreshOpenItemModal,closeAllActionMenus
   }){
     const fieldTypeOptions=fieldTypes.list();
@@ -95,10 +95,12 @@
     async function editField(event,field,project){
       event?.stopPropagation();
       closeAllActionMenus();
-      const label=await showDialog({
+      const choices=fieldTypes.getEditableChoices(field,{project});
+      const result=await showDialog({
         title:"Edit field",
         fields:[{label:"Field name",value:field.label}],
         confirmLabel:"Save",
+        ...(choices?{choiceList:{items:choices}}:{}),
         actionMenu:{
           items:[{
             label:"Delete",
@@ -107,10 +109,35 @@
           }]
         }
       });
+      const label=choices?result?.values?.[0]:result;
       if (!label||!label.trim()) return;
+      if (choices){
+        const choiceChanges=result.choices;
+        const originalLabels=new Map(choices.map(choice=>[choice.id,choice.label]));
+        const hasNewEmptyLabel=choiceChanges.some(choice=>
+          !choice.deleted&&!choice.label.trim()&&choice.label!==originalLabels.get(choice.id)
+        );
+        if (hasNewEmptyLabel){
+          await showNotice("Choice name required","Enter a name for each choice before saving.");
+          return;
+        }
+        const removed=choiceChanges.filter(choice=>choice.deleted);
+        if (removed.length){
+          const confirmation=fieldTypes.getChoiceDeleteConfirmation(field,{choices:removed});
+          if (!await showConfirm(confirmation.title,confirmation.message,true)) return;
+        }
+        fieldTypes.applyChoiceEdits(field,{
+          project,
+          projectItemEntries,
+          getBoardFilterFields,
+          getBoardFilterColumns,
+          getBoardFilterTags
+        },choiceChanges);
+      }
       field.label=label.trim();
       scheduleSave();
       renderAll();
+      refreshOpenItemModal();
     }
 
     async function deleteFieldFromMenu(event,field,project){

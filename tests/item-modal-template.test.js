@@ -15,6 +15,7 @@ const stylesSource=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf
 const templatesSource=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
 const dialogsTemplateSource=fs.readFileSync(path.join(__dirname,"../pages/dialogs.html"),"utf8");
 const dialogsSource=fs.readFileSync(path.join(__dirname,"../js/ui/dialogs.js"),"utf8");
+const fieldTypesSource=fs.readFileSync(path.join(__dirname,"../js/core/fields/registry.js"),"utf8");
 
 function loadTemplateModule(){
   const window={};
@@ -73,6 +74,13 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailSettings"\)/);
   assert.match(appSource,/fieldFeature\.editField\(event,field,project\)/);
   assert.match(appSource,/refreshOpenItemModal:\(\)=>\{\s*if \(openItemRef\) renderItemModal\(\);\s*\}/);
+  assert.match(fieldFeatureSource,/fieldTypes\.getEditableChoices\(field,\{project\}\)/);
+  assert.match(fieldFeatureSource,/fieldTypes\.applyChoiceEdits\(field/);
+  assert.doesNotMatch(appSource,/removeTagData:itemFeature\.removeTagData/);
+  assert.match(fieldTypesSource,/function applyChoiceEdits\(field,context,changes\)/);
+  assert.match(fieldTypesSource,/function getChoiceDeleteConfirmation\(field,context\)/);
+  assert.match(dialogsTemplateSource,/data-dialog-choice-list[\s\S]*data-dialog-choice-rows/);
+  assert.match(dialogsSource,/function renderChoiceList\(container,choiceList\)/);
   assert.match(dialogsTemplateSource,/data-dialog-action-menu-trigger[\s\S]*mdi:dots-horizontal[\s\S]*data-dialog-cancel aria-label="Close"/);
   assert.match(dialogsSource,/global\.BeforeworkActionMenu\.create\(\)\.register\(trigger,menu\)/);
   assert.match(fieldFeatureSource,/onSelect:event=>deleteFieldFromMenu\(event,field,project\)/);

@@ -25,12 +25,61 @@ function createFeature(overrides={}){
   let nextId=0;
   const boardFilterFields=new Map();
   const boardFilterColumns=new Map();
+  const boardFilterTags=new Set();
   let listSort={field:"updated",dir:"desc"};
   const feature=window.BeforeworkFieldFeature.create({
     uid:()=>`generated-${++nextId}`,
     fieldTypes:{
       list:()=>definitions,
       get:type=>definitions.find(definition=>definition.value===type)||null,
+      getEditableChoices:(field,{project})=>{
+        const choices=field.type==="tags"?project.tags||[]:field.options||[];
+        return ["tags","select","multi-select"].includes(field.type)
+          ?choices.map(choice=>({
+            id:choice.id,label:field.type==="tags"?choice.name:choice.label,
+            hiddenInField:choice.hiddenInField===true
+          }))
+          :null;
+      },
+      getChoiceDeleteConfirmation:(field,{choices})=>({
+        title:`Delete ${field.type==="tags"?"tag":"option"}: ${choices.map(choice=>choice.label).join(", ")}`,
+        message:field.type==="tags"
+          ?"This deletes this tag and removes it from all item assignments."
+          :"This removes this option from the field and clears it from item values."
+      }),
+      applyChoiceEdits:(field,context,changes)=>{
+        const choices=field.type==="tags"?context.project.tags:field.options;
+        changes.forEach(change=>{
+          const choice=choices.find(candidate=>candidate.id===change.id);
+          if (!choice) return;
+          if (change.deleted){
+            if (field.type==="tags"){
+              context.project.tags=context.project.tags.filter(candidate=>candidate.id!==choice.id);
+              context.projectItemEntries(context.project).forEach(({item})=>{
+                item.tagIds=item.tagIds.filter(id=>id!==choice.id);
+              });
+              context.getBoardFilterTags().delete(choice.id);
+            } else {
+              field.options=field.options.filter(candidate=>candidate.id!==choice.id);
+              context.projectItemEntries(context.project).forEach(({item})=>{
+                const value=item.values[field.id];
+                if (field.type==="multi-select"&&Array.isArray(value)){
+                  item.values[field.id]=value.filter(id=>id!==choice.id);
+                } else if (value===choice.id) delete item.values[field.id];
+              });
+            }
+          } else {
+            if (field.type==="tags") choice.name=change.label.trim();
+            else choice.label=change.label.trim();
+            if (change.hiddenInField) choice.hiddenInField=true;
+            else delete choice.hiddenInField;
+          }
+        });
+        if (field.type==="tags"){
+          changes.filter(change=>change.hiddenInField||change.deleted)
+            .forEach(change=>context.getBoardFilterTags().delete(change.id));
+        }
+      },
       canAddToProject:(type,fields)=>{
         const definition=definitions.find(candidate=>candidate.value===type);
         return !!definition&&(definition.maxPerProject==null||fields.filter(field=>field.type===type).length<definition.maxPerProject);
@@ -41,6 +90,7 @@ function createFeature(overrides={}){
     queueGoogleEventDeletes:item=>calls.queuedEvents.push(item.id),
     getBoardFilterFields:()=>boardFilterFields,
     getBoardFilterColumns:()=>boardFilterColumns,
+    getBoardFilterTags:()=>boardFilterTags,
     getListSort:()=>listSort,
     setListSort:value=>{listSort=value;},
     showDialog:async options=>{calls.dialogs.push(options);return dialogResults.shift()??null;},
@@ -53,7 +103,7 @@ function createFeature(overrides={}){
     ...overrides
   });
   return {
-    feature,calls,boardFilterFields,boardFilterColumns,
+    feature,calls,boardFilterFields,boardFilterColumns,boardFilterTags,
     setDialogResults(...results){dialogResults.push(...results);},
     getListSort:()=>listSort
   };
@@ -153,6 +203,45 @@ test("editing a field saves its trimmed label and closes menus",async()=>{
   assert.equal(calls.closedMenus,1);
   assert.equal(calls.saved,1);
   assert.equal(calls.rendered,1);
+});
+
+test("field edit stages choice changes and submits them through the field-type API",async()=>{
+  const field={id:"status",label:"Status",type:"select",options:[
+    {id:"todo",label:"To do"},
+    {id:"done",label:"Done"}
+  ]};
+  const item={id:"item-1",values:{status:"done"}};
+  const project={fields:[field],groups:[{items:[item]}]};
+  const {feature,calls,setDialogResults,boardFilterTags}=createFeature();
+  setDialogResults({
+    values:["Workflow"],
+    choices:[
+      {id:"todo",label:"In progress",hiddenInField:true},
+      {id:"done",label:"Done",deleted:true}
+    ]
+  });
+
+  await feature.editField({stopPropagation(){}},field,project);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(calls.dialogs[0].choiceList.items)),[
+    {id:"todo",label:"To do",hiddenInField:false},
+    {id:"done",label:"Done",hiddenInField:false}
+  ]);
+  assert.equal(field.label,"Workflow");
+  assert.equal(field.options[0].label,"In progress");
+  assert.equal(field.options[0].hiddenInField,true);
+  assert.deepEqual(field.options.map(option=>option.id),["todo"]);
+  assert.deepEqual(item.values,{});
+  assert.equal(calls.confirms.length,1);
+  assert.deepEqual(calls.confirms[0],[
+    "Delete option: Done",
+    "This removes this option from the field and clears it from item values.",
+    true
+  ]);
+  assert.equal(calls.saved,1);
+  assert.equal(calls.rendered,1);
+  assert.equal(calls.refreshedItemModal,1);
+  assert.deepEqual([...boardFilterTags],[]);
 });
 
 test("edit field dialog menu reuses the existing delete confirmation and cleanup",async()=>{
