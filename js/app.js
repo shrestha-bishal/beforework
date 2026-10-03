@@ -277,93 +277,14 @@
     return date.toLocaleString(undefined, {dateStyle:"medium", timeStyle:"short", hour12:getTimeFormat()==="12"});
   }
 
-  /* ---------- Auth (optional, pluggable) ----------
-     Authentication is entirely additive here: if no provider is available
-     (script blocked, feature not enabled on this deployment, offline, or a
-      future provider isn't configured), account controls stay unavailable and the
-     app works exactly as it always has - nothing below gates storage or
-     any feature.
-
-     To add another provider later (Auth0, Supabase, Clerk, a custom
-     backend, etc.), implement an object with the same four members and
-     register it:
-
-       registerAuthProvider("myProvider", {
-         isAvailable(){ ... return true/false, or a Promise of one },
-         init(onChange){ ... call onChange(user|null) whenever auth changes },
-         login(){ ... },
-         logout(){ ... },
-         label(user){ ... return a display string for the signed-in user },
-       });
-
-     then add "myProvider" to AUTH_PROVIDER_ORDER. The first provider in
-     that list that reports itself available is the one that's used. */
-  const NETLIFY_IDENTITY_ENABLED = false;
-  const AUTH_PROVIDERS = {};
-  const AUTH_PROVIDER_ORDER = ["netlify"]; // try in this order; add new provider names here
-  let activeAuthProvider = null;
-  let currentAuthUser = null;
-
-  function registerAuthProvider(name, provider){ AUTH_PROVIDERS[name] = provider; }
-
-  function loadNetlifyIdentity(){
-    if (window.netlifyIdentity) return Promise.resolve();
-    return new Promise((resolve,reject)=>{
-      const script=document.createElement("script");
-      script.src="https://identity.netlify.com/v1/netlify-identity-widget.js";
-      script.onload=resolve;
-      script.onerror=()=>reject(new Error("Netlify Identity failed to load."));
-      document.head.appendChild(script);
-    });
-  }
-
-  registerAuthProvider("netlify", {
-    isAvailable(){
-      return typeof window.netlifyIdentity !== "undefined";
-    },
-    init(onChange){
-      let settled = false;
-      netlifyIdentity.on("init", user => { settled = true; onChange(user || null); });
-      netlifyIdentity.on("login", user => { settled = true; onChange(user || null); netlifyIdentity.close(); });
-      netlifyIdentity.on("logout", () => { onChange(null); });
-      // If this deployment isn't actually wired up to Netlify Identity, the
-      // widget can error out instead of ever firing "init" - treat that as
-      // "not configured" and fall back to normal, auth-less operation.
-      netlifyIdentity.on("error", () => { if (!settled) disableAuthUI(); });
-      netlifyIdentity.init({logo:false});
-      // Belt-and-braces: nothing fired after a few seconds → assume this
-      // page isn't connected to an Identity instance and stay out of the way.
-      setTimeout(()=>{ if (!settled) disableAuthUI(); }, 4000);
-    },
-    login(){ netlifyIdentity.open("login"); },
-    logout(){ netlifyIdentity.logout(); },
-    label(user){
-      return (user && (user.user_metadata && user.user_metadata.full_name)) || (user && user.email) || "Signed in";
-    }
-  });
-
-  function disableAuthUI(){
-    activeAuthProvider = null;
-    if (activeProjectId===SETTINGS) render();
-  }
   function renderAuthUI(){
     if (activeProjectId===SETTINGS) render();
   }
-  async function initAuth(){
-    for (const name of AUTH_PROVIDER_ORDER){
-      const provider = AUTH_PROVIDERS[name];
-      if (!provider) continue;
-      try{
-        const available = await provider.isAvailable();
-        if (!available) continue;
-        activeAuthProvider = provider;
-        provider.init(user => { currentAuthUser = user; renderAuthUI(); });
-        return; // first available provider wins
-      }catch(err){ /* this provider isn't usable in this environment - try the next one */ }
-    }
-    // No provider available: account controls stay unavailable and the rest
-    // of the app is completely unaffected.
-  }
+  const authService=window.BeforeworkAuth.create({
+    providers:[window.BeforeworkNetlifyIdentityProvider.create()],
+    onUserChange:renderAuthUI,
+    onUnavailable:renderAuthUI
+  });
 
   /* ---------- Keyboard shortcuts modal ---------- */
   function showShortcutsModal(){
@@ -2776,7 +2697,6 @@
   }
 
   function renderSettings(board){
-    const accountName = currentAuthUser && activeAuthProvider ? activeAuthProvider.label(currentAuthUser) : "";
     settingsView.render(board, {
       theme:document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light",
       timeFormat:getTimeFormat(),
@@ -2786,7 +2706,7 @@
       isLegacyFile:window.BeforeworkStorage.isLegacyFile(),
       recoverySnapshots:window.BeforeworkStorage.getRecoverySnapshots(),
       reminderStatus:reminderService.getStatus(),
-      accountName
+      accountName:authService.getAccountName()
     });
   }
 
@@ -2820,7 +2740,7 @@
       exportRecovery:exportRecoverySnapshot,
       restoreRecovery:restoreRecoverySnapshot,
       restoreBackup:restoreMigrationBackup,
-      logout(){ if (activeAuthProvider) activeAuthProvider.logout(); }
+      logout(){ authService.logout(); }
       }
     });
   }
@@ -4947,12 +4867,7 @@
       });
     });
     reminderService.start();
-    if (NETLIFY_IDENTITY_ENABLED){
-      try{
-        await loadNetlifyIdentity();
-        await initAuth();
-      }catch(err){ /* Identity is optional; the workspace runs without it. */ }
-    }
+    await authService.init();
     try{
       const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await loadViewModules();
       settingsView = createSettingsView(settingsModule.SettingsView);
