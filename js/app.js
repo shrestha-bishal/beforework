@@ -3529,6 +3529,7 @@
     showConfirm,
     scheduleSave,
     renderAll,
+    refreshOpenItemModal:()=>{ if (openItemRef) renderItemModal(); },
     closeAllActionMenus:()=>actionMenus.closeAll()
   });
   const itemFieldRenderer=window.BeforeworkItemFields.create({

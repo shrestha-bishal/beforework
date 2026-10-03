@@ -20,7 +20,7 @@ const definitions=[
 function createFeature(overrides={}){
   const window={};
   vm.runInNewContext(source,{window},{filename:"fields.js"});
-  const calls={dialogs:[],notices:[],confirms:[],saved:0,rendered:0,queuedEvents:[],closedMenus:0};
+  const calls={dialogs:[],notices:[],confirms:[],saved:0,rendered:0,refreshedItemModal:0,queuedEvents:[],closedMenus:0};
   const dialogResults=[];
   let nextId=0;
   const boardFilterFields=new Map();
@@ -48,6 +48,7 @@ function createFeature(overrides={}){
     showConfirm:async(...args)=>{calls.confirms.push(args);return true;},
     scheduleSave:()=>calls.saved++,
     renderAll:()=>calls.rendered++,
+    refreshOpenItemModal:()=>calls.refreshedItemModal++,
     closeAllActionMenus:()=>calls.closedMenus++,
     ...overrides
   });
@@ -129,10 +130,12 @@ test("deleting a field cleans values, field references, filters, and scheduled e
   assert.deepEqual([...boardFilterColumns.keys()],["tags"]);
   assert.deepEqual(calls.queuedEvents,["item-1"]);
   assert.deepEqual(getListSort(),{field:"updated",dir:"desc"});
+  assert.equal(calls.refreshedItemModal,1);
   feature.deleteField(project,"tags");
   assert.deepEqual([...boardFilterColumns],[]);
   assert.equal(calls.saved,2);
   assert.equal(calls.rendered,2);
+  assert.equal(calls.refreshedItemModal,2);
 });
 
 test("editing a field saves its trimmed label and closes menus",async()=>{
@@ -170,4 +173,5 @@ test("edit field dialog menu reuses the existing delete confirmation and cleanup
   assert.deepEqual(project.groups[0].items[0].values,{});
   assert.equal(calls.saved,1);
   assert.equal(calls.rendered,1);
+  assert.equal(calls.refreshedItemModal,1);
 });

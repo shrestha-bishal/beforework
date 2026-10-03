@@ -4,7 +4,7 @@
   function create({
     uid,fieldTypes,selectColors,projectItemEntries,queueGoogleEventDeletes,
     getBoardFilterFields,getBoardFilterColumns,getListSort,setListSort,
-    showDialog,showNotice,showConfirm,scheduleSave,renderAll,closeAllActionMenus
+    showDialog,showNotice,showConfirm,scheduleSave,renderAll,refreshOpenItemModal,closeAllActionMenus
   }){
     const fieldTypeOptions=fieldTypes.list();
 
@@ -65,6 +65,7 @@
       if (getListSort().field===fieldId) setListSort({field:"updated",dir:"desc"});
       scheduleSave();
       renderAll();
+      refreshOpenItemModal();
     }
 
     async function addFieldFlow(project){

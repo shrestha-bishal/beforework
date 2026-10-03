@@ -72,6 +72,7 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
   assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailSettings"\)/);
   assert.match(appSource,/fieldFeature\.editField\(event,field,project\)/);
+  assert.match(appSource,/refreshOpenItemModal:\(\)=>\{\s*if \(openItemRef\) renderItemModal\(\);\s*\}/);
   assert.match(dialogsTemplateSource,/data-dialog-action-menu-trigger[\s\S]*mdi:dots-horizontal[\s\S]*data-dialog-cancel aria-label="Close"/);
   assert.match(dialogsSource,/global\.BeforeworkActionMenu\.create\(\)\.register\(trigger,menu\)/);
   assert.match(fieldFeatureSource,/onSelect:event=>deleteFieldFromMenu\(event,field,project\)/);
