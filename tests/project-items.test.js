@@ -13,6 +13,12 @@ const templates=app.slice(templateStart,templateEnd);
 const helperStart=app.indexOf("const UNGROUPED_GROUP_ID=");
 const helperEnd=app.indexOf("function projectRecords()",helperStart);
 const helperSource=app.slice(helperStart,helperEnd);
+const fieldMutationStart=app.indexOf("function setItemFieldValue(");
+const fieldMutationEnd=app.indexOf("function createTag(",fieldMutationStart);
+const fieldMutationSource=app.slice(fieldMutationStart,fieldMutationEnd);
+const statusOptionStart=app.indexOf("function ensureStatusOptions(");
+const statusOptionEnd=app.indexOf("let calendarCursor",statusOptionStart);
+const statusOptionSource=app.slice(statusOptionStart,statusOptionEnd);
 
 function loadProjectItemHelpers(){
   const sandbox={};
@@ -24,7 +30,34 @@ test("Simple list, Table, Calendar, and Blank templates start without groups",()
   for (const name of ["simple","table","calendarTpl","blank"]){
     assert.match(templates,new RegExp(`${name}:\\s*\\{[^}]*groups:\\[\\]`));
   }
-  assert.match(templates,/taskboard:[\s\S]*?groups:\["To do","In progress","Review"\]/);
+  assert.match(templates,/taskboard:[\s\S]*?groups:\[\]/);
+});
+
+test("project-management template uses an optional Status field instead of fixed groups",()=>{
+  assert.match(templates,/taskboard:\{[^}]*views:\["kanban","list","calendar","roadmap"\][^}]*fields:\[[^\]]*"status"\][^}]*groups:\[\][^}]*boardGroupBy:"Status"/);
+  assert.match(app,/const DEFAULT_STATUS_OPTIONS=\["To do","In progress","Review"\]/);
+  assert.match(app,/if \(k==="status"\) return \{id:uid\(\), label:"Status", type:"select", options:DEFAULT_STATUS_OPTIONS/);
+});
+
+test("Add field offers an optional Group field backed by single-select options",()=>{
+  assert.match(app,/\{value:"group", label:"Group", description:"Create a single-select field for organising items into Board columns\."\}/);
+  assert.match(app,/const fieldType=type==="group"\?"select"/);
+  assert.match(app,/const fieldName=label\?\.trim\(\)\|\|\(type==="group"\?"Group"/);
+  assert.match(app,/if \(type==="select" \|\| type==="multi-select"\)/);
+});
+
+test("CSV status values can extend Status options without duplicating case-insensitive matches",()=>{
+  const field={id:"status",options:[{id:"todo",label:"To do"}]};
+  let nextId=0;
+  const optionIds=vm.runInNewContext(`${statusOptionSource}
+    JSON.stringify([...ensureStatusOptions(field,["TO DO","Blocked"]).values()].map(option=>option.id));`,{
+      field,
+      uid:()=>`option-${++nextId}`,
+      TAG_COLORS:["blue","green"]
+    });
+
+  assert.deepEqual(JSON.parse(optionIds),["todo","option-1"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(field.options.map(option=>option.label))),["To do","Blocked"]);
 });
 
 test("empty group-free projects expose one virtual destination without persisting a group",()=>{
@@ -75,6 +108,27 @@ test("adding an item to an existing group preserves grouped storage",()=>{
 
   assert.deepEqual(JSON.parse(JSON.stringify(project.groups[0].items)),[{id:"new-item"}]);
   assert.equal(project.items,undefined);
+});
+
+test("dragging a Board card between field columns changes the select value, not its storage group",()=>{
+  const item={id:"task-1",values:{status:"todo"},updatedAt:1};
+  const group={id:"legacy-group",name:"Legacy",items:[item]};
+  const project={fields:[{id:"status",type:"select",options:[{id:"todo",label:"To do"},{id:"doing",label:"In progress"}]}],groups:[group]};
+  const saved=vm.runInNewContext(`${fieldMutationSource}
+    setItemFieldValue("project-1","legacy-group","task-1","status","doing");
+    JSON.stringify({value:item.values.status,groupId:group.id,groupItems:group.items.map(candidate=>candidate.id)});`,{
+      project,
+      item,
+      group,
+      getProject:()=>project,
+      getItem:()=>item,
+      recordItemActivity(){},
+      scheduleSave(){},
+      render(){},
+      Date
+    });
+
+  assert.deepEqual(JSON.parse(saved),{value:"doing",groupId:"legacy-group",groupItems:["task-1"]});
 });
 
 test("lazy project summaries reconstruct grouped and ungrouped item entries",()=>{

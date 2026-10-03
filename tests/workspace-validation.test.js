@@ -382,6 +382,8 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
     email:fieldCellHtml({type:"email"},"alex@example.com"),
     invalidEmail:fieldCellHtml({type:"email"},"not-an-email"),
     zero:fieldCellHtml({type:"number"},0),
+    groupText:fieldCellHtml({type:"select",label:"Group",options:[{id:"new",label:"New",color:"red"}]},"new"),
+    statusChip:fieldCellHtml({type:"select",label:"Status",options:[{id:"todo",label:"To do",color:"blue"}]},"todo"),
     choices:fieldCellHtml({type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},["docs","design"]),
     numericSort:fieldSortValue({type:"number"},2)<fieldSortValue({type:"number"},10)
   });`,context));
@@ -392,6 +394,9 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
   assert.match(result.email,/href="mailto:alex@example\.com"/);
   assert.doesNotMatch(result.invalidEmail,/href=/);
   assert.equal(result.zero,"0");
+  assert.equal(result.groupText,"New");
+  assert.doesNotMatch(result.groupText,/<span|dot/);
+  assert.match(result.statusChip,/Label Label--secondary/);
   assert.match(result.choices,/Docs/);
   assert.match(result.choices,/Design/);
   assert.equal(result.numericSort,true);

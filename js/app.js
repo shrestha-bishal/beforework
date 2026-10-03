@@ -42,6 +42,7 @@
   ];
   const FIELD_TYPE_OPTIONS = [
     {value:"priority", label:"Priority", description:"Best for urgency or ranking."},
+    {value:"group", label:"Group", description:"Create a single-select field for organising items into Board columns."},
     {value:"select", label:"Single select", description:"Pick one answer from a fixed list."},
     {value:"start-date", label:"Start date", description:"When work on this task should begin."},
     {value:"due-date", label:"Due date", description:"When this task should be completed."},
@@ -200,16 +201,30 @@
   const PROJECT_TEMPLATES = {
     simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:[]},
     table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:[]},
-    taskboard:{label:"Project / task management",  views:["list","kanban","calendar","roadmap"], fields:["priority","due"], groups:["To do","In progress","Review"]},
+    taskboard:{label:"Project / task management",  views:["kanban","list","calendar","roadmap"], fields:["priority","due","status"], groups:[], boardGroupBy:"Status"},
     calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:[], itemDefaultType:"event"},
     blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:[]},
   };
+  const DEFAULT_STATUS_OPTIONS=["To do","In progress","Review"];
   function buildFieldsForTemplate(keys){
     return (keys||[]).map(k=>{
       if (k==="priority") return {id:uid(), label:"Priority", type:"priority", options:[]};
       if (k==="due") return {id:uid(), label:"Due date", type:"due-date", options:[]};
+      if (k==="status") return {id:uid(), label:"Status", type:"select", options:DEFAULT_STATUS_OPTIONS.map((label,index)=>({id:uid(),label,color:TAG_COLORS[index%TAG_COLORS.length]}))};
       return null;
     }).filter(Boolean);
+  }
+  function ensureStatusOptions(field,names){
+    if (!Array.isArray(field.options)) field.options=[];
+    const options=new Map(field.options.map(option=>[option.label.trim().toLowerCase(),option]));
+    names.forEach(name=>{
+      const key=name.trim().toLowerCase();
+      if (options.has(key)) return;
+      const option={id:uid(),label:name,color:TAG_COLORS[field.options.length%TAG_COLORS.length]};
+      field.options.push(option);
+      options.set(key,option);
+    });
+    return options;
   }
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let boardFilterText = "";
@@ -756,11 +771,18 @@
       state.projects=[];
     }
     const tpl = PROJECT_TEMPLATES[templateKey] || PROJECT_TEMPLATES.blank;
-    const views = tpl.views.map(type=>({id:uid(), type, name:viewLabel(type)}));
+    const fields=buildFieldsForTemplate(tpl.fields);
+    const groupByFieldId=fields.find(field=>field.label===tpl.boardGroupBy)?.id;
+    const views = tpl.views.map(type=>({
+      id:uid(),
+      type,
+      name:viewLabel(type),
+      ...(type==="kanban"&&groupByFieldId?{groupByFieldId}:{})
+    }));
     const p = {
       id:uid(), name, description, createdAt:Date.now(), folderId:null,
       tags:[],
-      fields: buildFieldsForTemplate(tpl.fields),
+      fields,
       groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
       items:[],
       views, activeViewId: views[0].id,
@@ -808,6 +830,22 @@
     project.views.push(v);
     project.activeViewId = v.id;
     scheduleSave(); render();
+  }
+  function setItemFieldValue(pid,gid,iid,fieldId,value){
+    const project=getProject(pid);
+    const item=getItem(pid,gid,iid);
+    const field=project?.fields?.find(candidate=>candidate.id===fieldId&&candidate.type==="select");
+    if (!item||!field) return;
+    const nextValue=field.options?.some(option=>option.id===value)?value:"";
+    const previousValue=item.values?.[fieldId]||"";
+    if (previousValue===nextValue) return;
+    item.values=item.values||{};
+    item.values[fieldId]=nextValue;
+    item.updatedAt=Date.now();
+    const optionLabel=id=>field.options?.find(option=>option.id===id)?.label||"No value";
+    recordItemActivity(item,"moved",{from:optionLabel(previousValue),to:optionLabel(nextValue)});
+    scheduleSave();
+    render();
   }
   function removeView(project, viewId){
     if (project.views.length <= 1) return;
@@ -1208,9 +1246,15 @@
       const hasTitle=Object.hasOwn(mapping,"title");
       const nameValid=destination.value!=="new" || !!newName.value.trim();
       const selectedProject=project;
+      const statusField=selectedProject?.fields.find(field=>field.type==="select"&&field.label.trim().toLowerCase()==="status");
+      const template=PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank;
+      const templateHasStatus=destination.value==="new"&&template.fields.includes("status");
       const groupNames=selectedProject
-        ? selectedProject.groups.map(group=>group.name)
-        : (PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank).groups;
+        ? statusField
+          ? (statusField.options||[]).map(option=>option.label)
+          : selectedProject.groups.map(group=>group.name)
+        : templateHasStatus ? DEFAULT_STATUS_OPTIONS : template.groups;
+      const mapsStatusToField=!!statusField||templateHasStatus;
       const prepared=context.parsed && hasTitle
         ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,mappingRenderer.dateFormatSelect?.value||"DMY")
         : null;
@@ -1227,7 +1271,10 @@
         previewSummary.textContent=`${prepared.tasks.length} CSV row(s) found; fix the errors before importing.`;
       }else{
         setStatus("");
-        previewSummary.textContent=`${prepared.tasks.length} task(s) ready to import.${prepared.groupsToCreate.length ? ` New groups will be created: ${prepared.groupsToCreate.join(", ")}.` : ""}`;
+        const additions=prepared.groupsToCreate.length
+          ? `${mapsStatusToField?" New status options will be created":" New groups will be created"}: ${prepared.groupsToCreate.join(", ")}.`
+          : "";
+        previewSummary.textContent=`${prepared.tasks.length} task(s) ready to import.${additions}`;
       }
 
       const columns=context.targets.filter(target=>selectedTargets.has(target.key));
@@ -1395,20 +1442,32 @@
           if (!field) throw new Error("A selected custom date column is no longer available.");
           return {...target,field};
         });
+        const statusField=project.fields.find(field=>field.type==="select"&&field.label.trim().toLowerCase()==="status");
         const groups=new Map(project.groups.map(group=>[group.name.trim().toLowerCase(),group]));
-        prepared.groupsToCreate.forEach(name=>{
-          const group={id:uid(),name,items:[]};
-          project.groups.push(group);
-          groups.set(name.trim().toLowerCase(),group);
-        });
+        const statusOptions=statusField
+          ? ensureStatusOptions(statusField,prepared.groupsToCreate)
+          : new Map();
+        if (!statusField){
+          prepared.groupsToCreate.forEach(name=>{
+            const key=name.trim().toLowerCase();
+            const group={id:uid(),name,items:[]};
+            project.groups.push(group);
+            groups.set(key,group);
+          });
+        }
         const tags=new Map(project.tags.map(tag=>[tag.name.trim().toLowerCase(),tag]));
 
         for (const imported of prepared.tasks){
-          const group=imported.status ? groups.get(imported.status.trim().toLowerCase())
-            : projectGroups(project).find(candidate=>candidate.id===UNGROUPED_GROUP_ID)||project.groups[0];
-          if (!group) throw new Error(`Couldn't find a group for status "${imported.status}".`);
+          const statusOption=imported.status?statusOptions.get(imported.status.trim().toLowerCase()):null;
+          const group=statusField
+            ? null
+            : imported.status ? groups.get(imported.status.trim().toLowerCase())
+              : projectGroups(project).find(candidate=>candidate.id===UNGROUPED_GROUP_ID)||project.groups[0];
+          if (statusField&&imported.status&&!statusOption) throw new Error(`Couldn't find a Status option for "${imported.status}".`);
+          if (!statusField&&!group) throw new Error(`Couldn't find a group for status "${imported.status}".`);
           const item=createItem(project.id,imported.title);
           item.description=imported.description;
+          if (statusField&&statusOption) item.values[statusField.id]=statusOption.id;
           if (startField && imported.startDate) item.values[startField.id]=imported.startDate;
           if (dueField && imported.dueDate) item.values[dueField.id]=imported.dueDate;
           customDateFields.forEach(({key,field})=>{
@@ -1421,7 +1480,8 @@
             if (!tag){ tag=createTag(project,name); tags.set(key,tag); }
             if (!item.tagIds.includes(tag.id)) item.tagIds.push(tag.id);
           });
-          group.items.push(item);
+          if (statusField) appendProjectItem(project,UNGROUPED_GROUP_ID,item);
+          else group.items.push(item);
         }
         activeProjectId=project.id;
         persistActiveLocation();
@@ -1447,11 +1507,12 @@
     else fileButton.focus();
     await refreshProjectAndMapping();
   }
-  function openNewItemModal(project, group, milestoneId=null){
+  function openNewItemModal(project, group, milestoneId=null, fieldAssignment=null){
     if (!project || !group) return;
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false, draft:{
       id:uid(), title:"", description:"", attachments:[], calendarType:project.itemDefaultType==="event" ? "event" : "task",
-      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, milestoneId, tagIds:[], values:{}, subitems:[], comments:[],
+      startTime:"", endTime:"", location:"", endDate:"", completedAt:null, milestoneId, tagIds:[],
+      values:fieldAssignment?{[fieldAssignment.fieldId]:fieldAssignment.value}:{}, subitems:[], comments:[],
       activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
     }};
     const overlay = document.createElement("div");
@@ -1683,6 +1744,7 @@
   function deleteField(project, fid){
     project.fields = project.fields.filter(f=>f.id!==fid);
     projectGroups(project).forEach(g=>g.items.forEach(it=>{ delete it.values[fid]; }));
+    project.views?.forEach(view=>{ if (view.groupByFieldId===fid) delete view.groupByFieldId; });
     boardFilterFields.delete(fid);
     if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
     scheduleSave(); renderAll();
@@ -1697,8 +1759,8 @@
     ], confirmLabel:"Add field"});
     if (!details) return;
     const [type,label] = details;
-    const fieldType=FIELD_TYPES.includes(type)?type:"select";
-    const fieldName=label?.trim()||(fieldType==="start-date"?"Start date":fieldType==="due-date"?"Due date":"");
+    const fieldType=type==="group"?"select":FIELD_TYPES.includes(type)?type:"select";
+    const fieldName=label?.trim()||(type==="group"?"Group":fieldType==="start-date"?"Start date":fieldType==="due-date"?"Due date":"");
     if (!fieldName) return;
     await addField(project,fieldName,fieldType);
   }
@@ -2161,6 +2223,7 @@
     if (["date","start-date","due-date"].includes(field.type)) return value ? duePillHtml(value) : "-";
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value);
+      if (opt&&field.label.trim().toLowerCase()==="group") return escapeHtml(opt.label);
       return opt ? fieldChipHtml(field,value) : "-";
     }
     if (field.type==="multi-select") return fieldChipHtml(field,value) || "-";
@@ -2844,7 +2907,7 @@
     if (activeView.type === "list") listView.render(project, board);
     else if (activeView.type === "table") tableView.render(project, board);
     else if (activeView.type === "calendar") calendarView.render(board, project);
-    else boardView.render(project, board);
+    else boardView.render(project, board, activeView);
     if (activeView.type==="list" || activeView.type==="table"){
       const addRow = board.querySelector(".listAddRow");
       if (addRow){
@@ -4891,6 +4954,7 @@
       });
       boardView = new boardViewModule.BoardView({
         projectGroups,
+        projectItemEntries,
         itemMatchesFilter,
         scheduleSave,
         renderProjectList,
@@ -4898,6 +4962,7 @@
         confirmDeleteGroup,
         openNewItemModal,
         moveItem,
+        setItemFieldValue,
         priorityField,
         dateFields,
         fieldsWithStartBeforeDue,

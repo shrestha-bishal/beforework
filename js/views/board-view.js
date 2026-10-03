@@ -10,9 +10,10 @@ export class BoardView {
     this.dependencies=dependencies;
   }
 
-  render(project,board){
+  render(project,board,view){
     const {
       projectGroups,
+      projectItemEntries,
       itemMatchesFilter,
       scheduleSave,
       renderProjectList,
@@ -20,6 +21,7 @@ export class BoardView {
       confirmDeleteGroup,
       openNewItemModal,
       moveItem,
+      setItemFieldValue,
       priorityField,
       dateFields,
       fieldsWithStartBeforeDue,
@@ -29,14 +31,39 @@ export class BoardView {
       openItemModal
     }=this.dependencies;
     const templates=this.cloneTemplate();
-    projectGroups(project).forEach(group=>{
+    const groupingField=(project.fields||[]).find(field=>field.id===view?.groupByFieldId&&field.type==="select");
+    const storageGroups=projectGroups(project);
+    const columns=groupingField
+      ? [
+        ...(groupingField.options||[]).map(option=>({
+          id:option.id,
+          name:option.label,
+          fieldOptionId:option.id,
+          fieldGrouping:true,
+          entries:[]
+        })),
+        {id:"",name:"No value",fieldOptionId:"",fieldGrouping:true,entries:[]}
+      ]
+      : storageGroups.map(group=>({
+        ...group,
+        entries:(group.items||[]).map(item=>({item,group}))
+      }));
+    if (groupingField){
+      projectItemEntries(project).forEach(entry=>{
+        const value=entry.item.values?.[groupingField.id]||"";
+        const column=columns.find(candidate=>candidate.fieldOptionId===value)
+          || columns.find(candidate=>candidate.fieldOptionId==="");
+        column.entries.push(entry);
+      });
+    }
+    columns.forEach(group=>{
       const column=templates.querySelector("#boardGroupTemplate").content.firstElementChild.cloneNode(true);
       column.dataset.groupId=group.id;
-      const visibleItems=group.items.filter(item=>itemMatchesFilter(project,item,group));
+      const visibleEntries=group.entries.filter(({item,group:itemGroup})=>itemMatchesFilter(project,item,itemGroup));
       column.querySelector(".groupTitle").value=group.name;
-      column.querySelector(".groupTitle").readOnly=!!group.virtual;
+      column.querySelector(".groupTitle").readOnly=!!group.virtual||!!group.fieldGrouping;
       const count=column.querySelector("[data-board-group-count]");
-      count.textContent=`${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}`;
+      count.textContent=`${visibleEntries.length}${visibleEntries.length!==group.entries.length?"/"+group.entries.length:""}`;
 
       column.querySelector(".groupTitle").addEventListener("change",event=>{
         group.name=event.target.value.trim()||group.name;
@@ -45,7 +72,7 @@ export class BoardView {
       });
       const groupMenuButton=column.querySelector('[data-action="groupMenu"]');
       const groupMenu=column.querySelector(".fieldColumnMenu");
-      groupMenuButton.hidden=!!group.virtual;
+      groupMenuButton.hidden=!!group.virtual||!!group.fieldGrouping;
       const groupActionMenu=window.BeforeworkActionMenu.create().register(groupMenuButton,groupMenu);
       groupMenuButton.setAttribute("aria-label",`Group actions for ${group.name}`);
       groupMenu.querySelector('[data-group-action="edit"]').onclick=event=>{
@@ -58,10 +85,12 @@ export class BoardView {
         groupActionMenu.close();
         confirmDeleteGroup(project,group);
       };
-      column.querySelector('[data-action="addItem"]').onclick=()=>openNewItemModal(project,group);
+      column.querySelector('[data-action="addItem"]').onclick=()=>groupingField
+        ? openNewItemModal(project,storageGroups[0],null,{fieldId:groupingField.id,value:group.fieldOptionId})
+        : openNewItemModal(project,group);
 
       const body=column.querySelector(".groupBody");
-      visibleItems.forEach(item=>body.appendChild(this.createCard(project,group,item,templates,{
+      visibleEntries.forEach(({item,group:itemGroup})=>body.appendChild(this.createCard(project,itemGroup,item,templates,{
         priorityField,dateFields,fieldsWithStartBeforeDue,fieldChipHtml,tagById,tagPillHtml,openItemModal
       })));
       column.addEventListener("dragover",event=>{
@@ -73,7 +102,8 @@ export class BoardView {
         event.preventDefault();
         column.classList.remove("dragover");
         const data=JSON.parse(event.dataTransfer.getData("text/plain"));
-        moveItem(project.id,data.groupId,group.id,data.itemId,null);
+        if (groupingField) setItemFieldValue(project.id,data.groupId,data.itemId,groupingField.id,group.fieldOptionId);
+        else moveItem(project.id,data.groupId,group.id,data.itemId,null);
       });
       board.appendChild(column);
     });

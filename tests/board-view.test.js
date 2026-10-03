@@ -8,6 +8,7 @@ const test=require("node:test");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const view=fs.readFileSync(path.join(__dirname,"../js/views/board-view.js"),"utf8");
 const template=fs.readFileSync(path.join(__dirname,"../pages/board-view.html"),"utf8");
+const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
 const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 
 test("Board columns and cards are supplied by the page template",()=>{
@@ -23,19 +24,26 @@ test("Board columns and cards are supplied by the page template",()=>{
 test("Board view retains app-owned group actions and drag-and-drop",()=>{
   for (const dependency of [
     "itemMatchesFilter",
+    "projectItemEntries",
     "scheduleSave",
     "renderProjectList",
     "editGroupName",
     "confirmDeleteGroup",
     "openNewItemModal",
     "moveItem",
+    "setItemFieldValue",
     "openItemModal"
   ]){
     assert.ok(view.includes(dependency),`missing ${dependency}`);
   }
   assert.ok(view.includes('setData("text/plain"'));
   assert.ok(view.includes('getData("text/plain")'));
-  assert.ok(app.includes('else boardView.render(project, board)'));
+  assert.ok(app.includes('else boardView.render(project, board, activeView)'));
+  assert.ok(view.includes("view?.groupByFieldId"));
+  assert.ok(view.includes("groupingField.id,group.fieldOptionId"));
+  assert.doesNotMatch(index,/boardGroupBy/);
+  assert.doesNotMatch(app,/getElementById\("boardGroupBy/);
+  assert.ok(app.includes("boardView.render(project, board, activeView)"));
   assert.ok(app.includes('import("./views/board-view.js")'));
 });
 
