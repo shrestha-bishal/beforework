@@ -205,8 +205,9 @@
   .sidebarSectionLabel{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
 
   [data-tagfilter]{cursor:pointer;}
-    .tagColorPill{background-color:color-mix(in srgb,var(--tag-color) 12%,var(--bg));border-color:color-mix(in srgb,var(--tag-color) 30%,var(--border));color:var(--text);}
+    .tagColorPill{background-color:color-mix(in srgb,var(--tag-color) 14%,var(--bg));border-color:color-mix(in srgb,var(--tag-color) 36%,var(--border));color:color-mix(in srgb,var(--tag-color) 84%,var(--text));font-weight:500;}
     .tagColorPill .dot{background:var(--tag-color);}
+  .tagColorPill.selected{background-color:color-mix(in srgb,var(--tag-color) 22%,var(--bg));border-color:var(--tag-color);color:color-mix(in srgb,var(--tag-color) 88%,var(--text));box-shadow:0 0 0 1px color-mix(in srgb,var(--tag-color) 24%,transparent);}
   .Label.selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
   #sideTagsList,#boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
 

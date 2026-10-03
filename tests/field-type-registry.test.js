@@ -24,10 +24,14 @@ test("every field type is registered once with its own catalog metadata",()=>{
     ["Blue","Purple","Pink","Green","Red","Amber","Forest","Grey","Teal","Orange","Coral"]
   );
   assert.deepEqual(
+    [...fieldTypes.get("tags").colorOptions].map(option=>option.value),
+    ["#0969da","#8250df","#bf3989","#1a7f37","#cf222e","#9a6700","#116329","#6e7781","#0f766e","#bc4c00","#cf4a2c"]
+  );
+  assert.deepEqual(
     [...fieldTypes.get("priority").options].map(option=>option.id),
     ["high","medium","low"]
   );
-  assert.equal(fieldTypes.get("select").colors.length,fieldTypes.get("tags").colors.length);
+  assert.equal(fieldTypes.get("tags").colors.length,fieldTypes.get("tags").colorOptions.length);
   const registryPosition=index.indexOf('src="js/core/fields/registry.js"');
   const appPosition=index.indexOf('src="js/app.js"');
   for (const definition of definitions){

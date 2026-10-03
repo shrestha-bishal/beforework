@@ -2,8 +2,8 @@
   "use strict";
 
   const colors=[
-    "var(--color-accent-fg)","var(--color-severe-fg)","var(--color-sponsors-fg)","var(--color-open-fg)",
-    "var(--color-danger-fg)","var(--color-attention-fg)","var(--color-success-fg)","var(--color-fg-muted)"
+    "#0969da","#8250df","#bf3989","#1a7f37","#cf222e",
+    "#9a6700","#116329","#6e7781","#0f766e","#bc4c00","#cf4a2c"
   ];
   const colorOptions=[
     {label:"Blue",value:colors[0]},{label:"Purple",value:colors[1]},
