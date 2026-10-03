@@ -214,7 +214,9 @@ export class ListView {
             control.appendChild(element);
           });
           control.addEventListener("change",()=>{
-            item.values[field.id]=[...control.selectedOptions].map(option=>option.value);
+            item.values[field.id]=window.BeforeworkFieldTypes.normalizeInput(field,{
+              input:control,value:control.value,selectedOptions:[...control.selectedOptions],item,project
+            });
             item.updatedAt=Date.now();
             scheduleSave();
           });

@@ -5,6 +5,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
+const {createFieldTypes}=require("./helpers/field-types");
+
+const fieldTypes=createFieldTypes();
 
 const source = fs.readFileSync(path.join(__dirname,"../js/core/workspace-validation.js"),"utf8");
 const storageSource = fs.readFileSync(path.join(__dirname,"../js/services/storage/storage.js"),"utf8");
@@ -375,7 +378,7 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
   const start=appSource.indexOf("function fieldChipHtml");
   const end=appSource.indexOf("function itemMatchesFilter");
   const snippet=appSource.slice(start,end);
-  const context={URL,escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),duePillHtml:()=>""};
+  const context={URL,fieldTypes,escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),duePillHtml:()=>""};
   const result=JSON.parse(vm.runInNewContext(`${snippet}; JSON.stringify({
     safe:fieldCellHtml({type:"url"},"https://example.com/docs"),
     unsafe:fieldCellHtml({type:"url"},"javascript:alert(1)"),
@@ -587,7 +590,8 @@ test("filters numeric values and any selected multi-select option", ()=>{
   const snippet=appSource.slice(start,end);
   const context={showArchived:false,activeProjectId:"project",completionFilter:"open",isItemCompleted:()=>false,
     boardFilterGroups:new Set(),boardFilterTags:new Set(),boardFilterFields:new Map(),boardFilterColumns:new Map(),
-    COLUMN_FILTER_NONE:"__none__",boardFilterText:"",isDateField:field=>["date","start-date","due-date"].includes(field?.type)};
+    COLUMN_FILTER_NONE:"__none__",boardFilterText:"",fieldTypes,
+    scheduleFieldValue:()=>"",isDateField:field=>["date","start-date","due-date"].includes(field?.type)};
   const result=JSON.parse(vm.runInNewContext(`${snippet};
     const project={id:"project",fields:[{id:"count",type:"number"},{id:"areas",type:"multi-select"},{id:"contact",type:"email"}]};
     const group={id:"group"};
@@ -680,6 +684,7 @@ test("exports filtered view columns in saved order as safe CSV", ()=>{
   const end=appSource.indexOf("function exportProjectCsv",start);
   const snippet=appSource.slice(start,end);
   const context={
+    fieldTypes,
     PRIORITY_OPTIONS:[{id:"high",label:"High"},{id:"medium",label:"Medium"},{id:"low",label:"Low"}],
     csvTestValue:"Comma, quote \" and newline\nnext",
     orderedTableColumns:(project,viewType,columnIds)=>{

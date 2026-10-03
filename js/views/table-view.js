@@ -295,10 +295,11 @@ export class TableView {
         const item=getItem(control.dataset.pid,control.dataset.gid,control.dataset.iid);
         if (!item) return;
         const field=project.fields.find(candidate=>candidate.id===control.dataset.fieldid);
-        const nextValue=field?.type==="checkbox"?(event.target.checked?"true":"")
-          : ["multi-select","relation"].includes(field?.type)?[...event.target.selectedOptions].map(option=>option.value)
-          : field?.type==="number"?(event.target.value===""?"":Number(event.target.value))
-          : event.target.value;
+        const nextValue=window.BeforeworkFieldTypes.normalizeInput(field,{
+          input:event.target,value:event.target.value,
+          selectedOptions:event.target.selectedOptions?[...event.target.selectedOptions]:[],
+          item,project
+        });
         item.values[control.dataset.fieldid]=nextValue;
         if (field?.type==="location") item.location=String(nextValue||"").trim();
         item.updatedAt=Date.now();

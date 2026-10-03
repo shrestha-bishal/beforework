@@ -5,7 +5,9 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const {createFieldTypes}=require("./helpers/field-types");
 
+const fieldTypes=createFieldTypes();
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const tableView=fs.readFileSync(path.join(__dirname,"../js/views/table-view.js"),"utf8");
 const helperStart=app.indexOf("const UNGROUPED_GROUP_ID=");
@@ -20,13 +22,14 @@ function runSnippet(startMarker,endMarker,body,context={}){
   const end=app.indexOf(endMarker,start);
   assert.notEqual(start,-1,`missing ${startMarker}`);
   assert.notEqual(end,-1,`missing ${endMarker}`);
-  return vm.runInNewContext(`${projectHelpers}; ${app.slice(start,end)}; ${body}`,context);
+  return vm.runInNewContext(`${projectHelpers}; ${app.slice(start,end)}; ${body}`,{fieldTypes,...context});
 }
 
 test("Relations is available as a multi-item custom field",()=>{
-  assert.match(app,/value:"relation", label:"Relations", description:"Link this item to other items in the same project\."/);
-  assert.match(app,/field\?\.type==="relation" \? \[\.\.\.el\.selectedOptions\]/);
-  assert.match(app,/field\?\.type==="multi-select" \? \[\.\.\.modal\.querySelectorAll/);
+  const definition=fs.readFileSync(path.join(__dirname,"../js/core/fields/types/relation.js"),"utf8");
+  assert.match(definition,/value:"relation",label:"Relations",description:"Link this item to other items in the same project\."/);
+  assert.match(app,/fieldTypes\.normalizeInput\(field,/);
+  assert.match(app,/selectedOptions=field\?\.type==="multi-select"/);
 });
 
 test("relation field editor searches and selects only other project items",()=>{

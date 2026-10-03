@@ -7,6 +7,7 @@ const test=require("node:test");
 const vm=require("node:vm");
 
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const groupDefinition=fs.readFileSync(path.join(__dirname,"../js/core/fields/types/group.js"),"utf8");
 const templateStart=app.indexOf("const PROJECT_TEMPLATES = {");
 const templateEnd=app.indexOf("function buildFieldsForTemplate",templateStart);
 const templates=app.slice(templateStart,templateEnd);
@@ -40,7 +41,8 @@ test("project-management template uses an optional Status field instead of fixed
 });
 
 test("Add field offers an optional Group field backed by single-select options",()=>{
-  assert.match(app,/\{value:"group", label:"Group", description:"Create a single-select field for organising items into Board columns\."\}/);
+  assert.match(groupDefinition,/value:"group",label:"Group",description:"Create a single-select field for organising items into Board columns\."/);
+  assert.match(app,/const FIELD_TYPE_OPTIONS=fieldTypes\.list\(\)/);
   assert.match(app,/const fieldType=type==="group"\?"select"/);
   assert.match(app,/const fieldName=label\?\.trim\(\)\|\|\(type==="group"\?"Group"/);
   assert.match(app,/if \(type==="select" \|\| type==="multi-select"\)/);
@@ -53,7 +55,7 @@ test("CSV status values can extend Status options without duplicating case-insen
     JSON.stringify([...ensureStatusOptions(field,["TO DO","Blocked"]).values()].map(option=>option.id));`,{
       field,
       uid:()=>`option-${++nextId}`,
-      TAG_COLORS:["blue","green"]
+      SELECT_COLORS:["blue","green"]
     });
 
   assert.deepEqual(JSON.parse(optionIds),["todo","option-1"]);

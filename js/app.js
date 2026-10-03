@@ -9,18 +9,11 @@
   }
   // Primer's own semantic fg tokens, not hand-picked hex - these track
   // light/dark theme automatically instead of needing a second palette.
-  const TAG_COLORS = [
-    "var(--color-accent-fg)","var(--color-severe-fg)","var(--color-sponsors-fg)","var(--color-open-fg)",
-    "var(--color-danger-fg)","var(--color-attention-fg)","var(--color-success-fg)","var(--color-fg-muted)"
-  ];
-  const TAG_COLOR_OPTIONS = [
-    {label:"Blue",value:TAG_COLORS[0]}, {label:"Purple",value:TAG_COLORS[1]},
-    {label:"Pink",value:TAG_COLORS[2]}, {label:"Green",value:TAG_COLORS[3]},
-    {label:"Red",value:TAG_COLORS[4]}, {label:"Amber",value:TAG_COLORS[5]},
-    {label:"Forest",value:TAG_COLORS[6]}, {label:"Grey",value:TAG_COLORS[7]},
-    {label:"Teal",value:"#0f766e"}, {label:"Orange",value:"#bc4c00"},
-    {label:"Coral",value:"#cf4a2c"}
-  ];
+  const fieldTypes=window.BeforeworkFieldTypes;
+  const TAG_FIELD=fieldTypes.get("tags");
+  const TAG_COLORS=TAG_FIELD.colors;
+  const TAG_COLOR_OPTIONS=TAG_FIELD.colorOptions;
+  const SELECT_COLORS=fieldTypes.get("select").colors;
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
   const ROADMAP = "__roadmap__";
@@ -35,32 +28,11 @@
     "mdi:account-group-outline","mdi:file-document-outline","mdi:flag-outline","mdi:puzzle-outline",
     "mdi:school-outline","mdi:bank-outline"
   ];
-  const PRIORITY_OPTIONS = [
-    {id:"high",label:"High",color:"var(--color-danger-fg)",rank:3},
-    {id:"medium",label:"Medium",color:"var(--color-attention-fg)",rank:2},
-    {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:1},
-  ];
-  const FIELD_TYPE_OPTIONS = [
-    {value:"priority", label:"Priority", description:"Best for urgency or ranking."},
-    {value:"group", label:"Group", description:"Create a single-select field for organising items into Board columns."},
-    {value:"tags", label:"Tags", description:"Add colored tags, filters, and bulk tagging to this project."},
-    {value:"location", label:"Location", description:"Add an optional location or link to each item."},
-    {value:"schedule", label:"Schedule", description:"Add dates, times, reminders, and recurrence controls to items."},
-    {value:"select", label:"Single select", description:"Pick one answer from a fixed list."},
-    {value:"start-date", label:"Start date", description:"When work on this task should begin."},
-    {value:"due-date", label:"Due date", description:"When this task should be completed."},
-    {value:"date", label:"Date", description:"A custom date for any other purpose."},
-    {value:"text", label:"Text", description:"Freeform notes or details."},
-    {value:"checkbox", label:"Checkbox", description:"Yes/no or done/not done flag."},
-    {value:"url", label:"URL", description:"Link to a website or online resource."},
-    {value:"email", label:"Email", description:"Store a contact email address."},
-    {value:"number", label:"Number", description:"Store a count, estimate, or other numeric value."},
-    {value:"multi-select", label:"Multi-select", description:"Choose more than one option."},
-    {value:"relation", label:"Relations", description:"Link this item to other items in the same project."},
-  ];
-  const FIELD_TYPES = FIELD_TYPE_OPTIONS.map(option=>option.value);
-  function fieldTypeLabel(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.label || "Text"; }
-  function fieldTypeDescription(type){ return FIELD_TYPE_OPTIONS.find(option=>option.value===type)?.description || ""; }
+  const PRIORITY_OPTIONS=fieldTypes.get("priority").options;
+  const FIELD_TYPE_OPTIONS=fieldTypes.list();
+  const FIELD_TYPES=FIELD_TYPE_OPTIONS.map(option=>option.value);
+  function fieldTypeLabel(type){ return fieldTypes.get(type)?.label||"Text"; }
+  function fieldTypeDescription(type){ return fieldTypes.get(type)?.description||""; }
   const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
@@ -213,7 +185,7 @@
     return (keys||[]).map(k=>{
       if (k==="priority") return {id:uid(), label:"Priority", type:"priority", options:[]};
       if (k==="due") return {id:uid(), label:"Due date", type:"due-date", options:[]};
-      if (k==="status") return {id:uid(), label:"Status", type:"select", options:DEFAULT_STATUS_OPTIONS.map((label,index)=>({id:uid(),label,color:TAG_COLORS[index%TAG_COLORS.length]}))};
+      if (k==="status") return {id:uid(), label:"Status", type:"select", options:DEFAULT_STATUS_OPTIONS.map((label,index)=>({id:uid(),label,color:SELECT_COLORS[index%SELECT_COLORS.length]}))};
       return null;
     }).filter(Boolean);
   }
@@ -223,7 +195,7 @@
     names.forEach(name=>{
       const key=name.trim().toLowerCase();
       if (options.has(key)) return;
-      const option={id:uid(),label:name,color:TAG_COLORS[field.options.length%TAG_COLORS.length]};
+      const option={id:uid(),label:name,color:SELECT_COLORS[field.options.length%SELECT_COLORS.length]};
       field.options.push(option);
       options.set(key,option);
     });
@@ -1666,7 +1638,7 @@
       const opts = await showDialog({title:"Field options", message:`Add options for "${label}" separated by commas.`, fields:[{label:"Options", placeholder:"Backlog, In progress, Blocked"}], confirmLabel:"Create field"});
       if (opts === null) return;
       field.options = (opts||"").split(",").map(s=>s.trim()).filter(Boolean)
-        .map((l,i)=>({id:uid(), label:l, color:TAG_COLORS[i % TAG_COLORS.length]}));
+        .map((l,i)=>({id:uid(), label:l, color:SELECT_COLORS[i % SELECT_COLORS.length]}));
     }
     project.fields.push(field);
     scheduleSave(); renderAll();
@@ -2234,17 +2206,8 @@
     return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(address) ? `mailto:${address}` : "";
   }
 
-  function fieldSortValue(field,value){
-    if (field.type==="number"){
-      if (value==="" || value==null) return Number.POSITIVE_INFINITY;
-      const number=Number(value);
-      return Number.isFinite(number) ? number : Number.POSITIVE_INFINITY;
-    }
-    if (field.type==="multi-select"){
-      const selected=Array.isArray(value) ? value : [];
-      return selected.map(id=>(field.options||[]).find(option=>option.id===id)?.label||"").join(", ").toLowerCase();
-    }
-    return String(value??"").toLowerCase();
+  function fieldSortValue(field,value,context={}){
+    return fieldTypes.sortValue(field,{...context,value});
   }
 
   function columnDateKey(value){
@@ -2255,7 +2218,12 @@
   function columnFilterValuesForItem(project,item,group,columnId){
     if (columnId==="title") return item.title ? [String(item.title)] : [COLUMN_FILTER_NONE];
     if (columnId==="group") return group?.id ? [String(group.id)] : [COLUMN_FILTER_NONE];
-    if (columnId==="tags") return item.tagIds?.length ? item.tagIds.map(String) : [COLUMN_FILTER_NONE];
+    if (columnId==="tags"){
+      const tagsField=project?.fields?.find(field=>field.type==="tags");
+      return fieldTypes.getFilterValues(tagsField,{
+        item,project,group,noneValue:COLUMN_FILTER_NONE,dateKey:columnDateKey,scheduleFieldValue
+      });
+    }
     if (columnId==="progress"){
       const subitems=Array.isArray(item.subitems)?item.subitems:[];
       return subitems.length ? [`${subitems.filter(subitem=>subitem.done).length}/${subitems.length}`] : [COLUMN_FILTER_NONE];
@@ -2264,40 +2232,29 @@
     if (!columnId.startsWith("field:")) return [COLUMN_FILTER_NONE];
     const fieldId=columnId.slice("field:".length);
     const field=project?.fields?.find(candidate=>candidate.id===fieldId);
-    const value=(item.values||{})[fieldId];
-    if (field?.type==="schedule") return [scheduleFieldValue(project,item)||COLUMN_FILTER_NONE];
-    if (field?.type==="checkbox"){
-      if (value===true || value===1 || ["true","1","yes"].includes(String(value).toLowerCase())) return ["true"];
-      if (value===false || value===0 || ["false","0","no"].includes(String(value).toLowerCase())) return [COLUMN_FILTER_NONE];
-      return [COLUMN_FILTER_NONE];
-    }
-    if (field && isDateField(field)) return [columnDateKey(value)];
-    if (Array.isArray(value)) return value.length ? value.map(String) : [COLUMN_FILTER_NONE];
-    return value==null || value==="" ? [COLUMN_FILTER_NONE] : [String(value)];
+    const value=field?.type==="location"
+      ?(item.values||{})[fieldId]??item.location??""
+      :(item.values||{})[fieldId];
+    return fieldTypes.getFilterValues(field,{
+      value,item,project,group,noneValue:COLUMN_FILTER_NONE,dateKey:columnDateKey,
+      scheduleFieldValue
+    });
   }
   function itemMatchesFilter(project, item, group, ignoreColumnFilters=false){
     if (item.archived && !showArchived) return false;
     if (project && project.id===activeProjectId && isItemCompleted(item)!==(completionFilter==="completed")) return false;
     if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
-    if (project?.fields?.some(field=>field.type==="tags") && boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
+    const tagsField=project?.fields?.find(field=>field.type==="tags");
+    if (tagsField&&boardFilterTags.size&&!fieldTypes.matchesFilter(tagsField,{
+      item,project,mode:[...boardFilterTags],noneValue:COLUMN_FILTER_NONE
+    })) return false;
     for (const [fid, mode] of boardFilterFields){
       const field = project?.fields?.find(candidate=>candidate.id===fid);
       const val = field?.type==="schedule" ? scheduleFieldValue(project,item) : (item.values||{})[fid] ?? "";
-      if (Array.isArray(mode)){
-        const selectedOptions=mode.filter(optionId=>optionId!=="__none__");
-        const itemOptions=Array.isArray(val) ? val : val ? [val] : [];
-        if (!mode.length || itemOptions.some(optionId=>selectedOptions.includes(optionId)) || (!itemOptions.length && mode.includes("__none__"))) continue;
-        return false;
-      }
-      if (mode==="__all__") continue;
-      if (mode==="__none__"){ if (val) return false; }
-      else {
-        if (field?.type==="text" || field?.type==="url" || field?.type==="email" || field?.type==="location" || field?.type==="schedule"){
-          if (!val.toLowerCase().includes(mode.toLowerCase())) return false;
-        } else if (field?.type==="number"){
-          if (val==="" || Number(val)!==Number(mode)) return false;
-        } else if (val !== mode) return false;
-      }
+      if (!fieldTypes.matchesFilter(field,{
+        value:val,mode,item,project,group,noneValue:COLUMN_FILTER_NONE,
+        scheduleFieldValue,dateKey:columnDateKey
+      })) return false;
     }
     if (!ignoreColumnFilters){
       for (const [columnId,selected] of boardFilterColumns){
@@ -2306,9 +2263,17 @@
     }
     if (boardFilterText){
       const q = boardFilterText.toLowerCase();
-      const hay = [item.title, item.description, ...(item.subitems||[]).map(s=>s.title), ...Object.values(item.values||{}),
-        ...(project?.fields?.some(field=>field.type==="schedule")?[scheduleFieldValue(project,item)]:[])].join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
+      const standardValues=[item.title,item.description,...(item.subitems||[]).map(subitem=>subitem.title)];
+      const matchesStandardValue=standardValues.some(value=>String(value??"").toLowerCase().includes(q));
+      const matchesFieldValue=(project?.fields||[]).some(field=>{
+        const value=field.type==="location"
+          ?(item.values||{})[field.id]??item.location??""
+          :(item.values||{})[field.id];
+        return fieldTypes.matchesQuery(field,{
+          value,item,project,query:q,scheduleFieldValue
+        });
+      });
+      if (!matchesStandardValue&&!matchesFieldValue) return false;
     }
     return true;
   }
@@ -2330,21 +2295,11 @@
         firstValue=first.group.name.toLowerCase(); secondValue=second.group.name.toLowerCase();
       } else if (listSort.field==="updated"){
         firstValue=first.item.updatedAt; secondValue=second.item.updatedAt;
-      } else if (field?.type==="priority"){
-        firstValue=(PRIORITY_OPTIONS.find(option=>option.id===first.item.values[field.id])||{rank:0}).rank;
-        secondValue=(PRIORITY_OPTIONS.find(option=>option.id===second.item.values[field.id])||{rank:0}).rank;
-      } else if (field?.type==="checkbox"){
-        firstValue=first.item.values[field.id] ? 1 : 0;
-        secondValue=second.item.values[field.id] ? 1 : 0;
-      } else if (isDateField(field)){
-        firstValue=first.item.values[field.id]||"9999-99-99";
-        secondValue=second.item.values[field.id]||"9999-99-99";
-      } else if (field?.type==="schedule"){
-        firstValue=scheduleFieldValue(project,first.item).toLowerCase();
-        secondValue=scheduleFieldValue(project,second.item).toLowerCase();
       } else if (field){
-        firstValue=fieldSortValue(field,first.item.values[field.id]);
-        secondValue=fieldSortValue(field,second.item.values[field.id]);
+        const firstValueContext={project,item:first.item,scheduleFieldValue};
+        const secondValueContext={project,item:second.item,scheduleFieldValue};
+        firstValue=fieldSortValue(field,first.item.values[field.id],firstValueContext);
+        secondValue=fieldSortValue(field,second.item.values[field.id],secondValueContext);
       } else {
         firstValue=first.item.updatedAt; secondValue=second.item.updatedAt;
       }
@@ -2355,14 +2310,9 @@
   }
 
   function csvFieldValue(field,value,project){
-    if (field.type==="schedule") return value==null?"":String(value);
-    if (value==null || value==="") return "";
-    if (field.type==="priority") return PRIORITY_OPTIONS.find(option=>option.id===value)?.label||String(value);
-    if (field.type==="select") return (field.options||[]).find(option=>option.id===value)?.label||String(value);
-    if (field.type==="multi-select") return (Array.isArray(value)?value:[]).map(id=>(field.options||[]).find(option=>option.id===id)?.label||"").filter(Boolean).join("; ");
-    if (field.type==="relation") return relatedItemTitles(project,value).join("; ");
-    if (field.type==="checkbox") return value===true || ["true","1","yes"].includes(String(value).toLowerCase()) ? "Yes" : "No";
-    return String(value);
+    return fieldTypes.formatValue(field,{
+      value,project,relatedItemTitles:values=>relatedItemTitles(project,values)
+    });
   }
 
   function serializeCsvRows(rows){
@@ -2383,7 +2333,8 @@
       ...project.fields.filter(field=>field.type!=="tags").map(field=>({id:`field:${field.id}`,label:field.label,value:row=>field.type==="schedule"
         ? scheduleFieldValue(project,row.item)
         : csvFieldValue(field,row.item.values[field.id],project)})),
-      ...(project.fields.some(field=>field.type==="tags")?[{id:"tags",label:project.fields.find(field=>field.type==="tags").label,value:row=>(row.item.tagIds||[]).map(id=>project.tags.find(tag=>tag.id===id)?.name||"").filter(Boolean).join("; ")}]:[]),
+      ...(project.fields.some(field=>field.type==="tags")?[{id:"tags",label:project.fields.find(field=>field.type==="tags").label,value:row=>
+        fieldTypes.formatValue(project.fields.find(field=>field.type==="tags"),{item:row.item,project})}]:[]),
       ...(viewType==="list" && showProgressColumn?[{id:"progress",label:"Progress",value:row=>row.item.subitems.length?`${row.item.subitems.filter(subitem=>subitem.done).length}/${row.item.subitems.length}`:""}]:[]),
       ...(viewType==="list"?[{id:"updated",label:"Updated",value:row=>formatUpdatedAt(row.item.updatedAt)}]:[])
     ];
@@ -2971,7 +2922,8 @@
   function renderBoardTagFilters(project){
     const wrap = document.getElementById("boardTagFilters");
     if (!hasTagsField(project)){ wrap.replaceChildren(); return; }
-    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${project.tags.length ? project.tags.map(tag=>`<label class="filterOptionCheck"><input type="checkbox" data-tag-filter="${tag.id}" ${boardFilterTags.has(tag.id)?"checked":""}><span class="filterValuePill tagPill" style="--pill-color:${tag.color}"><span class="dot" style="background:${tag.color}"></span>${escapeHtml(tag.name)}</span></label>`).join("") : `<span class="filterEmpty">No tags in this project</span>`}</div>`;
+    const options=fieldTypes.getFilterOptions(project.fields.find(field=>field.type==="tags"),{project});
+    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${options.length ? options.map(tag=>`<label class="filterOptionCheck"><input type="checkbox" data-tag-filter="${escapeHtml(tag.value)}" ${boardFilterTags.has(tag.value)?"checked":""}><span class="filterValuePill tagPill" style="--pill-color:${escapeHtml(tag.color||TAG_COLORS[0])}"><span class="dot" style="background:${escapeHtml(tag.color||TAG_COLORS[0])}"></span>${escapeHtml(tag.label)}</span></label>`).join("") : `<span class="filterEmpty">No tags in this project</span>`}</div>`;
     wrap.querySelectorAll("[data-tag-filter]").forEach(input=>{
       input.onchange = () => {
         if (input.checked) boardFilterTags.add(input.dataset.tagFilter); else boardFilterTags.delete(input.dataset.tagFilter);
@@ -2995,21 +2947,18 @@
     const wrap = document.getElementById("fieldFilters");
     const selectedField = project.fields.find(field=>`field:${field.id}`===activeFilterCategory);
     const visibleOptions = selectedField ? [selectedField].map(f=>{
-      const opts = f.type==="priority" ? PRIORITY_OPTIONS : f.type==="relation"
-        ? projectItemEntries(project).map(({item})=>({id:item.id,label:item.title}))
-        : (f.options||[]);
+      const filter=fieldTypes.getFilter(f)||{};
+      const opts=fieldTypes.getFilterOptions(f,{project,items:projectItemEntries(project)});
       const current = boardFilterFields.get(f.id);
       let control;
-      if (isDateField(f)) control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (["text","url","email","location","schedule"].includes(f.type)) control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${f.type==="url"?"Filter URL":f.type==="email"?"Filter email":"Enter text"}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (f.type==="number") control = `<input class="form-control" type="number" step="any" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="Exact value" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (f.type==="checkbox") {
-        const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
-        control = `<div class="filterOptionList fieldOptionList"><label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="true" ${selected.includes("true")?"checked":""}><span>Yes</span></label><label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="__none__" ${selected.includes("__none__")?"checked":""}><span>No</span></label></div>`;
-      }
+      if (filter.kind==="date") control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else if (filter.kind==="text") control = `<input class="form-control" type="${filter.inputType||"text"}" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${escapeHtml(filter.placeholder||"Enter text")}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else if (filter.kind==="number") control = `<input class="form-control" type="number" step="any" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):typeof current==="number"?current:""}" placeholder="Exact value" aria-label="Filter ${escapeHtml(f.label)}">`;
       else {
         const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
-        control = `<div class="filterOptionList fieldOptionList">${opts.map(o=>`<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="${o.id}" ${selected.includes(o.id)?"checked":""}><span>${escapeHtml(o.label)}</span></label>`).join("")}<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="__none__" ${selected.includes("__none__")?"checked":""}><span>No ${escapeHtml(f.label)}</span></label></div>`;
+        const options=opts.map(option=>({value:String(option.value),label:option.label}));
+        if (!options.some(option=>option.value==="__none__")) options.push({value:"__none__",label:`No ${f.label}`});
+        control = `<div class="filterOptionList fieldOptionList">${options.map(option=>`<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="${escapeHtml(option.value)}" ${selected.includes(option.value)?"checked":""}><span>${escapeHtml(option.label)}</span></label>`).join("")}</div>`;
       }
       return control;
     }).join("") : "";
@@ -3037,41 +2986,40 @@
   }
 
   function columnFilterLabel(project,columnId,value){
+    const field=columnId.startsWith("field:")
+      ?project.fields.find(candidate=>candidate.id===columnId.slice(6)):null;
+    if (field){
+      const option=fieldTypes.getFilterOptions(field,{project,items:projectItemEntries(project)})
+        .find(candidate=>String(candidate.value)===value);
+      if (option) return option.label;
+    }
     if (value===COLUMN_FILTER_NONE){
       const labels={title:"title",group:"group",tags:"tags",progress:"progress",updated:"date"};
-      const field=columnId.startsWith("field:")?project.fields.find(candidate=>candidate.id===columnId.slice(6)):null;
       return `No ${field?.label.toLowerCase()||labels[columnId]||"value"}`;
     }
     if (columnId==="group") return projectGroups(project).find(group=>group.id===value)?.name||value;
-    if (columnId==="tags") return project.tags.find(tag=>tag.id===value)?.name||value;
+    if (columnId==="tags"){
+      const tagsField=project.fields.find(field=>field.type==="tags");
+      return fieldTypes.getFilterOptions(tagsField,{project}).find(option=>String(option.value)===value)?.label||value;
+    }
     if (columnId==="updated"){
       const date=new Date(`${value}T12:00:00`);
       return Number.isNaN(date.getTime())?value:new Intl.DateTimeFormat(undefined,{dateStyle:"medium"}).format(date);
     }
     if (columnId==="progress") return value;
-    if (columnId.startsWith("field:")){
-      const field=project.fields.find(candidate=>candidate.id===columnId.slice(6));
-      if (field?.type==="checkbox") return value==="true"?"Yes":"No";
-      const option=(field?.type==="priority"?PRIORITY_OPTIONS:field?.options||[]).find(candidate=>String(candidate.id)===value);
-      if (option) return option.label;
-      if (field?.type==="relation"){
-        const item=projectItemEntries(project).map(row=>row.item).find(candidate=>candidate.id===value);
-        if (item) return item.title;
-      }
-    }
     return value;
   }
   function columnFilterOptions(project,columnId){
     const values=new Set();
     const items=projectItemEntries(project);
     if (columnId==="group") projectGroups(project).forEach(group=>values.add(String(group.id)));
-    else if (columnId==="tags") project.tags.forEach(tag=>values.add(String(tag.id)));
+    else if (columnId==="tags"){
+      const tagsField=project.fields.find(field=>field.type==="tags");
+      fieldTypes.getFilterOptions(tagsField,{project}).forEach(option=>values.add(String(option.value)));
+    }
     else if (columnId.startsWith("field:")){
       const field=project.fields.find(candidate=>candidate.id===columnId.slice(6));
-      const options=field?.type==="priority"?PRIORITY_OPTIONS:field?.options||[];
-      options.forEach(option=>values.add(String(option.id)));
-      if (field?.type==="relation") items.forEach(({item})=>values.add(String(item.id)));
-      if (field?.type==="checkbox"){ values.add("true"); values.add(COLUMN_FILTER_NONE); }
+      fieldTypes.getFilterOptions(field,{project,items}).forEach(option=>values.add(String(option.value)));
     }
     items.forEach(({item,group})=>columnFilterValuesForItem(project,item,group,columnId).forEach(value=>values.add(value)));
     if (!values.size) values.add(COLUMN_FILTER_NONE);
@@ -4478,11 +4426,12 @@
           return;
         }
         if (isDateField(field) && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
-        const nextValue = field?.type==="checkbox" ? (e.target.checked ? "true" : "")
-          : field?.type==="relation" ? [...el.selectedOptions].map(option=>option.value)
-          : field?.type==="multi-select" ? [...modal.querySelectorAll(".fieldInput")].filter(input=>input.dataset.fieldid===el.dataset.fieldid && input.checked).map(input=>input.value)
-          : field?.type==="number" ? (e.target.value==="" ? "" : Number(e.target.value))
-          : e.target.value;
+        const selectedOptions=field?.type==="multi-select"
+          ?[...modal.querySelectorAll(".fieldInput")].filter(input=>input.dataset.fieldid===el.dataset.fieldid&&input.checked).map(input=>({value:input.value}))
+          :e.target.selectedOptions?[...e.target.selectedOptions]:[];
+        const nextValue=fieldTypes.normalizeInput(field,{
+          input:e.target,value:e.target.value,selectedOptions,item,project
+        });
         item.values[el.dataset.fieldid] = nextValue;
         if (field?.type==="location") item.location=String(nextValue||"").trim();
         if (isNew){

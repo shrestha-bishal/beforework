@@ -49,6 +49,8 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 
 Beforework uses the File System Access API to open and save a workspace root and its child workspaces. Open it from a Chromium-based browser through `localhost` or HTTPS rather than using a `file://` URL.
 
+Custom field types are registered from individual modules in `js/core/fields/types/`. Each module owns its catalog metadata and any type-specific filtering, value normalisation, sorting, and export behavior; add new modules to the field script list in `index.html`.
+
 If Python is installed:
 
 ```sh

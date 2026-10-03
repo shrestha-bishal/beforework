@@ -150,5 +150,5 @@ test("Table field controls preserve the supported editable field types",()=>{
   for (const fieldType of ["priority","select","multi-select","relation","checkbox","number","url","email","date","start-date","due-date"]){
     assert.ok(view.includes(`"${fieldType}"`),`missing ${fieldType} behavior`);
   }
-  assert.ok(view.includes('["multi-select","relation"].includes(field?.type)'));
+  assert.ok(view.includes("window.BeforeworkFieldTypes.normalizeInput(field,"));
 });
