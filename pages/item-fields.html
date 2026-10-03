@@ -1,0 +1,46 @@
+<template data-view-partial="fieldLabel">
+  <div class="sideItemLabel fieldDetailLabel">
+    <span>{{label}}</span>
+    <button type="button" class="fieldDetailSettings" data-action="openFieldControl" data-fieldid="{{fieldId}}" aria-label="Open {{label}} options" title="Open field options">
+      <iconify-icon icon="mdi:cog-outline" aria-hidden="true"></iconify-icon>
+    </button>
+  </div>
+</template>
+<template data-view-partial="tags">
+  <div class="sideItem">
+    {{labelHtml}}
+    <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      {{chips}}<button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
+    </div>
+  </div>
+</template>
+<template data-view-partial="select">
+  <div class="sideItem">{{labelHtml}}<select class="form-control fieldInput" data-fieldid="{{fieldId}}">{{options}}</select></div>
+</template>
+<template data-view-partial="multiSelect">
+  <div class="sideItem">{{labelHtml}}<select multiple class="form-control fieldInput" data-fieldid="{{fieldId}}" data-app-select-placeholder="{{placeholder}}" aria-label="{{ariaLabel}}">{{options}}</select></div>
+</template>
+<template data-view-partial="relation">
+  <div class="sideItem">{{labelHtml}}<select multiple class="form-control fieldInput relationFieldSelect" data-fieldid="{{fieldId}}" data-app-select-placeholder="{{placeholder}}" aria-label="{{ariaLabel}}">{{options}}</select></div>
+</template>
+<template data-view-partial="emptyOptions">
+  <div class="sideItem">{{labelHtml}}<span class="fieldOptionsEmpty">{{emptyMessage}}</span></div>
+</template>
+<template data-view-partial="date">
+  <div class="sideItem">{{labelHtml}}<input type="date" class="form-control fieldInput" data-fieldid="{{fieldId}}" value="{{value}}"></div>
+</template>
+<template data-view-partial="checkbox">
+  <div class="sideItem sideItemCheckbox">{{labelHtml}}<label class="checkboxFieldControl"><input type="checkbox" class="fieldInput" data-fieldid="{{fieldId}}" value="true" {{checked}}><span class="checkboxFieldValue">{{valueLabel}}</span></label></div>
+</template>
+<template data-view-partial="text">
+  <div class="sideItem">{{labelHtml}}<input type="{{inputType}}" class="form-control fieldInput" data-fieldid="{{fieldId}}" value="{{value}}" {{step}} placeholder="{{placeholder}}"></div>
+</template>
+<template data-view-partial="location">
+  <div class="sideItem">
+    {{labelHtml}}
+    <input class="form-control fieldInput" type="text" id="itemLocationInput" data-fieldid="{{fieldId}}" value="{{value}}" placeholder="Optional location or link">
+  </div>
+</template>
+<template data-view-partial="schedule">
+  <div class="sideItem">{{labelHtml}}{{content}}</div>
+</template>

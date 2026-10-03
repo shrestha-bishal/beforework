@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
+const {createItemFieldRenderer}=require("./helpers/item-fields");
 const {createFieldTypes}=require("./helpers/field-types");
 
 const fieldTypes=createFieldTypes();
@@ -329,14 +330,11 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
 });
 
 test("renders checkbox custom fields as boolean controls", ()=>{
-  const appSource = fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start = appSource.indexOf("function fieldInputHtml");
-  const end = appSource.indexOf("function renderItemModal");
-  const snippet = appSource.slice(start, end);
-  const context = {
-    escapeHtml: value => String(value).replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]))
-  };
-  const html = vm.runInNewContext(`${snippet}; const result = fieldInputHtml({id:"field-checkbox",label:"Approved",type:"checkbox"},{values:{}}); result;`, context);
+  const html=createItemFieldRenderer().render(
+    {id:"field-checkbox",label:"Approved",type:"checkbox"},
+    {values:{}},
+    {}
+  );
   assert.match(html, /type="checkbox"/i);
   assert.match(html, /data-fieldid="field-checkbox"/i);
   assert.match(html, /sideItemCheckbox/i);
@@ -344,27 +342,24 @@ test("renders checkbox custom fields as boolean controls", ()=>{
 });
 
 test("renders URL, email, number, and multi-select field controls", ()=>{
-  const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start=appSource.indexOf("function fieldInputHtml");
-  const end=appSource.indexOf("function renderItemModal");
-  const snippet=appSource.slice(start,end);
-  const context={escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))};
-  const html=JSON.parse(vm.runInNewContext(`${snippet}; JSON.stringify([
-    fieldInputHtml({id:"url-field",label:"Reference",type:"url"},{values:{}}),
-    fieldInputHtml({id:"email-field",label:"Contact",type:"email"},{values:{}}),
-    fieldInputHtml({id:"number-field",label:"Estimate",type:"number"},{values:{"number-field":0}}),
-    fieldInputHtml({id:"multi-field",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},{values:{"multi-field":["design"]}}),
-    fieldInputHtml({id:"start-field",label:"Start date",type:"start-date"},{values:{}}),
-    fieldInputHtml({id:"due-field",label:"Due date",type:"due-date"},{values:{}}),
-    fieldInputHtml({id:"custom-date-field",label:"Review date",type:"date"},{values:{}})
-  ]);`,context));
+  const renderer=createItemFieldRenderer();
+  const html=[
+    renderer.render({id:"url-field",label:"Reference",type:"url"},{values:{}},{}),
+    renderer.render({id:"email-field",label:"Contact",type:"email"},{values:{}},{}),
+    renderer.render({id:"number-field",label:"Estimate",type:"number"},{values:{"number-field":0}},{}),
+    renderer.render({id:"multi-field",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},{values:{"multi-field":["design"]}},{}),
+    renderer.render({id:"start-field",label:"Start date",type:"start-date"},{values:{}},{}),
+    renderer.render({id:"due-field",label:"Due date",type:"due-date"},{values:{}},{}),
+    renderer.render({id:"custom-date-field",label:"Review date",type:"date"},{values:{}},{})
+  ];
 
   assert.match(html[0],/type="url"/);
   assert.match(html[1],/type="email"/);
   assert.match(html[2],/type="number"/);
   assert.match(html[2],/value="0"/);
   assert.match(html[3],/value="docs"/);
-  assert.match(html[3],/value="design" checked/);
+  assert.match(html[3],/value="design" selected/);
+  assert.match(html[3],/select multiple class="form-control fieldInput"/);
   assert.match(html[4],/data-fieldid="start-field"/);
   assert.match(html[4],/type="date"/);
   assert.match(html[5],/data-fieldid="due-field"/);

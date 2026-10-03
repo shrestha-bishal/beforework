@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const {createItemFieldRenderer,templateSource:fieldTemplateSource}=require("./helpers/item-fields");
 
 const templatePath=path.join(__dirname,"../pages/item-modal.html");
 const templateSource=fs.readFileSync(templatePath,"utf8");
@@ -47,7 +48,6 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   for (const id of ["itemTitleInput","itemDescInput","itemDescPreview","itemCalendarType","itemModalFooter"]){
     assert.ok(rendered.includes(`id="${id}"`) || rendered.includes(`class="${id}"`),`missing ${id}`);
   }
-  assert.match(appSource,/if \(field\.type==="tags"\)[\s\S]*?id="itemTagChips"/);
   assert.match(appSource,/data-action="toggleDescriptionMenu"/);
   assert.match(appSource,/data-action="copyDescriptionMarkdown"/);
   assert.match(appSource,/Copy Markdown/);
@@ -60,8 +60,18 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(rendered,/class="itemMarkdownToolbar"/);
   assert.match(templateSource,/\{\{location\}\}/);
   assert.match(templateSource,/\{\{schedule\}\}/);
-  assert.match(appSource,/const locationHtml=locationField\?/);
-  assert.match(appSource,/const scheduleSectionHtml=scheduleField/);
+  assert.match(fieldTemplateSource,/<template data-view-partial="fieldLabel">/);
+  assert.match(fieldTemplateSource,/id="itemTagChips"/);
+  assert.match(appSource,/BeforeworkItemFields\.create/);
+  assert.match(appSource,/itemFieldRenderer\.render\(field,item,project\)/);
+  assert.match(appSource,/itemFieldRenderer\.renderLocation\(locationField,item\)/);
+  assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
+  assert.match(appSource,/data-action="openFieldControl"/);
+  assert.match(appSource,/selectButton\.click\(\)/);
+  assert.match(appSource,/enhanceSelectControls\(modal\)/);
+  assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
+  assert.match(stylesSource,/\.fieldDetailSettings\{appearance:none;-webkit-appearance:none;display:grid/);
+  assert.match(stylesSource,/\.fieldDetailSettings:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
   assert.match(appSource,/data-action="addSchedule"/);
   assert.match(appSource,/scheduleField\s*\?\s*\(hasSchedule\s*\|\|\s*openItemRef\.scheduleOpen\s*\?/);
   assert.match(rendered,/data-description-tab="edit"/);
@@ -88,19 +98,14 @@ test("item modal markup lives in a separately loaded parameterized HTML template
 });
 
 test("Tags controls are rendered by the optional Tags field and retain tag assignments when removed",()=>{
-  const start=appSource.indexOf("function fieldInputHtml");
-  const end=appSource.indexOf("function renderItemModal",start);
-  const context={
-    escapeHtml:value=>String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char])),
-    tagDotHtml:(tag,selected)=>`<span data-tag="${tag.id}" data-selected="${selected}">${tag.name}</span>`
-  };
-  const html=vm.runInNewContext(`${appSource.slice(start,end)}; fieldInputHtml(
+  const html=createItemFieldRenderer().render(
     {id:"tags-field",label:"Tags",type:"tags"},
     {tagIds:["release"],values:{}},
     {tags:[{id:"release",name:"Release",color:"blue"}]}
-  );`,context);
+  );
 
   assert.match(html,/id="itemTagChips"/);
+  assert.match(html,/data-action="openFieldControl"/);
   assert.match(html,/data-tag="release" data-selected="true"/);
   assert.match(html,/data-action="newTagFromItem"/);
   assert.match(appSource,/fieldTypes\.canAddToProject\(option\.value,project\.fields\)/);

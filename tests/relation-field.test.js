@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const {createItemFieldRenderer}=require("./helpers/item-fields");
 const {createFieldTypes}=require("./helpers/field-types");
 
 const fieldTypes=createFieldTypes();
@@ -37,21 +38,21 @@ test("Relations is available as a multi-item custom field",()=>{
   const definition=fs.readFileSync(path.join(__dirname,"../js/core/fields/types/relation.js"),"utf8");
   assert.match(definition,/value:"relation",label:"Relations",description:"Link this item to other items in the same project\."/);
   assert.match(app,/fieldTypes\.normalizeInput\(field,/);
-  assert.match(app,/selectedOptions=field\?\.type==="multi-select"/);
+  assert.match(app,/const selectedOptions=e\.target\.selectedOptions\?\[\.\.\.e\.target\.selectedOptions\]:\[\]/);
 });
 
 test("relation field editor searches and selects only other project items",()=>{
-  const html=runSnippet("function fieldInputHtml","function renderItemModal",`
-    fieldInputHtml({id:"related",label:"Related items",type:"relation"},
+  const html=createItemFieldRenderer().render(
+    {id:"related",label:"Related items",type:"relation"},
     {id:"current",values:{related:["second"]}},
-      {groups:[
-        {name:"Ready",items:[
-          {id:"current",title:"Current"},
-          {id:"target",title:"Target <one>"}
-        ]},
-        {name:"Later",items:[{id:"second",title:"Second"}]}
-      ]});
-  `,{escapeHtml});
+    {groups:[
+      {name:"Ready",items:[
+        {id:"current",title:"Current"},
+        {id:"target",title:"Target <one>"}
+      ]},
+      {name:"Later",items:[{id:"second",title:"Second"}]}
+    ]}
+  );
   assert.match(html,/<select multiple class="form-control fieldInput relationFieldSelect"/);
   assert.match(html,/data-app-select-placeholder="Select items"/);
   assert.match(html,/value="second" selected/);

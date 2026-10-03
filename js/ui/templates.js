@@ -8,6 +8,7 @@ window.BeforeworkViewTemplates = (()=>{
     tableView:"pages/table-view.html",
     boardView:"pages/board-view.html",
     itemModal:"pages/item-modal.html",
+    itemFields:"pages/item-fields.html",
     shortcutsModal:"pages/shortcuts-modal.html",
     settings:"pages/settings.html",
     support:"pages/support.html",
@@ -66,7 +67,21 @@ window.BeforeworkViewTemplates = (()=>{
     const template=templates[name];
     if (!template) throw new Error(`View template "${name}" hasn't loaded`);
     if (!values || typeof values!=="object") throw new TypeError("Template values must be an object.");
-    return template.innerHTML.replace(/\{\{([a-zA-Z][a-zA-Z0-9_]*)\}\}/g,(token,key)=>{
+    return renderHtml(template.innerHTML,name,values);
+  }
+
+  function renderPartial(name,partialName,values={}){
+    const template=templates[name];
+    if (!template) throw new Error(`View template "${name}" hasn't loaded`);
+    if (!values || typeof values!=="object") throw new TypeError("Template values must be an object.");
+    const partial=[...template.content.querySelectorAll("template[data-view-partial]")]
+      .find(candidate=>candidate.dataset.viewPartial===partialName);
+    if (!partial) throw new Error(`Unknown partial "${partialName}" in view template "${name}"`);
+    return renderHtml(partial.innerHTML,`${name}:${partialName}`,values);
+  }
+
+  function renderHtml(html,name,values){
+    return html.replace(/\{\{([a-zA-Z][a-zA-Z0-9_]*)\}\}/g,(token,key)=>{
       if (!Object.prototype.hasOwnProperty.call(values,key)){
         throw new Error(`Missing value "${key}" for view template "${name}"`);
       }
@@ -74,5 +89,5 @@ window.BeforeworkViewTemplates = (()=>{
     });
   }
 
-  return {load,loadAll,clone,render};
+  return {load,loadAll,clone,render,renderPartial};
 })();

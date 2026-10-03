@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const {createItemFieldRenderer}=require("./helpers/item-fields");
 
 const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 
@@ -15,17 +16,14 @@ function loadFunctions(source,context){
     dueDateField:project=>project.fields.find(field=>field.type==="due-date"),
     ...context
   };
-  vm.runInNewContext(`${source}\nwindow.functions={fieldCellHtml,scheduleFieldValue,fieldInputHtml};`,sandbox);
+  vm.runInNewContext(`${source}\nwindow.functions={fieldCellHtml,scheduleFieldValue};`,sandbox);
   return sandbox.window.functions;
 }
 
 const renderStart=appSource.indexOf("  function fieldCellHtml(");
 const renderEnd=appSource.indexOf("\n  function safeUrlHref",renderStart);
 const renderSource=appSource.slice(renderStart,renderEnd);
-const inputStart=appSource.indexOf("  function fieldInputHtml(");
-const inputEnd=appSource.indexOf("\n  function renderItemModal",inputStart);
-const inputSource=appSource.slice(inputStart,inputEnd);
-const functionSource=`${renderSource}\n${inputSource}`;
+const functionSource=renderSource;
 
 function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,char=>({
@@ -39,10 +37,10 @@ test("Location is a plain text field and Schedule is rendered as a derived read-
     fmtDate:value=>value,
     formatTimeValue:value=>value
   });
-  const location=functions.fieldInputHtml(
-    {id:"location",label:"Location",type:"location"},
-    {values:{},location:"Office"},
-    {}
+  const renderer=createItemFieldRenderer();
+  const location=renderer.renderLocation(
+    {id:"location",label:"Location"},
+    {values:{},location:"Office"}
   );
   const locationCell=functions.fieldCellHtml(
     {id:"location",label:"Location",type:"location"},
@@ -67,7 +65,7 @@ test("Location is a plain text field and Schedule is rendered as a derived read-
   assert.match(location,/type="text"/);
   assert.match(location,/value="Office"/);
   assert.equal(locationCell,"Office");
-  assert.equal(functions.fieldInputHtml(scheduleField,item,project),"");
+  assert.equal(renderer.render(scheduleField,item,project),"");
   assert.equal(functions.scheduleFieldValue(project,item),"2026-10-10 – 2026-10-12 · 09:00–10:00");
 });
 

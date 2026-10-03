@@ -3591,55 +3591,13 @@
   function showDialog(options){ return dialogs.showDialog(options); }
   function showNotice(title, message){ return dialogs.showNotice(title, message); }
   function showConfirm(title, message, danger=false){ return dialogs.showConfirm(title, message, danger); }
-  function fieldInputHtml(field, item, project){
-    const val = field.type==="location" ? item.values[field.id]??item.location??"" : item.values[field.id] ?? "";
-    const isChecked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
-    if (field.type==="tags"){
-      const chips=(project.tags||[]).map(tag=>tagDotHtml(tag,(item.tagIds||[]).includes(tag.id))).join("");
-      return `<div class="sideItem">
-        <div class="sideItemLabel">${escapeHtml(field.label)}</div>
-        <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          ${chips}<button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
-        </div>
-      </div>`;
-    }
-    if (field.type==="priority"){
-      const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
-        `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
-    }
-    if (field.type==="select"){
-      const opts = [{id:"",label:"None"}, ...(field.options||[])].map(o=>
-        `<option value="${o.id}" ${val===o.id?"selected":""}>${escapeHtml(o.label)}</option>`).join("");
-      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><select class="form-control fieldInput" data-fieldid="${field.id}">${opts}</select></div>`;
-    }
-    if (field.type==="multi-select"){
-      const selected=new Set(Array.isArray(val) ? val : []);
-      const options=(field.options||[]).map(option=>`<label class="multiSelectFieldOption"><input type="checkbox" class="fieldInput" data-fieldid="${field.id}" value="${option.id}" ${selected.has(option.id)?"checked":""}><span>${escapeHtml(option.label)}</span></label>`).join("");
-      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><div class="multiSelectFieldOptions">${options||`<span class="fieldOptionsEmpty">Add options to this column first.</span>`}</div></div>`;
-    }
-    if (field.type==="relation"){
-      const selected=new Set(Array.isArray(val)?val:[]);
-      const options=projectItemEntries(project).filter(({item:candidate})=>candidate.id!==item.id);
-      const optionHtml=options.map(({item:target})=>
-        `<option value="${escapeHtml(target.id)}" ${selected.has(target.id)?"selected":""}>${escapeHtml(target.title)}</option>`
-      ).join("");
-      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div>${options.length
-        ? `<select multiple class="form-control fieldInput relationFieldSelect" data-fieldid="${escapeHtml(field.id)}" data-app-select-placeholder="Select items" aria-label="${escapeHtml(field.label)}">${optionHtml}</select>`
-        : `<span class="fieldOptionsEmpty">Add another item to this project to create a relation.</span>`}</div>`;
-    }
-    if (["date","start-date","due-date"].includes(field.type)){
-      return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="date" class="form-control fieldInput" data-fieldid="${field.id}" value="${val}"></div>`;
-    }
-    if (field.type==="checkbox"){
-      return `<div class="sideItem sideItemCheckbox"><div class="sideItemLabel">${escapeHtml(field.label)}</div><label class="checkboxFieldControl"><input type="checkbox" class="fieldInput" data-fieldid="${field.id}" value="true" ${isChecked?"checked":""}><span class="checkboxFieldValue">${isChecked ? "Yes" : "No"}</span></label></div>`;
-    }
-    if (field.type==="url") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="url" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}" placeholder="https://example.com"></div>`;
-    if (field.type==="email") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="email" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}" placeholder="name@example.com"></div>`;
-    if (field.type==="number") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="number" step="any" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
-    if (field.type==="schedule") return "";
-    return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
-  }
+  const itemFieldRenderer=window.BeforeworkItemFields.create({
+    escapeHtml,
+    tagDotHtml,
+    projectItemEntries,
+    priorityOptions:PRIORITY_OPTIONS,
+    renderPartial:(name,values)=>window.BeforeworkViewTemplates.renderPartial("itemFields",name,values)
+  });
   function renderItemModal(){
     if (!openItemRef) return;
     const {projectId,groupId,itemId} = openItemRef;
@@ -3675,12 +3633,9 @@
         <button class="btn btn-invisible btn-sm" data-action="delSub">✕</button>
       </div>`).join("");
 
-    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).filter(field=>field.type!=="schedule"&&field.type!=="location").map(field=>fieldInputHtml(field,item,project)).join("");
+    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).filter(field=>field.type!=="schedule"&&field.type!=="location").map(field=>itemFieldRenderer.render(field,item,project)).join("");
     const locationField=project.fields.find(field=>field.type==="location");
-    const locationHtml=locationField?`<div class="sideItem">
-      <div class="sideItemLabel">${escapeHtml(locationField.label)}</div>
-      <input class="form-control fieldInput" type="text" id="itemLocationInput" data-fieldid="${escapeHtml(locationField.id)}" value="${escapeHtml(item.values[locationField.id]??item.location??"")}" placeholder="Optional location or link">
-    </div>`:"";
+    const locationHtml=locationField?itemFieldRenderer.renderLocation(locationField,item):"";
     const scheduleField=project.fields.find(field=>field.type==="schedule");
     const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
     const recurrence = normaliseRecurrence(item.recurrence);
@@ -3741,9 +3696,7 @@
           </div>
         </div>
       </div>` : `<button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>`) : "";
-    const scheduleSectionHtml=scheduleField
-      ? `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(scheduleField.label)}</div>${scheduleHtml}</div>`
-      : "";
+    const scheduleSectionHtml=scheduleField?itemFieldRenderer.renderSchedule(scheduleField,scheduleHtml):"";
     const comments = item.comments || [];
     const commentsHtml = comments.length
       ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(c=>`
@@ -3854,6 +3807,28 @@
     });
 
     itemModalView.wire(modal,{onClose:closeItemModal});
+    enhanceSelectControls(modal);
+    modal.querySelectorAll('[data-action="openFieldControl"]').forEach(button=>{
+      button.onclick=()=>{
+        const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
+        if (!field) return;
+        if (field.type==="tags"){
+          modal.querySelector('[data-action="newTagFromItem"]')?.click();
+          return;
+        }
+        if (field.type==="schedule"){
+          openItemRef.scheduleOpen=true;
+          renderItemModal();
+          modal.querySelector("#itemEndDateInput,#itemStartTimeInput")?.focus();
+          return;
+        }
+        const control=[...modal.querySelectorAll("[data-fieldid]")]
+          .find(candidate=>candidate.dataset.fieldid===field.id);
+        const selectButton=control?.closest(".appSelectWrap")?.querySelector(".appSelectButton");
+        if (selectButton) selectButton.click();
+        else control?.focus();
+      };
+    });
     const descriptionInput=modal.querySelector("#itemDescInput");
     const descriptionPreviewElement=modal.querySelector("#itemDescPreview");
     const descriptionToolbar=modal.querySelector(".itemMarkdownToolbar");
@@ -4044,9 +4019,7 @@
           return;
         }
         if (isDateField(field) && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
-        const selectedOptions=field?.type==="multi-select"
-          ?[...modal.querySelectorAll(".fieldInput")].filter(input=>input.dataset.fieldid===el.dataset.fieldid&&input.checked).map(input=>({value:input.value}))
-          :e.target.selectedOptions?[...e.target.selectedOptions]:[];
+        const selectedOptions=e.target.selectedOptions?[...e.target.selectedOptions]:[];
         const nextValue=fieldTypes.normalizeInput(field,{
           input:e.target,value:e.target.value,selectedOptions,item,project
         });
