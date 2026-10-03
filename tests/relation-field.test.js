@@ -9,10 +9,16 @@ const {createFieldTypes}=require("./helpers/field-types");
 
 const fieldTypes=createFieldTypes();
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const itemFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/item.js"),"utf8");
 const tableView=fs.readFileSync(path.join(__dirname,"../js/views/table-view.js"),"utf8");
-const helperStart=app.indexOf("const UNGROUPED_GROUP_ID=");
-const helperEnd=app.indexOf("function projectRecords()",helperStart);
-const projectHelpers=app.slice(helperStart,helperEnd);
+const projectHelpers=`const {
+  projectGroups,projectItemEntries,UNGROUPED_GROUP_ID
+}=window.BeforeworkItemFeature.create({
+  uid:()=>"test-id",getProject:()=>null,tagColorOptions:[],selectedItemIds:new Set(),
+  boardFilterTags:new Set(),hasTagsField:()=>false,queueGoogleEventDeletes:()=>{},
+  showConfirm:async()=>false,showDialog:async()=>null,scheduleSave:()=>{},render:()=>{},
+  renderAll:()=>{},renderProjectList:()=>{}
+});`;
 const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 }[char]));
@@ -22,7 +28,9 @@ function runSnippet(startMarker,endMarker,body,context={}){
   const end=app.indexOf(endMarker,start);
   assert.notEqual(start,-1,`missing ${startMarker}`);
   assert.notEqual(end,-1,`missing ${endMarker}`);
-  return vm.runInNewContext(`${projectHelpers}; ${app.slice(start,end)}; ${body}`,{fieldTypes,...context});
+  const sandbox={fieldTypes,window:{},...context};
+  vm.runInNewContext(itemFeatureSource,sandbox);
+  return vm.runInNewContext(`${projectHelpers}; ${app.slice(start,end)}; ${body}`,sandbox);
 }
 
 test("Relations is available as a multi-item custom field",()=>{
@@ -78,11 +86,16 @@ test("deleting an item clears incoming relation values",()=>{
       {id:"other",updatedAt:0,values:{links:["deleted"]}}
     ]}]
   };
-  const cleaned=runSnippet("function removeItemRelations","function makeDuplicateItem",`
-    removeItemRelations(project,["deleted"]);
-    JSON.stringify(project.groups[0].items);
-  `,{project,Date});
-  const result=JSON.parse(cleaned);
+  const sandbox={window:{}};
+  vm.runInNewContext(itemFeatureSource,sandbox);
+  const feature=sandbox.window.BeforeworkItemFeature.create({
+    uid:()=> "activity",getProject:()=>project,tagColorOptions:[],selectedItemIds:new Set(),
+    boardFilterTags:new Set(),hasTagsField:()=>false,queueGoogleEventDeletes:()=>{},
+    showConfirm:async()=>false,showDialog:async()=>null,scheduleSave:()=>{},render:()=>{},
+    renderAll:()=>{},renderProjectList:()=>{}
+  });
+  feature.removeItemRelations(project,["deleted"]);
+  const result=project.groups[0].items;
   assert.deepEqual(result.map(item=>item.values.links),[["other"],[]]);
   assert.equal(result[0].values.text,"keep");
   assert.ok(result.every(item=>item.updatedAt>0));

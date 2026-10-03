@@ -659,9 +659,11 @@ test("column selections migrate into the main filter state",()=>{
 
 test("column selections update the visible main filter checkboxes",()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start=appSource.indexOf("function sharedColumnField");
-  const end=appSource.indexOf("function wireColumnFilterHeader",start);
-  const snippet=appSource.slice(start,end);
+  const sharedStart=appSource.indexOf("function sharedColumnField");
+  const sharedEnd=appSource.indexOf("function restoreProjectFilters",sharedStart);
+  const selectionStart=appSource.indexOf("function columnFilterSelection");
+  const selectionEnd=appSource.indexOf("function wireColumnFilterHeader",selectionStart);
+  const snippet=appSource.slice(sharedStart,sharedEnd)+appSource.slice(selectionStart,selectionEnd);
   const fieldInputs=["high","medium","low"].map(value=>({
     dataset:{fieldOption:"priority"},value,checked:false
   }));
@@ -748,25 +750,32 @@ test("persists independent List and Table column orders", ()=>{
 });
 
 test("bulk completion updates selected items consistently", ()=>{
-  const appSource = fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start = appSource.indexOf("function bulkSetCompleted");
-  const end = appSource.indexOf("async function bulkDelete");
-  const snippet = appSource.slice(start, end);
-  const context = {
-    selectedItemIds: new Set(["a","b"]),
-    projectGroups:project=>project.groups,
-    isItemCompleted: item => !!item && Number.isFinite(item.completedAt) && item.completedAt > 0,
-    recordItemActivity: () => {},
-    scheduleSave: () => {},
-    renderAll: () => {}
+  const itemFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/item.js"),"utf8");
+  const runBulkCompletion=(completed)=>{
+    const context={window:{}};
+    vm.runInNewContext(itemFeatureSource,context);
+    const selectedItemIds=new Set(["a","b"]);
+    const feature=context.window.BeforeworkItemFeature.create({
+      uid:()=> "activity",getProject:()=>null,tagColorOptions:[],selectedItemIds,
+      boardFilterTags:new Set(),hasTagsField:()=>false,queueGoogleEventDeletes:()=>{},
+      showConfirm:async()=>false,showDialog:async()=>null,scheduleSave:()=>{},render:()=>{},
+      renderAll:()=>{},renderProjectList:()=>{}
+    });
+    const project={groups:[{items:[
+      {id:"a",completedAt:completed?null:999,updatedAt:0},
+      {id:"b",completedAt:completed?123:123,updatedAt:0},
+      {id:"c",completedAt:null,updatedAt:0}
+    ]}]};
+    feature.bulkSetCompleted(project,completed);
+    return JSON.stringify(project.groups[0].items.map(item=>({id:item.id,completedAt:item.completedAt})));
   };
-  const result = vm.runInNewContext(`${snippet}; const project = {groups:[{items:[{id:"a",completedAt:null,updatedAt:0},{id:"b",completedAt:123,updatedAt:0},{id:"c",completedAt:null,updatedAt:0}]}]}; bulkSetCompleted(project, true); JSON.stringify(project.groups[0].items.map(item => ({id:item.id, completedAt:item.completedAt})));`, context);
+  const result=runBulkCompletion(true);
   const completedRows = JSON.parse(result);
   assert.ok(completedRows.find(item => item.id === "a").completedAt > 0);
   assert.equal(completedRows.find(item => item.id === "b").completedAt, 123);
   assert.equal(completedRows.find(item => item.id === "c").completedAt, null);
 
-  const reopened = vm.runInNewContext(`${snippet}; const project = {groups:[{items:[{id:"a",completedAt:999,updatedAt:0},{id:"b",completedAt:123,updatedAt:0},{id:"c",completedAt:null,updatedAt:0}]}]}; bulkSetCompleted(project, false); JSON.stringify(project.groups[0].items.map(item => ({id:item.id, completedAt:item.completedAt})));`, { ...context, selectedItemIds: new Set(["a","b"]) });
+  const reopened = runBulkCompletion(false);
   const reopenedRows = JSON.parse(reopened);
   assert.equal(reopenedRows.find(item => item.id === "a").completedAt, null);
   assert.equal(reopenedRows.find(item => item.id === "b").completedAt, null);

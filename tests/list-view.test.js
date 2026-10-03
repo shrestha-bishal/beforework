@@ -23,7 +23,8 @@ test("List view keeps shared selection and app actions injected",()=>{
     assert.match(view,new RegExp(`\\b${dependency}\\b`),`missing ${dependency}`);
   }
   assert.ok(app.includes("const selectedItemIds = new Set();"));
-  assert.ok(app.includes("function bulkSetCompleted(project, completed)"));
+  assert.ok(app.includes("bulkSetCompleted,"));
+  assert.ok(fs.readFileSync(path.join(__dirname,"../js/features/item.js"),"utf8").includes("function bulkSetCompleted(project,completed)"));
 });
 
 test("List sorting stays shared with Table view and is accessed through app state",()=>{

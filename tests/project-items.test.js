@@ -7,24 +7,25 @@ const test=require("node:test");
 const vm=require("node:vm");
 
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const itemFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/item.js"),"utf8");
 const groupDefinition=fs.readFileSync(path.join(__dirname,"../js/core/fields/types/group.js"),"utf8");
 const templateStart=app.indexOf("const PROJECT_TEMPLATES = {");
 const templateEnd=app.indexOf("function buildFieldsForTemplate",templateStart);
 const templates=app.slice(templateStart,templateEnd);
-const helperStart=app.indexOf("const UNGROUPED_GROUP_ID=");
-const helperEnd=app.indexOf("function projectRecords()",helperStart);
-const helperSource=app.slice(helperStart,helperEnd);
-const fieldMutationStart=app.indexOf("function setItemFieldValue(");
-const fieldMutationEnd=app.indexOf("function createTag(",fieldMutationStart);
-const fieldMutationSource=app.slice(fieldMutationStart,fieldMutationEnd);
 const statusOptionStart=app.indexOf("function ensureStatusOptions(");
 const statusOptionEnd=app.indexOf("let calendarCursor",statusOptionStart);
 const statusOptionSource=app.slice(statusOptionStart,statusOptionEnd);
 
 function loadProjectItemHelpers(){
-  const sandbox={};
-  vm.runInNewContext(`${helperSource}; globalThis.result={projectGroups,projectItemEntries,appendProjectItem};`,sandbox);
-  return sandbox.result;
+  const sandbox={window:{}};
+  vm.runInNewContext(itemFeatureSource,sandbox);
+  const feature=sandbox.window.BeforeworkItemFeature.create({
+    uid:()=> "item-id",getProject:()=>null,tagColorOptions:[],selectedItemIds:new Set(),
+    boardFilterTags:new Set(),hasTagsField:()=>false,queueGoogleEventDeletes:()=>{},
+    showConfirm:async()=>false,showDialog:async()=>null,scheduleSave:()=>{},render:()=>{},
+    renderAll:()=>{},renderProjectList:()=>{}
+  });
+  return feature;
 }
 
 test("Simple list, Table, Calendar, and Blank templates start without groups",()=>{
@@ -118,19 +119,9 @@ test("dragging a Board card between field columns changes the select value, not 
   const item={id:"task-1",values:{status:"todo"},updatedAt:1};
   const group={id:"legacy-group",name:"Legacy",items:[item]};
   const project={fields:[{id:"status",type:"select",options:[{id:"todo",label:"To do"},{id:"doing",label:"In progress"}]}],groups:[group]};
-  const saved=vm.runInNewContext(`${fieldMutationSource}
-    setItemFieldValue("project-1","legacy-group","task-1","status","doing");
-    JSON.stringify({value:item.values.status,groupId:group.id,groupItems:group.items.map(candidate=>candidate.id)});`,{
-      project,
-      item,
-      group,
-      getProject:()=>project,
-      getItem:()=>item,
-      recordItemActivity(){},
-      scheduleSave(){},
-      render(){},
-      Date
-    });
+  const feature=loadProjectItemHelpersForProject(project);
+  feature.setItemFieldValue("project-1","legacy-group","task-1","status","doing");
+  const saved=JSON.stringify({value:item.values.status,groupId:group.id,groupItems:group.items.map(candidate=>candidate.id)});
 
   assert.deepEqual(JSON.parse(saved),{value:"doing",groupId:"legacy-group",groupItems:["task-1"]});
 });
@@ -159,10 +150,11 @@ test("deleting the final group can preserve its tasks directly in the project",(
     id:"project-1",
     groups:[{id:"group-1",name:"To do",items:[{id:"task-1",updatedAt:1}]}]
   };
-  const result=vm.runInNewContext(`${helperSource}; ${groupCode};
+  const result=vm.runInNewContext(`${groupCode};
     deleteGroup("project-1","group-1","__project_items__");
     JSON.stringify({groups:project.groups,items:project.items});`,{
       project,
+      UNGROUPED_GROUP_ID:"__project_items__",
       getProject:()=>project,
       boardFilterGroups:new Set(),
       scheduleSave(){},
@@ -175,3 +167,14 @@ test("deleting the final group can preserve its tasks directly in the project",(
   assert.equal(saved.items[0].id,"task-1");
   assert.ok(saved.items[0].updatedAt>1);
 });
+
+function loadProjectItemHelpersForProject(project){
+  const sandbox={window:{}};
+  vm.runInNewContext(itemFeatureSource,sandbox);
+  return sandbox.window.BeforeworkItemFeature.create({
+    uid:()=> "item-id",getProject:()=>project,tagColorOptions:[],selectedItemIds:new Set(),
+    boardFilterTags:new Set(),hasTagsField:()=>false,queueGoogleEventDeletes:()=>{},
+    showConfirm:async()=>false,showDialog:async()=>null,scheduleSave:()=>{},render:()=>{},
+    renderAll:()=>{},renderProjectList:()=>{}
+  });
+}
