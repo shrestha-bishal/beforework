@@ -54,8 +54,22 @@ test("includes tasks with only a start date as a one-day roadmap entry",()=>{
     ]}],
     fields:[{id:"start",label:"Start date",type:"start-date"}]
   });
-
   assert.deepEqual(JSON.parse(JSON.stringify(rows.map(({startDate,date,fieldLabel})=>({startDate,date,fieldLabel})))),[
     {startDate:"2026-10-12",date:"2026-10-12",fieldLabel:"Start date"}
   ]);
+});
+
+test("includes dated project-owned tasks without a group",()=>{
+  const project={
+    id:"project-1",name:"Simple",groups:[],
+    items:[{id:"task-1",title:"Project-owned task",values:{due:"2026-10-10"}}],
+    fields:[{id:"due",label:"Due date",type:"due-date"}]
+  };
+
+  const rows=roadmap.rowsForProject(project);
+
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].itemId,"task-1");
+  assert.equal(rows[0].groupId,"__project_items__");
+  assert.equal(rows[0].groupName,"Unassigned");
 });

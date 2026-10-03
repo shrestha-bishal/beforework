@@ -8,6 +8,9 @@ const vm=require("node:vm");
 
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const tableView=fs.readFileSync(path.join(__dirname,"../js/views/table-view.js"),"utf8");
+const helperStart=app.indexOf("const UNGROUPED_GROUP_ID=");
+const helperEnd=app.indexOf("function projectRecords()",helperStart);
+const projectHelpers=app.slice(helperStart,helperEnd);
 const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 }[char]));
@@ -17,7 +20,7 @@ function runSnippet(startMarker,endMarker,body,context={}){
   const end=app.indexOf(endMarker,start);
   assert.notEqual(start,-1,`missing ${startMarker}`);
   assert.notEqual(end,-1,`missing ${endMarker}`);
-  return vm.runInNewContext(`${app.slice(start,end)}; ${body}`,context);
+  return vm.runInNewContext(`${projectHelpers}; ${app.slice(start,end)}; ${body}`,context);
 }
 
 test("Relations is available as a multi-item custom field",()=>{

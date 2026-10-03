@@ -261,7 +261,8 @@
     for (const projectRecord of projectRecords()){
       const loadedProject=(state.projects||[]).find(project=>project.id===projectRecord.id);
       const candidates=loadedProject
-        ? loadedProject.groups.flatMap(group=>(group.items||[]).map(item=>({item,group})))
+        ? [...loadedProject.groups.flatMap(group=>(group.items||[]).map(item=>({item,group}))),
+          ...(loadedProject.items||[]).map(item=>({item,group:{id:"__project_items__",name:"Unassigned",items:loadedProject.items}}))]
         : (projectRecord.itemIndex||[]).map(item=>({item,group:projectRecord.groups.find(group=>group.id===item.groupId)||{id:item.groupId,name:item.groupName}}));
       const candidate=candidates.find(({item})=>{
         const fieldId=linkedFieldId(item,calendarId,projectRecord.id,eventId);
@@ -272,6 +273,7 @@
       const project=state.folderLazy ? await ensureProjectLoaded(projectRecord.id) : projectRecord;
       if (!project) continue;
       const group=project.groups.find(candidateGroup=>candidateGroup.id===candidate.group.id)
+        || (candidate.group.id==="__project_items__" ? {id:"__project_items__",name:"Unassigned",items:project.items||[]} : null)
         || project.groups.find(candidateGroup=>candidateGroup.items?.some(item=>item.id===candidate.item.id));
       const item=group?.items.find(candidateItem=>candidateItem.id===candidate.item.id);
       if (!item) continue;
@@ -489,7 +491,8 @@
     if (!entry.project||!state.folderLazy) return entry;
     const project=await ensureProjectLoaded(entry.project.id);
     if (!project) throw new Error(`Project ${entry.project.name||entry.project.id} could not be loaded for Google Calendar sync.`);
-    const group=project.groups.find(candidate=>candidate.id===entry.group.id);
+    const group=project.groups.find(candidate=>candidate.id===entry.group.id)
+      || (entry.group.id==="__project_items__" ? {id:"__project_items__",name:"Unassigned",items:project.items||[]} : null);
     const item=group?.items.find(candidate=>candidate.id===entry.item.id);
     if (!group||!item) return null;
     const field=calendarDateFields(project).find(candidate=>candidate.id===entry.field.id)||entry.field;

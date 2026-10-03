@@ -78,6 +78,7 @@
       for (const key of ["groups","fields","tags","views","milestones"]){
         if (project[key]!==undefined && !Array.isArray(project[key])) addError(`${projectPath}.${key} must be an array.`);
       }
+      if (project.items!==undefined && !Array.isArray(project.items)) addError(`${projectPath}.items must be an array.`);
       const milestones=Array.isArray(project.milestones)?project.milestones:[];
       const milestoneIds=new Set();
       milestones.forEach((milestone,milestoneIndex)=>{
@@ -109,6 +110,7 @@
         if (group.items!==undefined && !Array.isArray(group.items)) addError(`${groupPath}.items must be an array.`);
         validateItems(group.items,`${groupPath}.items`,milestoneIds);
       });
+      validateItems(project.items,`${projectPath}.items`,milestoneIds);
     });
     validateItems(data.calendarItems,"calendarItems");
     (Array.isArray(data.folders) ? data.folders : []).forEach((folder,index)=>validateNamedRecord(folder,`folders[${index}]`));

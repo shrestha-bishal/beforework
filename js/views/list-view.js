@@ -12,6 +12,8 @@ export class ListView {
 
   render(project, board){
     const {
+      projectGroups,
+      projectItemEntries,
       itemMatchesFilter,
       wireTableColumnReordering,
       openNewItemModal,
@@ -43,8 +45,9 @@ export class ListView {
     } = this.dependencies;
     const templates=this.cloneTemplate();
     const wrap=templates.querySelector("#listViewTemplate").content.firstElementChild.cloneNode(true);
-    const showGroupColumn = project.groups.length>1;
-    const showProgressColumn = project.groups.some(group=>group.items.some(item=>
+    const groups=projectGroups(project);
+    const showGroupColumn = groups.length>1;
+    const showProgressColumn = groups.some(group=>group.items.some(item=>
       itemMatchesFilter(project,item,group,true) && Array.isArray(item.subitems) && item.subitems.length>0));
     board.appendChild(wrap);
     const table=wrap.querySelector(".listTable");
@@ -73,13 +76,13 @@ export class ListView {
     wireTableColumnReordering(table,project,"list");
 
     const doQuickAdd = () => {
-      openNewItemModal(project, project.groups[0]);
+      openNewItemModal(project, groups[0]);
     };
     wrap.querySelector("#quickAddBtn").onclick = doQuickAdd;
     wrap.querySelector("#exportCsvBtn").onclick = () => exportProjectCsv(project,"list",showProgressColumn);
     const updateSelection = () => {
       const selected = [...selectedItemIds];
-      const selectedItems = project.groups.flatMap(group => group.items).filter(item => selected.includes(item.id));
+      const selectedItems = projectItemEntries(project).map(row=>row.item).filter(item => selected.includes(item.id));
       const allSelectedCompleted = selectedItems.length > 0 && selectedItems.every(isItemCompleted);
       const allSelectedIncomplete = selectedItems.length > 0 && selectedItems.every(item => !isItemCompleted(item));
       const completeBtn = wrap.querySelector("#bulkComplete");

@@ -4,6 +4,16 @@ function appendMarkup(parent,markup){
   parent.append(template.content.cloneNode(true));
 }
 
+function projectEntries(project){
+  const groups=project.groups||[];
+  const entries=groups.flatMap(group=>(group.items||[]).map(item=>({item,group})));
+  (project.items||[]).forEach(item=>entries.push({
+    item,
+    group:{id:"__project_items__",name:"Unassigned",items:project.items}
+  }));
+  return entries;
+}
+
 function fieldControl(field,item,group,project,value,priorityOptions){
   const dataset={
     pid:project.id,
@@ -19,9 +29,8 @@ function fieldControl(field,item,group,project,value,priorityOptions){
     if (isMultiple){
       control.multiple=true;
       const options=field.type==="relation"
-        ? project.groups.flatMap(candidateGroup=>candidateGroup.items
-          .filter(candidate=>candidate.id!==item.id)
-          .map(candidate=>({id:candidate.id,label:`${candidate.title} (${candidateGroup.name})`})))
+        ? projectEntries(project).filter(({item:candidate})=>candidate.id!==item.id)
+          .map(({item:candidate,group:candidateGroup})=>({id:candidate.id,label:`${candidate.title} (${candidateGroup.name})`}))
         : field.options||[];
       control.size=Math.max(2,Math.min(3,options.length));
       const selected=Array.isArray(value)?value:[];
@@ -57,7 +66,7 @@ function fieldControl(field,item,group,project,value,priorityOptions){
     return label;
   }
   if (field.type==="relation"){
-    const titles=new Map(project.groups.flatMap(candidateGroup=>candidateGroup.items).map(candidate=>[candidate.id,candidate.title]));
+    const titles=new Map(projectEntries(project).map(({item:candidate})=>[candidate.id,candidate.title]));
     const control=document.createElement("span");
     control.className="tableRelationValue";
     control.textContent=(Array.isArray(value)?value:[]).map(id=>titles.get(id)).filter(Boolean).join(", ")||"-";
@@ -83,6 +92,8 @@ export class TableView {
 
   render(project,board){
     const {
+      projectGroups,
+      projectItemEntries,
       wireTableColumnReordering,
       openNewItemModal,
       exportProjectCsv,
@@ -113,7 +124,8 @@ export class TableView {
     }=this.dependencies;
     const templates=this.cloneTemplate();
     const wrap=templates.querySelector("#tableViewTemplate").content.firstElementChild.cloneNode(true);
-    const showGroupColumn=project.groups.length>1;
+    const groups=projectGroups(project);
+    const showGroupColumn=groups.length>1;
     board.appendChild(wrap);
     const table=wrap.querySelector(".listTable");
     const headerRow=table.tHead.rows[0];
@@ -137,11 +149,11 @@ export class TableView {
     headerRow.querySelectorAll("th[data-column-id]").forEach(th=>wireColumnFilterHeader(th,project));
     wireTableColumnReordering(table,project,"table");
 
-    wrap.querySelector("#quickAddBtn").onclick=()=>openNewItemModal(project,project.groups[0]);
+    wrap.querySelector("#quickAddBtn").onclick=()=>openNewItemModal(project,groups[0]);
     wrap.querySelector("#exportCsvBtn").onclick=()=>exportProjectCsv(project,"table");
     const updateSelection=()=>{
       const selected=[...selectedItemIds];
-      const selectedItems=project.groups.flatMap(group=>group.items).filter(item=>selected.includes(item.id));
+      const selectedItems=projectItemEntries(project).map(row=>row.item).filter(item=>selected.includes(item.id));
       const allSelectedCompleted=selectedItems.length>0 && selectedItems.every(isItemCompleted);
       const allSelectedIncomplete=selectedItems.length>0 && selectedItems.every(item=>!isItemCompleted(item));
       const completeBtn=wrap.querySelector("#bulkComplete");

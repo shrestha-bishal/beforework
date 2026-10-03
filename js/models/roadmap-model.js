@@ -25,12 +25,15 @@
       });
     });
 
-    const hasLoadedItems=Array.isArray(project.groups)&&project.groups.some(group=>Array.isArray(group.items));
+    const hasLoadedItems=Array.isArray(project.groups)
+      && (project.groups.some(group=>Array.isArray(group.items)) || Array.isArray(project.items));
     const groups=hasLoadedItems
-      ? project.groups
+      ? [...project.groups,...((project.items||[]).length||!project.groups.length
+        ? [{id:"__project_items__",name:"Unassigned",items:project.items||[]}]
+        : [])]
       : (project.itemIndex||[]).reduce((result,item)=>{
         let group=result.find(candidate=>candidate.id===item.groupId);
-        if (!group){ group={id:item.groupId,name:item.groupName,items:[]}; result.push(group); }
+        if (!group){ group={id:item.groupId||"__project_items__",name:item.groupName||"Unassigned",items:[]}; result.push(group); }
         group.items.push(item);
         return result;
       },[]);

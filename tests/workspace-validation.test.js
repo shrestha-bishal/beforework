@@ -161,6 +161,18 @@ test("validates optional project Overview visibility",()=>{
   assert.ok(result.errors.some(error=>error==="projects[0].hiddenFromOverview must be a boolean."));
 });
 
+test("validates project-owned items and allows projects without groups",()=>{
+  const project={id:"project-1",name:"Simple",groups:[],items:[{id:"task-1",title:"Plan"}]};
+  assert.equal(validate({projects:[project]},9).valid,true);
+  const malformed=validate({projects:[{...project,items:{id:"task-1"}}]},9);
+  assert.equal(malformed.valid,false);
+  assert.ok(malformed.errors.some(error=>error==="projects[0].items must be an array."));
+
+  const invalidItem=validate({projects:[{...project,items:[{id:"task-1",title:""}]}]},9);
+  assert.equal(invalidItem.valid,false);
+  assert.ok(invalidItem.errors.some(error=>error==="projects[0].items[0].title must be a non-empty string."));
+});
+
 test("validates project milestones and task references", ()=>{
   const project={id:"project-1",name:"Launch",milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],
     groups:[{id:"group-1",name:"Tasks",items:[{id:"task-1",title:"Prepare release",milestoneId:"milestone-1"}]}]};
@@ -485,7 +497,9 @@ test("milestones view renders linked task progress", ()=>{
   sandbox.globalThis=sandbox;
   vm.runInNewContext(`${source}; globalThis.MilestonesView=MilestonesView;`,sandbox);
   const opened=[];
-  const view=new sandbox.MilestonesView({cloneTemplate:()=>viewFragment});
+  const projectGroups=project=>project.groups;
+  const projectItemEntries=project=>project.groups.flatMap(group=>group.items.map(item=>({group,item})));
+  const view=new sandbox.MilestonesView({cloneTemplate:()=>viewFragment,projectGroups,projectItemEntries});
   view.render({
     id:"project-1",
     milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],
@@ -721,6 +735,7 @@ test("bulk completion updates selected items consistently", ()=>{
   const snippet = appSource.slice(start, end);
   const context = {
     selectedItemIds: new Set(["a","b"]),
+    projectGroups:project=>project.groups,
     isItemCompleted: item => !!item && Number.isFinite(item.completedAt) && item.completedAt > 0,
     recordItemActivity: () => {},
     scheduleSave: () => {},

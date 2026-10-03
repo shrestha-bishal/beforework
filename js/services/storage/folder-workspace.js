@@ -98,8 +98,12 @@
   }
   function summarizeProject(project){
     const groups=(project.groups||[]).map(group=>({id:group.id,name:group.name,itemCount:(group.items||[]).length}));
+    const ungroupedItems=Array.isArray(project.items)?project.items:[];
+    if (ungroupedItems.length || !groups.length){
+      groups.push({id:"__project_items__",name:"Unassigned",itemCount:ungroupedItems.length});
+    }
     const summaryFieldIds=new Set((project.fields||[]).filter(field=>["date","start-date","due-date","priority"].includes(field.type)).map(field=>field.id));
-    const items=(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({
+    const items=[...(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({
       id:item.id,
       title:item.title,
       groupId:group.id,
@@ -122,7 +126,30 @@
       attachments:item.attachments||[],
       recurrence:item.recurrence||null,
       reminderAt:item.reminderAt||null
-    })));
+    }))),...ungroupedItems.map(item=>({
+      id:item.id,
+      title:item.title,
+      groupId:"__project_items__",
+      groupName:"Unassigned",
+      calendarType:item.calendarType||"task",
+      description:item.description||"",
+      archived:!!item.archived,
+      completedAt:item.completedAt||null,
+      updatedAt:item.updatedAt||0,
+      createdAt:item.createdAt||0,
+      tagIds:item.tagIds||[],
+      values:Object.fromEntries(Object.entries(item.values||{}).filter(([fieldId])=>summaryFieldIds.has(fieldId))),
+      startDate:item.startDate||"",
+      startTime:item.startTime||"",
+      endTime:item.endTime||"",
+      endDate:item.endDate||"",
+      googleEventIds:item.googleEventIds||{},
+      googleSyncMeta:item.googleSyncMeta||{},
+      calendarTimeZone:item.calendarTimeZone||"",
+      attachments:item.attachments||[],
+      recurrence:item.recurrence||null,
+      reminderAt:item.reminderAt||null
+    }))];
     return {
       id:project.id,
       name:project.name,
@@ -273,7 +300,7 @@
       });
       projectEntries.forEach(entry=>{
         const project=loadedById.get(entry.id);
-        const items=project ? project.groups.flatMap(group=>group.items||[]) : entry.itemIndex||[];
+        const items=project ? [...project.groups.flatMap(group=>group.items||[]),...(project.items||[])] : entry.itemIndex||[];
         items.forEach(addItemAttachments);
       });
       (state.calendarItems||[]).forEach(addItemAttachments);

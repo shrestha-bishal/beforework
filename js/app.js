@@ -198,11 +198,11 @@
   ];
   function viewLabel(type){ return (VIEW_DEFS.find(v=>v.type===type)||{}).label || type; }
   const PROJECT_TEMPLATES = {
-    simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:["Items"]},
-    table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:["Rows"]},
+    simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:[]},
+    table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:[]},
     taskboard:{label:"Project / task management",  views:["list","kanban","calendar","roadmap"], fields:["priority","due"], groups:["To do","In progress","Review"]},
-    calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:["Items"], itemDefaultType:"event"},
-    blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:["Items"]},
+    calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:[], itemDefaultType:"event"},
+    blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:[]},
   };
   function buildFieldsForTemplate(keys){
     return (keys||[]).map(k=>{
@@ -557,6 +557,41 @@
   }
 
   /* ---------- Model helpers ---------- */
+  const UNGROUPED_GROUP_ID="__project_items__";
+  function projectGroups(project){
+    if (!project) return [];
+    let groups=Array.isArray(project.groups)?project.groups:[];
+    const hasLoadedGroups=groups.some(group=>Array.isArray(group.items));
+    if (Array.isArray(project.itemIndex)&&!hasLoadedGroups){
+      groups=groups.map(group=>({...group,items:[]}));
+      project.itemIndex.forEach(item=>{
+        let group=groups.find(candidate=>candidate.id===item.groupId);
+        if (!group){
+          group={id:UNGROUPED_GROUP_ID,name:"Unassigned",items:[],virtual:true};
+          groups.push(group);
+        }
+        group.items.push(item);
+      });
+    }
+    const items=Array.isArray(project.items)?project.items:[];
+    return groups.length||items.length ? (items.length ? [...groups,{id:UNGROUPED_GROUP_ID,name:"Unassigned",items,virtual:true}] : groups)
+      : [{id:UNGROUPED_GROUP_ID,name:"Unassigned",items,virtual:true}];
+  }
+  function projectItemEntries(project){
+    return projectGroups(project).flatMap(group=>(group.items||[]).map(item=>({item,group})));
+  }
+  function appendProjectItem(project,groupId,item){
+    if (!project) throw new Error("The destination project could not be found.");
+    if (groupId===UNGROUPED_GROUP_ID){
+      if (!Array.isArray(project.items)) project.items=[];
+      project.items.push(item);
+      return;
+    }
+    const group=(project.groups||[]).find(candidate=>candidate.id===groupId);
+    if (!group) throw new Error("The destination group could not be found.");
+    if (!Array.isArray(group.items)) group.items=[];
+    group.items.push(item);
+  }
   function projectRecords(){ return state?.folderLazy ? state.projectSummaries : state?.projects||[]; }
   function getProjectSummary(pid){ return projectRecords().find(project=>project.id===pid); }
   function getLoadedProject(pid){ return (state?.projects||[]).find(project=>project.id===pid); }
@@ -578,8 +613,9 @@
     }
     let project=await window.BeforeworkStorage.loadFolderProject(pid);
     project.folderId=summary.folderId;
+    if (!Array.isArray(project.items)) project.items=[];
     let migratedProject=false;
-    const items=project.groups.flatMap(group=>group.items||[]);
+    const items=projectItemEntries(project).map(row=>row.item);
     const hasLegacyDateFields=project.fields.some(field=>field.type==="date"
       && /^(start|start date|starts on|due|due date|deadline)$/.test(String(field.label||"").trim().toLowerCase()));
     const hasLegacyStartDates=items.some(item=>item.calendarType!=="event"&&item.startDate)
@@ -596,7 +632,7 @@
     if (migratedProject) scheduleSave();
     return project;
   }
-  function getGroup(pid,gid){ return getProject(pid)?.groups.find(g=>g.id===gid); }
+  function getGroup(pid,gid){ return projectGroups(getProject(pid)).find(g=>g.id===gid); }
   function getItem(pid,gid,iid){ return getGroup(pid,gid)?.items.find(i=>i.id===iid); }
   function isItemCompleted(item){
     return !!item && item.calendarType!=="event" && Number.isFinite(item.completedAt) && item.completedAt>0;
@@ -614,7 +650,9 @@
         }
       }
       project=getLoadedProject(details.projectId)||getProject(details.projectId);
-      item=project?.groups.find(group=>group.id===details.groupId)?.items.find(candidate=>candidate.id===details.itemId);
+      const group=project?.groups.find(candidate=>candidate.id===details.groupId)
+        || (details.groupId==="__project_items__" ? {items:project?.items||[]} : null);
+      item=group?.items.find(candidate=>candidate.id===details.itemId);
     } else {
       item=(state.calendarItems||[]).find(candidate=>candidate.id===details.itemId);
     }
@@ -656,14 +694,7 @@
     if (!state) return [];
     const entries = [];
     projectRecords().forEach(project=>{
-      const groups=state.folderLazy
-        ? project.itemIndex.reduce((result,item)=>{
-          let group=result.find(candidate=>candidate.id===item.groupId);
-          if (!group){ group={id:item.groupId,name:item.groupName,items:[]}; result.push(group); }
-          group.items.push(item);
-          return result;
-        },[])
-        : project.groups;
+      const groups=projectGroups(project);
       groups.forEach(group=>group.items.forEach(item=>{
         const dueField = dueDateField(project);
         entries.push({
@@ -706,13 +737,13 @@
     const out = [];
     if (state.folderLazy){
       state.projectSummaries.forEach(project=>project.itemIndex.forEach(item=>{
-        const group=project.groups.find(candidate=>candidate.id===item.groupId)||{id:item.groupId,name:item.groupName};
+        const group=projectGroups(project).find(candidate=>candidate.id===item.groupId)||{id:item.groupId,name:item.groupName};
         out.push({project,group,item});
       }));
       return out;
     }
-    state.projects.forEach(p=> p.groups.forEach(g=> g.items.forEach(it=>
-      out.push({project:p, group:g, item:it}))));
+    state.projects.forEach(project=>projectItemEntries(project).forEach(({group,item})=>
+      out.push({project,group,item})));
     return out;
   }
 
@@ -731,6 +762,7 @@
       tags:[],
       fields: buildFieldsForTemplate(tpl.fields),
       groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
+      items:[],
       views, activeViewId: views[0].id,
       itemDefaultType: tpl.itemDefaultType || "task",
     };
@@ -817,7 +849,7 @@
   }
   async function deleteMilestone(project,milestone){
     if (!await showConfirm(`Delete milestone ${milestone.title}`,"Linked tasks will be kept and unlinked from this milestone.",true)) return;
-    project.groups.forEach(group=>group.items.forEach(item=>{
+    projectGroups(project).forEach(group=>group.items.forEach(item=>{
       if (item.milestoneId===milestone.id) item.milestoneId=null;
     }));
     project.milestones=project.milestones.filter(candidate=>candidate.id!==milestone.id);
@@ -826,7 +858,7 @@
   }
   async function deleteProject(pid){
     const project = await ensureProjectLoaded(pid);
-    if (project) project.groups.forEach(group=>group.items.forEach(queueGoogleEventDeletes));
+    if (project) projectGroups(project).forEach(group=>group.items.forEach(queueGoogleEventDeletes));
     state.projects = state.projects.filter(p=>p.id!==pid);
     if (state.folderLazy) state.projectSummaries=state.projectSummaries.filter(project=>project.id!==pid);
     if (activeProjectId===pid){
@@ -875,7 +907,7 @@
     const groups = project.groups||[];
     const views = project.views||[];
     groups.forEach(group=>groupIds.set(group.id, uid()));
-    groups.forEach(group=>(group.items||[]).forEach(item=>itemIds.set(item.id,uid())));
+    [...groups.flatMap(group=>group.items||[]),...(project.items||[])].forEach(item=>itemIds.set(item.id,uid()));
     views.forEach(view=>viewIds.set(view.id, uid()));
     (project.milestones||[]).forEach(milestone=>milestoneIds.set(milestone.id,uid()));
 
@@ -916,6 +948,7 @@
         id:groupIds.get(group.id),
         items:(group.items||[]).map(copyItem)
       })),
+      items:(project.items||[]).map(copyItem),
       views:views.map(view=>({...view,id:viewIds.get(view.id)})),
       activeViewId:viewIds.get(project.activeViewId)||viewIds.get(views[0]?.id)
     };
@@ -934,14 +967,13 @@
   }
   function deleteGroup(pid, gid, targetGroupId){
     const p = getProject(pid);
-    if (!p || p.groups.length <= 1){
-      showNotice("Group required", "A project needs at least one group.");
-      return;
-    }
+    if (!p || !Array.isArray(p.groups)) return;
     const group = p.groups.find(candidate=>candidate.id===gid);
     if (!group) return;
     if (group.items.length){
-      const target = p.groups.find(candidate=>candidate.id===targetGroupId && candidate.id!==gid);
+      const target = targetGroupId===UNGROUPED_GROUP_ID
+        ? {id:UNGROUPED_GROUP_ID,items:(p.items||(p.items=[]))}
+        : p.groups.find(candidate=>candidate.id===targetGroupId && candidate.id!==gid);
       if (!target) return;
       const now = Date.now();
       group.items.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
@@ -958,13 +990,16 @@
   }
   async function confirmDeleteGroup(project, group){
     if (!project.groups.includes(group)) return;
-    if (project.groups.length<=1){ await showNotice("Group required", "A project needs at least one group."); return; }
     let targetGroupId = null;
     if (group.items.length){
+      const destinations=[
+        ...project.groups.filter(candidate=>candidate.id!==group.id).map(candidate=>({value:candidate.id,label:candidate.name})),
+        {value:UNGROUPED_GROUP_ID,label:"Unassigned"}
+      ];
       targetGroupId = await showDialog({
         title:`Delete group ${group.name}`,
         message:`Choose where to move its ${group.items.length} item(s). The items and their calendar links will be preserved.`,
-        fields:[{label:"Move items to", type:"select", options:project.groups.filter(candidate=>candidate.id!==group.id).map(candidate=>({value:candidate.id,label:candidate.name})), value:project.groups.find(candidate=>candidate.id!==group.id)?.id}],
+        fields:[{label:"Move items to", type:"select", options:destinations, value:destinations[0]?.value}],
         confirmLabel:"Move items and delete",
         danger:true
       });
@@ -976,7 +1011,7 @@
   }
   function addItem(pid, gid, title){
     const it = createItem(pid,title);
-    getGroup(pid,gid).items.push(it);
+    appendProjectItem(getProject(pid),gid,it);
     scheduleSave(); render();
     return it;
   }
@@ -1333,8 +1368,6 @@
           project=await ensureProjectLoaded(existingProject.value);
           if (!project) throw new Error("Couldn't load the selected project.");
         }
-        if (!project.groups.length) project.groups.push({id:uid(),name:"Items",items:[]});
-
         let startField=destination.value==="new"
           ? project.fields[context.mapping.startDateFieldIndex]
           : project.fields.find(field=>field.id===context.mapping.startDateFieldId);
@@ -1371,7 +1404,8 @@
         const tags=new Map(project.tags.map(tag=>[tag.name.trim().toLowerCase(),tag]));
 
         for (const imported of prepared.tasks){
-          const group=imported.status ? groups.get(imported.status.trim().toLowerCase()) : project.groups[0];
+          const group=imported.status ? groups.get(imported.status.trim().toLowerCase())
+            : projectGroups(project).find(candidate=>candidate.id===UNGROUPED_GROUP_ID)||project.groups[0];
           if (!group) throw new Error(`Couldn't find a group for status "${imported.status}".`);
           const item=createItem(project.id,imported.title);
           item.description=imported.description;
@@ -1435,7 +1469,8 @@
     const g = getGroup(pid,gid);
     const item = g.items.find(candidate=>candidate.id===iid);
     queueGoogleEventDeletes(item);
-    g.items = g.items.filter(i=>i.id!==iid);
+    const itemIndex=g.items.findIndex(candidate=>candidate.id===iid);
+    if (itemIndex>=0) g.items.splice(itemIndex,1);
     removeItemRelations(project,[iid]);
     scheduleSave(); render();
   }
@@ -1443,7 +1478,7 @@
     if (!project || !itemIds.length) return;
     const removed=new Set(itemIds);
     const now=Date.now();
-    project.groups.forEach(group=>group.items.forEach(item=>{
+    projectGroups(project).forEach(group=>group.items.forEach(item=>{
       (project.fields||[]).filter(field=>field.type==="relation").forEach(field=>{
         const linked=item.values?.[field.id];
         if (!Array.isArray(linked)) return;
@@ -1512,7 +1547,7 @@
   async function quickAddViaShortcut(){
     const project = getProject(activeProjectId);
     if (!project){ showNotice("Pick a project", "Open a project from the sidebar first, then press n to quickly add an item."); return; }
-    const group = project.groups[0];
+    const group = project.groups[0]||{id:"__project_items__",name:"Unassigned",items:project.items||(project.items=[])};
     if (!group) return;
     openNewItemModal(project, group);
   }
@@ -1529,7 +1564,7 @@
   function bulkSetCompleted(project, completed){
     if (!selectedItemIds.size) return;
     const now = Date.now();
-    project.groups.forEach(group=>{
+    projectGroups(project).forEach(group=>{
       group.items.forEach(item=>{
         if (!selectedItemIds.has(item.id)) return;
         const wasCompleted = isItemCompleted(item);
@@ -1543,22 +1578,27 @@
   async function bulkDelete(project){
     if (!selectedItemIds.size) return;
     if (!await showConfirm("Delete selected items", `Delete ${selectedItemIds.size} selected item(s)?`, true)) return;
-    project.groups.forEach(g=>{
+    projectGroups(project).forEach(g=>{
       g.items.forEach(item=>{ if (selectedItemIds.has(item.id)) queueGoogleEventDeletes(item); });
-      g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
+      for (let index=g.items.length-1;index>=0;index--){
+        if (selectedItemIds.has(g.items[index].id)) g.items.splice(index,1);
+      }
     });
     removeItemRelations(project,[...selectedItemIds]);
     selectedItemIds.clear(); scheduleSave(); render(); renderProjectList();
   }
   async function bulkMove(project){
     if (!selectedItemIds.size) return;
-    const choice = await showDialog({title:"Move selected items", message:"Choose a destination group.", fields:[{label:"Destination", type:"select", options:project.groups.map(group=>({value:group.id,label:group.name})), value:project.groups[0]?.id}], confirmLabel:"Move"});
-    const target = project.groups.find(group=>group.id===choice);
+    const groups=projectGroups(project);
+    const choice = await showDialog({title:"Move selected items", message:"Choose a destination group.", fields:[{label:"Destination", type:"select", options:groups.map(group=>({value:group.id,label:group.name})), value:groups[0]?.id}], confirmLabel:"Move"});
+    const target = groups.find(group=>group.id===choice);
     if (!target) return;
     const now = Date.now();
-    project.groups.forEach(g=>{
+    groups.forEach(g=>{
       const moving = g.items.filter(item=>selectedItemIds.has(item.id));
-      g.items = g.items.filter(item=>!selectedItemIds.has(item.id));
+      for (let index=g.items.length-1;index>=0;index--){
+        if (selectedItemIds.has(g.items[index].id)) g.items.splice(index,1);
+      }
       moving.forEach(item=>{ item.updatedAt = now; if (g.id!==target.id) recordItemActivity(item,"moved",{from:g.name,to:target.name}); target.items.push(item); });
     });
     selectedItemIds.clear(); scheduleSave(); render();
@@ -1575,7 +1615,7 @@
       if (!color) return;
       tag = createTag(project, name.trim(), color);
     }
-    project.groups.forEach(g=>g.items.forEach(item=>{
+    projectGroups(project).forEach(g=>g.items.forEach(item=>{
       if (selectedItemIds.has(item.id) && !item.tagIds.includes(tag.id)){
         item.tagIds.push(tag.id); item.updatedAt = Date.now();
       }
@@ -1585,13 +1625,13 @@
   function bulkDuplicate(project){
     if (!selectedItemIds.size) return;
     const selected = new Set(selectedItemIds);
-    project.groups.forEach(group=>{
+    projectGroups(project).forEach(group=>{
       const items = [];
       group.items.forEach(item=>{
         items.push(item);
         if (selected.has(item.id)) items.push(makeDuplicateItem(item));
       });
-      group.items = items;
+      group.items.splice(0,group.items.length,...items);
     });
     selectedItemIds.clear();
     scheduleSave(); render(); renderProjectList();
@@ -1616,7 +1656,7 @@
   }
   function deleteTag(project, tid){
     project.tags = project.tags.filter(t=>t.id!==tid);
-    project.groups.forEach(g=>g.items.forEach(it=> it.tagIds = it.tagIds.filter(id=>id!==tid)));
+    projectGroups(project).forEach(g=>g.items.forEach(it=> it.tagIds = it.tagIds.filter(id=>id!==tid)));
     boardFilterTags.delete(tid);
     scheduleSave(); renderAll();
   }
@@ -1642,7 +1682,7 @@
   }
   function deleteField(project, fid){
     project.fields = project.fields.filter(f=>f.id!==fid);
-    project.groups.forEach(g=>g.items.forEach(it=>{ delete it.values[fid]; }));
+    projectGroups(project).forEach(g=>g.items.forEach(it=>{ delete it.values[fid]; }));
     boardFilterFields.delete(fid);
     if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
     scheduleSave(); renderAll();
@@ -1941,11 +1981,11 @@
         const action = button.dataset.groupAction;
         const groupId = await showDialog({
           title:action==="edit" ? "Choose group to edit" : "Choose group to delete",
-          fields:[{label:"Group", type:"select", options:project.groups.map(group=>({value:group.id,label:group.name})), value:project.groups[0]?.id}],
+          fields:[{label:"Group", type:"select", options:projectGroups(project).map(group=>({value:group.id,label:group.name})), value:projectGroups(project)[0]?.id}],
           confirmLabel:"Continue"
         });
         if (!groupId) return;
-        const group = project.groups.find(candidate=>candidate.id===groupId);
+        const group = projectGroups(project).find(candidate=>candidate.id===groupId);
         if (!group) return;
         if (action==="edit") await editGroupName(project, group);
         else await confirmDeleteGroup(project, group);
@@ -2110,7 +2150,7 @@
   }
   function relatedItemTitles(project,value){
     if (!project || !Array.isArray(value)) return [];
-    const titles=new Map(project.groups.flatMap(group=>group.items).map(item=>[item.id,item.title]));
+    const titles=new Map(projectItemEntries(project).map(({item})=>[item.id,item.title]));
     return value.map(id=>titles.get(id)).filter(Boolean);
   }
   function fieldCellHtml(field, value, project){
@@ -2233,7 +2273,7 @@
   }
   function rowsForSelection(project,ignoreColumnFilters=false){
     const rows = [];
-    project.groups.forEach(group=> group.items
+    projectGroups(project).forEach(group=> group.items
       .filter(item=>itemMatchesFilter(project, item, group, ignoreColumnFilters))
       .forEach(item=>rows.push({item, group})));
     return rows;
@@ -2291,7 +2331,7 @@
   }
 
   function buildProjectCsv(project,viewType,showProgressColumn,rows){
-    const showGroupColumn=project.groups.length>1;
+    const showGroupColumn=(project.groups||[]).length+((project.items||[]).length?1:0)>1;
     const columns=[
       {id:"title",label:"Title",value:row=>row.item.title},
       ...(showGroupColumn?[{id:"group",label:"Group",value:row=>row.group.name}]:[]),
@@ -2348,7 +2388,8 @@
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
     const appendProject = (p, inFolder=false) => {
-      const count = Number.isFinite(p.itemCount) ? p.itemCount : (p.groups||[]).reduce((n,g)=>n+(g.items||[]).length,0);
+      const count = Number.isFinite(p.itemCount) ? p.itemCount
+        : (p.groups||[]).reduce((n,g)=>n+(g.items||[]).length,0)+(p.items||[]).length;
       const li = document.createElement("li");
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
       li.title = p.name;
@@ -2775,6 +2816,8 @@
       filterBar.style.display="none";
       completionTabs.style.display="none";
       milestonesView.render(project,board,{
+        projectGroups,
+        projectItemEntries,
         isItemCompleted,
         fmtDate,
         todayStr,
@@ -2846,7 +2889,7 @@
 
   function renderCompletionTabs(project){
     const wrap = document.getElementById("completionTabs");
-    const items = project.groups.flatMap(group=>group.items).filter(item=>showArchived || !item.archived);
+    const items = projectItemEntries(project).map(row=>row.item).filter(item=>showArchived || !item.archived);
     const completedCount = items.filter(isItemCompleted).length;
     const openCount = items.length-completedCount;
     wrap.innerHTML = `<div class="completionTabList" role="group" aria-label="Filter items by completion">
@@ -2866,7 +2909,7 @@
   function renderFilterCategories(project){
     const wrap = document.getElementById("filterCategoryList");
     const categories = [
-      ...(project.groups.length>1 ? [{id:"groupFilters", label:"Groups"}] : []),
+      ...(projectGroups(project).length>1 ? [{id:"groupFilters", label:"Groups"}] : []),
       {id:"boardTagFilters", label:"Tags"},
       ...project.fields.map(field=>({id:`field:${field.id}`, label:field.label}))
     ];
@@ -2892,7 +2935,7 @@
 
   function renderGroupFilters(project){
     const wrap = document.getElementById("groupFilters");
-    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${project.groups.map(group=>`<label class="filterOptionCheck"><input type="checkbox" data-group-filter="${group.id}" ${boardFilterGroups.has(group.id)?"checked":""}><span class="filterValuePill groupPill">${escapeHtml(group.name)}</span></label>`).join("")}</div>`;
+    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${projectGroups(project).map(group=>`<label class="filterOptionCheck"><input type="checkbox" data-group-filter="${group.id}" ${boardFilterGroups.has(group.id)?"checked":""}><span class="filterValuePill groupPill">${escapeHtml(group.name)}</span></label>`).join("")}</div>`;
     wrap.querySelectorAll("[data-group-filter]").forEach(input=>{
       input.onchange = () => {
         if (input.checked) boardFilterGroups.add(input.dataset.groupFilter); else boardFilterGroups.delete(input.dataset.groupFilter);
@@ -2906,7 +2949,7 @@
     const selectedField = project.fields.find(field=>`field:${field.id}`===activeFilterCategory);
     const visibleOptions = selectedField ? [selectedField].map(f=>{
       const opts = f.type==="priority" ? PRIORITY_OPTIONS : f.type==="relation"
-        ? project.groups.flatMap(group=>group.items).map(item=>({id:item.id,label:item.title}))
+        ? projectItemEntries(project).map(({item})=>({id:item.id,label:item.title}))
         : (f.options||[]);
       const current = boardFilterFields.get(f.id);
       let control;
@@ -2952,7 +2995,7 @@
       const field=columnId.startsWith("field:")?project.fields.find(candidate=>candidate.id===columnId.slice(6)):null;
       return `No ${field?.label.toLowerCase()||labels[columnId]||"value"}`;
     }
-    if (columnId==="group") return project.groups.find(group=>group.id===value)?.name||value;
+    if (columnId==="group") return projectGroups(project).find(group=>group.id===value)?.name||value;
     if (columnId==="tags") return project.tags.find(tag=>tag.id===value)?.name||value;
     if (columnId==="updated"){
       const date=new Date(`${value}T12:00:00`);
@@ -2965,7 +3008,7 @@
       const option=(field?.type==="priority"?PRIORITY_OPTIONS:field?.options||[]).find(candidate=>String(candidate.id)===value);
       if (option) return option.label;
       if (field?.type==="relation"){
-        const item=project.groups.flatMap(group=>group.items).find(candidate=>candidate.id===value);
+        const item=projectItemEntries(project).map(row=>row.item).find(candidate=>candidate.id===value);
         if (item) return item.title;
       }
     }
@@ -2973,8 +3016,8 @@
   }
   function columnFilterOptions(project,columnId){
     const values=new Set();
-    const items=project.groups.flatMap(group=>group.items.map(item=>({item,group})));
-    if (columnId==="group") project.groups.forEach(group=>values.add(String(group.id)));
+    const items=projectItemEntries(project);
+    if (columnId==="group") projectGroups(project).forEach(group=>values.add(String(group.id)));
     else if (columnId==="tags") project.tags.forEach(tag=>values.add(String(tag.id)));
     else if (columnId.startsWith("field:")){
       const field=project.fields.find(candidate=>candidate.id===columnId.slice(6));
@@ -2994,7 +3037,7 @@
     const rows=[...tbody.querySelectorAll("tr[data-iid]")];
     let visibleCount=0;
     rows.forEach(row=>{
-      const group=project.groups.find(candidate=>candidate.id===row.dataset.gid);
+      const group=projectGroups(project).find(candidate=>candidate.id===row.dataset.gid);
       const item=group?.items.find(candidate=>candidate.id===row.dataset.iid);
       row.hidden=!item || !itemMatchesFilter(project,item,group);
       if (!row.hidden) visibleCount++;
@@ -3104,9 +3147,7 @@
     }
     const projects = scopeProject ? [scopeProject] : projectRecords();
     projects.forEach(project=>{
-      const projectItems=state.folderLazy && !scopeProject
-        ? project.itemIndex.map(item=>({item,group:project.groups.find(group=>group.id===item.groupId)||{id:item.groupId,name:item.groupName}}))
-        : project.groups.flatMap(group=>group.items.map(item=>({item,group})));
+      const projectItems=projectItemEntries(project);
       projectItems.forEach(({group,item})=>{
       const fields = calendarDateFields(project);
       const datedField = fields.find(field=>item.values[field.id]);
@@ -3464,7 +3505,7 @@
     if (!project) return;
     const dateField = calendarDateFields(project)[0];
     if (!dateField){ await showNotice("Date column required", `Add a date column to ${project.name} before creating calendar items.`); return; }
-    const group = project.groups[0];
+    const group = project.groups[0]||{id:"__project_items__",name:"Unassigned",items:project.items||(project.items=[])};
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:!scopeProject, draft:{
       id:uid(), title:"", description:"", attachments:[], calendarType:"task", startTime:"", endTime:"", location:"", endDate:"",
       tagIds:[], values:{[dateField.id]:date}, subitems:[], comments:[], activity:[], archived:false, createdAt:Date.now(), updatedAt:Date.now()
@@ -3957,9 +3998,7 @@
     }
     if (field.type==="relation"){
       const selected=new Set(Array.isArray(val)?val:[]);
-      const options=(project?.groups||[]).flatMap(group=>group.items
-        .filter(candidate=>candidate.id!==item.id)
-        .map(candidate=>({item:candidate,group})));
+      const options=projectItemEntries(project).filter(({item:candidate})=>candidate.id!==item.id);
       const optionHtml=options.map(({item:target})=>
         `<option value="${escapeHtml(target.id)}" ${selected.has(target.id)?"selected":""}>${escapeHtml(target.title)}</option>`
       ).join("");
@@ -3983,7 +4022,7 @@
     const {projectId,groupId,itemId} = openItemRef;
     const isNew = !!openItemRef.isNew;
     const project = getProject(projectId);
-    const group = project.groups.find(candidate=>candidate.id===groupId);
+    const group = projectGroups(project).find(candidate=>candidate.id===groupId);
     const item = isNew ? openItemRef.draft : getItem(projectId, groupId, itemId);
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
@@ -3995,9 +4034,10 @@
       <label class="sideItemLabel" for="itemMilestoneSelect">Milestone</label>
       <select class="form-control" id="itemMilestoneSelect"><option value="">No milestone</option>${milestoneOptions}</select>
     </div>` : "";
-    const groupOptions = project.groups.map(g=>
+    const groups=projectGroups(project);
+    const groupOptions = groups.map(g=>
       `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
-    const groupSelector = project.groups.length>1 ? `<div class="sideItem">
+    const groupSelector = groups.length>1 ? `<div class="sideItem">
             <div class="sideItemLabel">Group</div>
             <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
           </div>` : "";
@@ -4255,7 +4295,7 @@
     if (isNew && openItemRef.globalNew){
       modal.querySelector("#itemProjectSelect").addEventListener("change", e=>{
         const nextProject = getProject(e.target.value);
-        const nextGroup = nextProject.groups[0];
+        const nextGroup = projectGroups(nextProject)[0];
         const nextDateField = calendarDateFields(nextProject)[0];
         if (!nextDateField){ showNotice("Date column required", `Add a date column to ${nextProject.name} before creating calendar items.`); return; }
         openItemRef.projectId = nextProject.id;
@@ -4279,7 +4319,7 @@
     const groupSelect = modal.querySelector("#itemGroupSelect");
     if (groupSelect) groupSelect.addEventListener("change", e=>{
       const newGid = e.target.value;
-      const nextGroup = project.groups.find(candidate=>candidate.id===newGid);
+      const nextGroup = projectGroups(project).find(candidate=>candidate.id===newGid);
       modal.querySelector(".itemModalBreadcrumb").textContent = `${project.name} / ${nextGroup?.name||""}`;
       if (isNew){ openItemRef.groupId = newGid; return; }
       if (newGid !== groupId){
@@ -4512,19 +4552,23 @@
       };
     }
     if (isNew){
-      modal.querySelector('[data-action="saveItem"]').onclick = () => {
+      modal.querySelector('[data-action="saveItem"]').onclick = async () => {
         const title = modal.querySelector("#itemTitleInput").value.trim();
-        const targetProject = getProject(openItemRef.projectId);
-        const targetGroup = getGroup(openItemRef.projectId, openItemRef.groupId) || targetProject.groups[0];
-        if (!title || !targetProject || !targetGroup) return;
-        item.title = title;
-        item.description=modal.querySelector("#itemDescInput").value;
-        item.updatedAt = Date.now();
-        recordItemActivity(item, "created");
-        targetGroup.items.push(item);
-        scheduleSave();
-        closeItemModal();
-        renderAll();
+        if (!title) return;
+        try{
+          const targetProject=await ensureProjectLoaded(openItemRef.projectId);
+          if (!targetProject) throw new Error("The destination project could not be found.");
+          item.title = title;
+          item.description=modal.querySelector("#itemDescInput").value;
+          item.updatedAt = Date.now();
+          recordItemActivity(item, "created");
+          appendProjectItem(targetProject,openItemRef.groupId,item);
+          scheduleSave();
+          closeItemModal();
+          renderAll();
+        }catch(error){
+          await showNotice("Couldn't add item",error.message);
+        }
       };
     } else {
       modal.querySelector('[data-action="deleteItem"]').onclick = async () => {
@@ -4775,10 +4819,14 @@
         }
       });
       milestonesView = new milestonesViewModule.MilestonesView({
+        projectGroups,
+        projectItemEntries,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
       });
       roadmapView = new roadmapViewModule.RoadmapView();
       listView = new listViewModule.ListView({
+        projectGroups,
+        projectItemEntries,
         itemMatchesFilter,
         wireTableColumnReordering,
         openNewItemModal,
@@ -4810,6 +4858,8 @@
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")
       });
       tableView = new tableViewModule.TableView({
+        projectGroups,
+        projectItemEntries,
         wireTableColumnReordering,
         openNewItemModal,
         exportProjectCsv,
@@ -4840,6 +4890,7 @@
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("tableView")
       });
       boardView = new boardViewModule.BoardView({
+        projectGroups,
         itemMatchesFilter,
         scheduleSave,
         renderProjectList,
@@ -4885,6 +4936,7 @@
       overviewView = new overviewViewModule.OverviewView({
         getState:()=>state,
         model:{
+          projectGroups,
           visibleProjects:projects=>overviewDetailsModel.visibleProjects(projects),
           allItemsFlat,
           isItemCompleted,

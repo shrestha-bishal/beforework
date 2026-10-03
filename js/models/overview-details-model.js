@@ -17,9 +17,12 @@ export class OverviewDetailsModel {
       return this.visibleProjects(projects).map(project=>{
         const items=Array.isArray(project.itemIndex)
           ? project.itemIndex.filter(item=>!item.archived)
-          : (project.groups||[]).flatMap(group=>(group.items||[])
-            .filter(item=>!item.archived)
-            .map(item=>({item,group})));
+          : [
+            ...(project.groups||[]).flatMap(group=>(group.items||[])
+              .filter(item=>!item.archived)
+              .map(item=>({item,group}))),
+            ...(project.items||[]).filter(item=>!item.archived).map(item=>({item,group:{name:"Unassigned"}}))
+          ];
         const completed=items.filter(row=>isItemCompleted(Array.isArray(project.itemIndex)?row:row.item)).length;
         return {kind:"project",id:project.id,title:project.name,meta:`${items.length-completed} open / ${completed} completed`};
       });

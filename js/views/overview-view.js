@@ -66,8 +66,11 @@ export class OverviewView {
       }
       projects.forEach((project,index)=>{
         const projectItems = state.folderLazy
-          ? project.itemIndex.filter(item=>!item.archived).map(item=>({group:project.groups.find(group=>group.id===item.groupId)||{name:item.groupName},item}))
-          : project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item})));
+          ? project.itemIndex.filter(item=>!item.archived)
+          : [
+            ...project.groups.flatMap(group=>group.items.filter(item=>!item.archived).map(item=>({group,item}))),
+            ...(project.items||[]).filter(item=>!item.archived).map(item=>({item,group:{name:"Unassigned"}}))
+          ];
         const complete = projectItems.filter(row=>isItemCompleted(row.item)).length;
         const percent = projectItems.length ? Math.round(complete/projectItems.length*100) : 0;
         if (index) fragment.appendChild(cloneElement("overviewDividerTemplate"));
@@ -666,7 +669,7 @@ export class OverviewView {
         if (!result) return;
         const [title,projectId] = result;
         const project = await ensureProjectLoaded(projectId);
-        const group = project?.groups[0];
+        const group = project ? this.model.projectGroups(project)[0] : null;
         if (!title.trim() || !project || !group) return;
         const item = addItem(project.id,group.id,title.trim());
         openItemModal(project.id,group.id,item.id);

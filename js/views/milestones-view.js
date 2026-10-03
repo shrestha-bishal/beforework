@@ -1,5 +1,7 @@
 export class MilestonesView {
-  constructor({cloneTemplate}){
+  constructor({projectGroups,projectItemEntries,cloneTemplate}){
+    this.projectGroups=projectGroups;
+    this.projectItemEntries=projectItemEntries;
     this.cloneTemplate=cloneTemplate;
   }
 
@@ -16,7 +18,7 @@ export class MilestonesView {
     empty.hidden=milestones.length>0;
     milestones.forEach(milestone=>{
       const card=cardTemplate.content.cloneNode(true).querySelector(".milestoneCard");
-      const linkedItems=project.groups.flatMap(group=>group.items.map(item=>({group,item})))
+      const linkedItems=this.projectItemEntries(project)
         .filter(entry=>entry.item.milestoneId===milestone.id&&!entry.item.archived&&entry.item.calendarType!=="event");
       const completed=linkedItems.filter(entry=>isItemCompleted(entry.item)).length;
       const percent=linkedItems.length?Math.round(completed/linkedItems.length*100):0;
@@ -44,7 +46,7 @@ export class MilestonesView {
       const deleteButton=card.querySelector('[data-action="deleteMilestone"]');
       deleteButton.setAttribute("aria-label",`Delete ${milestone.title}`);
       deleteButton.onclick=()=>deleteMilestone(project,milestone);
-      card.querySelector('[data-action="addMilestoneTask"]').onclick=()=>openNewItem(project,project.groups[0],milestone.id);
+      card.querySelector('[data-action="addMilestoneTask"]').onclick=()=>openNewItem(project,this.projectGroups(project)[0],milestone.id);
       grid.appendChild(card);
     });
     board.replaceChildren(view);

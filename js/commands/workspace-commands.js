@@ -23,7 +23,11 @@
       const projects=state.folderLazy ? (state.projectSummaries||[]) : (state.projects||[]);
       projects.forEach(project=>{
         commands.push({id:`project:${project.id}`,title:project.name,category:"Projects",subtitle:"Open project",keywords:"project workspace",icon:project.icon||"mdi:clipboard-text-outline",run:()=>actions.openProject(project)});
-        (project.groups||[]).forEach(group=>{
+        const groups=[...(project.groups||[])];
+        if ((project.items||[]).length || !groups.length){
+          groups.push({id:"__project_items__",name:"Unassigned",items:project.items||[]});
+        }
+        groups.forEach(group=>{
           commands.push({id:`group:${project.id}:${group.id}`,title:group.name,category:"Groups",subtitle:project.name,keywords:"group status",icon:"mdi:folder-outline",run:()=>actions.openGroup(project,group)});
           const groupItems=state.folderLazy
             ? (project.itemIndex||[]).filter(item=>item.groupId===group.id)

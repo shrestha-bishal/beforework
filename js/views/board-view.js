@@ -12,6 +12,7 @@ export class BoardView {
 
   render(project,board){
     const {
+      projectGroups,
       itemMatchesFilter,
       scheduleSave,
       renderProjectList,
@@ -28,11 +29,12 @@ export class BoardView {
       openItemModal
     }=this.dependencies;
     const templates=this.cloneTemplate();
-    project.groups.forEach(group=>{
+    projectGroups(project).forEach(group=>{
       const column=templates.querySelector("#boardGroupTemplate").content.firstElementChild.cloneNode(true);
       column.dataset.groupId=group.id;
       const visibleItems=group.items.filter(item=>itemMatchesFilter(project,item,group));
       column.querySelector(".groupTitle").value=group.name;
+      column.querySelector(".groupTitle").readOnly=!!group.virtual;
       const count=column.querySelector("[data-board-group-count]");
       count.textContent=`${visibleItems.length}${visibleItems.length!==group.items.length?"/"+group.items.length:""}`;
 
@@ -43,6 +45,7 @@ export class BoardView {
       });
       const groupMenuButton=column.querySelector('[data-action="groupMenu"]');
       const groupMenu=column.querySelector(".fieldColumnMenu");
+      groupMenuButton.hidden=!!group.virtual;
       const groupActionMenu=window.BeforeworkActionMenu.create().register(groupMenuButton,groupMenu);
       groupMenuButton.setAttribute("aria-label",`Group actions for ${group.name}`);
       groupMenu.querySelector('[data-group-action="edit"]').onclick=event=>{

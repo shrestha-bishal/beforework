@@ -29,7 +29,7 @@ function loadMigration(storage=createStorage()){
   };
 }
 
-test("upgrades a legacy workspace through schema version 8 and saves a backup", ()=>{
+test("upgrades a legacy workspace through schema version 9 and saves a backup", ()=>{
   const {migration} = loadMigration();
   const legacy = {
     tags:[{id:"legacy-tag", name:"Research", color:"blue"}],
@@ -51,7 +51,8 @@ test("upgrades a legacy workspace through schema version 8 and saves a backup", 
   const dueDateField = project.fields.find(field=>field.type==="due-date");
   const startDateField = project.fields.find(field=>field.type==="start-date");
 
-  assert.equal(upgraded.schemaVersion, 8);
+  assert.equal(upgraded.schemaVersion, 9);
+  assert.deepEqual(JSON.parse(JSON.stringify(project.items)),[]);
   assert.equal(project.tags[0].name, "Research");
   assert.equal(completedTask.values[priorityField.id], "high");
   assert.equal(completedTask.values[dueDateField.id], "2026-10-01");
@@ -66,13 +67,13 @@ test("upgrades a legacy workspace through schema version 8 and saves a backup", 
   assert.deepEqual(JSON.parse(JSON.stringify(upgraded.focusSessions)), []);
   assert.ok(Array.isArray(upgraded.calendarItems[0].activity));
   assert.equal(migration.readBackup().fromVersion, 0);
-  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:0, toVersion:8});
+  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:0, toVersion:9});
   assert.equal(migration.takeMigrationInfo(), null);
 });
 
 test("does not create a backup or migration notice for current data", ()=>{
   const {migration} = loadMigration();
-  const current = {schemaVersion:8, projects:[], folders:[], calendarItems:[], focusSessions:[]};
+  const current = {schemaVersion:9, projects:[], folders:[], calendarItems:[], focusSessions:[]};
 
   const migrated = migration.migrate(current, ()=>({projects:[]}));
 
@@ -132,8 +133,22 @@ test("continues upgrading when browser backup storage is unavailable", ()=>{
 
   const upgraded = migration.migrate(currentBeforeLastStep, ()=>({projects:[]}));
 
-  assert.equal(upgraded.schemaVersion, 8);
+  assert.equal(upgraded.schemaVersion, 9);
   assert.equal(migration.hasBackup(), false);
   assert.equal(migration.readBackup(), null);
-  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:7, toVersion:8});
+  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:7, toVersion:9});
+});
+
+test("preserves explicit project items and does not invent a starter group",()=>{
+  const {migration}=loadMigration();
+  const data={schemaVersion:8,projects:[{
+    id:"project-1",name:"Simple",groups:[],
+    items:[{id:"task-1",title:"Standalone project task"}]
+  }]};
+
+  const upgraded=migration.migrate(data,()=>({projects:[]}));
+
+  assert.equal(upgraded.schemaVersion,9);
+  assert.deepEqual(JSON.parse(JSON.stringify(upgraded.projects[0].groups)),[]);
+  assert.equal(upgraded.projects[0].items[0].id,"task-1");
 });

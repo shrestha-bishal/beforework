@@ -113,6 +113,24 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.match(directory.writeLog.at(-1),/manifest\.json$/);
 });
 
+test("round-trips project-owned items without creating a default group",async()=>{
+  const workspace=createWorkspaceModule();
+  const directory=createMemoryDirectory();
+  const state=stateWithTwoProjects();
+  state.projects[1].items=[{id:"task-unassigned",title:"Plan directly in the project",values:{},attachments:[]}];
+
+  const revision=await workspace.save(directory,state);
+  const loaded=await workspace.load(directory);
+  const summary=revision.projectSummaries["project-b"];
+
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.state.projects[1].groups)),[]);
+  assert.equal(loaded.state.projects[1].items[0].id,"task-unassigned");
+  assert.equal(summary.itemCount,1);
+  assert.deepEqual(JSON.parse(JSON.stringify(summary.itemIndex.map(item=>[item.id,item.groupId]))),[
+    ["task-unassigned","__project_items__"]
+  ]);
+});
+
 test("stores multiple attachment files and cleans up unreferenced files",async()=>{
   const workspace=createWorkspaceModule();
   const directory=createMemoryDirectory();

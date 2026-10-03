@@ -118,6 +118,12 @@
           }
         });
         return state;
+      },
+      9: state=>{
+        state.projects.forEach(project=>{
+          if (!Array.isArray(project.items)) project.items=[];
+        });
+        return state;
       }
     };
     const schemaVersion = Math.max(...Object.keys(migrations).map(Number));
@@ -134,7 +140,7 @@
       let state = raw;
       state.projects = state.projects.filter(Boolean).map(project=>({
         ...project,
-        groups:(Array.isArray(project.groups) ? project.groups : [{id:uid(), name:"Items", items:[]}])
+        groups:(Array.isArray(project.groups) ? project.groups : [])
           .filter(Boolean)
           .map(group=>({...group, items:Array.isArray(group.items) ? group.items.filter(Boolean) : []}))
       }));
