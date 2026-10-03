@@ -1,4 +1,8 @@
 export class OverviewDetailsModel {
+  visibleProjects(projects){
+    return projects.filter(project=>!project.hiddenFromOverview);
+  }
+
   searchEntries(entries,query){
     const terms=String(query||"").trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     if (!terms.length) return entries;
@@ -10,7 +14,7 @@ export class OverviewDetailsModel {
 
   getEntries(tone,{projects,openItems,overdueItems,completedItems,isItemCompleted,dueOf,priorityOf}){
     if (tone==="projects"){
-      return projects.map(project=>{
+      return this.visibleProjects(projects).map(project=>{
         const items=Array.isArray(project.itemIndex)
           ? project.itemIndex.filter(item=>!item.archived)
           : (project.groups||[]).flatMap(group=>(group.items||[])

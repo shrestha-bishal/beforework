@@ -39,6 +39,7 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 - CSV export of the current filtered List or Table view, in visible column and row order
 - CSV import with column mapping and preview into an existing or new project. It supports task titles, descriptions, due dates, priority, status/groups, and tags; select the date format used by the CSV (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`).
 - Searchable overview statistics, workload and progress summaries, and a focus timer
+- Hide individual projects and their activity from the Overview dashboard without removing them from the workspace
 - Keyboard shortcuts, a command palette, and quick actions for common workspace tasks
 - Browser notifications for reminders and tasks due today while the app is open
 - Optional Google Calendar integration and dedicated Integrations / Support pages

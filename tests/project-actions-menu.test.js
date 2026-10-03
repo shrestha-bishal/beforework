@@ -131,3 +131,33 @@ test("project-level custom field actions are labeled Add field",()=>{
   assert.match(app,/title:"Add field", fields:\[\s*\{label:"Field type"/);
   assert.doesNotMatch(app,/manageFieldsBtn|data-project-action="add-column"|addColumnFlow/);
 });
+
+test("project menu offers a reversible Overview visibility action",()=>{
+  assert.match(app,/data-project-action="overview-visibility"/);
+  assert.match(app,/\$\{p\.hiddenFromOverview\?"Show on Overview":"Hide from Overview"\}/);
+  assert.match(app,/async function toggleProjectOverviewVisibility\(projectId\)/);
+  assert.match(app,/project\.hiddenFromOverview=!project\.hiddenFromOverview/);
+  assert.match(app,/if \(state\.folderLazy\) registerProjectSummary\(project\)/);
+  assert.match(app,/getElementById\("projectOverviewVisibilityBtn"\)/);
+  assert.match(app,/overviewVisibilityBtn\.onclick=\(\)=>toggleProjectOverviewVisibility\(project\.id\)/);
+  assert.match(index,/<button class="btn btn-sm btn-invisible" id="projectOverviewVisibilityBtn">Hide from Overview<\/button>/);
+});
+
+test("project action menus group project, work, and utility actions before Delete",()=>{
+  const headerMenuStart=index.indexOf('<div class="menu action-menu action-menu--project" id="projectMenu"');
+  const headerMenuEnd=index.indexOf(">Delete</button>",headerMenuStart);
+  const headerMenu=index.slice(headerMenuStart,headerMenuEnd+">Delete</button>".length);
+  const sidebarMenu=app.match(/menu\.innerHTML = `([\s\S]*?)`;/)?.[1]||"";
+  const orderedActions=["Edit project","Overview","Move to folder","Duplicate project","New group","Add field","Import from CSV","Undo","Print / PDF","Delete"];
+
+  for (const menu of [headerMenu,sidebarMenu]){
+    let previous=-1;
+    for (const label of orderedActions){
+      const position=menu.indexOf(label);
+      assert.ok(position>previous,`${label} should follow the preceding project menu actions`);
+      previous=position;
+    }
+    assert.equal((menu.match(/action-menu__separator/g)||[]).length,3);
+  }
+  assert.match(app,/action === "import-csv"[\s\S]*?openCsvImportDialog\("existing",p\.id\)/);
+});

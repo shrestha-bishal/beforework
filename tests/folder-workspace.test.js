@@ -75,7 +75,7 @@ function stateWithTwoProjects(){
     focusSessions:[],
     googleCalendarLinks:[],
     projects:[
-      {id:"project-a",name:"Alpha",description:"Release planning",milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],groups:[]},
+      {id:"project-a",name:"Alpha",description:"Release planning",hiddenFromOverview:true,milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],groups:[]},
       {id:"project-b",name:"Beta",description:null,groups:[]}
     ]
   };
@@ -99,6 +99,8 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.equal(manifest.projects.length,2);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.state)),state);
   assert.equal(revision.projectSummaries["project-a"].description,"Release planning");
+  assert.equal(revision.projectSummaries["project-a"].hiddenFromOverview,true);
+  assert.equal(revision.projectSummaries["project-b"].hiddenFromOverview,false);
   assert.equal(revision.projectSummaries["project-b"].description,null);
   assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].milestones)),[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}]);
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].description,"Get signoff");

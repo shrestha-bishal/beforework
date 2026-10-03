@@ -25,3 +25,16 @@ test("searches overview entries by title and metadata", ()=>{
   assert.deepEqual(model.searchEntries(entries,"review today"),[entries[1]]);
   assert.deepEqual(model.searchEntries(entries,"   "),entries);
 });
+
+test("hidden projects are excluded from Overview project entries",()=>{
+  const model=new OverviewDetailsModel();
+  const projects=[
+    {id:"visible",name:"Visible",groups:[]},
+    {id:"hidden",name:"Hidden",hiddenFromOverview:true,groups:[]}
+  ];
+
+  assert.deepEqual(model.visibleProjects(projects),[projects[0]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(model.getEntries("projects",{
+    projects, isItemCompleted:()=>false
+  }))),[{kind:"project",id:"visible",title:"Visible",meta:"0 open / 0 completed"}]);
+});

@@ -2325,6 +2325,19 @@
     render();
   }
 
+  async function toggleProjectOverviewVisibility(projectId){
+    try{
+      const project=await ensureProjectLoaded(projectId);
+      if (!project) throw new Error("The project could not be found.");
+      project.hiddenFromOverview=!project.hiddenFromOverview;
+      if (state.folderLazy) registerProjectSummary(project);
+      scheduleSave();
+      renderAll();
+    }catch(error){
+      await showNotice("Couldn't update Overview visibility",error.message);
+    }
+  }
+
   function renderProjectList(){
     document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
     document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
@@ -2363,12 +2376,17 @@
       menu.hidden=true;
       menu.innerHTML = `
         <button type="button" data-project-action="edit">Edit project</button>
+        <button type="button" data-project-action="overview-visibility">${p.hiddenFromOverview?"Show on Overview":"Hide from Overview"}</button>
+        <button type="button" data-project-action="move">Move to folder</button>
+        <button type="button" data-project-action="duplicate">Duplicate project</button>
+        <div class="action-menu__separator" role="separator"></div>
         <button type="button" data-project-action="group">New group</button>
         <button type="button" data-project-action="add-field">Add field</button>
-        <button type="button" data-project-action="duplicate">Duplicate project</button>
-        <button type="button" data-project-action="move">Move to folder</button>
+        <button type="button" data-project-action="import-csv">Import from CSV</button>
+        <div class="action-menu__separator" role="separator"></div>
         <button type="button" data-project-action="undo">Undo</button>
         <button type="button" data-project-action="print">Print / PDF</button>
+        <div class="action-menu__separator" role="separator"></div>
         <button type="button" data-project-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button>
       `;
       const projectActionMenu=actionMenus.register(menuBtn,menu);
@@ -2380,10 +2398,14 @@
           const action = button.dataset.projectAction;
           if (action === "edit") {
             await editProject(await ensureProjectLoaded(p.id));
+          } else if (action === "overview-visibility") {
+            await toggleProjectOverviewVisibility(p.id);
           } else if (action === "duplicate") {
             await duplicateProject(await ensureProjectLoaded(p.id));
           } else if (action === "add-field") {
             await addFieldFlow(await ensureProjectLoaded(p.id));
+          } else if (action === "import-csv") {
+            await openCsvImportDialog("existing",p.id);
           } else if (action === "group") {
             const name = await showDialog({title:"New group", fields:[{label:"Group name", placeholder:"e.g. In progress"}], confirmLabel:"Create group"});
             if (name && name.trim()){
@@ -2644,6 +2666,7 @@
     const addFieldBtn = document.getElementById("addFieldBtn");
     const addGroupBtn = document.getElementById("addGroupBtn");
     const moveFolderBtn = document.getElementById("moveProjectFolderBtn");
+    const overviewVisibilityBtn = document.getElementById("projectOverviewVisibilityBtn");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
     const viewTabs = document.getElementById("viewTabs");
     const completionTabs = document.getElementById("completionTabs");
@@ -2744,6 +2767,8 @@
     deleteBtn.onclick = async () => {
       if (await showConfirm(`Delete project ${project.name}`, "This will delete everything in the project.", true)) deleteProject(project.id);
     };
+    overviewVisibilityBtn.textContent=project.hiddenFromOverview?"Show on Overview":"Hide from Overview";
+    overviewVisibilityBtn.onclick=()=>toggleProjectOverviewVisibility(project.id);
 
     const activeView = project.views.find(v=>v.id===project.activeViewId) || project.views[0];
     if (activeView.type==="milestones"){
@@ -4741,8 +4766,9 @@
     try{
       const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await loadViewModules();
       settingsView = createSettingsView(settingsModule.SettingsView);
+      const overviewDetailsModel=new overviewDetailsModelModule.OverviewDetailsModel();
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
-        model:new overviewDetailsModelModule.OverviewDetailsModel(),
+        model:overviewDetailsModel,
         cloneTemplate:async()=>{
           await window.BeforeworkViewTemplates.load("overviewDetails");
           return window.BeforeworkViewTemplates.clone("overviewDetails");
@@ -4859,6 +4885,7 @@
       overviewView = new overviewViewModule.OverviewView({
         getState:()=>state,
         model:{
+          visibleProjects:projects=>overviewDetailsModel.visibleProjects(projects),
           allItemsFlat,
           isItemCompleted,
           dueDateField,

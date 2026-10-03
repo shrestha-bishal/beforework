@@ -151,6 +151,16 @@ test("accepts nullable project descriptions and rejects other types", ()=>{
   assert.ok(result.errors.some(error=>error==="projects[0].description must be a string or null."));
 });
 
+test("validates optional project Overview visibility",()=>{
+  const project={id:"project-1",name:"Launch",groups:[]};
+  assert.equal(validate({projects:[project]},7).valid,true);
+  assert.equal(validate({projects:[{...project,hiddenFromOverview:true}]},7).valid,true);
+
+  const result=validate({projects:[{...project,hiddenFromOverview:"yes"}]},7);
+  assert.equal(result.valid,false);
+  assert.ok(result.errors.some(error=>error==="projects[0].hiddenFromOverview must be a boolean."));
+});
+
 test("validates project milestones and task references", ()=>{
   const project={id:"project-1",name:"Launch",milestones:[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}],
     groups:[{id:"group-1",name:"Tasks",items:[{id:"task-1",title:"Prepare release",milestoneId:"milestone-1"}]}]};

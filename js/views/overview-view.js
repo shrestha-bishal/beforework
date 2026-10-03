@@ -15,8 +15,10 @@ export class OverviewView {
 
     const wrap = document.createElement("div");
     wrap.className = "overviewWrap";
+    const projects=this.model.visibleProjects(projectRecords());
+    const hiddenProjectIds=new Set(projectRecords().filter(project=>project.hiddenFromOverview).map(project=>project.id));
     const flat = allItemsFlat();
-    const activeItems = flat.filter(row=>!row.item.archived);
+    const activeItems = flat.filter(row=>!row.item.archived&&!hiddenProjectIds.has(row.project.id));
     const openItems = activeItems.filter(row=>!isItemCompleted(row.item));
     const completedItems = activeItems.filter(row=>isItemCompleted(row.item));
     function dueOf(row){
@@ -58,9 +60,8 @@ export class OverviewView {
     }
     function projectBreakdown(){
       const fragment=document.createDocumentFragment();
-      const projects=projectRecords();
       if (!projects.length){
-        fragment.appendChild(quietMessage("No projects yet."));
+        fragment.appendChild(quietMessage(projectRecords().length?"All projects are hidden from Overview.":"No projects yet."));
         return fragment;
       }
       projects.forEach((project,index)=>{
@@ -92,11 +93,12 @@ export class OverviewView {
       weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));
       const sessions = (state.focusSessions||[]).filter(session=>session &&
         Number.isFinite(session.completedAt) && session.completedAt>=weekStart.getTime() && session.completedAt<=now &&
-        Number.isFinite(session.durationSeconds) && session.durationSeconds>0);
+        Number.isFinite(session.durationSeconds) && session.durationSeconds>0 &&
+        !hiddenProjectIds.has(session.projectId));
       const byProject = new Map();
       let totalSeconds = 0;
       sessions.forEach(session=>{
-        const project = projectRecords().find(candidate=>candidate.id===session.projectId);
+        const project = projects.find(candidate=>candidate.id===session.projectId);
         const key = project ? project.id : (session.projectId ? `deleted:${session.projectId}` : "__unassigned__");
         const name = project ? project.name : (session.projectId ? "Deleted project" : "Unassigned");
         const entry = byProject.get(key) || {name, seconds:0, count:0};
@@ -195,7 +197,7 @@ export class OverviewView {
       return element;
     }
     const statRows = [
-      {value:projectRecords().length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects",searchable:true},
+      {value:projects.length,label:"Projects",detail:"Across your workspace",icon:"mdi:folder-multiple-outline",tone:"projects",searchable:true},
       {value:openItems.length,label:"Open items",detail:"Ready for your attention",icon:"mdi:progress-clock",tone:"open",searchable:true},
       {value:overdue.length,label:"Overdue",detail:overdue.length ? "Past their due date" : "You're all caught up",icon:"mdi:alert-circle-outline",tone:"overdue",searchable:true},
       {value:completedItems.length,label:"Completed",detail:"Marked complete",icon:"mdi:check-circle-outline",tone:"completed",searchable:true}
@@ -204,7 +206,7 @@ export class OverviewView {
       overviewDetailsView.open({
         tone,
         stats:statRows,
-        data:{projects:projectRecords(),openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
+        data:{projects,openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
         actions:{openProject:selectProject,openItem:openItemModal}
       }).catch(error=>showNotice("Couldn't load overview details",error.message));
     }

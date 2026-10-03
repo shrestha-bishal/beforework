@@ -127,6 +127,7 @@
       id:project.id,
       name:project.name,
       description:project.description??null,
+      hiddenFromOverview:project.hiddenFromOverview===true,
       milestones:(project.milestones||[]).map(milestone=>({id:milestone.id,title:milestone.title,dueDate:milestone.dueDate||null})),
       icon:project.icon||"",
       folderId:project.folderId||null,
