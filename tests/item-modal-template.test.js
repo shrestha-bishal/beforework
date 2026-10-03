@@ -62,6 +62,7 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(templateSource,/\{\{schedule\}\}/);
   assert.match(fieldTemplateSource,/<template data-view-partial="fieldLabel">/);
   assert.match(fieldTemplateSource,/id="itemTagChips"/);
+  assert.match(fieldTemplateSource,/<template data-view-partial="tagSelector">/);
   assert.match(appSource,/BeforeworkItemFields\.create/);
   assert.match(appSource,/itemFieldRenderer\.render\(field,item,project\)/);
   assert.match(appSource,/itemFieldRenderer\.renderLocation\(locationField,item\)/);
@@ -106,10 +107,13 @@ test("Tags controls are rendered by the optional Tags field and retain tag assig
   );
 
   assert.match(html,/id="itemTagChips"/);
+  assert.match(html,/data-app-select-button-class="appSelectButton tagSelectButton"/);
   assert.match(html,/data-field-menu-action="edit"/);
   assert.match(html,/data-field-menu-action="delete"/);
-  assert.match(html,/data-tag="release" data-selected="true"/);
-  assert.match(html,/data-action="newTagFromItem"/);
+  assert.match(html,/class="tagPill selected" data-tag="release"/);
+  assert.doesNotMatch(html,/data-tagfilter/);
+  assert.match(html,/data-app-select-enhance-empty="true"/);
+  assert.doesNotMatch(html,/Add new tag/);
   assert.match(appSource,/fieldTypes\.canAddToProject\(option\.value,project\.fields\)/);
   assert.match(appSource,/Tags and their assignments will stay saved but hidden/);
   const deleteStart=appSource.indexOf("function deleteField");

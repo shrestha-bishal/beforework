@@ -76,8 +76,14 @@ test("Tags, Location, and Schedule use field templates without changing their co
     '<button data-action="addSchedule">+ Add date and time</button>'
   );
 
-  assert.match(tags,/data-tag="release" data-selected="true"/);
-  assert.match(tags,/data-action="newTagFromItem"/);
+  assert.match(tags,/class="tagPill selected" data-tag="release"/);
+  assert.doesNotMatch(tags,/data-tagfilter/);
+  assert.match(tags,/data-app-select-button-class="appSelectButton tagSelectButton"/);
+  assert.match(tags,/data-app-select-button-icon="mdi:plus"/);
+  assert.match(tags,/data-app-select-enhance-empty="true"/);
+  assert.match(tags,/data-app-select-menu-width="240"/);
+  assert.match(tags,/value="release" selected/);
+  assert.doesNotMatch(tags,/class="itemTagAddButton"/);
   assert.equal(renderer.render({id:"schedule",label:"Schedule",type:"schedule"},item,{}),"");
   assert.match(location,/id="itemLocationInput"/);
   assert.match(location,/value="Office"/);
@@ -86,4 +92,38 @@ test("Tags, Location, and Schedule use field templates without changing their co
   assert.match(schedule,/data-action="addSchedule"/);
   assert.match(templateSource,/<template data-view-partial="location">/);
   assert.match(templateSource,/<template data-view-partial="schedule">/);
+});
+
+test("Tags editor shows selected pills and offers every tag through its picker",()=>{
+  const renderer=createItemFieldRenderer();
+  const html=renderer.render(
+    {id:"tags",label:"Tags",type:"tags"},
+    {tagIds:["urgent"],values:{}},
+    {tags:[
+      {id:"urgent",name:"Urgent"},
+      {id:"follow-up",name:"Follow up"}
+    ]}
+  );
+
+  assert.match(html,/class="tagPill selected" data-tag="urgent"/);
+  assert.doesNotMatch(html,/data-tagfilter/);
+  assert.doesNotMatch(html,/data-tag="follow-up"/);
+  assert.match(html,/value="urgent" selected/);
+  assert.match(html,/value="follow-up"/);
+  assert.match(html,/data-app-select-empty-label="No tags yet"/);
+  assert.doesNotMatch(html,/Add new tag/);
+  assert.doesNotMatch(html,/class="itemTagAddButton"/);
+});
+
+test("Tags editor keeps an empty picker available when the project has no tags",()=>{
+  const html=createItemFieldRenderer().render(
+    {id:"tags",label:"Tags",type:"tags"},
+    {tagIds:[],values:{}},
+    {tags:[]}
+  );
+
+  assert.match(html,/data-app-select-button-icon="mdi:plus"/);
+  assert.match(html,/data-app-select-enhance-empty="true"/);
+  assert.match(html,/data-app-select-empty-label="No tags yet"/);
+  assert.doesNotMatch(html,/Add new tag/);
 });

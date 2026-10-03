@@ -25,7 +25,7 @@ function createItemFieldRenderer(dependencies={}){
     escapeHtml:value=>String(value??"").replace(/[&<>"']/g,char=>({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
     })[char]),
-    tagDotHtml:(tag,selected)=>`<span data-tag="${tag.id}" data-selected="${selected}">${tag.name}</span>`,
+    tagPillHtml:(tag,selected,filterable)=>`<span class="tagPill${selected?" selected":""}" data-tag="${tag.id}"${filterable?' data-tagfilter="true"':""}>${tag.name}</span>`,
     projectItemEntries:project=>(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({group,item}))),
     priorityOptions:[],
     renderPartial,

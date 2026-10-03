@@ -3,7 +3,7 @@
     <span>{{label}}</span>
     <div class="fieldDetailMenuWrap">
       <button type="button" class="fieldDetailSettings" data-action-menu-trigger data-fieldid="{{fieldId}}" aria-label="More actions for {{label}}" title="More field actions">
-      <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
+        <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
       </button>
       <div class="menu action-menu action-menu--field fieldDetailMenu" hidden>
         <button type="button" data-field-menu-action="edit">Edit</button>
@@ -15,10 +15,14 @@
 <template data-view-partial="tags">
   <div class="sideItem">
     {{labelHtml}}
-    <div id="itemTagChips" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-      {{chips}}<button class="btn btn-invisible btn-sm" data-action="newTagFromItem" title="New tag" style="padding:2px 6px;">+</button>
+    <div class="itemTagFieldControl" id="itemTagChips">
+      <div class="itemTagFieldPills">{{chips}}</div>
+      {{selector}}
     </div>
   </div>
+</template>
+<template data-view-partial="tagSelector">
+  <select multiple class="form-control fieldInput" data-fieldid="{{fieldId}}" data-app-select-placeholder="Search tags" data-app-select-button-title="" data-app-select-button-class="appSelectButton tagSelectButton" data-app-select-button-icon="mdi:plus" data-app-select-wrap-class="tagSelectWrap" data-app-select-menu-width="240" data-app-select-enhance-empty="true" data-app-select-empty-label="No tags yet" aria-label="{{ariaLabel}}">{{options}}</select>
 </template>
 <template data-view-partial="select">
   <div class="sideItem">{{labelHtml}}<select class="form-control fieldInput" data-fieldid="{{fieldId}}">{{options}}</select></div>

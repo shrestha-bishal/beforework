@@ -42,6 +42,11 @@ function createElement(){
       return child;
     },
     append(...children){ children.forEach(child=>this.appendChild(child)); },
+    replaceChildren(...children){
+      this.children.forEach(child=>{ child.parentNode=null; });
+      this.children.splice(0,this.children.length);
+      children.forEach(child=>this.appendChild(child));
+    },
     insertBefore(child,reference){
       const index=this.children.indexOf(reference);
       this.children.splice(index<0?this.children.length:index,0,child);
@@ -66,6 +71,7 @@ function createHarness({multiple=false,selectDataset={}}={}){
     {value:"doing",textContent:"In progress",selected:false},
     {value:"done",textContent:"Done",selected:false}
   ];
+  if (selectDataset.emptyOptions) select.options=[];
   select.selectedIndex=0;
   select.value="todo";
   select.closest=()=>null;
@@ -172,6 +178,55 @@ test("appSelect accepts a column-filter icon, class, title, and search label",()
   assert.equal(menu.dataset.selectWidth,"320");
   assert.equal(menuTitle.textContent,"Filter by relation");
   assert.equal(search.placeholder,"Filter relations");
+});
+
+test("appSelect can widen a tag selector menu beyond its chevron trigger",()=>{
+  const {menu}=createHarness({multiple:true,selectDataset:{
+    appSelectWrapClass:"tagSelectWrap",
+    appSelectButtonClass:"appSelectButton tagSelectButton",
+    appSelectMenuWidth:"240",
+    appSelectButtonLabel:"Add tags",
+    appSelectButtonClass:"appSelectButton tagSelectButton"
+  }});
+
+  assert.equal(menu.dataset.selectWidth,"240");
+});
+
+test("appSelect keeps a custom button label while multi-select values change",()=>{
+  const {button,options}=createHarness({multiple:true,selectDataset:{
+    appSelectButtonLabel:"Add tags"
+  }});
+
+  assert.equal(button.getAttribute("aria-label"),"Add tags");
+  assert.equal(button.title,"Add tags");
+  assert.equal(button.children[0].textContent,"Add tags");
+  button.onclick({stopPropagation(){}});
+  options[1].onclick();
+  assert.equal(button.children[0].textContent,"Add tags");
+});
+
+test("appSelect displays an empty state without options when explicitly enabled",()=>{
+  const {button,menu,select,options}=createHarness({multiple:true,selectDataset:{
+    appSelectEnhanceEmpty:"true",
+    appSelectEmptyLabel:"No tags yet",
+    emptyOptions:true
+  }});
+  const empty=menu.children.find(child=>child.className==="appSelectEmpty");
+
+  button.onclick({stopPropagation(){}});
+  assert.equal(empty.textContent,"No tags yet");
+  assert.equal(empty.hidden,false);
+  assert.equal(options.length,0);
+  assert.equal(select.dataset.appSelectEnhanced,"true");
+});
+
+test("appSelect refreshes changed native options each time it opens",()=>{
+  const {button,options,select}=createHarness({multiple:true});
+  select.options.push({value:"new",textContent:"New tag",selected:false});
+
+  button.onclick({stopPropagation(){}});
+
+  assert.deepEqual(options.map(option=>option.textContent),["To do","In progress","Done","New tag"]);
 });
 
 test("appSelect can widen a menu beyond its compact header trigger",()=>{

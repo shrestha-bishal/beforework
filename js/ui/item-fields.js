@@ -4,12 +4,12 @@ window.BeforeworkItemFields=(()=>{
   function create(dependencies){
     const {
       escapeHtml,
-      tagDotHtml,
+      tagPillHtml,
       projectItemEntries,
       priorityOptions,
       renderPartial
     }=dependencies||{};
-    if ([escapeHtml,tagDotHtml,projectItemEntries,renderPartial].some(value=>typeof value!=="function")){
+    if ([escapeHtml,tagPillHtml,projectItemEntries,renderPartial].some(value=>typeof value!=="function")){
       throw new TypeError("Item field rendering requires its UI dependencies.");
     }
     if (!Array.isArray(priorityOptions)) throw new TypeError("Item field rendering requires priority options.");
@@ -29,10 +29,19 @@ window.BeforeworkItemFields=(()=>{
 
       if (field.type==="schedule") return "";
       if (field.type==="tags"){
-        const chips=(project.tags||[]).map(tag=>tagDotHtml(tag,(item.tagIds||[]).includes(tag.id))).join("");
+        const selectedTagIds=new Set(item.tagIds||[]);
+        const selectedTags=(project.tags||[]).filter(tag=>selectedTagIds.has(tag.id));
+        const chips=selectedTags.map(tag=>tagPillHtml(tag,true,false)).join("");
+        const tags=project.tags||[];
+        const selector=renderPartial("tagSelector",{
+          fieldId,
+          ariaLabel:escapeHtml(field.label),
+          options:tags.map(tag=>`<option value="${escapeHtml(tag.id)}" ${selectedTagIds.has(tag.id)?"selected":""}>${escapeHtml(tag.name)}</option>`).join("")
+        });
         return renderPartial("tags",{
           labelHtml:label,
-          chips
+          chips,
+          selector
         });
       }
       if (field.type==="priority"||field.type==="select"){

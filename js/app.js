@@ -3195,7 +3195,7 @@
     });
   }
   function enhanceSelectControl(select){
-    if (select.dataset.appSelectEnhanced || !select.options.length) return;
+    if (select.dataset.appSelectEnhanced || (!select.options.length && select.dataset.appSelectEnhanceEmpty!=="true")) return;
     const isMultiple=select.multiple;
     select.dataset.appSelectEnhanced="true";
     const wrapper=document.createElement("div");
@@ -3212,9 +3212,9 @@
     button.className=select.dataset.appSelectButtonClass||"appSelectButton";
     button.setAttribute("aria-haspopup","listbox");
     button.setAttribute("aria-expanded","false");
-    const buttonLabel=select.getAttribute("aria-label");
+    const buttonLabel=select.dataset.appSelectButtonLabel||select.getAttribute("aria-label");
     if (buttonLabel) button.setAttribute("aria-label",buttonLabel);
-    button.title=select.dataset.appSelectPlaceholder||"";
+    button.title=select.dataset.appSelectButtonTitle??select.dataset.appSelectButtonLabel??select.dataset.appSelectPlaceholder??"";
     const search=document.createElement("input");
     search.type="search";
     search.className="appSelectSearch";
@@ -3222,7 +3222,7 @@
     search.setAttribute("aria-label",select.dataset.appSelectSearchPlaceholder||"Search options");
     const label=document.createElement("span");
     const chevron=document.createElement("iconify-icon");
-    chevron.setAttribute("icon",select.dataset.appSelectIcon||"mdi:chevron-down");
+    chevron.setAttribute("icon",select.dataset.appSelectButtonIcon||select.dataset.appSelectIcon||"mdi:chevron-down");
     chevron.setAttribute("aria-hidden","true");
     button.append(label,chevron);
     const menu=document.createElement("div");
@@ -3242,19 +3242,8 @@
     emptyState.className="appSelectEmpty";
     emptyState.textContent="No options found";
     emptyState.hidden=true;
-    const nativeOptions=[...select.options];
-    const options=nativeOptions.map((option,index)=>{
-      const item=document.createElement("button");
-      item.type="button";
-      item.className="appSelectOption";
-      item.setAttribute("role","option");
-      item.dataset.value=option.value;
-      item.dataset.index=String(index);
-      item.dataset.order=String(index);
-      item.textContent=option.textContent;
-      optionList.appendChild(item);
-      return item;
-    });
+    let nativeOptions=[];
+    let options=[];
     menu.append(...(menuTitle?[menuTitle]:[]),search,optionList,emptyState);
     wrapper.append(button,menu);
     const filterOptions=()=>{
@@ -3265,11 +3254,16 @@
         option.hidden=!matches;
         if (matches) visibleCount++;
       });
+      emptyState.textContent=nativeOptions.length===0
+        ? select.dataset.appSelectEmptyLabel||"No options found"
+        : "No options found";
       emptyState.hidden=visibleCount>0;
       optionList.hidden=visibleCount===0;
     };
     const sync=()=>{
-      if (isMultiple){
+      if (select.dataset.appSelectButtonLabel){
+        label.textContent=select.dataset.appSelectButtonLabel;
+      }else if (isMultiple){
         const selected=nativeOptions.filter(option=>option.selected);
         label.textContent=selected.map(option=>option.textContent).join(", ")||select.dataset.appSelectPlaceholder||"Select options";
       }else{
@@ -3283,8 +3277,34 @@
         option.setAttribute("aria-selected",String(active));
       });
     };
+    const refreshOptions=()=>{
+      nativeOptions=[...select.options];
+      optionList.replaceChildren();
+      options=nativeOptions.map((option,index)=>{
+        const item=document.createElement("button");
+        item.type="button";
+        item.className="appSelectOption";
+        item.setAttribute("role","option");
+        item.dataset.value=option.value;
+        item.dataset.index=String(index);
+        item.dataset.order=String(index);
+        item.textContent=option.textContent;
+        item.onclick=()=>{
+          const nativeOption=nativeOptions[Number(item.dataset.index)];
+          if (isMultiple) nativeOption.selected=!nativeOption.selected;
+          else select.value=item.dataset.value;
+          select.dispatchEvent(new Event("change",{bubbles:true}));
+          sync();
+          if (!isMultiple){ close(); button.focus(); }
+        };
+        optionList.appendChild(item);
+        return item;
+      });
+      sync();
+    };
     const close=()=>closeFloatingSelectMenu(menu);
     const open=()=>{
+      refreshOptions();
       search.value="";
       filterOptions();
       openFloatingSelectMenu(button,menu);
@@ -3295,14 +3315,6 @@
       if (event.key==="ArrowDown" || event.key==="Enter" || event.key===" "){ event.preventDefault(); open(); }
     };
     search.addEventListener("input",filterOptions);
-    options.forEach(option=>option.onclick=()=>{
-      const nativeOption=nativeOptions[Number(option.dataset.index)];
-      if (isMultiple) nativeOption.selected=!nativeOption.selected;
-      else select.value=option.dataset.value;
-      select.dispatchEvent(new Event("change",{bubbles:true}));
-      sync();
-      if (!isMultiple){ close(); button.focus(); }
-    });
     menu.onkeydown=event=>{
       const visibleOptions=options.filter(option=>!option.hidden);
       const current=visibleOptions.indexOf(document.activeElement);
@@ -3317,7 +3329,7 @@
       if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
     };
     select.addEventListener("change",sync);
-    sync();
+    refreshOptions();
   }
   function enhanceSelectControls(root=document){
     if (root.matches?.("select:not([data-app-select-enhanced])")) enhanceSelectControl(root);
@@ -3595,7 +3607,7 @@
   function showConfirm(title, message, danger=false){ return dialogs.showConfirm(title, message, danger); }
   const itemFieldRenderer=window.BeforeworkItemFields.create({
     escapeHtml,
-    tagDotHtml,
+    tagPillHtml,
     projectItemEntries,
     priorityOptions:PRIORITY_OPTIONS,
     renderPartial:(name,values)=>window.BeforeworkViewTemplates.renderPartial("itemFields",name,values)
@@ -4014,6 +4026,14 @@
         }
         if (isDateField(field) && item.values[el.dataset.fieldid] && !e.target.value) queueGoogleEventDeletes(item);
         const selectedOptions=e.target.selectedOptions?[...e.target.selectedOptions]:[];
+        if (field?.type==="tags"){
+          item.tagIds=selectedOptions.map(option=>option.value);
+          item.updatedAt=Date.now();
+          if (!isNew) scheduleSave();
+          render();
+          renderItemModal();
+          return;
+        }
         const nextValue=fieldTypes.normalizeInput(field,{
           input:e.target,value:e.target.value,selectedOptions,item,project
         });
@@ -4069,27 +4089,6 @@
       }
     };
     wireAttachmentControls(modal,item,{prefix:"item",isNew});
-    modal.querySelectorAll('#itemTagChips [data-tagfilter]').forEach(chip=>{
-      chip.onclick = () => {
-        const tid = chip.dataset.tagfilter;
-        if (item.tagIds.includes(tid)) item.tagIds = item.tagIds.filter(id=>id!==tid);
-        else item.tagIds.push(tid);
-        item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
-      };
-    });
-    const addItemTagButton=modal.querySelector('[data-action="newTagFromItem"]');
-    if (addItemTagButton) addItemTagButton.onclick = async () => {
-      const result = await showDialog({title:"New tag", fields:[
-        {label:"Tag name", placeholder:"e.g. urgent"},
-        {label:"Pill color", type:"tagColor", value:TAG_COLOR_OPTIONS[project.tags.length % TAG_COLOR_OPTIONS.length].value}
-      ], confirmLabel:"Create tag"});
-      if (result && result[0] && result[0].trim()){
-        const t = createTag(project, result[0].trim(), result[1]);
-        if (!item.tagIds.includes(t.id)) item.tagIds.push(t.id);
-        item.updatedAt=Date.now();
-        scheduleSave(); renderSidebarTags(); render(); renderItemModal();
-      }
-    };
     modal.querySelector('[data-action="addSub"]').onclick = async () => {
       const title = await showDialog({title:"New subitem", fields:[{label:"Subitem", placeholder:"Break this item into a step"}], confirmLabel:"Add subitem"});
       if (title && title.trim()){
