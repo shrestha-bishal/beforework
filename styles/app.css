@@ -625,6 +625,10 @@
     padding-top:0;gap:12px;flex-wrap:wrap;}
   .modalDivider{margin:28px 0 18px;}
   .closeX{position:absolute;top:16px;right:18px;}
+  .dialogHeaderActions{position:absolute;top:16px;right:18px;z-index:1;display:flex;align-items:center;gap:4px;}
+  .dialogHeaderActions .closeX{position:static;}
+  .dialogFieldActions{position:relative;display:flex;}
+  .dialogFieldActions[hidden]{display:none;}
 
   /* Item modal - GitHub-issue style two-pane layout: fixed header and
      footer, with a scrollable body split into a main column and a metadata sidebar. */

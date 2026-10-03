@@ -1,7 +1,15 @@
 <template id="dialogShell">
   <div class="overlay" id="dialogOverlay">
     <div class="Overlay Overlay--size-medium position-relative" data-modal role="dialog" aria-modal="true">
-      <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
+      <div class="dialogHeaderActions">
+        <div class="dialogFieldActions" data-dialog-action-menu-wrap hidden>
+          <button type="button" class="action-menu__trigger" data-dialog-action-menu-trigger aria-label="Field actions" title="Field actions">
+            <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
+          </button>
+          <div class="menu action-menu action-menu--field" data-dialog-action-menu role="menu" hidden></div>
+        </div>
+        <button class="btn btn-invisible closeX" data-dialog-cancel aria-label="Close">✕</button>
+      </div>
       <h3 data-dialog-title></h3>
       <p class="dialogMessage" data-dialog-message hidden></p>
       <div data-dialog-fields></div>

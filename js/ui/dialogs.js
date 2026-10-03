@@ -236,9 +236,24 @@
         if (finishActive) finishActive(null);
         return new Promise(resolve=>{
           const overlay=cloneTemplate(templates,"dialogShell");
-          const {title,message="",fields=[],confirmLabel="Continue",secondaryLabel="",danger=false,cancelLabel="Cancel"}=options;
+          const {title,message="",fields=[],confirmLabel="Continue",secondaryLabel="",danger=false,cancelLabel="Cancel",actionMenu}=options;
           const dialog=overlay.querySelector('[role="dialog"]');
           dialog.querySelector("[data-dialog-title]").textContent=title;
+          if (actionMenu){
+            const trigger=dialog.querySelector("[data-dialog-action-menu-trigger]");
+            const menu=dialog.querySelector("[data-dialog-action-menu]");
+            dialog.querySelector("[data-dialog-action-menu-wrap]").hidden=false;
+            menu.replaceChildren(...actionMenu.items.map(({label,danger:dangerous,onSelect})=>{
+              const item=document.createElement("button");
+              item.type="button";
+              item.className=dangerous?"danger menu-item menu-item--danger":"menu-item";
+              item.setAttribute("role","menuitem");
+              item.textContent=label;
+              item.onclick=onSelect;
+              return item;
+            }));
+            global.BeforeworkActionMenu.create().register(trigger,menu);
+          }
           const messageElement=dialog.querySelector("[data-dialog-message]");
           messageElement.hidden=!message;
           messageElement.textContent=message||"";

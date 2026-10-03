@@ -97,7 +97,14 @@
       const label=await showDialog({
         title:"Edit field",
         fields:[{label:"Field name",value:field.label}],
-        confirmLabel:"Save"
+        confirmLabel:"Save",
+        actionMenu:{
+          items:[{
+            label:"Delete",
+            danger:true,
+            onSelect:event=>deleteFieldFromMenu(event,field,project)
+          }]
+        }
       });
       if (!label||!label.trim()) return;
       field.label=label.trim();
@@ -111,7 +118,7 @@
       const message=field.type==="tags"
         ? "Tags and their assignments will stay saved but hidden. Add the Tags field again to restore them."
         : "This removes its values from every item in this project.";
-      if (await showConfirm(`Delete column ${field.label}`,message,true)) deleteField(project,field.id);
+      if (await showConfirm(`Delete field ${field.label}`,message,true)) deleteField(project,field.id);
     }
 
     function wireCustomColumnHeader(header,field,project){

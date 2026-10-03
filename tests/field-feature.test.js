@@ -144,8 +144,30 @@ test("editing a field saves its trimmed label and closes menus",async()=>{
   await feature.editField({stopPropagation(){stopped=true;}},field,{fields:[field]});
 
   assert.equal(stopped,true);
+  assert.equal(calls.dialogs[0].actionMenu.items[0].label,"Delete");
+  assert.equal(calls.dialogs[0].actionMenu.items[0].danger,true);
   assert.equal(field.label,"Current status");
   assert.equal(calls.closedMenus,1);
+  assert.equal(calls.saved,1);
+  assert.equal(calls.rendered,1);
+});
+
+test("edit field dialog menu reuses the existing delete confirmation and cleanup",async()=>{
+  const field={id:"status",label:"Status"};
+  const project={fields:[field],groups:[{items:[{id:"item-1",values:{status:"active"}}]}]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(null);
+
+  await feature.editField({stopPropagation(){}},field,project);
+  await calls.dialogs[0].actionMenu.items[0].onSelect({stopPropagation(){}});
+
+  assert.deepEqual(calls.confirms[0],[
+    "Delete field Status",
+    "This removes its values from every item in this project.",
+    true
+  ]);
+  assert.deepEqual(project.fields,[]);
+  assert.deepEqual(project.groups[0].items[0].values,{});
   assert.equal(calls.saved,1);
   assert.equal(calls.rendered,1);
 });

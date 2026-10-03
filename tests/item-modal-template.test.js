@@ -13,6 +13,8 @@ const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const fieldFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
 const stylesSource=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 const templatesSource=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
+const dialogsTemplateSource=fs.readFileSync(path.join(__dirname,"../pages/dialogs.html"),"utf8");
+const dialogsSource=fs.readFileSync(path.join(__dirname,"../js/ui/dialogs.js"),"utf8");
 
 function loadTemplateModule(){
   const window={};
@@ -70,6 +72,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
   assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailSettings"\)/);
   assert.match(appSource,/fieldFeature\.editField\(event,field,project\)/);
+  assert.match(dialogsTemplateSource,/data-dialog-action-menu-trigger[\s\S]*mdi:dots-horizontal[\s\S]*data-dialog-cancel aria-label="Close"/);
+  assert.match(dialogsSource,/global\.BeforeworkActionMenu\.create\(\)\.register\(trigger,menu\)/);
+  assert.match(fieldFeatureSource,/onSelect:event=>deleteFieldFromMenu\(event,field,project\)/);
   assert.doesNotMatch(fieldTemplateSource,/fieldDetailMenu|data-field-menu-action/);
   assert.match(appSource,/enhanceSelectControls\(modal\)/);
   assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
