@@ -15,8 +15,10 @@ test("field editor templates render escaped labels, values, and settings control
   assert.match(html,/Name &lt;one&gt;/);
   assert.match(html,/data-fieldid="text&quot;&lt;"/);
   assert.match(html,/value="&lt;script&gt;alert\(1\)&lt;\/script&gt;"/);
-  assert.match(html,/data-action="openFieldControl"/);
+  assert.match(html,/data-action-menu-trigger/);
   assert.match(html,/icon="mdi:dots-horizontal"/);
+  assert.match(html,/data-field-menu-action="edit"/);
+  assert.match(html,/data-field-menu-action="delete"/);
 });
 
 test("field types preserve their existing selectors, values, and empty states",()=>{
@@ -79,7 +81,8 @@ test("Tags, Location, and Schedule use field templates without changing their co
   assert.equal(renderer.render({id:"schedule",label:"Schedule",type:"schedule"},item,{}),"");
   assert.match(location,/id="itemLocationInput"/);
   assert.match(location,/value="Office"/);
-  assert.match(schedule,/data-action="openFieldControl"/);
+  assert.match(schedule,/data-field-menu-action="edit"/);
+  assert.match(schedule,/data-field-menu-action="delete"/);
   assert.match(schedule,/data-action="addSchedule"/);
   assert.match(templateSource,/<template data-view-partial="location">/);
   assert.match(templateSource,/<template data-view-partial="schedule">/);

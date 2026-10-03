@@ -1625,22 +1625,24 @@
   }
   function wireCustomColumnHeader(th, field, project){
     const menu = th.querySelector(".fieldColumnMenu");
-    menu.querySelector('[data-column-action="edit"]').onclick = async event => {
-      event.stopPropagation();
-      actionMenus.closeAll();
-      const label = await showDialog({title:"Edit field", fields:[{label:"Field name", value:field.label}], confirmLabel:"Save"});
-      if (!label || !label.trim()) return;
-      field.label = label.trim();
-      scheduleSave(); renderAll();
-    };
-    menu.querySelector('[data-column-action="delete"]').onclick = async event => {
-      event.stopPropagation();
-      actionMenus.closeAll();
-      const message=field.type==="tags"
-        ? "Tags and their assignments will stay saved but hidden. Add the Tags field again to restore them."
-        : "This removes its values from every item in this project.";
-      if (await showConfirm(`Delete column ${field.label}`, message, true)) deleteField(project, field.id);
-    };
+    menu.querySelector('[data-column-action="edit"]').onclick=event=>editFieldFromMenu(event,field,project);
+    menu.querySelector('[data-column-action="delete"]').onclick=event=>deleteFieldFromMenu(event,field,project);
+  }
+  async function editFieldFromMenu(event,field,project){
+    event.stopPropagation();
+    actionMenus.closeAll();
+    const label=await showDialog({title:"Edit field",fields:[{label:"Field name",value:field.label}],confirmLabel:"Save"});
+    if (!label||!label.trim()) return;
+    field.label=label.trim();
+    scheduleSave(); renderAll();
+  }
+  async function deleteFieldFromMenu(event,field,project){
+    event.stopPropagation();
+    actionMenus.closeAll();
+    const message=field.type==="tags"
+      ? "Tags and their assignments will stay saved but hidden. Add the Tags field again to restore them."
+      : "This removes its values from every item in this project.";
+    if (await showConfirm(`Delete column ${field.label}`,message,true)) deleteField(project,field.id);
   }
   function wireGroupColumnHeader(th, project){
     const menu = th.querySelector(".fieldColumnMenu");
@@ -3808,25 +3810,17 @@
 
     itemModalView.wire(modal,{onClose:closeItemModal});
     enhanceSelectControls(modal);
-    modal.querySelectorAll('[data-action="openFieldControl"]').forEach(button=>{
-      button.onclick=()=>{
+    modal.querySelectorAll(".fieldDetailMenuWrap").forEach(wrapper=>{
+      const button=wrapper.querySelector("[data-action-menu-trigger]");
+      const menu=wrapper.querySelector(".fieldDetailMenu");
+      actionMenus.register(button,menu);
+      menu.querySelector('[data-field-menu-action="edit"]').onclick=event=>{
         const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
-        if (!field) return;
-        if (field.type==="tags"){
-          modal.querySelector('[data-action="newTagFromItem"]')?.click();
-          return;
-        }
-        if (field.type==="schedule"){
-          openItemRef.scheduleOpen=true;
-          renderItemModal();
-          modal.querySelector("#itemEndDateInput,#itemStartTimeInput")?.focus();
-          return;
-        }
-        const control=[...modal.querySelectorAll("[data-fieldid]")]
-          .find(candidate=>candidate.dataset.fieldid===field.id);
-        const selectButton=control?.closest(".appSelectWrap")?.querySelector(".appSelectButton");
-        if (selectButton) selectButton.click();
-        else control?.focus();
+        if (field) editFieldFromMenu(event,field,project);
+      };
+      menu.querySelector('[data-field-menu-action="delete"]').onclick=event=>{
+        const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
+        if (field) deleteFieldFromMenu(event,field,project);
       };
     });
     const descriptionInput=modal.querySelector("#itemDescInput");

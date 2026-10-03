@@ -1,9 +1,15 @@
 <template data-view-partial="fieldLabel">
   <div class="sideItemLabel fieldDetailLabel">
     <span>{{label}}</span>
-    <button type="button" class="fieldDetailSettings" data-action="openFieldControl" data-fieldid="{{fieldId}}" aria-label="Show {{label}} options" title="More field options">
+    <div class="fieldDetailMenuWrap">
+      <button type="button" class="fieldDetailSettings" data-action-menu-trigger data-fieldid="{{fieldId}}" aria-label="More actions for {{label}}" title="More field actions">
       <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
-    </button>
+      </button>
+      <div class="menu action-menu action-menu--field fieldDetailMenu" hidden>
+        <button type="button" data-field-menu-action="edit">Edit</button>
+        <button type="button" data-field-menu-action="delete" class="danger">Delete</button>
+      </div>
+    </div>
   </div>
 </template>
 <template data-view-partial="tags">

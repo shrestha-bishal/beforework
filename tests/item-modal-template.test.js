@@ -66,8 +66,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/itemFieldRenderer\.render\(field,item,project\)/);
   assert.match(appSource,/itemFieldRenderer\.renderLocation\(locationField,item\)/);
   assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
-  assert.match(appSource,/data-action="openFieldControl"/);
-  assert.match(appSource,/selectButton\.click\(\)/);
+  assert.match(appSource,/data-field-menu-action="edit"/);
+  assert.match(appSource,/data-field-menu-action="delete"/);
+  assert.match(appSource,/actionMenus\.register\(button,menu\)/);
   assert.match(appSource,/enhanceSelectControls\(modal\)/);
   assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
   assert.match(stylesSource,/\.fieldDetailSettings\{appearance:none;-webkit-appearance:none;display:grid/);
@@ -105,7 +106,8 @@ test("Tags controls are rendered by the optional Tags field and retain tag assig
   );
 
   assert.match(html,/id="itemTagChips"/);
-  assert.match(html,/data-action="openFieldControl"/);
+  assert.match(html,/data-field-menu-action="edit"/);
+  assert.match(html,/data-field-menu-action="delete"/);
   assert.match(html,/data-tag="release" data-selected="true"/);
   assert.match(html,/data-action="newTagFromItem"/);
   assert.match(appSource,/fieldTypes\.canAddToProject\(option\.value,project\.fields\)/);
