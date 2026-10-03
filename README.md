@@ -6,14 +6,14 @@ Beforework is a serverless local-first project management workspace for projects
 
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d1246eb5-1276-4001-b1c7-254cc3c01815" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ce98605e-02e2-4dea-a043-6bd452bb8ac5" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/4c1f8c79-466b-453f-a492-fbc421f0c7a5" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d5e9bf2a-0cdc-4fb2-8d67-c0b5d541963f" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/9b0b82c5-4833-4acf-b948-6dfbfd85b51b" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ed9a1af5-cbf0-4622-9861-05d41594eec9" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/651a129c-d35a-4f4a-8dc1-37dfad7c03bb" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/06d37d10-57e1-401f-8627-3513a27ffbbd" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/5e930139-3644-414e-86e8-fcfe576fc497" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d47de356-aeb4-4194-a6d9-be6983d1a87c" />
 <img width="1899" height="991" alt="image" src="https://github.com/user-attachments/assets/3687872e-f98f-4dde-b328-adce993f1a64" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/143a1b17-8a70-4777-9e0d-cb250ed2b051" />
+<img width="1920" height="965" alt="image" src="https://github.com/user-attachments/assets/16801ffe-fda2-4129-9545-f0d5ef847720" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5f8a1fe-10cd-4cf9-85ac-430966c88c57" />
 <img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/84a4522a-244c-4591-9993-433b2fee19c7" />
 <img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/eacf2746-8352-4b64-a1ee-2ee9b50e3a1c" />
