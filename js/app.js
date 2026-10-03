@@ -298,59 +298,38 @@
   function migrateState(raw){
     return schemaMigration.migrate(raw, defaultState);
   }
-  async function maybeShowMigrationNotice(){
-    const info = schemaMigration.takeMigrationInfo();
-    if (!info) return;
-    await showNotice("Beforework data upgraded",
-      "This file was saved by an older version of Beforework (format v" + info.fromVersion + ") and has been upgraded to the current format (v" + info.toVersion + "). " +
-      "A copy of the pre-upgrade data was saved automatically. Use 'Restore pre-upgrade backup' in the storage menu at the bottom if anything looks off.");
-  }
-
-  function hasMigrationBackup(){
-    return schemaMigration.hasBackup();
-  }
-  async function restoreMigrationBackup(){
-    const saved = schemaMigration.readBackup();
-    if (!saved){ showNotice("No backup found", "There is no pre-migration backup saved in this browser."); return; }
-    const when = new Date(saved.savedAt).toLocaleString();
-    if (!await showConfirm("Restore pre-migration data", "This replaces your current data with the version saved automatically on " + when + ", just before it was last upgraded (from schema v" + saved.fromVersion + "). This cannot be undone with Ctrl+Z.")) return;
-    const validation=window.BeforeworkWorkspaceValidation.validate(saved.data,SCHEMA_VERSION);
-    if (!validation.valid){ await showNotice("Couldn't restore pre-migration data",validation.errors.join(" ")); return; }
-    try{ await window.BeforeworkStorage.saveRecoverySnapshot(JSON.stringify(state),"pre-migration-restore"); }
-    catch(err){ await showNotice("Couldn't protect current workspace",err.message); return; }
-    state = {...saved.data, schemaVersion:saved.fromVersion};
-    lastSavedState = null;
-    undoStack.length = 0;
-    scheduleSave();
-    renderAll();
-  }
+  const workspaceRecovery=window.BeforeworkWorkspaceRecovery.create({
+    getState:()=>state,
+    setState:nextState=>{ state=nextState; },
+    isConnected:()=>!!fileHandle,
+    getSchemaVersion:()=>SCHEMA_VERSION,
+    migrateState,
+    schemaMigration,
+    storage:window.BeforeworkStorage,
+    validation:window.BeforeworkWorkspaceValidation,
+    showNotice,
+    showConfirm,
+    onWorkspaceReplaced(kind){
+      lastSavedState=null;
+      undoStack.length=0;
+      if (kind!=="migration-restore") selectedItemIds.clear();
+      if (kind==="import"){
+        filterPrefs={};
+        boardFilterColumns.clear();
+        saveFilterPrefs();
+        activeProjectId=OVERVIEW;
+        persistActiveLocation();
+      }
+      scheduleSave();
+      renderAll();
+    }
+  });
 
   function showConnectGate(){
     connectGate.show();
   }
   function hideConnectGate(){
     connectGate.hide();
-  }
-
-  function exportJSON(){
-    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "beforework-data.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function exportRecoverySnapshot(snapshotId){
-    const snapshot=window.BeforeworkStorage.getRecoverySnapshots().find(entry=>entry.id===snapshotId);
-    if (!snapshot) return;
-    const blob=new Blob([snapshot.data],{type:"application/json"});
-    const url=URL.createObjectURL(blob);
-    const link=document.createElement("a");
-    link.href=url;
-    link.download=`beforework-recovery-${new Date(snapshot.savedAt).toISOString().replace(/[:.]/g,"-")}.json`;
-    link.click();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
   async function chooseWorkspaceConflict(fileName,externalValid,folderMode=false){
@@ -366,48 +345,6 @@
       fields:[{label:"Resolution",type:"select",value:externalValid?"reload":folderMode?"cancel":"overwrite",options}],
       confirmLabel:"Resolve conflict"
     });
-  }
-
-  async function restoreRecoverySnapshot(snapshotId){
-    const snapshot=window.BeforeworkStorage.getRecoverySnapshots().find(entry=>entry.id===snapshotId);
-    if (!snapshot){ await showNotice("No recovery snapshot", "Beforework has not saved a recovery snapshot for this workspace yet."); return; }
-    const when=new Date(snapshot.savedAt).toLocaleString();
-    if (!await showConfirm("Restore recovery snapshot", `This replaces the connected workspace with the snapshot from ${when}. A snapshot of the current workspace will be saved first.`)) return;
-    try{
-      const parsed=JSON.parse(snapshot.data);
-      const validation=window.BeforeworkWorkspaceValidation.validate(parsed,SCHEMA_VERSION);
-      if (!validation.valid) throw new Error(validation.errors.join(" "));
-      await window.BeforeworkStorage.saveRecoverySnapshot(JSON.stringify(state),"pre-restore");
-      state=migrateState(parsed);
-      lastSavedState=null;
-      undoStack.length=0;
-      selectedItemIds.clear();
-      scheduleSave();
-      renderAll();
-    }catch(err){ await showNotice("Couldn't restore recovery snapshot", err.message); }
-  }
-
-  async function importJSON(file){
-    if (!fileHandle){ showNotice("Connect a file first", "Import replaces the data in your connected file - connect or create one first."); return; }
-    try{
-      const parsed = JSON.parse(await file.text());
-      const validation=window.BeforeworkWorkspaceValidation.validate(parsed,SCHEMA_VERSION);
-      if (!validation.valid) throw new Error(validation.errors.join(" "));
-      if (!await showConfirm("Replace workspace data", "The imported file will replace the current workspace. A recovery snapshot of the current workspace will be saved first.")) return;
-      await window.BeforeworkStorage.saveRecoverySnapshot(JSON.stringify(state),"pre-import");
-      state = migrateState(parsed);
-      lastSavedState = null;
-      undoStack.length = 0;
-      selectedItemIds.clear();
-      filterPrefs = {};
-      boardFilterColumns.clear();
-      saveFilterPrefs();
-      activeProjectId = OVERVIEW;
-      persistActiveLocation();
-      scheduleSave();
-      renderAll();
-      await maybeShowMigrationNotice();
-    }catch(err){ await showNotice("Import failed", "Could not read that file: " + err.message); }
   }
 
   function saveFilterPrefs(){
@@ -2644,7 +2581,7 @@
       timeFormat:getTimeFormat(),
       sidebarCollapsed:document.getElementById("sidebar").classList.contains("collapsed"),
       storageStatus:getSyncStatusText(),
-      hasBackup:hasMigrationBackup(),
+      hasBackup:workspaceRecovery.hasMigrationBackup(),
       isLegacyFile:window.BeforeworkStorage.isLegacyFile(),
       recoverySnapshots:window.BeforeworkStorage.getRecoverySnapshots(),
       reminderStatus:reminderService.getStatus(),
@@ -2677,11 +2614,11 @@
       migrateLegacy:migrateCurrentFileToFolder,
       retrySave(){ scheduleSave(); },
       createFile:startNewFileFromMenu,
-      exportJSON,
+      exportJSON:workspaceRecovery.exportJSON,
       importJSON(){ document.getElementById("fileImportInput").click(); },
-      exportRecovery:exportRecoverySnapshot,
-      restoreRecovery:restoreRecoverySnapshot,
-      restoreBackup:restoreMigrationBackup,
+      exportRecovery:workspaceRecovery.exportRecoverySnapshot,
+      restoreRecovery:workspaceRecovery.restoreRecoverySnapshot,
+      restoreBackup:workspaceRecovery.restoreMigrationBackup,
       logout(){ authService.logout(); }
       }
     });
@@ -4648,7 +4585,7 @@
     document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
     document.getElementById("undoBtn").onclick = undoLastChange;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
-      if (e.target.files[0]) importJSON(e.target.files[0]);
+      if (e.target.files[0]) workspaceRecovery.importJSON(e.target.files[0]);
       e.target.value = "";
     });
     document.addEventListener("keydown", e=>{
@@ -4991,7 +4928,7 @@
       }
       renderAll();
       resumeGoogleCalendarSync();
-      await maybeShowMigrationNotice();
+      await workspaceRecovery.maybeShowMigrationNotice();
     } else {
       showConnectGate();
     }
