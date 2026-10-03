@@ -43,6 +43,8 @@
   const FIELD_TYPE_OPTIONS = [
     {value:"priority", label:"Priority", description:"Best for urgency or ranking."},
     {value:"group", label:"Group", description:"Create a single-select field for organising items into Board columns."},
+    {value:"location", label:"Location", description:"Add an optional location or link to each item."},
+    {value:"schedule", label:"Schedule", description:"Add dates, times, reminders, and recurrence controls to items."},
     {value:"select", label:"Single select", description:"Pick one answer from a fixed list."},
     {value:"start-date", label:"Start date", description:"When work on this task should begin."},
     {value:"due-date", label:"Due date", description:"When this task should be completed."},
@@ -1742,8 +1744,20 @@
     scheduleSave(); renderAll();
   }
   function deleteField(project, fid){
+    const field=project.fields.find(candidate=>candidate.id===fid);
     project.fields = project.fields.filter(f=>f.id!==fid);
-    projectGroups(project).forEach(g=>g.items.forEach(it=>{ delete it.values[fid]; }));
+    projectItemEntries(project).forEach(({item})=>{
+      delete item.values[fid];
+      if (field?.type==="location") item.location="";
+      if (field?.type==="schedule"){
+        queueGoogleEventDeletes(item);
+        item.startTime="";
+        item.endTime="";
+        item.endDate="";
+        item.recurrence=null;
+        item.reminderAt=null;
+      }
+    });
     project.views?.forEach(view=>{ if (view.groupByFieldId===fid) delete view.groupByFieldId; });
     boardFilterFields.delete(fid);
     if (listSort.field===fid) listSort = {field:"updated", dir:"desc"};
@@ -1751,7 +1765,7 @@
   }
   async function addFieldFlow(project){
     const availableFieldTypes=FIELD_TYPE_OPTIONS.filter(option=>
-      !["start-date","due-date"].includes(option.value)
+      !["start-date","due-date","location","schedule"].includes(option.value)
       || !project.fields.some(field=>field.type===option.value));
     const details = await showDialog({title:"Add field", fields:[
       {label:"Field type", type:"select", options:availableFieldTypes.map(({value,label,description})=>({value,label,description})), value:"select"},
@@ -1760,7 +1774,18 @@
     if (!details) return;
     const [type,label] = details;
     const fieldType=type==="group"?"select":FIELD_TYPES.includes(type)?type:"select";
-    const fieldName=label?.trim()||(type==="group"?"Group":fieldType==="start-date"?"Start date":fieldType==="due-date"?"Due date":"");
+    const fieldName=label?.trim()||({
+      group:"Group",
+      location:"Location",
+      schedule:"Schedule",
+      "start-date":"Start date",
+      "due-date":"Due date"
+    }[type]||"");
+    if (["location","schedule"].includes(fieldType)&&project.fields.some(field=>field.type===fieldType)){
+      await showNotice(`${fieldType==="location"?"Location":"Schedule"} field already exists`,
+        `Each project can have one ${fieldType} field.`);
+      return;
+    }
     if (!fieldName) return;
     await addField(project,fieldName,fieldType);
   }
@@ -2215,7 +2240,9 @@
     const titles=new Map(projectItemEntries(project).map(({item})=>[item.id,item.title]));
     return value.map(id=>titles.get(id)).filter(Boolean);
   }
-  function fieldCellHtml(field, value, project){
+  function fieldCellHtml(field, value, project, item){
+    if (field.type==="schedule") return item?escapeHtml(scheduleFieldValue(project,item))||"-":"-";
+    if (field.type==="location") return value ? escapeHtml(String(value)) : "-";
     if (field.type==="priority"){
       const opt = PRIORITY_OPTIONS.find(o=>o.id===value);
       return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "-";
@@ -2242,6 +2269,19 @@
     }
     if (field.type==="number") return value!=="" && value!=null ? escapeHtml(String(value)) : "-";
     return value ? escapeHtml(value) : "-";
+  }
+  function scheduleFieldValue(project,item){
+    const startField=startDateField(project);
+    const dueField=dueDateField(project);
+    const startDate=startField?item.values?.[startField.id]||"":item.startDate||"";
+    const endDate=(dueField?item.values?.[dueField.id]:"")||item.endDate||startDate;
+    const dates=startDate&&endDate&&startDate!==endDate
+      ? `${fmtDate(startDate)} – ${fmtDate(endDate)}`
+      : fmtDate(endDate||startDate);
+    const times=item.startTime&&item.endTime
+      ? `${formatTimeValue(item.startTime)}–${formatTimeValue(item.endTime)}`
+      : formatTimeValue(item.startTime||item.endTime||"");
+    return [dates,times].filter(Boolean).join(" · ");
   }
 
   function safeUrlHref(value){
@@ -2289,6 +2329,7 @@
     const fieldId=columnId.slice("field:".length);
     const field=project?.fields?.find(candidate=>candidate.id===fieldId);
     const value=(item.values||{})[fieldId];
+    if (field?.type==="schedule") return [scheduleFieldValue(project,item)||COLUMN_FILTER_NONE];
     if (field?.type==="checkbox"){
       if (value===true || value===1 || ["true","1","yes"].includes(String(value).toLowerCase())) return ["true"];
       if (value===false || value===0 || ["false","0","no"].includes(String(value).toLowerCase())) return [COLUMN_FILTER_NONE];
@@ -2304,7 +2345,8 @@
     if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
     if (boardFilterTags.size && ![...boardFilterTags].every(tid=>(item.tagIds||[]).includes(tid))) return false;
     for (const [fid, mode] of boardFilterFields){
-      const val = (item.values||{})[fid] ?? "";
+      const field = project?.fields?.find(candidate=>candidate.id===fid);
+      const val = field?.type==="schedule" ? scheduleFieldValue(project,item) : (item.values||{})[fid] ?? "";
       if (Array.isArray(mode)){
         const selectedOptions=mode.filter(optionId=>optionId!=="__none__");
         const itemOptions=Array.isArray(val) ? val : val ? [val] : [];
@@ -2314,8 +2356,7 @@
       if (mode==="__all__") continue;
       if (mode==="__none__"){ if (val) return false; }
       else {
-        const field = project?.fields?.find(candidate=>candidate.id===fid);
-        if (field?.type==="text" || field?.type==="url" || field?.type==="email"){
+        if (field?.type==="text" || field?.type==="url" || field?.type==="email" || field?.type==="location" || field?.type==="schedule"){
           if (!val.toLowerCase().includes(mode.toLowerCase())) return false;
         } else if (field?.type==="number"){
           if (val==="" || Number(val)!==Number(mode)) return false;
@@ -2329,7 +2370,8 @@
     }
     if (boardFilterText){
       const q = boardFilterText.toLowerCase();
-      const hay = [item.title, item.description, ...(item.subitems||[]).map(s=>s.title), ...Object.values(item.values||{})].join(" ").toLowerCase();
+      const hay = [item.title, item.description, ...(item.subitems||[]).map(s=>s.title), ...Object.values(item.values||{}),
+        ...(project?.fields?.some(field=>field.type==="schedule")?[scheduleFieldValue(project,item)]:[])].join(" ").toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -2361,6 +2403,9 @@
       } else if (isDateField(field)){
         firstValue=first.item.values[field.id]||"9999-99-99";
         secondValue=second.item.values[field.id]||"9999-99-99";
+      } else if (field?.type==="schedule"){
+        firstValue=scheduleFieldValue(project,first.item).toLowerCase();
+        secondValue=scheduleFieldValue(project,second.item).toLowerCase();
       } else if (field){
         firstValue=fieldSortValue(field,first.item.values[field.id]);
         secondValue=fieldSortValue(field,second.item.values[field.id]);
@@ -2374,6 +2419,7 @@
   }
 
   function csvFieldValue(field,value,project){
+    if (field.type==="schedule") return value==null?"":String(value);
     if (value==null || value==="") return "";
     if (field.type==="priority") return PRIORITY_OPTIONS.find(option=>option.id===value)?.label||String(value);
     if (field.type==="select") return (field.options||[]).find(option=>option.id===value)?.label||String(value);
@@ -2398,7 +2444,9 @@
     const columns=[
       {id:"title",label:"Title",value:row=>row.item.title},
       ...(showGroupColumn?[{id:"group",label:"Group",value:row=>row.group.name}]:[]),
-      ...project.fields.map(field=>({id:`field:${field.id}`,label:field.label,value:row=>csvFieldValue(field,row.item.values[field.id],project)})),
+      ...project.fields.map(field=>({id:`field:${field.id}`,label:field.label,value:row=>field.type==="schedule"
+        ? scheduleFieldValue(project,row.item)
+        : csvFieldValue(field,row.item.values[field.id],project)})),
       {id:"tags",label:"Tags",value:row=>(row.item.tagIds||[]).map(id=>project.tags.find(tag=>tag.id===id)?.name||"").filter(Boolean).join("; ")},
       ...(viewType==="list" && showProgressColumn?[{id:"progress",label:"Progress",value:row=>row.item.subitems.length?`${row.item.subitems.filter(subitem=>subitem.done).length}/${row.item.subitems.length}`:""}]:[]),
       ...(viewType==="list"?[{id:"updated",label:"Updated",value:row=>formatUpdatedAt(row.item.updatedAt)}]:[])
@@ -3017,7 +3065,7 @@
       const current = boardFilterFields.get(f.id);
       let control;
       if (isDateField(f)) control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (f.type==="text" || f.type==="url" || f.type==="email") control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${f.type==="url"?"Filter URL":f.type==="email"?"Filter email":"Enter text"}" aria-label="Filter ${escapeHtml(f.label)}">`;
+      else if (["text","url","email","location","schedule"].includes(f.type)) control = `<input class="form-control" type="text" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${f.type==="url"?"Filter URL":f.type==="email"?"Filter email":"Enter text"}" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="number") control = `<input class="form-control" type="number" step="any" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="Exact value" aria-label="Filter ${escapeHtml(f.label)}">`;
       else if (f.type==="checkbox") {
         const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
@@ -4042,7 +4090,7 @@
   function showNotice(title, message){ return dialogs.showNotice(title, message); }
   function showConfirm(title, message, danger=false){ return dialogs.showConfirm(title, message, danger); }
   function fieldInputHtml(field, item, project){
-    const val = item.values[field.id] ?? "";
+    const val = field.type==="location" ? item.values[field.id]??item.location??"" : item.values[field.id] ?? "";
     const isChecked = val === true || val === "true" || val === "1" || val === "yes" || val === 1;
     if (field.type==="priority"){
       const opts = [{id:"",label:"None"}, ...PRIORITY_OPTIONS].map(o=>
@@ -4078,6 +4126,7 @@
     if (field.type==="url") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="url" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}" placeholder="https://example.com"></div>`;
     if (field.type==="email") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="email" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}" placeholder="name@example.com"></div>`;
     if (field.type==="number") return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="number" step="any" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
+    if (field.type==="schedule") return "";
     return `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(field.label)}</div><input type="text" class="form-control fieldInput" data-fieldid="${field.id}" value="${escapeHtml(val)}"></div>`;
   }
   function renderItemModal(){
@@ -4116,11 +4165,17 @@
       </div>`).join("");
 
     const tagChips = project.tags.map(t=>tagDotHtml(t, item.tagIds.includes(t.id))).join("");
-    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).map(field=>fieldInputHtml(field,item,project)).join("");
+    const fieldsHtml=fieldsWithStartBeforeDue(project.fields).filter(field=>field.type!=="schedule"&&field.type!=="location").map(field=>fieldInputHtml(field,item,project)).join("");
+    const locationField=project.fields.find(field=>field.type==="location");
+    const locationHtml=locationField?`<div class="sideItem">
+      <div class="sideItemLabel">${escapeHtml(locationField.label)}</div>
+      <input class="form-control fieldInput" type="text" id="itemLocationInput" data-fieldid="${escapeHtml(locationField.id)}" value="${escapeHtml(item.values[locationField.id]??item.location??"")}" placeholder="Optional location or link">
+    </div>`:"";
+    const scheduleField=project.fields.find(field=>field.type==="schedule");
     const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
     const recurrence = normaliseRecurrence(item.recurrence);
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
-    const scheduleHtml = hasSchedule || openItemRef.scheduleOpen ? `
+    const scheduleHtml = scheduleField ? (hasSchedule || openItemRef.scheduleOpen ? `
       <div class="scheduleEditor">
         <div class="sideItemRow2">
           <div class="sideItem">
@@ -4175,7 +4230,10 @@
             <div class="recurrenceRuleText" id="recurrenceSummary" aria-live="polite">${escapeHtml(recurrenceSummary(recurrence))}</div>
           </div>
         </div>
-      </div>` : `<button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>`;
+      </div>` : `<button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>`) : "";
+    const scheduleSectionHtml=scheduleField
+      ? `<div class="sideItem"><div class="sideItemLabel">${escapeHtml(scheduleField.label)}</div>${scheduleHtml}</div>`
+      : "";
     const comments = item.comments || [];
     const commentsHtml = comments.length
       ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(c=>`
@@ -4280,8 +4338,8 @@
       milestoneSelector,
       fields:fieldsHtml,
       tagChips,
-      location:escapeHtml(item.location||""),
-      schedule:scheduleHtml,
+      location:locationHtml,
+      schedule:scheduleSectionHtml,
       footerNote:isNew ? "New item" : `Updated ${escapeHtml(formatDateTime(item.updatedAt))}`,
       footerActions
     });
@@ -4415,14 +4473,13 @@
         item.updatedAt = Date.now(); scheduleSave(); render(); renderItemModal();
       };
     });
-    ["itemLocationInput","itemStartTimeInput","itemEndTimeInput","itemEndDateInput","itemReminderAt","itemRepeatFrequency","itemRepeatInterval","itemRepeatUnit","itemRepeatUntil"].forEach(id=>{
+    ["itemStartTimeInput","itemEndTimeInput","itemEndDateInput","itemReminderAt","itemRepeatFrequency","itemRepeatInterval","itemRepeatUnit","itemRepeatUntil"].forEach(id=>{
       const input = modal.querySelector("#"+id);
       if (!input) return;
       if (id==="itemRepeatInterval" || id==="itemRepeatUntil"){
         input.addEventListener("input", ()=>updateRecurrenceSummary(modal));
       }
       input.addEventListener("change", e=>{
-        if (id==="itemLocationInput") item.location = e.target.value.trim();
         if (id==="itemStartTimeInput") item.startTime = e.target.value;
         if (id==="itemEndTimeInput") item.endTime = e.target.value;
         if (id==="itemEndDateInput"){
@@ -4484,6 +4541,7 @@
           : field?.type==="number" ? (e.target.value==="" ? "" : Number(e.target.value))
           : e.target.value;
         item.values[el.dataset.fieldid] = nextValue;
+        if (field?.type==="location") item.location=String(nextValue||"").trim();
         if (isNew){
           if (field?.type!=="relation") renderItemModal();
           return;
@@ -4944,6 +5002,7 @@
         tagById,
         tagPillHtml,
         priorityOptions:PRIORITY_OPTIONS,
+        scheduleFieldValue,
         getItem,
         scheduleSave,
         renderProjectList,

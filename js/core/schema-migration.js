@@ -124,6 +124,37 @@
           if (!Array.isArray(project.items)) project.items=[];
         });
         return state;
+      },
+      10: state=>{
+        state.projects.forEach(project=>{
+          if (!Array.isArray(project.fields)) project.fields=[];
+          if (!Array.isArray(project.items)) project.items=[];
+          const items=[
+            ...(project.groups||[]).flatMap(group=>Array.isArray(group.items)?group.items:[]),
+            ...project.items
+          ];
+          let locationField=project.fields.find(field=>field.type==="location");
+          const hasLegacyLocation=items.some(item=>typeof item.location==="string"&&item.location.trim());
+          if (!locationField&&hasLegacyLocation){
+            locationField={id:uid(),label:"Location",type:"location",options:[]};
+            project.fields.push(locationField);
+          }
+          if (locationField){
+            items.forEach(item=>{
+              if (!item.values||typeof item.values!=="object"||Array.isArray(item.values)) item.values={};
+              if (item.values[locationField.id]==null&&typeof item.location==="string"&&item.location.trim()){
+                item.values[locationField.id]=item.location;
+              }
+            });
+          }
+          const hasLegacySchedule=items.some(item=>
+            !!(item.startTime||item.endTime||item.endDate||item.recurrence||item.reminderAt)
+          );
+          if (!project.fields.some(field=>field.type==="schedule")&&hasLegacySchedule){
+            project.fields.push({id:uid(),label:"Schedule",type:"schedule",options:[]});
+          }
+        });
+        return state;
       }
     };
     const schemaVersion = Math.max(...Object.keys(migrations).map(Number));

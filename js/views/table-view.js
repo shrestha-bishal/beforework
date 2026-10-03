@@ -14,13 +14,19 @@ function projectEntries(project){
   return entries;
 }
 
-function fieldControl(field,item,group,project,value,priorityOptions){
+function fieldControl(field,item,group,project,value,priorityOptions,scheduleFieldValue){
   const dataset={
     pid:project.id,
     gid:group.id,
     iid:item.id,
     fieldid:field.id
   };
+  if (field.type==="schedule"){
+    const control=document.createElement("span");
+    control.className="tableRelationValue";
+    control.textContent=scheduleFieldValue(project,item)||"-";
+    return control;
+  }
   if (field.type==="priority" || field.type==="select" || field.type==="multi-select" || field.type==="relation"){
     const control=document.createElement("select");
     const isMultiple=field.type==="multi-select"||field.type==="relation";
@@ -115,6 +121,7 @@ export class TableView {
       tagById,
       tagPillHtml,
       priorityOptions,
+      scheduleFieldValue,
       getItem,
       scheduleSave,
       renderProjectList,
@@ -238,7 +245,8 @@ export class TableView {
       project.fields.forEach(field=>{
         const cell=templates.querySelector("#tableViewFieldCellTemplate").content.firstElementChild.cloneNode(true);
         cell.dataset.columnId=`field:${field.id}`;
-        const control=fieldControl(field,item,group,project,item.values[field.id]??"",priorityOptions);
+        const value=field.type==="location" ? item.values[field.id]??item.location??"" : item.values[field.id]??"";
+        const control=fieldControl(field,item,group,project,value,priorityOptions,scheduleFieldValue);
         cell.appendChild(control);
         tagsCell.before(cell);
       });
@@ -271,6 +279,7 @@ export class TableView {
           : field?.type==="number"?(event.target.value===""?"":Number(event.target.value))
           : event.target.value;
         item.values[control.dataset.fieldid]=nextValue;
+        if (field?.type==="location") item.location=String(nextValue||"").trim();
         item.updatedAt=Date.now();
         scheduleSave();
       });

@@ -31,6 +31,28 @@ test("Google item identity and timezone are preserved for conflict-safe reconcil
   assert.match(source,/resolved \$\{conflictCount\} conflict/);
 });
 
+test("Google Calendar location imports update the optional Location field",()=>{
+  const context={
+    calendarDateKey:date=>date.toISOString().slice(0,10),
+    Date
+  };
+  vm.runInNewContext(`${source}\nglobalThis.applyEvent=applyGoogleEventToItem;`,context);
+  const item={title:"Site visit",description:"",location:"Old location",values:{location:"Old location"}};
+
+  context.applyEvent({
+    item,
+    project:{fields:[{id:"location",type:"location"}]},
+    field:{id:"__schedule__"}
+  },{
+    location:"New location",
+    start:{dateTime:"2026-10-03T09:00:00+10:00"},
+    end:{dateTime:"2026-10-03T10:00:00+10:00"}
+  });
+
+  assert.equal(item.location,"New location");
+  assert.equal(item.values.location,"New location");
+});
+
 test("folder-workspace summaries keep Google reconciliation metadata",()=>{
   const folderWorkspace=fs.readFileSync(path.join(__dirname,"../js/services/storage/folder-workspace.js"),"utf8");
   assert.match(folderWorkspace,/googleEventIds:item\.googleEventIds\|\|\{\}/);

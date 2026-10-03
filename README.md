@@ -32,8 +32,8 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 - Markdown-formatted task descriptions and comments with a live preview; existing text stays compatible and raw HTML is disabled
 - List, table, board, calendar, roadmap, and milestone views with per-project view configuration
 - Workspace and project roadmaps with task duration bars from optional start dates to task dates, plus milestone markers
-- Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, relations to other project items, URLs, email addresses, and numbers
-- Tags, subtasks, comments, activity history, archiving, recurring schedules, and reminders
+- Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, relations to other project items, URLs, email addresses, numbers, and optional Location and Schedule controls
+- Tags, subtasks, comments, activity history, archiving, recurring schedules, and reminders; add a Schedule field to a project to show date/time, reminder, and recurrence controls on its items
 - Multiple file attachments per item in folder workspaces, plus project and calendar item attachments
 - Drag-and-drop data-column ordering saved independently for List and Table views
 - CSV export of the current filtered List or Table view, in visible column and row order

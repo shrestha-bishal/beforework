@@ -199,7 +199,7 @@ export class ListView {
             scheduleSave();
           });
           cell.appendChild(control);
-        } else appendMarkup(cell,fieldCellHtml(field,item.values[field.id],project));
+        } else appendMarkup(cell,fieldCellHtml(field,item.values[field.id],project,item));
         tagsCell.before(cell);
       });
       tbody.appendChild(row);

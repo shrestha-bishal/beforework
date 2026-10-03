@@ -230,6 +230,8 @@
     entry.item.description = String(event.description||"").split("\n")
       .filter(line=>!line.startsWith("Project: ") && !line.startsWith("Group: ")).join("\n").trim();
     entry.item.location = event.location || "";
+    const locationField=entry.project?.fields?.find(field=>field.type==="location");
+    if (locationField) entry.item.values[locationField.id]=entry.item.location;
     entry.item.startTime = googleEventTime(event, "start");
     entry.item.endTime = googleEventTime(event, "end");
     entry.item.calendarTimeZone=event.start?.timeZone||event.end?.timeZone||entry.item.calendarTimeZone||"";

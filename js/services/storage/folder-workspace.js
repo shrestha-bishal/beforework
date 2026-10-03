@@ -102,7 +102,7 @@
     if (ungroupedItems.length || !groups.length){
       groups.push({id:"__project_items__",name:"Unassigned",itemCount:ungroupedItems.length});
     }
-    const summaryFieldIds=new Set((project.fields||[]).filter(field=>["date","start-date","due-date","priority"].includes(field.type)).map(field=>field.id));
+    const summaryFieldIds=new Set((project.fields||[]).filter(field=>["date","start-date","due-date","priority","location"].includes(field.type)).map(field=>field.id));
     const items=[...(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({
       id:item.id,
       title:item.title,
@@ -116,6 +116,7 @@
       createdAt:item.createdAt||0,
       tagIds:item.tagIds||[],
       values:Object.fromEntries(Object.entries(item.values||{}).filter(([fieldId])=>summaryFieldIds.has(fieldId))),
+      location:item.location||"",
       startDate:item.startDate||"",
       startTime:item.startTime||"",
       endTime:item.endTime||"",
@@ -139,6 +140,7 @@
       createdAt:item.createdAt||0,
       tagIds:item.tagIds||[],
       values:Object.fromEntries(Object.entries(item.values||{}).filter(([fieldId])=>summaryFieldIds.has(fieldId))),
+      location:item.location||"",
       startDate:item.startDate||"",
       startTime:item.startTime||"",
       endTime:item.endTime||"",

@@ -57,6 +57,12 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"/);
   assert.match(rendered,/itemDescPreview/);
   assert.match(rendered,/class="itemMarkdownToolbar"/);
+  assert.match(templateSource,/\{\{location\}\}/);
+  assert.match(templateSource,/\{\{schedule\}\}/);
+  assert.match(appSource,/const locationHtml=locationField\?/);
+  assert.match(appSource,/const scheduleSectionHtml=scheduleField/);
+  assert.match(appSource,/data-action="addSchedule"/);
+  assert.match(appSource,/scheduleField\s*\?\s*\(hasSchedule\s*\|\|\s*openItemRef\.scheduleOpen\s*\?/);
   assert.match(rendered,/data-description-tab="edit"/);
   assert.match(rendered,/data-description-tab="preview"/);
   assert.match(rendered,/data-md-action="bold"/);
