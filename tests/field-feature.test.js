@@ -18,6 +18,11 @@ const definitions=[
   {value:"location",label:"Location",description:"Location"},
   {value:"schedule",label:"Schedule",description:"Schedule"}
 ];
+const defaultPriorityOptions=[
+  {id:"high",label:"High",color:"red",rank:3},
+  {id:"medium",label:"Medium",color:"blue",rank:2},
+  {id:"low",label:"Low",color:"red",rank:1}
+];
 
 function createFeature(overrides={}){
   const window={};
@@ -48,7 +53,8 @@ function createFeature(overrides={}){
         else field.decimalPlaces=Number(values[1]);
       },
       getEditableChoices:(field,{project})=>{
-        const choices=field.type==="tags"?project.tags||[]:field.options||[];
+        const choices=field.type==="tags"?project.tags||[]:
+          field.type==="priority"&&!field.options?.length?defaultPriorityOptions:field.options||[];
         return ["tags","select","multi-select","priority"].includes(field.type)
           ?choices.map(choice=>({
             id:choice.id,label:field.type==="tags"?choice.name:choice.label,
@@ -95,6 +101,9 @@ function createFeature(overrides={}){
           :"This removes this option from the field and clears it from item values."
       }),
       applyChoiceEdits:(field,context,changes)=>{
+        if (field.type==="priority"&&!field.options.length){
+          field.options=defaultPriorityOptions.map(option=>({...option}));
+        }
         const choices=field.type==="tags"?context.project.tags:field.options;
         changes.forEach(change=>{
           if (change.added){
@@ -138,7 +147,6 @@ function createFeature(overrides={}){
         return !!definition&&(definition.maxPerProject==null||fields.filter(field=>field.type===type).length<definition.maxPerProject);
       }
     },
-    selectColors:["red","blue"],
     projectItemEntries:project=>(project.groups||[]).flatMap(group=>(group.items||[]).map(item=>({group,item}))),
     queueGoogleEventDeletes:item=>calls.queuedEvents.push(item.id),
     getBoardFilterFields:()=>boardFilterFields,
@@ -173,7 +181,13 @@ test("field feature loads before the app entry point",()=>{
 test("adding a field creates its configured options and saves the project",async()=>{
   const project={fields:[]};
   const {feature,calls,setDialogResults}=createFeature();
-  setDialogResults(["select","Status"],"Backlog, In progress");
+  setDialogResults(["select","Status"],options=>({
+    values:[],
+    choices:[
+      options.choiceList.createChoice("Backlog"),
+      options.choiceList.createChoice("In progress")
+    ]
+  }));
 
   await feature.addFieldFlow(project);
 
@@ -181,15 +195,38 @@ test("adding a field creates its configured options and saves the project",async
   assert.equal(calls.dialogs[0].fields[0].searchable,true);
   assert.equal(calls.dialogs[0].fields[0].options[0].description,definitions[0].description);
   assert.equal(calls.dialogs[0].fields[0].options.length,definitions.length);
+  assert.equal(calls.dialogs[1].title,"Field options");
+  assert.equal(calls.dialogs[1].choiceList.copy.heading,"Options");
+  assert.deepEqual(JSON.parse(JSON.stringify(calls.dialogs[1].choiceList.items)),[]);
   assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0])),{
     id:"generated-1",
     label:"Status",
     type:"select",
     options:[
       {id:"generated-2",label:"Backlog",color:"red"},
-      {id:"generated-3",label:"In progress",color:"blue"}
+      {id:"generated-3",label:"In progress",color:"red"}
     ]
   });
+  assert.equal(calls.saved,1);
+  assert.equal(calls.rendered,1);
+});
+
+test("creating a priority field starts with the same default levels as editing",async()=>{
+  const project={fields:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(["priority","Priority"],options=>({
+    values:[],
+    choices:options.choiceList.items
+  }));
+
+  await feature.addFieldFlow(project);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(calls.dialogs[1].choiceList.items)),[
+    {id:"high",label:"High",hiddenInField:false},
+    {id:"medium",label:"Medium",hiddenInField:false},
+    {id:"low",label:"Low",hiddenInField:false}
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0].options)),defaultPriorityOptions);
   assert.equal(calls.saved,1);
   assert.equal(calls.rendered,1);
 });

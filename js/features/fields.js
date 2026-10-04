@@ -2,7 +2,7 @@
   "use strict";
 
   function create({
-    uid,fieldTypes,selectColors,projectItemEntries,queueGoogleEventDeletes,
+    uid,fieldTypes,projectItemEntries,queueGoogleEventDeletes,
     getBoardFilterFields,getBoardFilterColumns,getBoardFilterTags,getListSort,setListSort,
     showDialog,showNotice,showConfirm,scheduleSave,renderAll,refreshOpenItemModal,closeAllActionMenus
   }){
@@ -28,16 +28,37 @@
         id:uid(),label,type:storageType,options:[],
         ...(storageType!==type?{offeringType:type}:{})
       };
-      if (storageType==="select"||storageType==="multi-select"){
-        const opts=await showDialog({
+      if (storageType==="select"||storageType==="multi-select"||storageType==="priority"){
+        let addedChoiceCount=0;
+        const choiceChanges=await showDialog({
           title:"Field options",
-          message:`Add options for "${label}" separated by commas.`,
-          fields:[{label:"Options",placeholder:"Backlog, In progress, Blocked"}],
-          confirmLabel:"Create field"
+          fields:[],
+          confirmLabel:"Create field",
+          choiceList:{
+            items:fieldTypes.getEditableChoices(field,{project}),
+            copy:fieldTypes.getChoiceEditorCopy(field,{project}),
+            createChoice:choiceLabel=>fieldTypes.createChoice(
+              field,{project,uid,index:addedChoiceCount++},choiceLabel
+            )
+          }
         });
-        if (opts===null) return;
-        field.options=(opts||"").split(",").map(value=>value.trim()).filter(Boolean)
-          .map((optionLabel,index)=>({id:uid(),label:optionLabel,color:selectColors[index%selectColors.length]}));
+        if (choiceChanges===null) return;
+        const newChoiceNames=choiceChanges.choices.filter(choice=>!choice.deleted)
+          .map(choice=>choice.label.trim().toLowerCase());
+        if (choiceChanges.choices.some(choice=>!choice.deleted&&!choice.label.trim())){
+          await showNotice("Choice name required","Enter a name for each choice before creating the field.");
+          return;
+        }
+        if (newChoiceNames.some((name,index)=>newChoiceNames.indexOf(name)!==index)){
+          await showNotice("Choice already exists","Each choice must have a unique name.");
+          return;
+        }
+        fieldTypes.applyChoiceEdits(field,{
+          project,
+          projectItemEntries,
+          getBoardFilterFields,
+          getBoardFilterColumns
+        },choiceChanges.choices);
       }
       const settings=fieldTypes.getSettings(field,{mode:"create"});
       if (settings.length){

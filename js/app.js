@@ -3205,7 +3205,6 @@
   const fieldFeature=window.BeforeworkFieldFeature.create({
     uid,
     fieldTypes,
-    selectColors:SELECT_COLORS,
     projectItemEntries,
     queueGoogleEventDeletes,
     getBoardFilterFields:()=>filterFeature.fields,
