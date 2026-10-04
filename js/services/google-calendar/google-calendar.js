@@ -87,7 +87,7 @@
   async function googleCalendarRequest(path, options={}){
     const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
       ...options,
-      headers:{"Content-Type":"application/json",Authorization:`Bearer ${googleAccessToken}`,...(options.headers||{})}
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${googleAccessToken}`}
     });
     if (!response.ok){
       const detail = await response.text();
@@ -653,7 +653,7 @@
       if (error.status===401){
         handleGoogleAuthFailure();
       }
-      let detail = error.message||"Google rejected the sync request.";
+      let detail = window.BeforeworkErrorUtils.getMessage(error, "Google rejected the sync request.");
       try{
         const payload = JSON.parse(error.detail || "{}");
         detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;

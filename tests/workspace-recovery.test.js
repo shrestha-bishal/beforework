@@ -6,6 +6,7 @@ const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
 
+const errorUtilsSource=fs.readFileSync(path.join(__dirname,"../js/core/error-utils.js"),"utf8");
 const source=fs.readFileSync(path.join(__dirname,"../js/services/storage/workspace-recovery.js"),"utf8");
 
 function createRecovery(overrides={}){
@@ -39,6 +40,7 @@ function createRecovery(overrides={}){
     ...overrides
   };
   const sandbox={window:{Blob,URL,document:{createElement:()=>({click(){}})},setTimeout}};
+  vm.runInNewContext(errorUtilsSource,sandbox,{filename:"error-utils.js"});
   vm.runInNewContext(source,sandbox,{filename:"workspace-recovery.js"});
   return {
     recovery:sandbox.window.BeforeworkWorkspaceRecovery.create(dependencies),

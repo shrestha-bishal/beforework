@@ -110,7 +110,7 @@
     getInitialQuery:()=>document.getElementById("globalSearch").value,
     onQueryChange:value=>{ document.getElementById("globalSearch").value=value; },
     onClose:focusTarget=>{ if (focusTarget?.id==="globalSearch") suppressGlobalSearchFocus=true; },
-    onTemplateError:error=>showNotice("Couldn't open command palette",error.message),
+    onTemplateError:error=>showNotice("Couldn't open command palette",window.BeforeworkErrorUtils.getMessage(error)),
     cloneTemplate:async()=>{
       await window.BeforeworkViewTemplates.load("commandPalette");
       return window.BeforeworkViewTemplates.clone("commandPalette").querySelector("#commandPalette").content.firstElementChild.cloneNode(true);
@@ -381,7 +381,7 @@
         try{
           await ensureProjectLoaded(details.projectId);
         }catch(error){
-          await showNotice("Couldn't update calendar task",error.message);
+          await showNotice("Couldn't update calendar task",window.BeforeworkErrorUtils.getMessage(error));
           return false;
         }
       }
@@ -771,7 +771,7 @@
     try{
       await window.BeforeworkViewTemplates.load("csvImport");
     }catch(error){
-      await showNotice("Couldn't open CSV import",error.message);
+      await showNotice("Couldn't open CSV import",window.BeforeworkErrorUtils.getMessage(error));
       return;
     }
 
@@ -1052,7 +1052,7 @@
           context.project=project;
         }catch(error){
           if (context.closed || token!==context.selectionToken) return;
-          setStatus(error.message,true);
+          setStatus(window.BeforeworkErrorUtils.getMessage(error),true);
         }
       }
       if (context.closed || token!==context.selectionToken) return;
@@ -1109,7 +1109,7 @@
         context.parsed=null;
         refreshPreview();
         updateStep();
-        setStatus(error.message,true);
+        setStatus(window.BeforeworkErrorUtils.getMessage(error),true);
       }
     });
     confirmButton.addEventListener("click",async()=>{
@@ -1203,7 +1203,7 @@
           `Imported ${prepared.tasks.length} task(s) into ${project.name}.`);
       }catch(error){
         confirmButton.disabled=false;
-        setStatus(error.message,true);
+        setStatus(window.BeforeworkErrorUtils.getMessage(error),true);
       }
     });
 
@@ -1246,7 +1246,7 @@
       lastSavedState = JSON.stringify(state);
       selectedItemIds.clear();
       scheduleSave(); renderAll();
-    }catch(err){ showNotice("Undo failed", "Could not undo that change: " + err.message); }
+    }catch(err){ showNotice("Undo failed", "Could not undo that change: " + window.BeforeworkErrorUtils.getMessage(err)); }
   }
   function orderedTableColumns(project,viewType,columnIds){
     const saved=project.columnOrders?.[viewType]||[];
@@ -1618,7 +1618,7 @@
           await window.BeforeworkStorage.writeAttachment(attachment.id,file);
           if (!Array.isArray(item.attachments)) item.attachments=[];
           item.attachments.push(attachment);
-        }catch(error){ errors.push(`${file.name}: ${error.message}`); }
+        }catch(error){ errors.push(`${file.name}: ${window.BeforeworkErrorUtils.getMessage(error)}`); }
       }
       input.value="";
       renderList();
@@ -1650,7 +1650,7 @@
         link.download=attachment.name;
         link.click();
         setTimeout(()=>URL.revokeObjectURL(url),1000);
-      }catch(error){ await showNotice("Couldn't download attachment",error.message); }
+      }catch(error){ await showNotice("Couldn't download attachment",window.BeforeworkErrorUtils.getMessage(error)); }
     };
   }
   function fieldChipHtml(field, value, project){
@@ -1843,7 +1843,7 @@
       scheduleSave();
       renderAll();
     }catch(error){
-      await showNotice("Couldn't update Overview visibility",error.message);
+      await showNotice("Couldn't update Overview visibility",window.BeforeworkErrorUtils.getMessage(error));
     }
   }
 
@@ -1856,7 +1856,7 @@
       scheduleSave();
       renderAll();
     }catch(error){
-      await showNotice("Couldn't update project archive status",error.message);
+      await showNotice("Couldn't update project archive status",window.BeforeworkErrorUtils.getMessage(error));
     }
   }
 
@@ -2057,7 +2057,7 @@
         state.projects=[];
       }
       try{ await ensureProjectLoaded(pid); }
-      catch(err){ await showNotice("Couldn't load project",err.message); return; }
+      catch(err){ await showNotice("Couldn't load project",window.BeforeworkErrorUtils.getMessage(err)); return; }
     }else if(state?.folderLazy && state.projects.length){
       if (!await flushSave()){
         await showNotice("Navigation paused","Resolve the pending save before unloading the open project.");
@@ -2752,7 +2752,7 @@
   /* ---------- Item modal ---------- */
   function openItemModal(pid, gid, iid){
     if (state.folderLazy && !getLoadedProject(pid)){
-      ensureProjectLoaded(pid).then(()=>openItemModal(pid,gid,iid)).catch(err=>showNotice("Couldn't load project item",err.message));
+      ensureProjectLoaded(pid).then(()=>openItemModal(pid,gid,iid)).catch(err=>showNotice("Couldn't load project item",window.BeforeworkErrorUtils.getMessage(err)));
       return;
     }
     openItemRef = {projectId:pid, groupId:gid, itemId:iid};
@@ -3716,7 +3716,7 @@
         await navigator.clipboard.writeText(descriptionInput.value);
         modal.querySelector("#descriptionCopyStatus").textContent="Description Markdown copied.";
       }catch(error){
-        await showNotice("Couldn't copy Markdown",error.message||"Clipboard access is unavailable.");
+        await showNotice("Couldn't copy Markdown",window.BeforeworkErrorUtils.getMessage(error, "Clipboard access is unavailable."));
       }finally{
         actionMenus.close(modal.querySelector("#descriptionActionMenu"));
       }
@@ -3799,7 +3799,7 @@
           closeItemModal();
           renderAll();
         }catch(error){
-          await showNotice("Couldn't add item",error.message);
+          await showNotice("Couldn't add item",window.BeforeworkErrorUtils.getMessage(error));
         }
       };
     } else {
@@ -4189,22 +4189,22 @@
       });
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
-      showNotice("Couldn't load views", err.message);
+      showNotice("Couldn't load views", window.BeforeworkErrorUtils.getMessage(err));
       return;
     }
     try{ await focusTimer.init(); }
     catch(err){
-      showNotice("Couldn't load focus timer", err.message);
+      showNotice("Couldn't load focus timer", window.BeforeworkErrorUtils.getMessage(err));
       return;
     }
     const reconnected = await tryReconnectFile();
     try{ await window.BeforeworkStorage.refreshRecoverySnapshots(); }
-    catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + err.message); }
+    catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + window.BeforeworkErrorUtils.getMessage(err)); }
     if (reconnected){
       restoreActiveLocation();
       if (state.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
         try{ await ensureProjectLoaded(activeProjectId); }
-        catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + err.message); }
+        catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + window.BeforeworkErrorUtils.getMessage(err)); }
       }
       renderAll();
       resumeGoogleCalendarSync();

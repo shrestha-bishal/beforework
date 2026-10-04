@@ -266,7 +266,7 @@
       folderIndex={metadata:state,projects:state.projectSummaries,calendarItems:state.calendarItems,calendarFile:folderRevision.calendarFile,manifest:folderRevision.manifest,manifestText:folderRevision.manifestText,revision:folderRevision,needsSummaryUpgrade:false};
     }
     lastWrittenState=JSON.stringify(state);
-    setSyncStatus("Saved workspace folder " + handle.name + " at " + new Date().toLocaleTimeString() + (recoveryPoint ? ". Recovery snapshot saved." : recoveryError ? ". Recovery snapshot unavailable: " + recoveryError.message : "."));
+    setSyncStatus("Saved workspace folder " + handle.name + " at " + new Date().toLocaleTimeString() + (recoveryPoint ? ". Recovery snapshot saved." : recoveryError ? ". Recovery snapshot unavailable: " + window.BeforeworkErrorUtils.getMessage(recoveryError) : "."));
   }
 
   function workspaceContentRevision(text){
@@ -387,16 +387,16 @@
         await writable.close();
         fileRevision=canonicalState;
         lastWrittenState=canonicalState;
-        setSyncStatus("Saved to " + handle.name + " at " + new Date().toLocaleTimeString() + (recoveryPoint ? ". Recovery snapshot saved." : recoveryError ? ". Recovery snapshot unavailable: " + recoveryError.message : "."));
+        setSyncStatus("Saved to " + handle.name + " at " + new Date().toLocaleTimeString() + (recoveryPoint ? ". Recovery snapshot saved." : recoveryError ? ". Recovery snapshot unavailable: " + window.BeforeworkErrorUtils.getMessage(recoveryError) : "."));
       }catch(err){
         let recoveryMessage="";
         try{
           await saveRecoverySnapshot(JSON.stringify(state),"write-failed");
           recoveryMessage=" A recovery snapshot was saved in this browser.";
         }catch(snapshotError){
-          recoveryMessage=" A recovery snapshot could not be saved: " + snapshotError.message;
+          recoveryMessage=" A recovery snapshot could not be saved: " + window.BeforeworkErrorUtils.getMessage(snapshotError);
         }
-        setSyncStatus("Couldn't save workspace (" + err.message + ") - changes remain in this tab." + recoveryMessage + " Retry the save or export the recovery snapshot.");
+        setSyncStatus("Couldn't save workspace (" + window.BeforeworkErrorUtils.getMessage(err) + ") - changes remain in this tab." + recoveryMessage + " Retry the save or export the recovery snapshot.");
       }
     }).catch(()=>{});
     return fileWriteQueue;
@@ -495,7 +495,7 @@
         setSyncStatus("No workspace folder connected. Choose a workspace root or open a workspace.");
       }else{
         if (handle) pendingReconnectHandle=handle;
-        setSyncStatus("Couldn't reconnect to " + (handle?.name||"the previous workspace") + ": " + err.message);
+        setSyncStatus("Couldn't reconnect to " + (handle?.name||"the previous workspace") + ": " + window.BeforeworkErrorUtils.getMessage(err));
       }
       return false;
     }
@@ -514,14 +514,14 @@
       lastSavedState = JSON.stringify(state);
       lastWrittenState = JSON.stringify(state);
       setSyncStatus("Saved to " + fileHandle.name);
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + window.BeforeworkErrorUtils.getMessage(err)));
       hideConnectGate();
       renderAll();
       await maybeShowMigrationNotice();
       resumeGoogleCalendarSync();
     }catch(err){
-      setSyncStatus("Couldn't reconnect to " + pendingReconnectHandle.name + ": " + err.message);
-      showNotice("Couldn't reconnect", err.message);
+      setSyncStatus("Couldn't reconnect to " + pendingReconnectHandle.name + ": " + window.BeforeworkErrorUtils.getMessage(err));
+      showNotice("Couldn't reconnect", window.BeforeworkErrorUtils.getMessage(err));
     }
   }
 
@@ -581,15 +581,15 @@
       refreshWorkspaceCommandIndex();
       lastSavedState=JSON.stringify(state);
       lastWrittenState=lastSavedState;
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + window.BeforeworkErrorUtils.getMessage(err)));
       setSyncStatus("Saved workspace folder " + directory.name + ".");
       hideConnectGate();
       renderAll();
     }catch(err){
       if (directory && !initialized) await getFolderWorkspace().clearIncomplete(directory).catch(()=>{});
       if (err.name!=="AbortError"){
-        setSyncStatus("Couldn't create workspace folder: " + err.message);
-        showNotice("Couldn't create workspace folder",err.message);
+        setSyncStatus("Couldn't create workspace folder: " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't create workspace folder",window.BeforeworkErrorUtils.getMessage(err));
       }
     }
   }
@@ -609,8 +609,8 @@
       let loaded;
       try{ loaded=await loadFolderState(directory); }
       catch(err){
-        setSyncStatus("Couldn't validate workspace folder " + directory.name + ": " + err.message);
-        showNotice("Couldn't open workspace folder",err.message);
+        setSyncStatus("Couldn't validate workspace folder " + directory.name + ": " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't open workspace folder",window.BeforeworkErrorUtils.getMessage(err));
         return;
       }
       await rememberWorkspaceSelection(workspaceRootHandle,directory);
@@ -620,7 +620,7 @@
       refreshWorkspaceCommandIndex();
       lastSavedState=JSON.stringify(state);
       lastWrittenState=lastSavedState;
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + window.BeforeworkErrorUtils.getMessage(err)));
       setSyncStatus("Connected to workspace folder " + directory.name + ".");
       hideConnectGate();
       renderAll();
@@ -628,8 +628,8 @@
       resumeGoogleCalendarSync();
     }catch(err){
       if (err.name!=="AbortError"){
-        setSyncStatus("Couldn't open workspace folder: " + err.message);
-        showNotice("Couldn't open workspace folder",err.message);
+        setSyncStatus("Couldn't open workspace folder: " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't open workspace folder",window.BeforeworkErrorUtils.getMessage(err));
       }
     }
   }
@@ -645,8 +645,8 @@
       try{ loaded = await loadFromHandle(handle); }
       catch(err){
         fileRevision=previousRevision;
-        setSyncStatus("Couldn't validate " + handle.name + ": " + err.message);
-        showNotice("Couldn't read that file", "This doesn't look like an Beforework JSON file: " + err.message);
+        setSyncStatus("Couldn't validate " + handle.name + ": " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't read that file", "This doesn't look like an Beforework JSON file: " + window.BeforeworkErrorUtils.getMessage(err));
         return;
       }
       try{ await rememberWorkspaceSelection(workspaceRootHandle,handle); }
@@ -656,15 +656,15 @@
       refreshWorkspaceCommandIndex();
       lastSavedState = JSON.stringify(state);
       lastWrittenState = JSON.stringify(state);
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + window.BeforeworkErrorUtils.getMessage(err)));
       hideConnectGate();
       renderAll();
       await maybeShowMigrationNotice();
       resumeGoogleCalendarSync();
     }catch(err){
       if (err.name!=="AbortError"){
-        setSyncStatus("Couldn't open workspace: " + err.message);
-        showNotice("Couldn't open workspace",err.message);
+        setSyncStatus("Couldn't open workspace: " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't open workspace",window.BeforeworkErrorUtils.getMessage(err));
       }
     }
   }
@@ -704,13 +704,13 @@
       lastSavedState=JSON.stringify(state);
       lastWrittenState=lastSavedState;
       setSyncStatus("Created folder copy " + directory.name + ". Original JSON file unchanged.");
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + window.BeforeworkErrorUtils.getMessage(err)));
       renderAll();
     }catch(err){
       if (directory && !initialized) await getFolderWorkspace().clearIncomplete(directory).catch(()=>{});
       if (err.name!=="AbortError"){
-        setSyncStatus("Couldn't create folder copy: " + err.message);
-        showNotice("Couldn't create folder copy",err.message);
+        setSyncStatus("Couldn't create folder copy: " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't create folder copy",window.BeforeworkErrorUtils.getMessage(err));
       }
     }
   }
@@ -721,7 +721,7 @@
       const currentState=JSON.stringify(state);
       if (getLatestRecoverySnapshot()?.data!==currentState) await saveRecoverySnapshot(currentState,"unsaved-before-switch");
     }
-    catch(err){ await showNotice("Couldn't protect unsaved changes",err.message); return false; }
+    catch(err){ await showNotice("Couldn't protect unsaved changes",window.BeforeworkErrorUtils.getMessage(err)); return false; }
     return showConfirm("Changes are not saved to the file", "A recovery snapshot of this tab's current workspace was saved in this browser. Continue switching files?");
   }
 
@@ -739,7 +739,7 @@
       if (!validation.valid) throw new Error(validation.errors.join(" "));
       parsed = migrateState(legacyData);
     }
-    catch(err){ showNotice("Couldn't read old data", "The data previously saved in this browser looks corrupted: " + err.message); return; }
+    catch(err){ showNotice("Couldn't read old data", "The data previously saved in this browser looks corrupted: " + window.BeforeworkErrorUtils.getMessage(err)); return; }
     let directory=null;
     let initialized=false;
     try{
@@ -755,7 +755,7 @@
       refreshWorkspaceCommandIndex();
       lastSavedState=JSON.stringify(state);
       lastWrittenState=lastSavedState;
-      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + err.message));
+      await refreshRecoverySnapshots().catch(err=>setSyncStatus("Recovery snapshots are unavailable: " + window.BeforeworkErrorUtils.getMessage(err)));
       localStorage.removeItem(LEGACY_LS_KEY);
       setSyncStatus("Moved browser data into " + directory.name + ".");
       hideConnectGate();
@@ -764,8 +764,8 @@
     }catch(err){
       if (directory && !initialized) await getFolderWorkspace().clearIncomplete(directory).catch(()=>{});
       if (err.name!=="AbortError"){
-        setSyncStatus("Couldn't migrate browser data: " + err.message);
-        showNotice("Couldn't migrate browser data",err.message);
+        setSyncStatus("Couldn't migrate browser data: " + window.BeforeworkErrorUtils.getMessage(err));
+        showNotice("Couldn't migrate browser data",window.BeforeworkErrorUtils.getMessage(err));
       }
     }
   }

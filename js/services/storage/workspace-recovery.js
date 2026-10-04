@@ -54,7 +54,7 @@
       try{
         await storage.saveRecoverySnapshot(JSON.stringify(getState()),"pre-migration-restore");
       }catch(error){
-        await showNotice("Couldn't protect current workspace",error.message);
+        await showNotice("Couldn't protect current workspace",global.BeforeworkErrorUtils.getMessage(error));
         return;
       }
       setState({...saved.data,schemaVersion:saved.fromVersion});
@@ -77,7 +77,7 @@
         setState(migrateState(parsed));
         onWorkspaceReplaced("recovery-restore");
       }catch(error){
-        await showNotice("Couldn't restore recovery snapshot",error.message);
+        await showNotice("Couldn't restore recovery snapshot",global.BeforeworkErrorUtils.getMessage(error));
       }
     }
 
@@ -96,7 +96,7 @@
         onWorkspaceReplaced("import");
         await maybeShowMigrationNotice();
       }catch(error){
-        await showNotice("Import failed","Could not read that file: " + error.message);
+        await showNotice("Import failed","Could not read that file: " + global.BeforeworkErrorUtils.getMessage(error));
       }
     }
 

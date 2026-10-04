@@ -26,6 +26,14 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.doesNotMatch(app,/\bboot\(\);/);
   assert.doesNotMatch(app,/BeforeworkBootstrap/);
   assert.match(app,/await loadViewModules\(\)/);
+  const errorUtils=index.indexOf('src="js/core/error-utils.js"');
+  assert.ok(errorUtils>=0);
+  for (const script of [
+    'src="js/services/storage/storage.js"',
+    'src="js/services/storage/workspace-recovery.js"',
+    'src="js/services/google-calendar/google-calendar.js"',
+    'src="js/app.js"'
+  ]) assert.ok(errorUtils<index.indexOf(script),`${script} must load after the shared error utility`);
   assert.match(index,/<a class="btn btn-sm btn-primary demoTryLink" id="tryBeforeworkLink" href="https:\/\/beforework\.netlify\.app\/" target="_blank" rel="noopener noreferrer" hidden>Try Beforework<\/a>/);
   assert.match(app,/window\.BEFOREWORK_CONFIG\.initialWorkspace==="demo"/);
   assert.match(app,/tryBeforeworkLink\.hidden=false/);

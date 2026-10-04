@@ -9,6 +9,9 @@ const vm=require("node:vm");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const view=fs.readFileSync(path.join(__dirname,"../js/views/calendar-view.js"),"utf8");
 const template=fs.readFileSync(path.join(__dirname,"../pages/calendar.html"),"utf8");
+const errorUtilsSource=fs.readFileSync(path.join(__dirname,"../js/core/error-utils.js"),"utf8");
+const errorUtilsSandbox={window:{}};
+vm.runInNewContext(errorUtilsSource,errorUtilsSandbox,{filename:"error-utils.js"});
 
 test("Calendar renderer is wired as a separate view and reuses its page template",()=>{
   for (const id of ["calendarDayTemplate","calendarEventTemplate"]){
@@ -158,6 +161,7 @@ test("calendar completion reports lazy project loading errors and does not save"
   const end=app.indexOf("function tagById",start);
   const notices=[];
   const context={
+    window:{BeforeworkErrorUtils:errorUtilsSandbox.window.BeforeworkErrorUtils},
     state:{folderLazy:true,projects:[],projectSummaries:[]},
     getLoadedProject:()=>null,
     async ensureProjectLoaded(){ throw new Error("Folder permission denied"); },

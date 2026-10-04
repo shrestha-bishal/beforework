@@ -1,3 +1,4 @@
+
 export class OverviewView {
   constructor({getState,model,actions,overviewDetailsView,cloneTemplate}){
     this.getState=getState;
@@ -225,7 +226,7 @@ export class OverviewView {
         stats:statRows,
         data:{projects,openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf,priorityLabelOf},
         actions:{openProject:selectProject,openItem:openItemModal}
-      }).catch(error=>showNotice("Couldn't load overview details",error.message));
+      }).catch(error=>showNotice("Couldn't load overview details",window.BeforeworkErrorUtils.getMessage(error)));
     }
     const stats = view.querySelector("[data-overview-stats]");
     statRows.forEach(({value,label,detail,icon,tone},index)=>{

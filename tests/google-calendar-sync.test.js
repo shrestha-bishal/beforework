@@ -7,6 +7,10 @@ const test=require("node:test");
 const vm=require("node:vm");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/services/google-calendar/google-calendar.js"),"utf8");
+const errorUtilsSource=fs.readFileSync(path.join(__dirname,"../js/core/error-utils.js"),"utf8");
+const errorUtilsSandbox={window:{}};
+vm.runInNewContext(errorUtilsSource,errorUtilsSandbox,{filename:"error-utils.js"});
+const errorUtils=errorUtilsSandbox.window.BeforeworkErrorUtils;
 
 test("every sync pulls Google changes before recalculating and pushing local entries",()=>{
   const start=source.indexOf("async function syncGoogleCalendar(scopeProject,");
@@ -33,6 +37,7 @@ test("Google item identity and timezone are preserved for conflict-safe reconcil
 
 test("Google Calendar location imports update the optional Location field",()=>{
   const context={
+    window:{BeforeworkErrorUtils:errorUtils},
     calendarDateKey:date=>date.toISOString().slice(0,10),
     Date
   };
@@ -89,6 +94,7 @@ test("polling pushes changed standalone items without syncing project items",asy
     {project:{id:"project-a",name:"Project"},group:{id:"group-a"},item:projectItem,field:{id:"date",label:"Due date",type:"date"},date:"2026-10-02",endDate:"2026-10-02"}
   ];
   const context={
+    window:{BeforeworkErrorUtils:errorUtils},
     googleAccessToken:"access-token",
     googleSyncInFlight:false,
     googleImportInFlight:false,
@@ -155,6 +161,7 @@ test("manual sync resolves remote changes before updating the existing Google ev
   const notices=[];
   const entries=()=>[{project:null,group:null,item,field:{id:"__standalone__",label:"Calendar",type:"date"},date:item.startDate,endDate:item.endDate}];
   const context={
+    window:{BeforeworkErrorUtils:errorUtils},
     googleAccessToken:"access-token",
     googleSyncInFlight:false,
     googleImportInFlight:false,
