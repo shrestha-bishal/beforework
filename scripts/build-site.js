@@ -13,6 +13,12 @@ const browserLibraries = [
   {source:"node_modules/markdown-it/dist/browser/markdown-it.umd.min.js",target:"vendor/markdown-it.min.js"},
   {source:"node_modules/dompurify/dist/purify.min.js",target:"vendor/purify.min.js"}
 ];
+const primerStylesheet = {
+  source:"node_modules/@primer/css/dist/primer.css",
+  license:"node_modules/@primer/css/LICENSE",
+  target:"styles/vendor/primer.css",
+  licenseTarget:"styles/vendor/primer.LICENSE"
+};
 
 fs.rmSync(output, {recursive:true, force:true});
 fs.mkdirSync(output, {recursive:true});
@@ -28,6 +34,17 @@ for (const library of browserLibraries){
   const source=path.join(root,library.source);
   if (!fs.existsSync(source)) throw new Error(`Required browser library is missing: ${library.source}`);
   const target=path.join(output,library.target);
+  fs.mkdirSync(path.dirname(target),{recursive:true});
+  fs.copyFileSync(source,target);
+}
+
+for (const file of [
+  {source:primerStylesheet.source,target:primerStylesheet.target},
+  {source:primerStylesheet.license,target:primerStylesheet.licenseTarget}
+]){
+  const source=path.join(root,file.source);
+  if (!fs.existsSync(source)) throw new Error(`Required Primer CSS file is missing: ${file.source}`);
+  const target=path.join(output,file.target);
   fs.mkdirSync(path.dirname(target),{recursive:true});
   fs.copyFileSync(source,target);
 }
@@ -105,6 +122,10 @@ async function build(){
       for (const library of browserLibraries){
         source=source.replaceAll(`src="${library.source}"`,`src="${library.target}"`);
       }
+      source=source.replaceAll(
+        `href="${primerStylesheet.source}"`,
+        `href="${primerStylesheet.target}"`
+      );
     }
     const minified=await minifyHtml(source,{
       collapseWhitespace:true,
