@@ -133,6 +133,26 @@ test("choice editors are declared by option-owning field types only",()=>{
   );
   assert.equal(fieldTypes.getEditableChoices({id:"notes",type:"text"},{project}),null);
   assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getChoiceEditorCopy(tags,{project}))),
+    {
+      itemLabel:"tag",
+      heading:"Tags",
+      description:"Hidden tags stay assigned to existing items but aren't offered for new assignments.",
+      addLabel:"Add tag",
+      inputPlaceholder:"Tag name"
+    }
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getChoiceEditorCopy(select,{project}))),
+    {
+      itemLabel:"option",
+      heading:"Options",
+      description:"Hidden options stay assigned to existing items but aren't offered for new selections.",
+      addLabel:"Add option",
+      inputPlaceholder:"Option name"
+    }
+  );
+  assert.deepEqual(
     JSON.parse(JSON.stringify(fieldTypes.getInputChoices(select,{project,selected:[]}))),
     [{id:"ready",label:"Ready"}]
   );

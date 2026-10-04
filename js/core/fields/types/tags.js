@@ -22,6 +22,13 @@
     choiceEditor:{
       getChoices:({project})=>project.tags||[],
       getLabel:tag=>tag.name,
+      getEditorCopy:()=>({
+        itemLabel:"tag",
+        heading:"Tags",
+        description:"Hidden tags stay assigned to existing items but aren't offered for new assignments.",
+        addLabel:"Add tag",
+        inputPlaceholder:"Tag name"
+      }),
       createChoice:({uid,label,project,index=0})=>({
         id:uid(),name:label.trim(),color:colors[((project.tags||[]).length+index)%colors.length]
       }),

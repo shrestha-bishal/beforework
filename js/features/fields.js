@@ -103,6 +103,7 @@
         confirmLabel:"Save",
         ...(choices?{choiceList:{
           items:choices,
+          copy:fieldTypes.getChoiceEditorCopy(field,{project}),
           createChoice:label=>fieldTypes.createChoice(field,{project,uid,index:addedChoiceCount++},label)
         }}:{}),
         actionMenu:{

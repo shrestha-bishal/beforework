@@ -11,7 +11,7 @@
       throw new Error(`Field type "${definition.value}" is already registered.`);
     }
     if (definition.choiceEditor&&[
-      "getChoices","getLabel","createChoice","getDeleteConfirmation","applyChanges"
+      "getChoices","getLabel","getEditorCopy","createChoice","getDeleteConfirmation","applyChanges"
     ].some(method=>typeof definition.choiceEditor[method]!=="function")){
       throw new TypeError(`Field type "${definition.value}" has an incomplete choice editor.`);
     }
@@ -48,6 +48,18 @@
       label:editor.getLabel(choice),
       hiddenInField:choice.hiddenInField===true
     }));
+  }
+
+  function getChoiceEditorCopy(field,context={}){
+    const editor=getChoiceEditor(field);
+    if (!editor) return null;
+    const copy=editor.getEditorCopy({...context,field});
+    if (!copy||["itemLabel","heading","description","addLabel","inputPlaceholder"].some(key=>
+      typeof copy[key]!=="string"||!copy[key].trim()
+    )){
+      throw new TypeError(`Field type "${field.type}" returned incomplete choice editor copy.`);
+    }
+    return copy;
   }
 
   function applyChoiceEdits(field,context,changes){
@@ -152,7 +164,7 @@
   }
 
   global.BeforeworkFieldTypes=Object.freeze({
-    register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,createChoice,
+    register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,getChoiceEditorCopy,createChoice,
     applyChoiceEdits,getChoiceDeleteConfirmation,
     getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
     normalizeInput,sortValue,formatValue

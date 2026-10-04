@@ -11,6 +11,13 @@
     choiceEditor:{
       getChoices:({field})=>field.options||[],
       getLabel:option=>option.label,
+      getEditorCopy:()=>({
+        itemLabel:"option",
+        heading:"Options",
+        description:"Hidden options stay assigned to existing items but aren't offered for new selections.",
+        addLabel:"Add option",
+        inputPlaceholder:"Option name"
+      }),
       createChoice:({uid,label,field,index=0})=>({
         id:uid(),label:label.trim(),color:colors[((field.options||[]).length+index)%colors.length]
       }),

@@ -48,6 +48,21 @@ function createFeature(overrides={}){
           :{id,label:label.trim(),color:"red"};
         return {id,label:field.type==="tags"?choice.name:choice.label,hiddenInField:false,added:true,choice};
       },
+      getChoiceEditorCopy:field=>field.type==="tags"
+        ?{
+          itemLabel:"tag",
+          heading:"Tags",
+          description:"Hidden tags stay assigned to existing items but aren't offered for new assignments.",
+          addLabel:"Add tag",
+          inputPlaceholder:"Tag name"
+        }
+        :{
+          itemLabel:"option",
+          heading:"Options",
+          description:"Hidden options stay assigned to existing items but aren't offered for new selections.",
+          addLabel:"Add option",
+          inputPlaceholder:"Option name"
+        },
       getChoiceDeleteConfirmation:(field,{choices})=>({
         title:`Delete ${field.type==="tags"?"tag":"option"}: ${choices.map(choice=>choice.label).join(", ")}`,
         message:field.type==="tags"
