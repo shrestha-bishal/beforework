@@ -379,15 +379,28 @@
     function suggestions(project,query){
       const options=[];
       const add=(kind,id,value,label,color="",extra={})=>options.push({kind,id,value:String(value),label,color,...extra});
-      const fields=project.fields.filter(field=>field.type!=="tags");
+      const projectFields=project.fields.filter(field=>field.type!=="tags");
       const needle=query.trim().toLowerCase();
       const match=(value,label)=>!needle||`${value} ${label}`.toLowerCase().includes(needle);
+      const isSelected=(kind,id,value)=>{
+        if (kind==="tag") return tags.has(String(value));
+        if (kind==="group") return groups.has(String(value));
+        if (kind==="field"){
+          const selected=fields.get(id);
+          const selectedValues=Array.isArray(selected)?selected:selected==null?[]:[selected];
+          return selectedValues.some(item=>item!=null&&String(item)===String(value));
+        }
+        return false;
+      };
+      const addIfUnselected=(kind,id,value,label,color="")=>{
+        if (!isSelected(kind,id,value)) add(kind,id,value,label,color);
+      };
       const addOperators=filter=>{
         const operators=[
           {prefix:"tag",label:"Tag",description:"Filter by a project tag"},
           {prefix:"group",label:"Group",description:"Filter by a group"},
           {prefix:"is",label:"Is",description:"Filter by completion state"},
-          ...fields.map(field=>({
+          ...projectFields.map(field=>({
             prefix:field.label.toLowerCase(),label:field.label,description:`Filter by ${field.label.toLowerCase()}`
           }))
         ];
@@ -401,11 +414,11 @@
         if (!query.trim()) return addOperators("");
         options.push(...addOperators(query.trim()));
         projectTagOptions(project).forEach(option=>
-          add("tag","tags",option.value,option.label,option.color||""));
-        getProjectGroups(project).forEach(group=>add("group","group",group.id,group.name));
-        fields.forEach(field=>{
+          addIfUnselected("tag","tags",option.value,option.label,option.color||""));
+        getProjectGroups(project).forEach(group=>addIfUnselected("group","group",group.id,group.name));
+        projectFields.forEach(field=>{
           fieldFilterOptions(project,field).forEach(option=>
-            add("field",field.id,option.value,option.label,option.color||""));
+            addIfUnselected("field",field.id,option.value,option.label,option.color||""));
         });
         return options.filter(option=>match(option.value,option.label)).slice(0,12);
       }
@@ -414,21 +427,21 @@
       const valueQuery=filterQuery[2].trim();
       if ("tag".startsWith(prefix)||"tags".startsWith(prefix)||"label".startsWith(prefix)){
         projectTagOptions(project).forEach(option=>
-          add("tag","tags",option.value,option.label,option.color||""));
+          addIfUnselected("tag","tags",option.value,option.label,option.color||""));
       } else if ("group".startsWith(prefix)){
-        getProjectGroups(project).forEach(group=>add("group","group",group.id,group.name));
+        getProjectGroups(project).forEach(group=>addIfUnselected("group","group",group.id,group.name));
       } else if ("is".startsWith(prefix)){
         add("completion","is","open","Open");
         add("completion","is","completed","Completed");
       } else {
-        const field=fields.find(candidate=>candidate.label.toLowerCase()===prefix);
+        const field=projectFields.find(candidate=>candidate.label.toLowerCase()===prefix);
         if (!field) return addOperators(prefix);
         const kind=fieldTypes.getFilter(field)?.kind;
         if (["text","number","date"].includes(kind)){
-          if (valueQuery) add("field",field.id,valueQuery,valueQuery);
+          if (valueQuery) addIfUnselected("field",field.id,valueQuery,valueQuery);
         } else {
           fieldFilterOptions(project,field).forEach(option=>
-            add("field",field.id,option.value,option.label,option.color||""));
+            addIfUnselected("field",field.id,option.value,option.label,option.color||""));
         }
       }
       const valueNeedle=valueQuery.toLowerCase();

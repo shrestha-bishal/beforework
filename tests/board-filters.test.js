@@ -20,6 +20,9 @@ function createFeature({saved={}}={}){
   };
   const project={id:"project",fields:[
     {id:"status",label:"Status",type:"select",options:[{id:"todo",label:"To do"},{id:"doing",label:"In progress"}]},
+    {id:"priority",label:"Priority",type:"multi-select",options:[
+      {id:"high",label:"High"},{id:"medium",label:"Medium"},{id:"low",label:"Low"}
+    ]},
     {id:"count",label:"Count",type:"number"},
     {id:"areas",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},
     {id:"contact",label:"Contact",type:"email"},
@@ -155,9 +158,18 @@ test("filter tokens and autocomplete suggestions expose the same canonical choic
   assert.deepEqual(JSON.parse(JSON.stringify(feature.tokens(project).map(token=>token.label))),[
     "Search: first","Group: Backlog","Tag: urgent","Status: To do"
   ]);
-  assert.ok(feature.suggestions(project,"urgent").some(option=>option.kind==="tag"&&option.value==="urgent"));
+  assert.ok(!feature.suggestions(project,"urgent").some(option=>option.kind==="tag"&&option.value==="urgent"));
   assert.ok(feature.suggestions(project,"in progress").some(option=>option.kind==="field"&&option.value==="doing"));
   assert.ok(feature.suggestions(project,"Contact: example.com").some(option=>option.kind==="field"&&option.value==="example.com"));
+  assert.ok(!feature.suggestions(project,"Status:").some(option=>option.value==="todo"));
+});
+
+test("filter autocomplete omits already selected values from field options",()=>{
+  const {feature,project}=createFeature();
+  feature.fields.set("priority",["high","medium"]);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"Priority:").map(option=>option.label))),
+    ["Low","No Priority"]);
 });
 
 test("filter query prefixes open focused autocomplete choices while leaving free text available",()=>{
@@ -183,7 +195,7 @@ test("tag suggestions and filtering work without a custom Tags field",()=>{
   feature.tags.add("urgent");
 
   assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:").map(option=>option.value))),
-    ["urgent","__none__"]);
+    ["__none__"]);
   assert.equal(feature.matches(project,project.groups[0].items[0],project.groups[0]),true);
   assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),false);
 });
