@@ -248,23 +248,31 @@
   #topbar .projectActions{display:flex;align-items:center;gap:6px;flex:none;}
   .projectMenuWrap{position:relative;display:none;flex:none;}
   .projectMenuBtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;font-size:18px;line-height:1;}
-  #boardFilterBar{display:block;position:relative;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg-soft);}
-  .filterMainRow{display:flex;align-items:center;gap:8px;min-height:38px;}
-  .filterBarInputWrap{position:relative;display:flex;align-items:center;gap:5px;flex:1;min-width:180px;min-height:38px;flex-wrap:wrap;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);}
-  .filterBarInputWrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 20%,transparent);}
+  #boardFilterBar{display:block;position:relative;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .filterMainRow{display:flex;align-items:center;gap:10px;min-height:38px;}
+  .filterBarInputWrap{position:relative;display:flex;align-items:center;gap:5px;flex:1;min-width:180px;min-height:38px;flex-wrap:wrap;padding:4px 9px;border:1px solid var(--border-strong);border-radius:7px;background:var(--bg);}
+  .filterBarInputWrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent);}
   .filterTokens{display:contents;}
-  .filterToken{display:inline-flex;align-items:center;gap:6px;max-width:240px;padding:3px 7px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--border));border-radius:6px;background:var(--accent-soft);color:var(--accent-strong);font-size:12px;line-height:1.4;cursor:pointer;}
-  .filterToken>span{font-size:15px;line-height:1;}
-  .filterToken:hover{border-color:var(--accent);}
-  .filterBarInput{flex:1;min-width:120px;height:26px;padding:2px 4px;border:0!important;outline:0;background:transparent!important;color:var(--text);font:inherit;font-size:13px;}
+  .filterToken{display:inline-flex;align-items:center;gap:2px;max-width:280px;padding:2px 1px;border:0;border-radius:3px;background:transparent;color:var(--text);font-size:13px;line-height:1.5;cursor:pointer;}
+  .filterTokenPrefix{white-space:pre;}
+  .filterTokenValue{max-width:220px;padding:0 2px;overflow:hidden;border-radius:3px;background:var(--color-accent-subtle);color:var(--color-accent-fg);text-overflow:ellipsis;white-space:nowrap;}
+  .filterTokenRemove{margin-left:1px;color:var(--muted);font-size:13px;line-height:1;opacity:0;}
+  .filterToken:hover .filterTokenRemove,.filterToken:focus-visible .filterTokenRemove{opacity:1;}
+  .filterToken:hover .filterTokenValue{background:color-mix(in srgb,var(--color-accent-subtle) 75%,var(--color-accent-emphasis) 25%);}
+  .filterToken:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .filterBarInput{flex:1;min-width:150px;height:26px;padding:2px 4px;border:0!important;outline:0;background:transparent!important;color:var(--text);font:inherit;font-size:13px;}
   .filterBarInput:focus{box-shadow:none!important;}
   .filterBarInput::placeholder{color:var(--faint);}
-  .filterSuggestions{position:absolute;top:calc(100% + 7px);left:0;z-index:60;display:flex;flex-direction:column;width:min(480px,calc(100vw - 40px));max-height:min(360px,60vh);overflow:auto;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .filterSuggestions{position:absolute;top:calc(100% + 6px);left:0;z-index:60;display:flex;flex-direction:column;width:min(420px,calc(100vw - 40px));max-height:min(360px,60vh);overflow:auto;padding:6px;border:1px solid var(--border);border-radius:10px;background:var(--bg);box-shadow:var(--shadow-modal);}
   .filterSuggestions[hidden]{display:none;}
-  .filterSuggestion{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);text-align:left;font-size:13px;cursor:pointer;}
-  .filterSuggestion:hover,.filterSuggestion.active{background:var(--bg-soft);color:var(--accent-strong);}
-  .filterSuggestionDot{width:12px;height:12px;flex:none;border-radius:50%;background:var(--tag-color);}
-  .filterSuggestionSearch{border-top:1px solid var(--border);border-radius:0;margin-top:4px;color:var(--muted);}
+  .filterSuggestion{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:var(--text);text-align:left;font-size:13px;cursor:pointer;}
+  .filterSuggestion:hover,.filterSuggestion.active{background:var(--bg-soft);color:var(--text);}
+  .filterSuggestionText{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .filterSuggestionSyntax{margin-left:auto;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;}
+  .filterSuggestionDetail{margin-left:auto;color:var(--muted);font-size:11px;}
+  .filterSuggestionOperator .filterSuggestionText{font-weight:500;}
+  .filterSuggestionDot{width:10px;height:10px;flex:none;border-radius:50%;background:var(--tag-color);}
+  .filterSuggestionSearch{margin-top:5px;border-top:1px solid var(--border);border-radius:0;color:var(--muted);}
   .filterSummary{font-size:12px;color:var(--muted);white-space:nowrap;}
   .filterSummary:empty{display:none;}
   #boardFilterBar input[type="checkbox"]{accent-color:var(--accent);}

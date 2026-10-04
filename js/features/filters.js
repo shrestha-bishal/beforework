@@ -32,6 +32,7 @@
     let completion="open";
     let preferences=JSON.parse(storage.getItem(storageKey)||"{}");
     let suggestionIndex=-1;
+    let suggestionsOpen=false;
 
     function replaceSet(target,values){
       target.clear();
@@ -111,6 +112,7 @@
       tags.clear();
       fields.clear();
       columns.clear();
+      suggestionsOpen=false;
       const input=inputElement();
       input.value="";
       const suggestionsWrap=documentRef.getElementById("filterSuggestions");
@@ -125,11 +127,20 @@
       return Number.isNaN(date.getTime())?NONE:date.toISOString().slice(0,10);
     }
 
+    function projectTagOptions(project){
+      const tagsField=project?.fields?.find(field=>field.type==="tags");
+      const options=tagsField?fieldTypes.getFilterOptions(tagsField,{project})
+        :(project?.tags||[]).map(tag=>({value:tag.id,label:tag.name,color:tag.color||""}));
+      return [...options,{value:NONE,label:"No tags",color:""}];
+    }
+
     function columnValuesForItem(project,item,group,columnId){
       if (columnId==="title") return item.title?[String(item.title)]:[NONE];
       if (columnId==="group") return group?.id?[String(group.id)]:[NONE];
       if (columnId==="tags"){
-        return fieldTypes.getFilterValues(project?.fields?.find(field=>field.type==="tags"),{
+        const tagsField=project?.fields?.find(field=>field.type==="tags");
+        if (!tagsField) return item.tagIds?.length?item.tagIds.map(String):[NONE];
+        return fieldTypes.getFilterValues(tagsField,{
           item,project,group,noneValue:NONE,dateKey:columnDateKey,scheduleFieldValue
         });
       }
@@ -153,7 +164,15 @@
       if (project&&project.id===getActiveProjectId()&&isItemCompleted(item)!==(completion==="completed")) return false;
       if (groups.size&&(!group||!groups.has(group.id))) return false;
       const tagsField=project?.fields?.find(field=>field.type==="tags");
-      if (tagsField&&tags.size&&!fieldTypes.matchesFilter(tagsField,{item,project,mode:[...tags],noneValue:NONE})) return false;
+      if (tags.size){
+        if (tagsField){
+          if (!fieldTypes.matchesFilter(tagsField,{item,project,mode:[...tags],noneValue:NONE})) return false;
+        } else {
+          const assigned=(item.tagIds||[]).map(String);
+          const selected=[...tags];
+          if (selected.includes(NONE)?assigned.length>0:!selected.some(id=>assigned.includes(id))) return false;
+        }
+      }
       for (const [id,mode] of fields){
         const field=project?.fields?.find(candidate=>candidate.id===id);
         const value=field?.type==="schedule"?scheduleFieldValue(project,item):(item.values||{})[id]??"";
@@ -221,8 +240,7 @@
       const items=getProjectItemEntries(project);
       if (columnId==="group") getProjectGroups(project).forEach(group=>values.add(String(group.id)));
       else if (columnId==="tags"){
-        const tagsField=project.fields.find(field=>field.type==="tags");
-        fieldTypes.getFilterOptions(tagsField,{project}).forEach(option=>values.add(String(option.value)));
+        projectTagOptions(project).forEach(option=>values.add(String(option.value)));
       } else if (columnId.startsWith("field:")){
         const field=project.fields.find(candidate=>candidate.id===columnId.slice(6));
         fieldTypes.getFilterOptions(field,{project,items}).forEach(option=>values.add(String(option.value)));
@@ -338,8 +356,7 @@
       for (const id of groups){
         add("group","group",id,`Group: ${getProjectGroups(project).find(group=>group.id===id)?.name||id}`);
       }
-      const tagsField=project.fields.find(field=>field.type==="tags");
-      for (const id of tagsField?tags:[]){
+      for (const id of tags){
         add("tag","tags",id,`Tag: ${id===NONE?"No tags":project.tags?.find(tag=>tag.id===id)?.name||id}`);
       }
       for (const [id,selection] of fields){
@@ -361,37 +378,76 @@
 
     function suggestions(project,query){
       const options=[];
-      const add=(kind,id,value,label,color="")=>options.push({kind,id,value:String(value),label,color});
-      getProjectGroups(project).forEach(group=>add("group","group",group.id,`Group: ${group.name}`));
-      const tagsField=project.fields.find(field=>field.type==="tags");
-      if (tagsField){
-        fieldTypes.getFilterOptions(tagsField,{project}).forEach(option=>{
-          add("tag","tags",option.value,`Tag: ${option.label}`,option.color||"");
-        });
-        add("tag","tags",NONE,"Tag: No tags");
-      }
-      project.fields.forEach(field=>{
-        if (field.type==="tags") return;
-        fieldFilterOptions(project,field).forEach(option=>{
-          add("field",field.id,option.value,`${field.label}: ${option.label}`,option.color);
-        });
-      });
+      const add=(kind,id,value,label,color="",extra={})=>options.push({kind,id,value:String(value),label,color,...extra});
+      const fields=project.fields.filter(field=>field.type!=="tags");
       const needle=query.trim().toLowerCase();
-      const fieldQuery=query.match(/^([^:]+):\s*(.+)$/);
-      if (fieldQuery){
-        const field=project.fields.find(candidate=>candidate.type!=="tags"&&candidate.label.toLowerCase()===fieldQuery[1].trim().toLowerCase());
-        const kind=field&&fieldTypes.getFilter(field)?.kind;
-        if (field&&["text","number","date"].includes(kind)){
-          const value=fieldQuery[2].trim();
-          add("field",field.id,value,`${field.label}: ${value}`);
+      const match=(value,label)=>!needle||`${value} ${label}`.toLowerCase().includes(needle);
+      const addOperators=filter=>{
+        const operators=[
+          {prefix:"tag",label:"Tag",description:"Filter by a project tag"},
+          {prefix:"group",label:"Group",description:"Filter by a group"},
+          {prefix:"is",label:"Is",description:"Filter by completion state"},
+          ...fields.map(field=>({
+            prefix:field.label.toLowerCase(),label:field.label,description:`Filter by ${field.label.toLowerCase()}`
+          }))
+        ];
+        return operators.filter(option=>match(option.prefix,option.label)&&
+          (!filter||option.prefix.toLowerCase().startsWith(filter.toLowerCase())))
+          .map(option=>({kind:"operator",id:"",value:option.prefix,label:option.label,
+            detail:option.description,color:""}));
+      };
+      const filterQuery=query.match(/^([^:]+):\s*(.*)$/);
+      if (!filterQuery){
+        if (!query.trim()) return addOperators("");
+        options.push(...addOperators(query.trim()));
+        projectTagOptions(project).forEach(option=>
+          add("tag","tags",option.value,option.label,option.color||""));
+        getProjectGroups(project).forEach(group=>add("group","group",group.id,group.name));
+        fields.forEach(field=>{
+          fieldFilterOptions(project,field).forEach(option=>
+            add("field",field.id,option.value,option.label,option.color||""));
+        });
+        return options.filter(option=>match(option.value,option.label)).slice(0,12);
+      }
+
+      const prefix=filterQuery[1].trim().toLowerCase();
+      const valueQuery=filterQuery[2].trim();
+      if ("tag".startsWith(prefix)||"tags".startsWith(prefix)||"label".startsWith(prefix)){
+        projectTagOptions(project).forEach(option=>
+          add("tag","tags",option.value,option.label,option.color||""));
+      } else if ("group".startsWith(prefix)){
+        getProjectGroups(project).forEach(group=>add("group","group",group.id,group.name));
+      } else if ("is".startsWith(prefix)){
+        add("completion","is","open","Open");
+        add("completion","is","completed","Completed");
+      } else {
+        const field=fields.find(candidate=>candidate.label.toLowerCase()===prefix);
+        if (!field) return addOperators(prefix);
+        const kind=fieldTypes.getFilter(field)?.kind;
+        if (["text","number","date"].includes(kind)){
+          if (valueQuery) add("field",field.id,valueQuery,valueQuery);
+        } else {
+          fieldFilterOptions(project,field).forEach(option=>
+            add("field",field.id,option.value,option.label,option.color||""));
         }
       }
-      const filtered=needle?options.filter(option=>option.label.toLowerCase().includes(needle)):options;
-      return filtered.slice(0,12);
+      const valueNeedle=valueQuery.toLowerCase();
+      return options.filter(option=>!valueNeedle||
+        `${option.value} ${option.label}`.toLowerCase().includes(valueNeedle)).slice(0,12);
     }
 
     function addSuggestion(suggestion){
-      if (suggestion.kind==="group") groups.add(suggestion.value);
+      if (suggestion.kind==="operator"){
+        const input=inputElement();
+        input.value=`${suggestion.value}:`;
+        suggestionIndex=-1;
+        suggestionsOpen=true;
+        input.dispatchEvent(new global.Event("input",{bubbles:true}));
+        input.focus();
+        return;
+      }
+      if (suggestion.kind==="completion") completion=suggestion.value;
+      else if (suggestion.kind==="group") groups.add(suggestion.value);
       else if (suggestion.kind==="tag"){
         if (suggestion.value===NONE){
           tags.clear();
@@ -413,10 +469,11 @@
       }
       inputElement().value="";
       suggestionIndex=-1;
+      suggestionsOpen=true;
       persistActive();
       render();
-      renderBar(getProject(getActiveProjectId()));
       inputElement().focus();
+      renderBar(getProject(getActiveProjectId()));
     }
 
     function removeToken(token){
@@ -449,9 +506,12 @@
       const summary=documentRef.getElementById("filterSummary");
       if (!tokenWrap||!suggestionsWrap) return;
       const tokens=tokenList(project);
-      tokenWrap.innerHTML=tokens.map((token,index)=>
-        `<button type="button" class="filterToken" data-filter-token="${index}" aria-label="Remove ${escapeHtml(token.label)}">${escapeHtml(token.label)}<span aria-hidden="true">×</span></button>`
-      ).join("");
+      tokenWrap.innerHTML=tokens.map((token,index)=>{
+        const separator=token.label.indexOf(":");
+        const prefix=separator<0?"":token.label.slice(0,separator+1);
+        const value=separator<0?token.label:token.label.slice(separator+1).trim();
+        return `<button type="button" class="filterToken" data-filter-token="${index}" aria-label="Remove ${escapeHtml(token.label)}">${prefix?`<span class="filterTokenPrefix">${escapeHtml(prefix)}</span>`:""}<span class="filterTokenValue">${escapeHtml(value)}</span><span class="filterTokenRemove" aria-hidden="true">×</span></button>`;
+      }).join("");
       if (summary) summary.textContent=tokens.length?`${tokens.length} filter${tokens.length===1?"":"s"} applied`:"";
       tokenWrap.querySelectorAll("[data-filter-token]").forEach(button=>{
         button.onclick=()=>removeToken(tokens[Number(button.dataset.filterToken)]);
@@ -459,14 +519,18 @@
       const input=inputElement();
       const choices=suggestions(project,input.value);
       suggestionsWrap.innerHTML=choices.map((choice,index)=>
-        `<button type="button" class="filterSuggestion${index===suggestionIndex?" active":""}" role="option" aria-selected="${index===suggestionIndex}" data-suggestion="${index}">${choice.color?`<span class="filterSuggestionDot" style="--tag-color:${escapeHtml(choice.color)}"></span>`:""}<span>${escapeHtml(choice.label)}</span></button>`
-      ).join("")+(input.value.trim()?`<button type="button" class="filterSuggestion filterSuggestionSearch" role="option" data-filter-search>Search for “${escapeHtml(input.value.trim())}”</button>`:"");
-      suggestionsWrap.hidden=!document.activeElement?.matches?.("#filterInput")||(!choices.length&&!input.value.trim());
+        `<button type="button" class="filterSuggestion${choice.kind==="operator"?" filterSuggestionOperator":""}${index===suggestionIndex?" active":""}" role="option" aria-selected="${index===suggestionIndex}" data-suggestion="${index}">${choice.color?`<span class="filterSuggestionDot" style="--tag-color:${escapeHtml(choice.color)}"></span>`:""}<span class="filterSuggestionText">${escapeHtml(choice.label)}</span>${choice.kind==="operator"?`<span class="filterSuggestionSyntax">${escapeHtml(choice.value.toLowerCase())}:</span>`:choice.detail?`<span class="filterSuggestionDetail">${escapeHtml(choice.detail)}</span>`:""}</button>`
+      ).join("")+(input.value.trim()&&!input.value.includes(":")?`<button type="button" class="filterSuggestion filterSuggestionSearch" role="option" data-filter-search><span class="filterSuggestionText">Search for “${escapeHtml(input.value.trim())}”</span><span class="filterSuggestionDetail">Full-text search</span></button>`:"");
+      suggestionsWrap.hidden=!suggestionsOpen||(!choices.length&&!input.value.trim());
       input.setAttribute("aria-expanded",String(!suggestionsWrap.hidden));
       suggestionsWrap.querySelectorAll("[data-suggestion]").forEach(button=>{
-        button.onclick=()=>addSuggestion(choices[Number(button.dataset.suggestion)]);
+        button.onclick=event=>{
+          event.stopPropagation();
+          addSuggestion(choices[Number(button.dataset.suggestion)]);
+        };
       });
       suggestionsWrap.querySelector("[data-filter-search]")?.addEventListener("click",()=>{
+        suggestionsOpen=false;
         text=input.value.trim();
         input.value="";
         suggestionsWrap.hidden=true;
@@ -479,12 +543,19 @@
 
     function wire(){
       const input=inputElement();
+      documentRef.getElementById("filterSuggestions").addEventListener("mousedown",event=>{
+        if (event.target.closest("button")) event.preventDefault();
+      });
       input.addEventListener("input",()=>{
         suggestionIndex=-1;
+        suggestionsOpen=true;
         renderBar(getProject(getActiveProjectId()));
         if (input.value.trim()) documentRef.getElementById("filterSuggestions").hidden=false;
       });
-      input.addEventListener("focus",()=>renderBar(getProject(getActiveProjectId())));
+      input.addEventListener("focus",()=>{
+        suggestionsOpen=true;
+        renderBar(getProject(getActiveProjectId()));
+      });
       input.addEventListener("keydown",event=>{
         const list=documentRef.getElementById("filterSuggestions");
         const options=[...list.querySelectorAll("[data-suggestion]")];
@@ -501,11 +572,18 @@
           if (suggestionIndex>=0&&options[suggestionIndex]) options[suggestionIndex].click();
           else if (input.value.trim()){
             const project=getProject(getActiveProjectId());
-            const exact=suggestions(project,input.value).find(option=>
-              option.label.toLowerCase()===input.value.trim().toLowerCase()
+            const typed=input.value.trim();
+            const parsed=typed.match(/^([^:]+):\s*(.*)$/);
+            const exact=suggestions(project,typed).find(option=>
+              option.label.toLowerCase()===typed.toLowerCase()||
+              (parsed&&option.value.toLowerCase()===parsed[2].trim().toLowerCase())
             );
             if (exact){
               addSuggestion(exact);
+              return;
+            }
+            if (parsed&&options.length){
+              options[0].click();
               return;
             }
             text=input.value.trim();
@@ -514,10 +592,15 @@
             render();
             renderBar(getProject(getActiveProjectId()));
           }
-        } else if (event.key==="Escape") list.hidden=true;
+        } else if (event.key==="Escape"){
+          suggestionsOpen=false;
+          list.hidden=true;
+          input.setAttribute("aria-expanded","false");
+        }
       });
       documentRef.addEventListener("click",event=>{
-        if (!event.target.closest(".filterBarInputWrap")){
+        if (!documentRef.querySelector(".filterBarInputWrap")?.contains(event.target)){
+          suggestionsOpen=false;
           documentRef.getElementById("filterSuggestions").hidden=true;
           input.setAttribute("aria-expanded","false");
         }

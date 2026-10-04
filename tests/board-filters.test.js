@@ -127,7 +127,7 @@ test("column filters update the same canonical selections used by filter tokens"
   assert.deepEqual([...feature.columnSelection(project,"field:status")],["doing"]);
 });
 
-test("filters numeric zero, multi-select values, email substrings, and tags only when enabled",()=>{
+test("filters numeric zero, multi-select values, email substrings, and project tags",()=>{
   const {feature,project}=createFeature();
   const first=project.groups[0].items[0];
   first.values={...first.values,count:0,areas:["docs","design"],contact:"alex@example.com"};
@@ -142,7 +142,7 @@ test("filters numeric zero, multi-select values, email substrings, and tags only
   feature.tags.add("urgent");
   assert.equal(feature.matches(project,first,project.groups[0]),true);
   project.fields=project.fields.filter(field=>field.type!=="tags");
-  assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),true);
+  assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),false);
 });
 
 test("filter tokens and autocomplete suggestions expose the same canonical choices",()=>{
@@ -158,6 +158,54 @@ test("filter tokens and autocomplete suggestions expose the same canonical choic
   assert.ok(feature.suggestions(project,"urgent").some(option=>option.kind==="tag"&&option.value==="urgent"));
   assert.ok(feature.suggestions(project,"in progress").some(option=>option.kind==="field"&&option.value==="doing"));
   assert.ok(feature.suggestions(project,"Contact: example.com").some(option=>option.kind==="field"&&option.value==="example.com"));
+});
+
+test("filter query prefixes open focused autocomplete choices while leaving free text available",()=>{
+  const {feature,project}=createFeature();
+  const tagSuggestions=feature.suggestions(project,"tag:");
+
+  assert.deepEqual(JSON.parse(JSON.stringify(tagSuggestions.map(option=>option.label))),["urgent","No tags"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:urg").map(option=>option.value))),["urgent"]);
+  assert.ok(feature.suggestions(project,"")[0].kind==="operator");
+  assert.ok(feature.suggestions(project,"is:").some(option=>option.value==="completed"));
+  assert.ok(feature.suggestions(project,"Status:").some(option=>option.value==="todo"));
+  assert.equal(feature.suggestions(project,"")
+    .find(option=>option.kind==="operator"&&option.label==="Status").value,"status");
+});
+
+test("field filter syntax is rendered lowercase independently of its display label",()=>{
+  assert.match(source,/class="filterSuggestionSyntax">\$\{escapeHtml\(choice\.value\.toLowerCase\(\)\)\}:/);
+});
+
+test("tag suggestions and filtering work without a custom Tags field",()=>{
+  const {feature,project}=createFeature();
+  project.fields=project.fields.filter(field=>field.type!=="tags");
+  feature.tags.add("urgent");
+
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:").map(option=>option.value))),
+    ["urgent","__none__"]);
+  assert.equal(feature.matches(project,project.groups[0].items[0],project.groups[0]),true);
+  assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),false);
+});
+
+test("choosing a filter operator keeps its value suggestions open",()=>{
+  const operatorSelection=source.slice(source.indexOf('if (suggestion.kind==="operator")'),
+    source.indexOf('if (suggestion.kind==="completion")'));
+
+  assert.match(operatorSelection,/suggestionsOpen=true;[\s\S]*?input\.dispatchEvent\(new global\.Event\("input",\{bubbles:true\}\)\);[\s\S]*?input\.focus\(\)/);
+  assert.match(source,/suggestionsWrap\.hidden=!suggestionsOpen/);
+  assert.match(source,/getElementById\("filterSuggestions"\)\.addEventListener\("mousedown",event=>\{[\s\S]*?event\.preventDefault\(\)/);
+  assert.match(source,/input\.dispatchEvent\(new global\.Event\("input",\{bubbles:true\}\)\)/);
+});
+
+test("applied filter tokens highlight values without rendering bordered chips",()=>{
+  const featureSource=source;
+  const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
+
+  assert.match(featureSource,/class="filterTokenPrefix"/);
+  assert.match(featureSource,/class="filterTokenValue"/);
+  assert.match(styles,/\.filterToken\{[^}]*border:0/);
+  assert.match(styles,/\.filterTokenValue\{[^}]*background:var\(--color-accent-subtle\)/);
 });
 
 test("app delegates filter state and matching to the extracted feature and uses the token bar",()=>{
