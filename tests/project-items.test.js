@@ -219,7 +219,7 @@ test("deleting the final group can preserve its tasks directly in the project",(
       project,
       UNGROUPED_GROUP_ID:"__project_items__",
       getProject:()=>project,
-      boardFilterGroups:new Set(),
+      filterFeature:{groups:new Set()},
       scheduleSave(){},
       render(){},
       renderProjectList(){}

@@ -143,31 +143,16 @@
         <div id="boardFilterBar" style="display:none;">
           <div class="completionTabs" id="completionTabs" style="display:none;"></div>
           <div class="filterMainRow">
-            <input class="form-control" id="boardSearch" type="text" placeholder="Search items">
+            <div class="filterBarInputWrap">
+              <div class="filterTokens" id="filterTokens"></div>
+              <input class="filterBarInput" id="filterInput" type="text" autocomplete="off" placeholder="Filter items by text, group, tag, or field…" aria-label="Filter items" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="filterSuggestions">
+              <div class="filterSuggestions" id="filterSuggestions" role="listbox" hidden></div>
+            </div>
             <span class="filterSummary" id="filterSummary">All items</span>
-            <button class="btn btn-sm filterToggle" id="toggleFilters" type="button">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"/></svg>
-              Filters
-            </button>
             <button class="btn btn-sm btn-invisible" id="clearBoardFilters">Clear</button>
             <label class="btn btn-sm btn-invisible filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
               <input type="checkbox" id="showArchivedToggle"> Archived
             </label>
-          </div>
-          <div class="filterPanel" id="filterPanel">
-            <div class="filterPanelHeader"><div><strong>Filter this project</strong><span class="filterPanelHint">Combine groups, tags and custom filters</span></div><button class="btn btn-invisible filterPanelClose" id="closeFilters" type="button" aria-label="Close filters">✕</button></div>
-            <div class="filterControls">
-              <nav class="filterCategoryList" aria-label="Filter categories">
-                <div id="filterCategoryList"></div>
-              </nav>
-              <div class="filterOptions" id="filterOptions">
-                <div id="groupFilters" class="active"></div>
-                <div id="boardTagFilters"></div>
-                <div id="fieldFilters"></div>
-              </div>
-            </div>
-              <div class="uiDivider filterFooterDivider" aria-hidden="true"></div>
-            <div class="filterPanelFooter"><button class="btn btn-sm btn-invisible" id="filterPanelClear" type="button">Clear filters</button><button class="btn btn-sm btn-primary" id="filterPanelDone" type="button">Done</button></div>
           </div>
         </div>
         <div id="board"></div>
@@ -205,6 +190,7 @@
     <script src="js/core/fields/types/multi-select.js"></script>
     <script src="js/core/fields/types/relation.js"></script>
     <script src="js/features/fields.js"></script>
+    <script src="js/features/filters.js"></script>
     <script src="js/services/auth/netlify-identity.js"></script>
     <script src="js/services/auth/auth.js"></script>
     <script src="js/features/item.js"></script>
@@ -222,7 +208,6 @@
     <script src="js/views/view-registry.js"></script>
     <script src="js/core/project-templates.js"></script>
     <script src="js/ui/connect-gate.js"></script>
-    <script src="js/ui/board-filters.js"></script>
     <script src="js/ui/navigation.js"></script>
     <script src="js/ui/project-create-menu.js"></script>
     <script src="js/ui/action-menu.js"></script>

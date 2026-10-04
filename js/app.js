@@ -86,8 +86,8 @@
       openProject:selectProject,
       async openGroup(project,group){
         await selectProject(project.id);
-        boardFilterGroups.clear();
-        boardFilterGroups.add(group.id);
+        filterFeature.groups.clear();
+        filterFeature.groups.add(group.id);
         render();
       },
       async openProjectItem(project,group,item){
@@ -96,8 +96,8 @@
       },
       async openTag(project,tag){
         await selectProject(project.id);
-        boardFilterTags.clear();
-        boardFilterTags.add(tag.id);
+        filterFeature.tags.clear();
+        filterFeature.tags.add(tag.id);
         render();
         renderSidebarTags();
       },
@@ -129,6 +129,20 @@
   let calendarView = null;
   let showArchived = false;
   let activeProjectId = OVERVIEW;
+  const filterFeature=window.BeforeworkFilters.create({
+    storageKey:"personal_dashboard_filters_v1",
+    fieldTypes,
+    getProject,
+    getActiveProjectId:()=>activeProjectId,
+    getProjectGroups:project=>projectGroups(project),
+    getProjectItemEntries:project=>projectItemEntries(project),
+    getShowArchived:()=>showArchived,
+    isItemCompleted:item=>isItemCompleted(item),
+    scheduleFieldValue,
+    render:renderAll,
+    escapeHtml,
+    enhanceSelectControl
+  });
   const focusTimer = window.BeforeworkFocusTimer.create({
     getProjectId:()=>getProject(activeProjectId)?.id || null,
     loadTemplate:name=>window.BeforeworkViewTemplates.load(name),
@@ -172,14 +186,6 @@
     return options;
   }
   let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  let boardFilterText = "";
-  let boardFilterGroups = new Set();
-  let boardFilterTags = new Set();
-  let boardFilterFields = new Map(); // fieldId -> "__all__" | "__none__" | optionId
-  let boardFilterColumns = new Map(); // columnId -> selected option values
-  const COLUMN_FILTER_NONE="__none__";
-  let activeFilterCategory = "groupFilters";
-  let completionFilter = "open";
   let listSort = {field:"updated", dir:"desc"};
   let openItemRef = null;
   let fileHandle = null;
@@ -188,7 +194,6 @@
   let lastSavedState = null;
   const undoStack = [];
   const selectedItemIds = new Set();
-  let filterPrefs = {};
   let googleAccessToken = null;
   let googleTokenClient = null;
   let googleSyncInFlight = false;
@@ -284,9 +289,7 @@
       undoStack.length=0;
       if (kind!=="migration-restore") selectedItemIds.clear();
       if (kind==="import"){
-        filterPrefs={};
-        boardFilterColumns.clear();
-        saveFilterPrefs();
+        filterFeature.clearPreferences();
         activeProjectId=OVERVIEW;
         persistActiveLocation();
       }
@@ -317,67 +320,9 @@
     });
   }
 
-  function saveFilterPrefs(){
-    localStorage.setItem(FILTER_KEY, JSON.stringify(filterPrefs));
-  }
-  function pruneColumnFilters(project){
-    const validColumns=new Set(["title","group","progress","updated",...project.fields.filter(field=>field.type!=="tags").map(field=>`field:${field.id}`)]);
-    if (project.fields.some(field=>field.type==="tags")) validColumns.add("tags");
-    for (const columnId of boardFilterColumns.keys()) if (!validColumns.has(columnId)) boardFilterColumns.delete(columnId);
-  }
-  function persistActiveFilters(){
-    if (activeProjectId===OVERVIEW) return;
-    const project=getProject(activeProjectId);
-    if (project) pruneColumnFilters(project);
-    filterPrefs[activeProjectId] = {
-      text: boardFilterText,
-      groups: [...boardFilterGroups],
-      tags: [...boardFilterTags],
-      fields: Object.fromEntries(boardFilterFields),
-      columns: Object.fromEntries([...boardFilterColumns].map(([id,values])=>[id,[...values]])),
-      completion: completionFilter
-    };
-    saveFilterPrefs();
-  }
-  function sharedColumnField(project,columnId){
-    if (!columnId.startsWith("field:")) return null;
-    const field=project?.fields?.find(candidate=>candidate.id===columnId.slice(6));
-    return ["checkbox","priority","select","multi-select","relation"].includes(field?.type)?field:null;
-  }
-  function migrateColumnFiltersToMain(project){
-    if (!project) return;
-    for (const [columnId,values] of [...boardFilterColumns]){
-      if (columnId==="group"){
-        boardFilterGroups=new Set([...boardFilterGroups,...values]);
-        boardFilterColumns.delete(columnId);
-      } else if (columnId==="tags"){
-        boardFilterTags=new Set([...boardFilterTags,...values]);
-        boardFilterColumns.delete(columnId);
-      } else {
-        const field=sharedColumnField(project,columnId);
-        if (!field) continue;
-        const current=boardFilterFields.get(field.id);
-        const selected=new Set(Array.isArray(current)?current:current&&current!=="__all__"?[current]:[]);
-        values.forEach(value=>selected.add(value));
-        boardFilterFields.set(field.id,[...selected]);
-        boardFilterColumns.delete(columnId);
-      }
-    }
-  }
-  function restoreProjectFilters(pid){
-    const saved = filterPrefs[pid] || {};
-    boardFilterText = saved.text || "";
-    boardFilterGroups = new Set(Array.isArray(saved.groups) ? saved.groups : []);
-    boardFilterTags = new Set(Array.isArray(saved.tags) ? saved.tags : []);
-    boardFilterFields = new Map(Object.entries(saved.fields || {}));
-    boardFilterColumns = new Map(Object.entries(saved.columns||{}).map(([id,values])=>[id,new Set(Array.isArray(values)?values:[])]));
-    migrateColumnFiltersToMain(getProject(pid));
-    completionFilter = saved.completion==="completed" ? "completed" : "open";
-  }
-
   /* ---------- Model helpers ---------- */
   const itemFeature=window.BeforeworkItemFeature.create({
-    uid,getProject,tagColorOptions:TAG_COLOR_OPTIONS,selectedItemIds,boardFilterTags,
+    uid,getProject,tagColorOptions:TAG_COLOR_OPTIONS,selectedItemIds,boardFilterTags:filterFeature.tags,
     hasTagsField,queueGoogleEventDeletes,showConfirm,showDialog,
     scheduleSave,render,renderAll,renderProjectList
   });
@@ -781,7 +726,7 @@
       group.items.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
     }
     p.groups = p.groups.filter(g=>g.id!==gid);
-    boardFilterGroups.delete(gid);
+    filterFeature.groups.delete(gid);
     scheduleSave(); render(); renderProjectList();
   }
   async function editGroupName(project, group){
@@ -1793,72 +1738,8 @@
     return fieldTypes.sortValue(field,{...context,value});
   }
 
-  function columnDateKey(value){
-    if (value==null || value==="") return COLUMN_FILTER_NONE;
-    const date=new Date(value);
-    return Number.isNaN(date.getTime()) ? COLUMN_FILTER_NONE : date.toISOString().slice(0,10);
-  }
-  function columnFilterValuesForItem(project,item,group,columnId){
-    if (columnId==="title") return item.title ? [String(item.title)] : [COLUMN_FILTER_NONE];
-    if (columnId==="group") return group?.id ? [String(group.id)] : [COLUMN_FILTER_NONE];
-    if (columnId==="tags"){
-      const tagsField=project?.fields?.find(field=>field.type==="tags");
-      return fieldTypes.getFilterValues(tagsField,{
-        item,project,group,noneValue:COLUMN_FILTER_NONE,dateKey:columnDateKey,scheduleFieldValue
-      });
-    }
-    if (columnId==="progress"){
-      const subitems=Array.isArray(item.subitems)?item.subitems:[];
-      return subitems.length ? [`${subitems.filter(subitem=>subitem.done).length}/${subitems.length}`] : [COLUMN_FILTER_NONE];
-    }
-    if (columnId==="updated") return [columnDateKey(item.updatedAt)];
-    if (!columnId.startsWith("field:")) return [COLUMN_FILTER_NONE];
-    const fieldId=columnId.slice("field:".length);
-    const field=project?.fields?.find(candidate=>candidate.id===fieldId);
-    const value=field?.type==="location"
-      ?(item.values||{})[fieldId]??item.location??""
-      :(item.values||{})[fieldId];
-    return fieldTypes.getFilterValues(field,{
-      value,item,project,group,noneValue:COLUMN_FILTER_NONE,dateKey:columnDateKey,
-      scheduleFieldValue
-    });
-  }
   function itemMatchesFilter(project, item, group, ignoreColumnFilters=false){
-    if (item.archived && !showArchived) return false;
-    if (project && project.id===activeProjectId && isItemCompleted(item)!==(completionFilter==="completed")) return false;
-    if (boardFilterGroups.size && (!group || !boardFilterGroups.has(group.id))) return false;
-    const tagsField=project?.fields?.find(field=>field.type==="tags");
-    if (tagsField&&boardFilterTags.size&&!fieldTypes.matchesFilter(tagsField,{
-      item,project,mode:[...boardFilterTags],noneValue:COLUMN_FILTER_NONE
-    })) return false;
-    for (const [fid, mode] of boardFilterFields){
-      const field = project?.fields?.find(candidate=>candidate.id===fid);
-      const val = field?.type==="schedule" ? scheduleFieldValue(project,item) : (item.values||{})[fid] ?? "";
-      if (!fieldTypes.matchesFilter(field,{
-        value:val,mode,item,project,group,noneValue:COLUMN_FILTER_NONE,
-        scheduleFieldValue,dateKey:columnDateKey
-      })) return false;
-    }
-    if (!ignoreColumnFilters){
-      for (const [columnId,selected] of boardFilterColumns){
-        if (selected.size && !columnFilterValuesForItem(project,item,group,columnId).some(value=>selected.has(value))) return false;
-      }
-    }
-    if (boardFilterText){
-      const q = boardFilterText.toLowerCase();
-      const standardValues=[item.title,item.description,...(item.subitems||[]).map(subitem=>subitem.title)];
-      const matchesStandardValue=standardValues.some(value=>String(value??"").toLowerCase().includes(q));
-      const matchesFieldValue=(project?.fields||[]).some(field=>{
-        const value=field.type==="location"
-          ?(item.values||{})[field.id]??item.location??""
-          :(item.values||{})[field.id];
-        return fieldTypes.matchesQuery(field,{
-          value,item,project,query:q,scheduleFieldValue
-        });
-      });
-      if (!matchesStandardValue&&!matchesFieldValue) return false;
-    }
-    return true;
+    return filterFeature.matches(project,item,group,ignoreColumnFilters);
   }
   function rowsForSelection(project,ignoreColumnFilters=false){
     const rows = [];
@@ -2129,7 +2010,7 @@
     }
     activeProjectId = pid;
     persistActiveLocation();
-    restoreProjectFilters(pid);
+    filterFeature.restore(pid);
     selectedItemIds.clear();
     renderAll();
     closeSidebarOnMobile();
@@ -2177,7 +2058,7 @@
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
     if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
-    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) restoreProjectFilters(activeProjectId);
+    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
   }
 
   function renderSidebarTags(){
@@ -2188,12 +2069,12 @@
     if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===ROADMAP || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project || !hasTagsField(project)){ section.style.display = "none"; return; }
     section.style.display = "block";
     label.textContent = project.fields.find(field=>field.type==="tags").label + " in " + project.name;
-    wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, boardFilterTags.has(t.id))).join("")
+    wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, filterFeature.tags.has(t.id))).join("")
       || `<div style="font-size:12px;color:var(--faint);">No tags yet</div>`;
     wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
       el.onclick = () => {
         const tid = el.dataset.tagfilter;
-        if (boardFilterTags.has(tid)) boardFilterTags.delete(tid); else boardFilterTags.add(tid);
+        if (filterFeature.tags.has(tid)) filterFeature.tags.delete(tid); else filterFeature.tags.add(tid);
         render(); renderSidebarTags();
       };
     });
@@ -2262,7 +2143,7 @@
     const topLabel = document.getElementById("projectTitleLabel");
     const descriptionLabel = document.getElementById("projectDescriptionLabel");
     const board = document.getElementById("board");
-    if (completionTabs && !filterBar.contains(completionTabs)){
+    if (completionTabs && filterBar && board.contains(completionTabs)){
       filterBar.insertBefore(completionTabs,filterBar.querySelector(".filterMainRow"));
     }
     board.innerHTML = "";
@@ -2303,7 +2184,7 @@
       return;
     }
 
-    persistActiveFilters();
+    filterFeature.persistActive();
 
     const titleIcon = document.createElement("iconify-icon");
     titleIcon.className = "projectTitleIcon";
@@ -2326,13 +2207,7 @@
     completionTabs.style.display = "flex";
     renderCompletionTabs(project);
 
-    document.getElementById("boardSearch").value = boardFilterText;
-    renderFilterCategories(project);
-    renderBoardTagFilters(project);
-    renderGroupFilters(project);
-    renderFieldFilters(project);
-    renderFilterCategoryState(project);
-    updateFilterSummary();
+    filterFeature.renderBar(project);
 
     const activeView = project.views.find(v=>v.id===project.activeViewId) || project.views[0];
     if (activeView.type==="milestones"){
@@ -2416,240 +2291,16 @@
     const completedCount = items.filter(isItemCompleted).length;
     const openCount = items.length-completedCount;
     wrap.innerHTML = `<div class="completionTabList" role="group" aria-label="Filter items by completion">
-      <button type="button" class="completionTab ${completionFilter==="open"?"active":""}" aria-pressed="${completionFilter==="open"}" data-completion-filter="open"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Open</span><span class="completionTabCount">${openCount}</span></button>
-      <button type="button" class="completionTab ${completionFilter==="completed"?"active":""}" aria-pressed="${completionFilter==="completed"}" data-completion-filter="completed"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Completed</span><span class="completionTabCount">${completedCount}</span></button>
+      <button type="button" class="completionTab ${filterFeature.completion==="open"?"active":""}" aria-pressed="${filterFeature.completion==="open"}" data-completion-filter="open"><iconify-icon icon="mdi:circle-outline" aria-hidden="true"></iconify-icon><span>Open</span><span class="completionTabCount">${openCount}</span></button>
+      <button type="button" class="completionTab ${filterFeature.completion==="completed"?"active":""}" aria-pressed="${filterFeature.completion==="completed"}" data-completion-filter="completed"><iconify-icon icon="mdi:check-circle-outline" aria-hidden="true"></iconify-icon><span>Completed</span><span class="completionTabCount">${completedCount}</span></button>
     </div>`;
     wrap.querySelectorAll("[data-completion-filter]").forEach(button=>{
       button.onclick = () => {
         const nextFilter = button.dataset.completionFilter;
-        if (completionFilter===nextFilter) return;
-        completionFilter = nextFilter;
+        if (filterFeature.completion===nextFilter) return;
+        filterFeature.setCompletion(nextFilter);
         render();
       };
-    });
-  }
-
-  function renderFilterCategories(project){
-    const wrap = document.getElementById("filterCategoryList");
-    const categories = [
-      ...(projectGroups(project).length>1 ? [{id:"groupFilters", label:"Groups"}] : []),
-      ...(hasTagsField(project)?[{id:"boardTagFilters", label:project.fields.find(field=>field.type==="tags").label}]:[]),
-      ...project.fields.filter(field=>field.type!=="tags").map(field=>({id:`field:${field.id}`, label:field.label}))
-    ];
-    if (!categories.some(category=>category.id===activeFilterCategory)) activeFilterCategory = categories[0]?.id||"";
-    wrap.innerHTML = categories.map(category=>`<button class="filterCategory" type="button" data-filter-category="${escapeHtml(category.id)}">${escapeHtml(category.label)}</button>`).join("");
-  }
-
-  function renderFilterCategoryState(project){
-    document.querySelectorAll("[data-filter-category]").forEach(button=>button.classList.toggle("active", button.dataset.filterCategory===activeFilterCategory));
-    document.querySelectorAll("#filterOptions > div").forEach(section=>section.classList.toggle("active", section.id===activeFilterCategory || ((activeFilterCategory||"").startsWith("field:") && section.id==="fieldFilters")));
-  }
-
-  function renderBoardTagFilters(project){
-    const wrap = document.getElementById("boardTagFilters");
-    if (!hasTagsField(project)){ wrap.replaceChildren(); return; }
-    const options=fieldTypes.getFilterOptions(project.fields.find(field=>field.type==="tags"),{project});
-    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${options.length ? options.map(tag=>`<label class="filterOptionCheck"><input type="checkbox" data-tag-filter="${escapeHtml(tag.value)}" ${boardFilterTags.has(tag.value)?"checked":""}><span class="filterValuePill tagPill" style="--pill-color:${escapeHtml(tag.color||TAG_COLORS[0])}"><span class="dot" style="background:${escapeHtml(tag.color||TAG_COLORS[0])}"></span>${escapeHtml(tag.label)}</span></label>`).join("") : `<span class="filterEmpty">No tags in this project</span>`}</div>`;
-    wrap.querySelectorAll("[data-tag-filter]").forEach(input=>{
-      input.onchange = () => {
-        if (input.checked) boardFilterTags.add(input.dataset.tagFilter); else boardFilterTags.delete(input.dataset.tagFilter);
-        render();
-      };
-    });
-  }
-
-  function renderGroupFilters(project){
-    const wrap = document.getElementById("groupFilters");
-    wrap.innerHTML = `<div class="filterControlBody filterOptionList">${projectGroups(project).map(group=>`<label class="filterOptionCheck"><input type="checkbox" data-group-filter="${group.id}" ${boardFilterGroups.has(group.id)?"checked":""}><span class="filterValuePill groupPill">${escapeHtml(group.name)}</span></label>`).join("")}</div>`;
-    wrap.querySelectorAll("[data-group-filter]").forEach(input=>{
-      input.onchange = () => {
-        if (input.checked) boardFilterGroups.add(input.dataset.groupFilter); else boardFilterGroups.delete(input.dataset.groupFilter);
-        render();
-      };
-    });
-  }
-
-  function renderFieldFilters(project){
-    const wrap = document.getElementById("fieldFilters");
-    const selectedField = project.fields.find(field=>`field:${field.id}`===activeFilterCategory);
-    const visibleOptions = selectedField ? [selectedField].map(f=>{
-      const filter=fieldTypes.getFilter(f)||{};
-      const opts=fieldTypes.getFilterOptions(f,{project,items:projectItemEntries(project)});
-      const current = boardFilterFields.get(f.id);
-      let control;
-      if (filter.kind==="date") control = `<input class="form-control" type="date" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (filter.kind==="text") control = `<input class="form-control" type="${filter.inputType||"text"}" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):""}" placeholder="${escapeHtml(filter.placeholder||"Enter text")}" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else if (filter.kind==="number") control = `<input class="form-control" type="number" step="any" data-fieldfilter="${f.id}" value="${typeof current==="string"?escapeHtml(current):typeof current==="number"?current:""}" placeholder="Exact value" aria-label="Filter ${escapeHtml(f.label)}">`;
-      else {
-        const selected = Array.isArray(current) ? current : (current && current!=="__all__" ? [current] : []);
-        const options=opts.map(option=>({value:String(option.value),label:option.label}));
-        if (!options.some(option=>option.value==="__none__")) options.push({value:"__none__",label:`No ${f.label}`});
-        control = `<div class="filterOptionList fieldOptionList">${options.map(option=>`<label class="filterOptionCheck"><input type="checkbox" data-field-option="${f.id}" value="${escapeHtml(option.value)}" ${selected.includes(option.value)?"checked":""}><span>${escapeHtml(option.label)}</span></label>`).join("")}</div>`;
-      }
-      return control;
-    }).join("") : "";
-    wrap.innerHTML = `<div class="filterControlBody">${visibleOptions || `<span class="filterEmpty">Select a field from the left.</span>`}</div>`;
-    wrap.querySelectorAll("[data-fieldfilter]").forEach(control=>{
-      control.addEventListener("change", e=>{
-        if (e.target.value) boardFilterFields.set(control.dataset.fieldfilter, e.target.value); else boardFilterFields.delete(control.dataset.fieldfilter);
-        render();
-      });
-    });
-    wrap.querySelectorAll("[data-field-option]").forEach(control=>{
-      control.onchange = () => {
-        const selected = [...wrap.querySelectorAll(`[data-field-option="${control.dataset.fieldOption}"]:checked`)].map(input=>input.value);
-        if (selected.length) boardFilterFields.set(control.dataset.fieldOption, selected); else boardFilterFields.delete(control.dataset.fieldOption);
-        render();
-      };
-    });
-  }
-  function updateFilterSummary(){
-    const summary = document.getElementById("filterSummary");
-    if (!summary) return;
-    const fieldCount = [...boardFilterFields.values()].filter(value=>Array.isArray(value) ? value.length : value!=="__all__").length;
-    const count = fieldCount + boardFilterGroups.size + (hasTagsField(getProject(activeProjectId))?boardFilterTags.size:0) + boardFilterColumns.size + (boardFilterText ? 1 : 0);
-    summary.innerHTML = count ? `<strong>${count}</strong> filter${count===1?"":"s"} applied` : "All items";
-  }
-
-  function columnFilterLabel(project,columnId,value){
-    const field=columnId.startsWith("field:")
-      ?project.fields.find(candidate=>candidate.id===columnId.slice(6)):null;
-    if (field){
-      const option=fieldTypes.getFilterOptions(field,{project,items:projectItemEntries(project)})
-        .find(candidate=>String(candidate.value)===value);
-      if (option) return option.label;
-    }
-    if (value===COLUMN_FILTER_NONE){
-      const labels={title:"title",group:"group",tags:"tags",progress:"progress",updated:"date"};
-      return `No ${field?.label.toLowerCase()||labels[columnId]||"value"}`;
-    }
-    if (columnId==="group") return projectGroups(project).find(group=>group.id===value)?.name||value;
-    if (columnId==="tags"){
-      const tagsField=project.fields.find(field=>field.type==="tags");
-      return fieldTypes.getFilterOptions(tagsField,{project}).find(option=>String(option.value)===value)?.label||value;
-    }
-    if (columnId==="updated"){
-      const date=new Date(`${value}T12:00:00`);
-      return Number.isNaN(date.getTime())?value:new Intl.DateTimeFormat(undefined,{dateStyle:"medium"}).format(date);
-    }
-    if (columnId==="progress") return value;
-    return value;
-  }
-  function columnFilterOptions(project,columnId){
-    const values=new Set();
-    const items=projectItemEntries(project);
-    if (columnId==="group") projectGroups(project).forEach(group=>values.add(String(group.id)));
-    else if (columnId==="tags"){
-      const tagsField=project.fields.find(field=>field.type==="tags");
-      fieldTypes.getFilterOptions(tagsField,{project}).forEach(option=>values.add(String(option.value)));
-    }
-    else if (columnId.startsWith("field:")){
-      const field=project.fields.find(candidate=>candidate.id===columnId.slice(6));
-      fieldTypes.getFilterOptions(field,{project,items}).forEach(option=>values.add(String(option.value)));
-    }
-    items.forEach(({item,group})=>columnFilterValuesForItem(project,item,group,columnId).forEach(value=>values.add(value)));
-    if (!values.size) values.add(COLUMN_FILTER_NONE);
-    return [...values].map(value=>({value,label:columnFilterLabel(project,columnId,value)}))
-      .sort((first,second)=>first.label.localeCompare(second.label));
-  }
-  function applyColumnFilterVisibility(table,project){
-    const tbody=table?.tBodies?.[0];
-    if (!tbody) return;
-    const rows=[...tbody.querySelectorAll("tr[data-iid]")];
-    let visibleCount=0;
-    rows.forEach(row=>{
-      const group=projectGroups(project).find(candidate=>candidate.id===row.dataset.gid);
-      const item=group?.items.find(candidate=>candidate.id===row.dataset.iid);
-      row.hidden=!item || !itemMatchesFilter(project,item,group);
-      if (!row.hidden) visibleCount++;
-    });
-    let emptyRow=tbody.querySelector("[data-column-filter-empty]");
-    if (rows.length && !visibleCount){
-      if (!emptyRow){
-        emptyRow=document.createElement("tr");
-        emptyRow.dataset.columnFilterEmpty="true";
-        const cell=document.createElement("td");
-        cell.colSpan=table.tHead.rows[0].cells.length;
-        cell.textContent="No rows match the current filters.";
-        emptyRow.appendChild(cell);
-        tbody.appendChild(emptyRow);
-      }
-    } else emptyRow?.remove();
-  }
-  function columnFilterSelection(project,columnId){
-    if (columnId==="group") return new Set(boardFilterGroups);
-    if (columnId==="tags") return new Set(boardFilterTags);
-    const field=sharedColumnField(project,columnId);
-    if (field){
-      const current=boardFilterFields.get(field.id);
-      if (Array.isArray(current)) return new Set(current.map(String));
-      return current&&current!=="__all__"?new Set([String(current)]):new Set();
-    }
-    return boardFilterColumns.get(columnId)||new Set();
-  }
-  function setColumnFilterSelection(project,columnId,values){
-    const selected=new Set(values);
-    if (columnId==="group") boardFilterGroups=selected;
-    else if (columnId==="tags") boardFilterTags=selected;
-    else {
-      const field=sharedColumnField(project,columnId);
-      if (field){
-        if (selected.size) boardFilterFields.set(field.id,[...selected]);
-        else boardFilterFields.delete(field.id);
-      } else if (selected.size) boardFilterColumns.set(columnId,selected);
-      else boardFilterColumns.delete(columnId);
-    }
-  }
-  function syncMainFilterSelection(project,columnId,values){
-    if (columnId==="group"){
-      document.querySelectorAll("[data-group-filter]").forEach(input=>input.checked=values.includes(input.dataset.groupFilter));
-    } else if (columnId==="tags"){
-      document.querySelectorAll("[data-tag-filter]").forEach(input=>input.checked=values.includes(input.dataset.tagFilter));
-    } else {
-      const field=sharedColumnField(project,columnId);
-      if (!field) return;
-      document.querySelectorAll("[data-field-option]").forEach(input=>{
-        if (input.dataset.fieldOption===field.id) input.checked=values.includes(input.value);
-      });
-    }
-  }
-  function wireColumnFilterHeader(th,project){
-    if (!th || th.querySelector(".columnFilterSelectWrap")) return;
-    const columnId=th.dataset.columnId;
-    const label=th.querySelector(".fieldColumnLabel")?.textContent.trim()||columnId;
-    const select=document.createElement("select");
-    select.multiple=true;
-    select.dataset.appSelectPlaceholder=`Filter by ${label}`;
-    select.dataset.appSelectButtonClass="fieldColumnMenuBtn columnFilterToggle";
-    select.dataset.appSelectWrapClass="columnFilterSelectWrap";
-    select.dataset.appSelectIcon="mdi:filter-outline";
-    select.dataset.appSelectMenuWidth="320";
-    select.dataset.appSelectMenuTitle=`Filter by ${label.toLowerCase()}`;
-    select.dataset.appSelectSearchPlaceholder=`Filter ${label.toLowerCase()}`;
-    select.setAttribute("aria-label",`Filter by ${label}`);
-    const selected=columnFilterSelection(project,columnId);
-    columnFilterOptions(project,columnId).forEach(option=>{
-      const element=document.createElement("option");
-      element.value=option.value;
-      element.textContent=option.label;
-      element.selected=selected.has(option.value);
-      select.appendChild(element);
-    });
-    th.classList.add("hasColumnFilter");
-    if (th.querySelector(".fieldColumnMenuBtn")) th.classList.add("hasColumnMenu");
-    th.appendChild(select);
-    enhanceSelectControl(select);
-    const button=select.parentElement.querySelector(".columnFilterToggle");
-    select.addEventListener("change",()=>{
-      const values=[...select.selectedOptions].map(option=>option.value);
-      setColumnFilterSelection(project,columnId,values);
-      syncMainFilterSelection(project,columnId,values);
-      const buttonLabel=values.length?`Filter by ${label}, ${values.length} selected`:`Filter by ${label}`;
-      button?.setAttribute("aria-label",buttonLabel);
-      button?.setAttribute("title",buttonLabel);
-      persistActiveFilters();
-      updateFilterSummary();
-      applyColumnFilterVisibility(document.querySelector("#board .listTable"),project);
     });
   }
 
@@ -3517,9 +3168,9 @@
     selectColors:SELECT_COLORS,
     projectItemEntries,
     queueGoogleEventDeletes,
-    getBoardFilterFields:()=>boardFilterFields,
-    getBoardFilterColumns:()=>boardFilterColumns,
-    getBoardFilterTags:()=>boardFilterTags,
+    getBoardFilterFields:()=>filterFeature.fields,
+    getBoardFilterColumns:()=>filterFeature.columns,
+    getBoardFilterTags:()=>filterFeature.tags,
     getListSort:()=>listSort,
     setListSort:value=>{ listSort=value; },
     showDialog,
@@ -4260,25 +3911,7 @@
     navigation.wire();
     wireProjectCreateMenu();
     wireProjectActionsMenu();
-    window.BeforeworkBoardFilters.create({
-      onSearchChange:value=>{
-        boardFilterText=value.trim();
-        render();
-      },
-      onClear:()=>{
-        boardFilterText="";
-        boardFilterGroups.clear();
-        boardFilterTags.clear();
-        boardFilterFields.clear();
-        boardFilterColumns.clear();
-        render();
-      },
-      onSelectCategory:category=>{
-        activeFilterCategory=category;
-        const project=getProject(activeProjectId);
-        if (project) renderFieldFilters(project);
-      }
-    }).wire();
+    filterFeature.wire();
     wireStaticControls();
     connectGate = window.BeforeworkConnectGate.create({
       getSyncStatusText,
@@ -4354,7 +3987,7 @@
         setListSort:value=>{ listSort=value; },
         wireGroupColumnHeader,
         wireCustomColumnHeader:fieldFeature.wireCustomColumnHeader,
-        wireColumnFilterHeader,
+        wireColumnFilterHeader:filterFeature.wireColumnFilterHeader,
         render,
         sortProjectRows,
         tagById,
@@ -4365,7 +3998,7 @@
         scheduleSave,
         applyTableColumnOrder,
         applyTableColumnVisibility,
-        applyColumnFilterVisibility,
+        applyColumnFilterVisibility:filterFeature.applyColumnFilterVisibility,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")
       });
       tableView = new tableViewModule.TableView({
@@ -4386,7 +4019,7 @@
         setListSort:value=>{ listSort=value; },
         wireGroupColumnHeader,
         wireCustomColumnHeader:fieldFeature.wireCustomColumnHeader,
-        wireColumnFilterHeader,
+        wireColumnFilterHeader:filterFeature.wireColumnFilterHeader,
         render,
         sortProjectRows,
         tagById,
@@ -4397,7 +4030,7 @@
         renderProjectList,
         applyTableColumnOrder,
         applyTableColumnVisibility,
-        applyColumnFilterVisibility,
+        applyColumnFilterVisibility:filterFeature.applyColumnFilterVisibility,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("tableView")
       });
       boardView = new boardViewModule.BoardView({

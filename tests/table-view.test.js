@@ -6,6 +6,7 @@ const path=require("node:path");
 const test=require("node:test");
 
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const filters=fs.readFileSync(path.join(__dirname,"../js/features/filters.js"),"utf8");
 const view=fs.readFileSync(path.join(__dirname,"../js/views/table-view.js"),"utf8");
 const listView=fs.readFileSync(path.join(__dirname,"../js/views/list-view.js"),"utf8");
 const template=fs.readFileSync(path.join(__dirname,"../pages/table-view.html"),"utf8");
@@ -70,18 +71,17 @@ test("Table and List expose searchable multi-select filters on every data column
     assert.ok(source.includes("rowsForSelection(project,true)"));
     assert.ok(source.includes("applyColumnFilterVisibility(table,project)"));
   }
-  assert.match(app,/select\.multiple=true;/);
-  assert.match(app,/select\.dataset\.appSelectButtonClass="fieldColumnMenuBtn columnFilterToggle"/);
-  assert.match(app,/select\.dataset\.appSelectWrapClass="columnFilterSelectWrap"/);
-  assert.match(app,/select\.dataset\.appSelectIcon="mdi:filter-outline"/);
-  assert.match(app,/select\.dataset\.appSelectMenuTitle=/);
-  assert.match(app,/enhanceSelectControl\(select\)/);
-  assert.match(app,/setColumnFilterSelection\(project,columnId,values\)/);
-  assert.match(app,/syncMainFilterSelection\(project,columnId,values\)/);
-  assert.match(app,/function applyColumnFilterVisibility\(table,project\)/);
-  assert.match(app,/row\.hidden=!item \|\| !itemMatchesFilter\(project,item,group\)/);
+  assert.match(filters,/select\.multiple=true;/);
+  assert.match(filters,/select\.dataset\.appSelectButtonClass="fieldColumnMenuBtn columnFilterToggle"/);
+  assert.match(filters,/select\.dataset\.appSelectWrapClass="columnFilterSelectWrap"/);
+  assert.match(filters,/select\.dataset\.appSelectIcon="mdi:filter-outline"/);
+  assert.match(filters,/select\.dataset\.appSelectMenuTitle=/);
+  assert.match(filters,/enhanceSelectControl\(select\)/);
+  assert.match(filters,/setColumnSelection\(project,columnId,values\)/);
+  assert.match(filters,/function applyColumnFilterVisibility\(table,project\)/);
+  assert.match(filters,/row\.hidden=!item\|\|!matches\(project,item,group\)/);
   assert.match(styles,/\.appSelectOption\.selected::before\{left:4px;\}/);
-  assert.match(app,/th\.classList\.add\("hasColumnFilter"\)/);
+  assert.match(filters,/th\.classList\.add\("hasColumnFilter"\)/);
   assert.match(styles,/\.listTable \.columnFilterSelectWrap\{position:absolute;top:50%;right:5px/);
   assert.match(styles,/\.listTable \.fieldColumnHeader\.hasColumnMenu \.columnFilterSelectWrap\{right:32px;\}/);
   assert.match(styles,/\.fieldColumnHeader:hover \.fieldColumnMenuBtn,.fieldColumnMenuBtn:focus-visible\{opacity:1;visibility:visible;transform:translateY\(-50%\) translateX\(0\);\}/);
