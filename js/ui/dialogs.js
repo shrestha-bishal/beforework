@@ -169,10 +169,16 @@
         const input=root.querySelector("[data-select-value]");
         const button=root.querySelector("[data-select-button]");
         const menu=root.querySelector("[data-select-menu]");
+        const optionList=root.querySelector("[data-select-options]");
+        const search=root.querySelector("[data-select-search]");
+        const emptyState=root.querySelector("[data-select-empty]");
         input.id=id;
         input.value=selectedOption?.value||"";
         button.id=`${id}Button`;
         button.querySelector("[data-select-label]").textContent=selectedOption?.label||"";
+        search.hidden=!field.searchable;
+        search.placeholder=field.searchPlaceholder||`Search ${field.label?.toLowerCase()||"options"}`;
+        search.setAttribute("aria-label",search.placeholder);
         menu.setAttribute("aria-label",field.label||"Select an option");
         const options=(field.options||[]).map((option,optionIndex)=>{
           const choice=document.createElement("button");
@@ -196,11 +202,29 @@
             text.appendChild(meta);
           }
           choice.appendChild(text);
-          menu.appendChild(choice);
+          optionList.appendChild(choice);
           return choice;
         });
+        const visibleOptions=()=>options.filter(option=>!option.hidden);
+        const filterOptions=()=>{
+          const query=search.value.trim().toLocaleLowerCase();
+          let visibleCount=0;
+          options.forEach(option=>{
+            option.hidden=!option.textContent.toLocaleLowerCase().includes(query);
+            if (!option.hidden) visibleCount++;
+          });
+          emptyState.hidden=visibleCount>0;
+          optionList.hidden=visibleCount===0;
+        };
         const close=()=>closeFloatingSelectMenu(menu);
-        const open=()=>{ openFloatingSelectMenu(button,menu); options.find(option=>option.dataset.value===input.value)?.focus(); };
+        const open=()=>{
+          openFloatingSelectMenu(button,menu);
+          if (field.searchable){
+            search.value="";
+            filterOptions();
+            search.focus();
+          }else options.find(option=>option.dataset.value===input.value)?.focus();
+        };
         button.onclick=event=>{ event.stopPropagation(); menu.hidden?open():close(); };
         button.onkeydown=event=>{ if (event.key==="ArrowDown"||event.key==="Enter"||event.key===" "){ event.preventDefault(); open(); } };
         options.forEach(option=>option.onclick=()=>{
@@ -210,10 +234,20 @@
           close();
           button.focus();
         });
+        if (field.searchable){
+          search.addEventListener("input",filterOptions);
+          search.onkeydown=event=>{
+            const visible=visibleOptions();
+            if (event.key==="ArrowDown"){ event.preventDefault(); visible[0]?.focus(); }
+            if (event.key==="ArrowUp"){ event.preventDefault(); visible[visible.length-1]?.focus(); }
+            if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
+          };
+        }
         menu.onkeydown=event=>{
-          const current=Math.max(0,options.indexOf(document.activeElement));
-          if (event.key==="ArrowDown"){ event.preventDefault(); options[Math.min(options.length-1,current+1)]?.focus(); }
-          if (event.key==="ArrowUp"){ event.preventDefault(); options[Math.max(0,current-1)]?.focus(); }
+          const visible=visibleOptions();
+          const current=visible.indexOf(document.activeElement);
+          if (event.key==="ArrowDown"){ event.preventDefault(); visible[Math.min(visible.length-1,current<0?0:current+1)]?.focus(); }
+          if (event.key==="ArrowUp"){ event.preventDefault(); visible[Math.max(0,current<0?visible.length-1:current-1)]?.focus(); }
           if (event.key==="Escape"){ event.preventDefault(); close(); button.focus(); }
         };
         return root;
@@ -476,7 +510,7 @@
             finish(choiceChanges?{values,choices:choiceChanges}:result);
           };
           overlay.addEventListener("click",event=>{ if (event.target===overlay) finish(null); });
-          const first=overlay.querySelector("input:not([type='hidden']), textarea, select, .dialogSelectButton");
+          const first=overlay.querySelector("input:not([type='hidden']):not([hidden]), textarea:not([hidden]), select:not([hidden]), .dialogSelectButton:not([hidden])");
           if (first) first.focus();
         });
       });

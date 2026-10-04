@@ -85,7 +85,7 @@
       const details=await showDialog({
         title:"Add field",
         fields:[
-          {label:"Field type",type:"select",options:availableFieldTypes.map(({value,label,description})=>({value,label,description})),value:"select"},
+          {label:"Field type",type:"select",searchable:true,options:availableFieldTypes.map(({value,label,description})=>({value,label,description})),value:"select"},
           {label:"Field name",placeholder:"e.g. Status, Type, Effort"}
         ],
         confirmLabel:"Add field"

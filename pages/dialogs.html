@@ -64,7 +64,11 @@
         <span data-select-label></span>
         <iconify-icon icon="mdi:chevron-down" aria-hidden="true"></iconify-icon>
       </button>
-      <div class="dialogSelectMenu" data-select-menu role="listbox" hidden></div>
+      <div class="dialogSelectMenu" data-select-menu hidden>
+        <input class="appSelectSearch" data-select-search type="search" placeholder="Search options" aria-label="Search options" hidden>
+        <div class="appSelectOptions" data-select-options role="listbox"></div>
+        <div class="appSelectEmpty" data-select-empty hidden>No options found</div>
+      </div>
     </div>
   </div>
 </template>

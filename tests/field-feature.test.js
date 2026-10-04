@@ -178,6 +178,8 @@ test("adding a field creates its configured options and saves the project",async
   await feature.addFieldFlow(project);
 
   assert.equal(calls.dialogs[0].title,"Add field");
+  assert.equal(calls.dialogs[0].fields[0].searchable,true);
+  assert.equal(calls.dialogs[0].fields[0].options[0].description,definitions[0].description);
   assert.equal(calls.dialogs[0].fields[0].options.length,definitions.length);
   assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0])),{
     id:"generated-1",
