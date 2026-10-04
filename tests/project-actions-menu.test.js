@@ -61,7 +61,7 @@ function createHarness(){
   vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
   const calls=[];
   const actions=Object.fromEntries(
-    ["edit","overview-visibility","move","duplicate","add-field","import-csv","undo","print","delete"]
+    ["edit","overview-visibility","archive","move","duplicate","add-field","import-csv","undo","print","delete"]
       .map(action=>[action,(project)=>calls.push([action,project])])
   );
   const menu=window.BeforeworkProjectActionsMenu.create({
@@ -79,7 +79,7 @@ test("both project action menu variants are generated from the same ordered acti
     "Edit project","Hide from Overview","Move to folder","Duplicate project","",
     "Add field","Import from CSV","",
     "Undo","Print / PDF","",
-    "Delete"
+    "Archive project","Delete"
   ]);
 
   const sourceWindow={BeforeworkActionMenu:{create:()=>({register:()=>({close(){}})})}};
@@ -94,9 +94,19 @@ test("both project action menu variants are generated from the same ordered acti
   });
   assert.deepEqual(
     sidebarContainer.children[1].children.map(item=>item.textContent),
-    ["Edit project","Show on Overview","Move to folder","Duplicate project","","Add field","Import from CSV","","Undo","Print / PDF","","Delete"]
+    ["Edit project","Show on Overview","Move to folder","Duplicate project","","Add field","Import from CSV","","Undo","Print / PDF","","Archive project","Delete"]
   );
   assert.equal(sidebarContainer.children[1].children.some(item=>item.textContent==="New group"),false);
+});
+
+test("project archive menu action toggles its label based on project state",()=>{
+  const {container,menu}=createHarness();
+  const archive=container.children[1].querySelector('[data-project-action="archive"]');
+  assert.equal(archive.textContent,"Archive project");
+
+  menu.setProject({id:"project-1",name:"Launch",archived:true});
+
+  assert.equal(archive.textContent,"Unarchive project");
 });
 
 test("project visibility action label tracks the selected project",()=>{
@@ -113,11 +123,14 @@ test("project visibility action label tracks the selected project",()=>{
 test("selecting a project action calls its matching handler with the current project",()=>{
   const {container,calls,menu}=createHarness();
   const item=container.children[1].querySelector('[data-project-action="edit"]');
+  let stopped=false;
   container.children[1].listeners.click({
-    target:{closest:selector=>selector==='[data-project-action]'?item:null}
+    target:{closest:selector=>selector==='[data-project-action]'?item:null},
+    stopPropagation(){ stopped=true; }
   });
 
   assert.deepEqual(JSON.parse(JSON.stringify(calls)),[["edit",{id:"project-1",name:"Launch"}]]);
+  assert.equal(stopped,true);
   menu.close();
   assert.equal(container.children[1].hidden,true);
   assert.equal(container.children[0].attributes["aria-expanded"],"false");
@@ -129,6 +142,12 @@ test("app uses the shared component for header and sidebar menus, keeping operat
   assert.match(app,/const projectActionHandlers=\{/);
   assert.match(app,/edit:async project=>\{[\s\S]*?ensureProjectLoaded\(project\.id\)/);
   assert.match(app,/"overview-visibility":project=>toggleProjectOverviewVisibility\(project\.id\)/);
+  assert.match(app,/archive:project=>toggleProjectArchive\(project\.id\)/);
+  assert.match(app,/async function toggleProjectArchive\(projectId\)[\s\S]*?project\.archived=!project\.archived/);
+  assert.doesNotMatch(app,/if \(project\.archived&&activeProjectId===projectId\)/);
+  assert.match(app,/const archivedProjects=projects\.filter\(project=>project\.archived\)/);
+  assert.match(app,/name\.textContent="Archived"/);
+  assert.doesNotMatch(app,/showArchivedToggle|showArchived=/);
   assert.match(app,/delete:async project=>\{[\s\S]*?deleteProject\(project\.id\)/);
   assert.doesNotMatch(app,/handleProjectAction/);
   assert.doesNotMatch(app,/menu\.innerHTML = `[\s\S]*data-project-action/);
@@ -136,6 +155,7 @@ test("app uses the shared component for header and sidebar menus, keeping operat
 
 test("index contains only a mount point for the generated header actions menu",()=>{
   assert.match(index,/<div class="projectMenuWrap" id="projectMenuWrap"><\/div>/);
+  assert.doesNotMatch(index,/showArchivedToggle|> Archived/);
   assert.doesNotMatch(index,/data-project-action=|id="editProjectBtn"|id="importProjectCsvBtn"/);
   assert.ok(index.indexOf('src="js/ui/project-actions-menu.js"')<index.indexOf('src="js/app.js"'));
 });

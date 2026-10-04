@@ -30,7 +30,8 @@ test("hidden projects are excluded from Overview project entries",()=>{
   const model=new OverviewDetailsModel();
   const projects=[
     {id:"visible",name:"Visible",groups:[]},
-    {id:"hidden",name:"Hidden",hiddenFromOverview:true,groups:[]}
+    {id:"hidden",name:"Hidden",hiddenFromOverview:true,groups:[]},
+    {id:"archived",name:"Archived",archived:true,groups:[]}
   ];
 
   assert.deepEqual(model.visibleProjects(projects),[projects[0]]);

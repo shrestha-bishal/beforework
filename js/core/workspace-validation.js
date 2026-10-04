@@ -75,6 +75,9 @@
       if (project.hiddenFromOverview!==undefined && typeof project.hiddenFromOverview!=="boolean"){
         addError(`${projectPath}.hiddenFromOverview must be a boolean.`);
       }
+      if (project.archived!==undefined && typeof project.archived!=="boolean"){
+        addError(`${projectPath}.archived must be a boolean.`);
+      }
       for (const key of ["groups","fields","tags","views","milestones"]){
         if (project[key]!==undefined && !Array.isArray(project[key])) addError(`${projectPath}.${key} must be an array.`);
       }

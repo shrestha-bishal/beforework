@@ -165,6 +165,16 @@ test("validates optional project Overview visibility",()=>{
   assert.ok(result.errors.some(error=>error==="projects[0].hiddenFromOverview must be a boolean."));
 });
 
+test("validates optional project archive status",()=>{
+  const project={id:"project-1",name:"Launch",groups:[]};
+  assert.equal(validate({projects:[project]},7).valid,true);
+  assert.equal(validate({projects:[{...project,archived:true}]},7).valid,true);
+
+  const result=validate({projects:[{...project,archived:"yes"}]},7);
+  assert.equal(result.valid,false);
+  assert.ok(result.errors.some(error=>error==="projects[0].archived must be a boolean."));
+});
+
 test("validates project-owned items and allows projects without groups",()=>{
   const project={id:"project-1",name:"Simple",groups:[],items:[{id:"task-1",title:"Plan"}]};
   assert.equal(validate({projects:[project]},9).valid,true);

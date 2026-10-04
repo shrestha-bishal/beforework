@@ -127,7 +127,6 @@
   let tableView = null;
   let boardView = null;
   let calendarView = null;
-  let showArchived = false;
   let activeProjectId = OVERVIEW;
   const filterFeature=window.BeforeworkFilters.create({
     storageKey:"personal_dashboard_filters_v1",
@@ -136,7 +135,7 @@
     getActiveProjectId:()=>activeProjectId,
     getProjectGroups:project=>projectGroups(project),
     getProjectItemEntries:project=>projectItemEntries(project),
-    getShowArchived:()=>showArchived,
+    getShowArchived:()=>false,
     isItemCompleted:item=>isItemCompleted(item),
     scheduleFieldValue,
     render:renderAll,
@@ -334,6 +333,7 @@
     bulkDuplicate,moveItem,deleteTag
   }=itemFeature;
   function projectRecords(){ return state?.folderLazy ? state.projectSummaries : state?.projects||[]; }
+  function activeProjectRecords(){ return projectRecords().filter(project=>!project.archived); }
   function getProjectSummary(pid){ return projectRecords().find(project=>project.id===pid); }
   function getLoadedProject(pid){ return (state?.projects||[]).find(project=>project.id===pid); }
   function getProject(pid){ return getLoadedProject(pid)||getProjectSummary(pid); }
@@ -430,7 +430,7 @@
   function getReminderEntries(){
     if (!state) return [];
     const entries = [];
-    projectRecords().forEach(project=>{
+    activeProjectRecords().forEach(project=>{
       const groups=projectGroups(project);
       groups.forEach(group=>group.items.forEach(item=>{
         const dueField = dueDateField(project);
@@ -609,7 +609,7 @@
     state.projects = state.projects.filter(p=>p.id!==pid);
     if (state.folderLazy) state.projectSummaries=state.projectSummaries.filter(project=>project.id!==pid);
     if (activeProjectId===pid){
-      activeProjectId = projectRecords()[0]?.id || OVERVIEW;
+      activeProjectId = activeProjectRecords()[0]?.id || OVERVIEW;
       persistActiveLocation();
     }
     scheduleSave(); renderAll();
@@ -813,7 +813,7 @@
     overlay.addEventListener("keydown",event=>{ if (event.key==="Escape"){ event.preventDefault(); close(); } });
     document.body.appendChild(overlay);
 
-    const records=projectRecords();
+    const records=activeProjectRecords();
     overlay.querySelector("#csvImportTitle").textContent=destinationMode==="new" ? "Import project from CSV" : "Import tasks from CSV";
     const helpText=overlay.querySelector(".csvImportHelp");
     helpText.textContent=destinationMode==="new"
@@ -1840,12 +1840,26 @@
     }
   }
 
+  async function toggleProjectArchive(projectId){
+    try{
+      const project=await ensureProjectLoaded(projectId);
+      if (!project) throw new Error("The project could not be found.");
+      project.archived=!project.archived;
+      if (state.folderLazy) registerProjectSummary(project);
+      scheduleSave();
+      renderAll();
+    }catch(error){
+      await showNotice("Couldn't update project archive status",error.message);
+    }
+  }
+
   const projectActionHandlers={
     edit:async project=>{
       const loaded=await ensureProjectLoaded(project.id);
       if (loaded) await editProject(loaded);
     },
     "overview-visibility":project=>toggleProjectOverviewVisibility(project.id),
+    archive:project=>toggleProjectArchive(project.id),
     move:async project=>{
       const loaded=await ensureProjectLoaded(project.id);
       if (loaded) await moveProjectToFolder(loaded);
@@ -1907,7 +1921,9 @@
       ul.appendChild(li);
     };
     const projects=projectRecords();
-    const unfiled = projects.filter(project=>!project.folderId || !state.folders.some(folder=>folder.id===project.folderId));
+    const activeProjects=projects.filter(project=>!project.archived);
+    const archivedProjects=projects.filter(project=>project.archived);
+    const unfiled = activeProjects.filter(project=>!project.folderId || !state.folders.some(folder=>folder.id===project.folderId));
     unfiled.forEach(project=>appendProject(project));
     state.folders.forEach(folder=>{
       const heading = document.createElement("li");
@@ -1918,7 +1934,7 @@
         divider.setAttribute("aria-hidden","true");
         heading.appendChild(divider);
       }
-      const projectCount = projects.filter(project=>project.folderId===folder.id).length;
+      const projectCount = activeProjects.filter(project=>project.folderId===folder.id).length;
       const icon = document.createElement("iconify-icon");
       icon.className = "folderIcon";
       icon.setAttribute("icon", "mdi:folder-outline");
@@ -1986,8 +2002,30 @@
       wrap.append(menuBtn, menu);
       heading.append(icon, name, count, wrap);
       ul.appendChild(heading);
-      projects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
+      activeProjects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
     });
+    if (archivedProjects.length){
+      const heading=document.createElement("li");
+      heading.className="folderHeading archivedProjectsHeading";
+      if (ul.children.length){
+        const divider=document.createElement("div");
+        divider.className="uiDivider folderHeadingDivider";
+        divider.setAttribute("aria-hidden","true");
+        heading.appendChild(divider);
+      }
+      const icon=document.createElement("iconify-icon");
+      icon.setAttribute("icon","mdi:archive-outline");
+      icon.setAttribute("aria-hidden","true");
+      const name=document.createElement("span");
+      name.className="folderName";
+      name.textContent="Archived";
+      const count=document.createElement("span");
+      count.className="folderCount";
+      count.textContent=String(archivedProjects.length);
+      heading.append(icon,name,count);
+      ul.appendChild(heading);
+      archivedProjects.forEach(project=>appendProject(project));
+    }
   }
 
   async function selectProject(pid){
@@ -2162,7 +2200,7 @@
       viewTabs.style.display = "none";
       completionTabs.style.display = "none";
       if (activeProjectId===CALENDAR) calendarView.render(board, null);
-      else if (activeProjectId===ROADMAP) roadmapView.render(board,window.BeforeworkRoadmapModel.rowsForWorkspace(projectRecords()),{
+      else if (activeProjectId===ROADMAP) roadmapView.render(board,window.BeforeworkRoadmapModel.rowsForWorkspace(activeProjectRecords()),{
         scope:"workspace",
         fmtDate,
         onOpenProject:selectProject,
@@ -2287,7 +2325,7 @@
 
   function renderCompletionTabs(project){
     const wrap = document.getElementById("completionTabs");
-    const items = projectItemEntries(project).map(row=>row.item).filter(item=>showArchived || !item.archived);
+    const items = projectItemEntries(project).map(row=>row.item).filter(item=>!item.archived);
     const completedCount = items.filter(isItemCompleted).length;
     const openCount = items.length-completedCount;
     wrap.innerHTML = `<div class="completionTabList" role="group" aria-label="Filter items by completion">
@@ -2317,7 +2355,7 @@
         }
       });
     }
-    const projects = scopeProject ? [scopeProject] : projectRecords();
+    const projects = scopeProject ? [scopeProject] : activeProjectRecords();
     projects.forEach(project=>{
       const projectItems=projectItemEntries(project);
       projectItems.forEach(({group,item})=>{
@@ -3198,7 +3236,7 @@
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
 
-    const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${projectRecords().map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
+    const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${activeProjectRecords().map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
     const milestoneOptions = (project.milestones||[]).map(milestone=>
       `<option value="${escapeHtml(milestone.id)}" ${item.milestoneId===milestone.id?"selected":""}>${escapeHtml(milestone.title)}</option>`).join("");
     const milestoneSelector = item.calendarType!=="event" && milestoneOptions ? `<div class="sideItem">
@@ -3798,10 +3836,6 @@
         commandPalette.open(globalSearch.value);
       }
     });
-    document.getElementById("showArchivedToggle").addEventListener("change", e=>{
-      showArchived = e.target.checked;
-      render();
-    });
     document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
       if (e.target.files[0]) workspaceRecovery.importJSON(e.target.files[0]);
@@ -4090,7 +4124,7 @@
           priorityField,
           priorityOptions:project=>fieldTypes.getInputChoices(priorityField(project),{project}),
           todayStr,
-          projectRecords,
+          projectRecords:activeProjectRecords,
           formatUpdatedAt,
           priorityColor:(project,value)=>{
             const field=priorityField(project);

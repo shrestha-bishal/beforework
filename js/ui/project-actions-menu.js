@@ -3,10 +3,10 @@
 
   const ACTIONS=[
     [
-      {id:"edit",label:"Edit project"},
+      {id:"edit",label:"Edit"},
       {id:"overview-visibility",label:project=>project?.hiddenFromOverview?"Show on Overview":"Hide from Overview"},
       {id:"move",label:"Move to folder"},
-      {id:"duplicate",label:"Duplicate project"}
+      {id:"duplicate",label:"Duplicate"}
     ],
     [
       {id:"add-field",label:"Add field"},
@@ -17,6 +17,7 @@
       {id:"print",label:"Print / PDF"}
     ],
     [
+      {id:"archive",label:project=>project?.archived?"Unarchive":"Archive"},
       {id:"delete",label:"Delete",danger:true}
     ]
   ];
@@ -76,12 +77,15 @@
       project=nextProject;
       const visibilityItem=menu.querySelector('[data-project-action="overview-visibility"]');
       visibilityItem.textContent=ACTIONS[0][1].label(project);
+      const archiveItem=menu.querySelector('[data-project-action="archive"]');
+      archiveItem.textContent=ACTIONS[3][0].label(project);
       button.setAttribute("aria-label",project?`Project actions for ${project.name}`:"Project actions");
     }
 
     menu.addEventListener("click",event=>{
       const item=event.target.closest("[data-project-action]");
       if (!item) return;
+      event.stopPropagation();
       actions[item.dataset.projectAction](project);
     });
     setProject(project);

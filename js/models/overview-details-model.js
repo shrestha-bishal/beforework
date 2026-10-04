@@ -1,6 +1,6 @@
 export class OverviewDetailsModel {
   visibleProjects(projects){
-    return projects.filter(project=>!project.hiddenFromOverview);
+    return projects.filter(project=>!project.archived&&!project.hiddenFromOverview);
   }
 
   searchEntries(entries,query){
