@@ -26,7 +26,8 @@ test("view registry exposes supported project view types and labels",()=>{
       ["kanban","Board"],
       ["calendar","Calendar"],
       ["milestones","Milestones"],
-      ["roadmap","Roadmap"]
+      ["roadmap","Roadmap"],
+      ["documents","Documents"]
     ]
   );
   assert.equal(registry.get("kanban").label,"Board");

@@ -1,0 +1,87 @@
+<div class="documentsPage">
+  <section class="documentsListView" data-documents-list-view>
+    <div class="mainSection">
+      <div class="mainSectionHead documentsSectionHead">
+        <div>
+          <div class="mainSectionLabel">Project documents</div>
+          <p class="documentsSectionHint">Briefs, decisions, and notes for this project.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-create-document>
+          <iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon>
+          <span>New document</span>
+        </button>
+      </div>
+      <div class="documentsList" data-document-list></div>
+      <div class="documentsEmpty" data-document-empty hidden>
+        <span>No documents yet.</span>
+        <button class="btn btn-invisible btn-sm subitemAddButton" type="button" data-create-document>
+          <iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon><span>Create a document</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="documentDetailView" data-document-editor-view hidden>
+    <header class="documentDetailHeader">
+      <div class="documentBreadcrumb">
+        <button class="btn btn-invisible btn-sm" type="button" data-document-back>Documents</button>
+        <span aria-hidden="true">/</span>
+        <span data-document-breadcrumb-project></span>
+      </div>
+      <div class="documentTitleRow">
+        <input class="form-control documentTitleInput" type="text" data-document-title-input aria-label="Document title" maxlength="160">
+        <div class="documentDetailActions">
+          <div class="documentMenuWrap">
+            <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" aria-label="Document actions">⋮</button>
+            <div class="menu action-menu action-menu--item documentActionsMenu" hidden>
+              <button type="button" data-document-export><iconify-icon icon="mdi:download-outline" aria-hidden="true"></iconify-icon><span>Export Markdown</span></button>
+              <div class="action-menu__separator" role="separator"></div>
+              <button type="button" class="danger" data-active-document-delete><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete document</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="documentDetailBody">
+      <div class="mainSection">
+        <div class="itemDescriptionCard documentDescriptionCard">
+          <div class="itemDescriptionCardHead">
+            <div class="itemDescriptionHead"><div class="mainSectionLabel">Document</div></div>
+          </div>
+          <div class="itemDescriptionEditor">
+            <div class="itemMarkdownToolbar documentMarkdownToolbar" role="toolbar" aria-label="Document editor">
+              <div class="itemMarkdownModeTabs" role="tablist" aria-label="Document mode">
+                <button type="button" class="itemMarkdownModeTab active" data-document-mode="write" role="tab" aria-selected="true">Write</button>
+                <button type="button" class="itemMarkdownModeTab" data-document-mode="preview" role="tab" aria-selected="false">Preview</button>
+              </div>
+              <span class="itemMarkdownHint" data-document-updated></span>
+            </div>
+            <textarea class="form-control documentMarkdownInput" data-document-content aria-label="Write document in Markdown" placeholder="Add notes..."></textarea>
+            <div class="markdownBody itemDescriptionPreview documentMarkdownPreview" data-document-preview role="tabpanel" aria-label="Document preview" hidden></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<template id="projectDocumentRowTemplate">
+  <div class="documentRow">
+    <iconify-icon class="documentRowIcon" icon="mdi:file-document-outline" aria-hidden="true"></iconify-icon>
+    <button class="documentRowOpen" type="button" data-document-open>
+      <strong data-document-title></strong>
+      <span data-document-updated></span>
+      <span class="documentRowExcerpt" data-document-excerpt></span>
+    </button>
+    <div class="documentRowActions">
+      <div class="documentMenuWrap">
+        <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-document-menu-trigger aria-label="Document actions">⋮</button>
+        <div class="menu action-menu action-menu--item documentActionsMenu" hidden>
+          <button type="button" data-document-export-card><iconify-icon icon="mdi:download-outline" aria-hidden="true"></iconify-icon><span>Export Markdown</span></button>
+          <div class="action-menu__separator" role="separator"></div>
+          <button type="button" class="danger" data-document-delete><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete document</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

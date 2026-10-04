@@ -81,6 +81,32 @@
       for (const key of ["groups","fields","tags","views","milestones"]){
         if (project[key]!==undefined && !Array.isArray(project[key])) addError(`${projectPath}.${key} must be an array.`);
       }
+      if (project.documents!==undefined){
+        if (!Array.isArray(project.documents)) addError(`${projectPath}.documents must be an array.`);
+        else{
+          const documentIds=new Set();
+          project.documents.forEach((document,documentIndex)=>{
+            const path=`${projectPath}.documents[${documentIndex}]`;
+            if (!isRecord(document)||!hasText(document.id)||!hasText(document.title)||typeof document.content!=="string"){
+              addError(`${path} must have an id, title, and string content.`);
+              return;
+            }
+            if (document.title.trim().length>160) addError(`${path}.title must be 160 characters or fewer.`);
+            if (documentIds.has(document.id)) addError(`${path}.id must be unique within the project.`);
+            documentIds.add(document.id);
+            if (document.createdAt!==undefined&&(!Number.isFinite(document.createdAt)||document.createdAt<0)){
+              addError(`${path}.createdAt must be a non-negative timestamp.`);
+            }
+            if (document.updatedAt!==undefined&&(!Number.isFinite(document.updatedAt)||document.updatedAt<0)){
+              addError(`${path}.updatedAt must be a non-negative timestamp.`);
+            }
+          });
+          if (project.activeDocumentId!==undefined&&project.activeDocumentId!==null
+            &&!documentIds.has(project.activeDocumentId)){
+            addError(`${projectPath}.activeDocumentId must reference a project document.`);
+          }
+        }
+      }
       if (project.items!==undefined && !Array.isArray(project.items)) addError(`${projectPath}.items must be an array.`);
       const milestones=Array.isArray(project.milestones)?project.milestones:[];
       const milestoneIds=new Set();

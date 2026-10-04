@@ -15,6 +15,7 @@ test("Calendar styles, including responsive and print rules, are isolated in the
   assert.match(calendarStyles,/\.calendarContextPopover/);
   assert.match(calendarStyles,/@media print[\s\S]*\.calendarWrap/);
   assert.match(calendarStyles,/@media \(max-width:480px\)[\s\S]*\.calendarEvent \.eventProject/);
-  assert.match(stylesManifest,/@import url\("calendar\.css"\);\s*$/);
+  assert.match(stylesManifest,/@import url\("calendar\.css"\);/);
+  assert.match(stylesManifest,/@import url\("documents\.css"\);\s*$/);
   assert.match(appStyles,/#calendarNav/);
 });

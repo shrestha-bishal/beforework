@@ -61,7 +61,7 @@ function createHarness(){
   vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
   const calls=[];
   const actions=Object.fromEntries(
-    ["edit","overview-visibility","archive","move","duplicate","add-field","import-csv","undo","print","delete"]
+    ["edit","overview-visibility","archive","move","duplicate","documents","add-field","import-csv","undo","print","delete"]
       .map(action=>[action,(project)=>calls.push([action,project])])
   );
   const menu=window.BeforeworkProjectActionsMenu.create({
@@ -76,10 +76,10 @@ test("both project action menu variants are generated from the same ordered acti
   const labels=container.children[1].children.map(item=>item.textContent);
 
   assert.deepEqual(labels,[
-    "Edit project","Hide from Overview","Move to folder","Duplicate project","",
+    "Edit","Hide from Overview","Move to folder","Duplicate","","Documents","",
     "Add field","Import from CSV","",
     "Undo","Print / PDF","",
-    "Archive project","Delete"
+    "Archive","Delete"
   ]);
 
   const sourceWindow={BeforeworkActionMenu:{create:()=>({register:()=>({close(){}})})}};
@@ -94,7 +94,7 @@ test("both project action menu variants are generated from the same ordered acti
   });
   assert.deepEqual(
     sidebarContainer.children[1].children.map(item=>item.textContent),
-    ["Edit project","Show on Overview","Move to folder","Duplicate project","","Add field","Import from CSV","","Undo","Print / PDF","","Archive project","Delete"]
+    ["Edit","Show on Overview","Move to folder","Duplicate","","Documents","","Add field","Import from CSV","","Undo","Print / PDF","","Archive","Delete"]
   );
   assert.equal(sidebarContainer.children[1].children.some(item=>item.textContent==="New group"),false);
 });
@@ -102,11 +102,11 @@ test("both project action menu variants are generated from the same ordered acti
 test("project archive menu action toggles its label based on project state",()=>{
   const {container,menu}=createHarness();
   const archive=container.children[1].querySelector('[data-project-action="archive"]');
-  assert.equal(archive.textContent,"Archive project");
+  assert.equal(archive.textContent,"Archive");
 
   menu.setProject({id:"project-1",name:"Launch",archived:true});
 
-  assert.equal(archive.textContent,"Unarchive project");
+  assert.equal(archive.textContent,"Unarchive");
 });
 
 test("project visibility action label tracks the selected project",()=>{
@@ -149,6 +149,7 @@ test("app uses the shared component for header and sidebar menus, keeping operat
   assert.match(app,/name\.textContent="Archived"/);
   assert.doesNotMatch(app,/showArchivedToggle|showArchived=/);
   assert.match(app,/delete:async project=>\{[\s\S]*?deleteProject\(project\.id\)/);
+  assert.match(app,/documents:async project=>\{[\s\S]*?candidate\.type==="documents"/);
   assert.doesNotMatch(app,/handleProjectAction/);
   assert.doesNotMatch(app,/menu\.innerHTML = `[\s\S]*data-project-action/);
 });

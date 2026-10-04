@@ -9,6 +9,9 @@
       {id:"duplicate",label:"Duplicate"}
     ],
     [
+      {id:"documents",label:"Documents"},
+    ],
+    [
       {id:"add-field",label:"Add field"},
       {id:"import-csv",label:"Import from CSV"}
     ],
@@ -76,9 +79,9 @@
     function setProject(nextProject){
       project=nextProject;
       const visibilityItem=menu.querySelector('[data-project-action="overview-visibility"]');
-      visibilityItem.textContent=ACTIONS[0][1].label(project);
+      visibilityItem.textContent=ACTIONS.flat().find(action=>action.id==="overview-visibility").label(project);
       const archiveItem=menu.querySelector('[data-project-action="archive"]');
-      archiveItem.textContent=ACTIONS[3][0].label(project);
+      archiveItem.textContent=ACTIONS.flat().find(action=>action.id==="archive").label(project);
       button.setAttribute("aria-label",project?`Project actions for ${project.name}`:"Project actions");
     }
 

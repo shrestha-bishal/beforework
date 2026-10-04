@@ -2,7 +2,7 @@
 
 ![Beforework logo](images/icon-wide.png)
 
-Beforework is a serverless local-first project management workspace for projects, tasks, calendars, and focus sessions. Work across List, Table, Board, Calendar, Roadmap and Milestone views, and add custom fields, comments, checklists, reminders, and multiple file attachments to items. The static app stores workspace data in folders you choose on your device rather than any server. Optional Google Calendar integration connects to Google separately.
+Beforework is a serverless local-first project management workspace for projects, tasks, calendars, and focus sessions. Work across List, Table, Board, Calendar, Roadmap, Milestone, and Documents views, and add custom fields, comments, checklists, reminders, and multiple file attachments to items. The static app stores workspace data in folders you choose on your device rather than any server. Optional Google Calendar integration connects to Google separately.
 
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d1246eb5-1276-4001-b1c7-254cc3c01815" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ce98605e-02e2-4dea-a043-6bd452bb8ac5" />
@@ -30,7 +30,8 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 
 - Projects and folders with project-owned tasks that can be organised into optional groups; workflow templates can provide starter groups
 - Markdown-formatted task descriptions and comments with a live preview; existing text stays compatible and raw HTML is disabled
-- List, table, board, calendar, roadmap, and milestone views with per-project view configuration
+- Project Documents view for named Markdown briefs and notes, with in-app writing and preview, a starter project brief, and `.md` export
+- List, table, board, calendar, roadmap, milestone, and Documents views with per-project view configuration
 - Workspace and project roadmaps with task duration bars from optional start dates to task dates, plus milestone markers
 - Start date, due date, custom date, and other fields for text, checkboxes, priority, single- and multi-selects, relations to other project items, URLs, email addresses, numbers, and optional Location and Schedule controls
 - Optional Tags fields with colored tags, filters, bulk tagging, and tag pills across project views; remove the field to hide tags without deleting their data. Existing projects are migrated with Tags enabled to preserve their current behavior. Also includes subtasks, comments, activity history, archiving, recurring schedules, and reminders; add a Schedule field to show date/time, reminder, and recurrence controls on items
@@ -89,7 +90,7 @@ Google Calendar is optional. Configure the Google OAuth client ID used by the ap
 
 ## Data format and upgrades
 
-Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Projects can have an optional description and project-level milestones with optional due dates; tasks can be linked to milestones to track checkpoint progress. Existing single-file workspace JSON remains supported and can be opened or migrated into a folder workspace. List and Table column arrangements are saved per project and view.
+Workspace data is stored in JSON shards inside a folder. `manifest.json` stores workspace metadata and maps project IDs to separate project JSON files; calendar entries live in their own JSON shard. Each workspace carries a `schemaVersion` value. Projects can have an optional description, project-level milestones with optional due dates, and Markdown documents stored with the project; tasks can be linked to milestones to track checkpoint progress. Existing single-file workspace JSON remains supported and can be opened or migrated into a folder workspace. List and Table column arrangements are saved per project and view.
 
 Item attachments are stored as separate files under the workspace's `attachments/` directory, with multiple attachments supported per project or calendar item. Attachments require a folder workspace; they are not embedded in legacy single-file JSON. Browser recovery snapshots contain workspace JSON and attachment metadata, not the attachment file contents. The demo workspace includes a downloadable plain-text project-notes attachment. CSV exports contain the current filtered rows and visible columns; values are escaped for CSV and spreadsheet formula safety.
 

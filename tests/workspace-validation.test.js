@@ -190,6 +190,27 @@ test("validates currency field codes and decimal precision",()=>{
   assert.ok(invalidPrecision.errors.some(error=>error.includes("decimalPlaces must be an integer")));
 });
 
+test("validates project document metadata and markdown content",()=>{
+  const project={id:"project-1",name:"Launch",groups:[],documents:[
+    {id:"brief",title:"Project brief",content:"# Goals",createdAt:1,updatedAt:2}
+  ]};
+  assert.equal(validate({projects:[project]},7).valid,true);
+  const invalid=validate({projects:[{
+    ...project,documents:[{id:"",title:" ",content:42}]
+  }]},7);
+  assert.ok(invalid.errors.some(error=>error==="projects[0].documents[0] must have an id, title, and string content."));
+  const duplicate=validate({projects:[{
+    ...project,documents:[project.documents[0],{...project.documents[0]}]
+  }]},7);
+  assert.ok(duplicate.errors.some(error=>error==="projects[0].documents[1].id must be unique within the project."));
+  const invalidActive=validate({projects:[{...project,activeDocumentId:"missing"}]},7);
+  assert.ok(invalidActive.errors.some(error=>error==="projects[0].activeDocumentId must reference a project document."));
+  const invalidTitle=validate({projects:[{
+    ...project,documents:[{...project.documents[0],title:"x".repeat(161)}]
+  }]},7);
+  assert.ok(invalidTitle.errors.some(error=>error==="projects[0].documents[0].title must be 160 characters or fewer."));
+});
+
 test("validates project-owned items and allows projects without groups",()=>{
   const project={id:"project-1",name:"Simple",groups:[],items:[{id:"task-1",title:"Plan"}]};
   assert.equal(validate({projects:[project]},9).valid,true);

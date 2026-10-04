@@ -55,6 +55,7 @@
     'import("./views/overview-details-view.js")',
     'import("./models/overview-details-model.js")',
     'import("./views/milestones-view.js")',
+    'import("./views/documents-view.js")',
     'import("./views/roadmap-view.js")',
     'import("./views/overview-view.js")',
     'import("./views/list-view.js")',
@@ -119,6 +120,7 @@
   let settingsView = null;
   let overviewDetailsView = null;
   let milestonesView = null;
+  let documentsView = null;
   let roadmapView = null;
   let overviewView = null;
   let listView = null;
@@ -501,6 +503,7 @@
     }));
     const p = {
       id:uid(), name, description, createdAt:Date.now(), folderId:null,
+      documents:[],
       tags:projectTemplates.buildTags(templateKey),
       fields,
       groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
@@ -616,7 +619,7 @@
     const proposedName = `${project.name} (copy)`;
     const name = await showDialog({
       title:"Duplicate project",
-      message:"Groups, fields, tags, milestones, views, and items will be copied. Comments and Google Calendar sync history won't be copied. Scheduled items may sync as new events.",
+      message:"Groups, fields, tags, milestones, documents, views, and items will be copied. Comments and Google Calendar sync history won't be copied. Scheduled items may sync as new events.",
       fields:[{label:"Project name", value:proposedName}],
       confirmLabel:"Duplicate"
     });
@@ -632,6 +635,7 @@
     const groupIds = new Map();
     const viewIds = new Map();
     const milestoneIds = new Map();
+    const documentIds = new Map();
     const itemIds = new Map();
     const now = Date.now();
     const fields = (project.fields||[]).map(field=>{
@@ -655,6 +659,7 @@
     [...groups.flatMap(group=>group.items||[]),...(project.items||[])].forEach(item=>itemIds.set(item.id,uid()));
     views.forEach(view=>viewIds.set(view.id, uid()));
     (project.milestones||[]).forEach(milestone=>milestoneIds.set(milestone.id,uid()));
+    (project.documents||[]).forEach(document=>documentIds.set(document.id,uid()));
 
     const copyItem = item=>{
       const values = {};
@@ -688,6 +693,10 @@
       fields,
       tags,
       milestones:(project.milestones||[]).map(milestone=>({...milestone,id:milestoneIds.get(milestone.id)})),
+      documents:(project.documents||[]).map(document=>({
+        ...document,id:documentIds.get(document.id),createdAt:now,updatedAt:now
+      })),
+      activeDocumentId:documentIds.get(project.activeDocumentId)||documentIds.get(project.documents?.[0]?.id)||null,
       groups:groups.map(group=>({
         ...group,
         id:groupIds.get(group.id),
@@ -1870,6 +1879,18 @@
       const loaded=await ensureProjectLoaded(project.id);
       if (loaded) await fieldFeature.addFieldFlow(loaded);
     },
+    documents:async project=>{
+      await selectProject(project.id);
+      if (activeProjectId!==project.id) return;
+      const loaded=getProject(project.id);
+      if (!loaded) return;
+      const view=loaded.views.find(candidate=>candidate.type==="documents");
+      if (view){
+        loaded.activeViewId=view.id;
+        scheduleSave();
+        render();
+      }else addView(loaded,"documents");
+    },
     "import-csv":project=>openCsvImportDialog("existing",project.id),
     undo:()=>undoLastChange(),
     print:()=>window.print(),
@@ -2273,6 +2294,13 @@
         onOpenItem:openItemModal,
         onOpenMilestone:openRoadmapMilestone
       });
+      return;
+    }
+    if (activeView.type==="documents"){
+      filterBar.style.display="none";
+      completionTabs.style.display="none";
+      completionTabs.classList.remove("completionTabsInList");
+      documentsView.render(project,board);
       return;
     }
     if (activeView.type === "list") listView.render(project, board);
@@ -3984,7 +4012,7 @@
     reminderService.start();
     await authService.init();
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await loadViewModules();
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,documentsViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await loadViewModules();
       settingsView = createSettingsView(settingsModule.SettingsView);
       const overviewDetailsModel=new overviewDetailsModelModule.OverviewDetailsModel();
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
@@ -3998,6 +4026,17 @@
         projectGroups,
         projectItemEntries,
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("milestones")
+      });
+      const documentsFeature=window.BeforeworkProjectDocuments.create({uid});
+      documentsView=new documentsViewModule.DocumentsView({
+        documentsFeature,
+        showDialog,
+        showConfirm,
+        showNotice,
+        scheduleSave,
+        render,
+        markdown:window.BeforeworkMarkdown,
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("documents")
       });
       roadmapView = new roadmapViewModule.RoadmapView();
       listView = new listViewModule.ListView({

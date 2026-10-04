@@ -95,6 +95,10 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   ]},
   {id:"priority",label:"Priority",type:"priority",options:[],priorityOptionsCustomized:true},
   {id:"budget",label:"Budget",type:"currency",currency:"JPY",decimalPlaces:0}];
+  state.projects[0].documents=[{
+    id:"brief",title:"Project brief",content:"# Goals",createdAt:10,updatedAt:20
+  }];
+  state.projects[0].activeDocumentId="brief";
   state.projects[0].groups.push({id:"group-1",name:"Tasks",items:[{
     id:"item-1",title:"Prepare release",description:"Get signoff",location:"Conference room",startDate:"2026-09-25",milestoneId:"milestone-1",
     googleEventIds:{"primary:project-a:due":"google-event-1"},googleSyncMeta:{"primary:project-a:due":{googleUpdatedAt:"2026-09-25T12:00:00.000Z",localUpdatedAt:123}},calendarTimeZone:"America/New_York"
@@ -123,6 +127,10 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.equal(revision.projectSummaries["project-a"].fields[1].priorityOptionsCustomized,true);
   assert.equal(revision.projectSummaries["project-a"].fields[2].currency,"JPY");
   assert.equal(revision.projectSummaries["project-a"].fields[2].decimalPlaces,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].documents)),[
+    {id:"brief",title:"Project brief",updatedAt:20}
+  ]);
+  assert.equal(revision.projectSummaries["project-a"].activeDocumentId,"brief");
   assert.deepEqual(JSON.parse(JSON.stringify(revision.projectSummaries["project-a"].milestones)),[{id:"milestone-1",title:"First release",dueDate:"2026-10-01"}]);
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].description,"Get signoff");
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].location,"Conference room");

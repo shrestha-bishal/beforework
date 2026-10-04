@@ -176,6 +176,10 @@
         ...global.BeforeworkFieldTypes.getSummaryMetadata(field),
         ...(field.priorityOptionsCustomized===true?{priorityOptionsCustomized:true}:{})
       })),
+      documents:(project.documents||[]).map(document=>({
+        id:document.id,title:document.title,updatedAt:document.updatedAt||0
+      })),
+      activeDocumentId:project.activeDocumentId||null,
       views:project.views||[],
       activeViewId:project.activeViewId||null,
       itemDefaultType:project.itemDefaultType||"task"

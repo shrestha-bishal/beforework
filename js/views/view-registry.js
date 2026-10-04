@@ -7,7 +7,8 @@
     Object.freeze({type:"kanban",label:"Board"}),
     Object.freeze({type:"calendar",label:"Calendar"}),
     Object.freeze({type:"milestones",label:"Milestones"}),
-    Object.freeze({type:"roadmap",label:"Roadmap"})
+    Object.freeze({type:"roadmap",label:"Roadmap"}),
+    Object.freeze({type:"documents",label:"Documents"})
   ]);
   const definitionsByType=new Map(definitions.map(definition=>[definition.type,definition]));
 
