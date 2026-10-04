@@ -27,7 +27,11 @@ function createFeature({saved={}}={}){
     {id:"areas",label:"Areas",type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},
     {id:"contact",label:"Contact",type:"email"},
     {id:"tags",label:"Tags",type:"tags"}
-  ],tags:[{id:"urgent",name:"urgent",color:"#cf222e"}],groups:[
+  ],tags:[
+    {id:"urgent",name:"urgent",color:"#cf222e"},
+    {id:"follow-up",name:"follow-up",color:"#8250df"},
+    {id:"quick-win",name:"quick-win",color:"#bf3989"}
+  ],groups:[
     {id:"backlog",name:"Backlog",items:[{id:"one",title:"First task",tagIds:["urgent"],values:{
       status:"todo",count:0,areas:["docs","design"],contact:"alex@example.com"
     }}]},
@@ -172,12 +176,44 @@ test("filter autocomplete omits already selected values from field options",()=>
     ["Low","No Priority"]);
 });
 
+test("filter suggestion menu anchors at the input caret",()=>{
+  const start=source.indexOf("function positionSuggestionsAtCaret(input,suggestionsWrap)");
+  const end=source.indexOf("\n    function renderBar",start);
+  const positioning=source.slice(start,end);
+  const wrapper={getBoundingClientRect:()=>({left:100})};
+  const menu={style:{}};
+  const input={
+    value:"tag:",
+    selectionStart:4,
+    scrollLeft:0,
+    closest:()=>wrapper,
+    getBoundingClientRect:()=>({left:120})
+  };
+  const documentRef={createElement:()=>({getContext:()=>({
+    measureText:value=>({width:value.length*10})
+  })})};
+  const global={
+    innerWidth:1000,
+    getComputedStyle:()=>({font:"13px sans-serif",paddingLeft:"4px"})
+  };
+
+  vm.runInNewContext(`${positioning}; positionSuggestionsAtCaret(input,menu);`,{
+    documentRef,global,input,menu
+  });
+
+  assert.equal(menu.style.left,"64px");
+  assert.equal(menu.style.width,"420px");
+});
+
 test("filter query prefixes open focused autocomplete choices while leaving free text available",()=>{
   const {feature,project}=createFeature();
+  feature.tags.add("urgent");
   const tagSuggestions=feature.suggestions(project,"tag:");
 
-  assert.deepEqual(JSON.parse(JSON.stringify(tagSuggestions.map(option=>option.label))),["urgent","No tags"]);
-  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:urg").map(option=>option.value))),["urgent"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(tagSuggestions.map(option=>option.label))),
+    ["follow-up","quick-win","No tags"]);
+  assert.ok(!tagSuggestions.some(option=>option.value==="urgent"));
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:urg").map(option=>option.value))),[]);
   assert.ok(feature.suggestions(project,"")[0].kind==="operator");
   assert.ok(feature.suggestions(project,"is:").some(option=>option.value==="completed"));
   assert.ok(feature.suggestions(project,"Status:").some(option=>option.value==="todo"));
@@ -195,7 +231,7 @@ test("tag suggestions and filtering work without a custom Tags field",()=>{
   feature.tags.add("urgent");
 
   assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:").map(option=>option.value))),
-    ["__none__"]);
+    ["follow-up","quick-win","__none__"]);
   assert.equal(feature.matches(project,project.groups[0].items[0],project.groups[0]),true);
   assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),false);
 });

@@ -512,6 +512,24 @@
 
     function inputElement(){ return documentRef.getElementById("filterInput"); }
 
+    function positionSuggestionsAtCaret(input,suggestionsWrap){
+      const wrapper=input.closest(".filterBarInputWrap");
+      const inputRect=input.getBoundingClientRect();
+      const wrapperRect=wrapper.getBoundingClientRect();
+      const inputStyle=global.getComputedStyle(input);
+      const context=documentRef.createElement("canvas").getContext("2d");
+      context.font=inputStyle.font;
+      const caret=input.selectionStart??input.value.length;
+      const textWidth=context.measureText(input.value.slice(0,caret)).width;
+      const caretX=inputRect.left+parseFloat(inputStyle.paddingLeft)+textWidth-(input.scrollLeft||0);
+      const maximumWidth=Math.min(420,global.innerWidth-40);
+      const width=Math.min(maximumWidth,Math.max(180,global.innerWidth-caretX-20));
+      const maximumLeft=global.innerWidth-wrapperRect.left-width-20;
+      const left=Math.max(0,Math.min(caretX-wrapperRect.left,maximumLeft));
+      suggestionsWrap.style.width=`${width}px`;
+      suggestionsWrap.style.left=`${left}px`;
+    }
+
     function renderBar(project){
       if (!project) return;
       const tokenWrap=documentRef.getElementById("filterTokens");
@@ -535,6 +553,7 @@
         `<button type="button" class="filterSuggestion${choice.kind==="operator"?" filterSuggestionOperator":""}${index===suggestionIndex?" active":""}" role="option" aria-selected="${index===suggestionIndex}" data-suggestion="${index}">${choice.color?`<span class="filterSuggestionDot" style="--tag-color:${escapeHtml(choice.color)}"></span>`:""}<span class="filterSuggestionText">${escapeHtml(choice.label)}</span>${choice.kind==="operator"?`<span class="filterSuggestionSyntax">${escapeHtml(choice.value.toLowerCase())}:</span>`:choice.detail?`<span class="filterSuggestionDetail">${escapeHtml(choice.detail)}</span>`:""}</button>`
       ).join("")+(input.value.trim()&&!input.value.includes(":")?`<button type="button" class="filterSuggestion filterSuggestionSearch" role="option" data-filter-search><span class="filterSuggestionText">Search for “${escapeHtml(input.value.trim())}”</span><span class="filterSuggestionDetail">Full-text search</span></button>`:"");
       suggestionsWrap.hidden=!suggestionsOpen||(!choices.length&&!input.value.trim());
+      if (!suggestionsWrap.hidden) positionSuggestionsAtCaret(input,suggestionsWrap);
       input.setAttribute("aria-expanded",String(!suggestionsWrap.hidden));
       suggestionsWrap.querySelectorAll("[data-suggestion]").forEach(button=>{
         button.onclick=event=>{
