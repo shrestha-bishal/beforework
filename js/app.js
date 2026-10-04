@@ -98,7 +98,6 @@
         await selectProject(project.id);
         filterFeature.setTags([tag.id]);
         render();
-        renderSidebarTags();
       },
       openCalendarItem:openStandaloneCalendarItemModal
     }
@@ -330,7 +329,7 @@
     getGroup,getItem,isItemCompleted,createItem,createDraft,addItem,setItemFieldValue,
     removeItemRelations,deleteItem,makeDuplicateItem,duplicateItem,toggleArchiveItem,
     addComment,deleteComment,bulkSetCompleted,bulkDelete,bulkMove,createTag,bulkTag,
-    bulkDuplicate,moveItem,deleteTag
+    bulkDuplicate,moveItem
   }=itemFeature;
   function projectRecords(){ return state?.folderLazy ? state.projectSummaries : state?.projects||[]; }
   function activeProjectRecords(){ return projectRecords().filter(project=>!project.archived); }
@@ -1563,9 +1562,6 @@
     return `<span class="Label Label--secondary tagColorPill${selected?" selected":""}" style="--tag-color:${escapeHtml(color)}"${filterAttribute}>
       <span class="dot"></span>${escapeHtml(t.name)}</span>`;
   }
-  function tagDotHtml(t, selected){
-    return tagPillHtml(t, selected, true);
-  }
   function formatFileSize(bytes){
     if (bytes<1024) return `${bytes} B`;
     const units=["KB","MB","GB","TB"];
@@ -1830,7 +1826,6 @@
   /* ---------- Rendering: shell ---------- */
   function renderAll(){
     renderProjectList();
-    renderSidebarTags();
     render();
   }
 
@@ -2116,25 +2111,6 @@
     if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
     if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
-  }
-
-  function renderSidebarTags(){
-    const section = document.getElementById("tagsSection");
-    const wrap = document.getElementById("sideTagsList");
-    const label = document.getElementById("tagsSectionLabel");
-    const project = getProject(activeProjectId);
-    if (activeProjectId===OVERVIEW || activeProjectId===CALENDAR || activeProjectId===ROADMAP || activeProjectId===INTEGRATIONS || activeProjectId===SETTINGS || !project || !hasTagsField(project)){ section.style.display = "none"; return; }
-    section.style.display = "block";
-    label.textContent = project.fields.find(field=>field.type==="tags").label + " in " + project.name;
-    wrap.innerHTML = project.tags.map(t=>tagDotHtml(t, filterFeature.tags.has(t.id))).join("")
-      || `<div style="font-size:12px;color:var(--faint);">No tags yet</div>`;
-    wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
-      el.onclick = () => {
-        const tid = el.dataset.tagfilter;
-        filterFeature.toggleTag(tid);
-        render(); renderSidebarTags();
-      };
-    });
   }
 
   /* Integrations view moved to js/services/google-calendar/google-calendar.js */
@@ -3823,33 +3799,6 @@
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
     document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
-    document.getElementById("manageTagsBtn").onclick = async () => {
-      const project = getProject(activeProjectId);
-      if (!project) return;
-      if (!project.tags.length){ await showNotice("No tags", "Create a tag from an item before managing tags."); return; }
-      const result = await showDialog({title:`Manage tags in ${project.name}`, fields:[
-        {label:"Action", type:"select", value:"edit", options:[{value:"edit",label:"Edit tag"},{value:"delete",label:"Delete tag"}]},
-        {label:"Tag", type:"select", options:project.tags.map(tag=>({value:tag.id,label:tag.name}))}
-      ], confirmLabel:"Continue"});
-      if (!result) return;
-      const [action,tagId] = result;
-      const tag = project.tags.find(candidate=>candidate.id===tagId);
-      if (!tag) return;
-      if (action === "edit"){
-        const changes = await showDialog({title:`Edit tag ${tag.name}`, fields:[
-          {label:"Tag name", value:tag.name},
-          {label:"Pill color", type:"tagColor", value:tag.color}
-        ], confirmLabel:"Save changes"});
-        if (!changes) return;
-        const [name,color] = changes;
-        if (!name.trim()){ await showNotice("Tag name required", "Enter a name for this tag."); return; }
-        tag.name = name.trim();
-        tag.color = color;
-        scheduleSave(); renderAll();
-      } else if (await showConfirm(`Delete tag ${tag.name}`, "This removes the tag from all items in this project.", true)){
-        deleteTag(project, tag.id);
-      }
-    };
     const globalSearch = document.getElementById("globalSearch");
     globalSearch.addEventListener("focus",()=>{
       if (suppressGlobalSearchFocus){ suppressGlobalSearchFocus=false; return; }

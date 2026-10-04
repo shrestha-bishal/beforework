@@ -99,7 +99,7 @@ test("collapsed desktop sidebar keeps navigation and project icons visible",()=>
   assert.match(styles,/#sidebar\.collapsed #projectList \.SideNav-item\{justify-content:center/);
   assert.match(styles,/#sidebar\.collapsed \.sidebarProjects\{border-top:1px solid var\(--border\);padding-top:8px;\}/);
   assert.match(styles,/#sidebar\.collapsed \.sidebarBottomNav \.uiDivider\{display:block;\}/);
-  assert.match(styles,/#sidebar\.collapsed #tagsSection\{display:none!important;\}/);
+  assert.doesNotMatch(styles,/#tagsSection/);
   assert.match(styles,/#sidebar\.collapsed #globalSearch\{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
   assert.match(index,/<img class="markCollapsed" src="images\/icon\.png" alt="">/);
   assert.match(index,/<input class="form-control" id="globalSearch"[^>]*title="Search or run a command"/);

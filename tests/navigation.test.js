@@ -78,6 +78,11 @@ function createHarness(){
   return {elements,calls,documentListeners,navigation};
 }
 
+test("sidebar does not include the removed Tags section",()=>{
+  assert.doesNotMatch(index,/tagsSection|tagsSectionLabel|sideTagsList|manageTagsBtn/);
+  assert.doesNotMatch(app,/renderSidebarTags|tagDotHtml|manageTagsBtn|Manage tags in/);
+});
+
 test("navigation controls delegate each destination to its app callback",()=>{
   const harness=createHarness();
   for (const id of ["overviewNav","brandHomeBtn","calendarNav","roadmapNav","integrationsNav","settingsNav","supportNav"]){

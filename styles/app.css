@@ -65,8 +65,7 @@
     #sidebar.collapsed #globalSearch{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;}
     #sidebar.collapsed .searchWrap:focus-within{outline:2px solid var(--accent);outline-offset:1px;border-radius:8px;}
     #sidebar.collapsed .searchShortcut{display:none;}
-    #sidebar.collapsed .projectSectionHeader,
-    #sidebar.collapsed #tagsSection{display:none!important;}
+    #sidebar.collapsed .projectSectionHeader{display:none!important;}
     #sidebar.collapsed .sidebarBottomNav .uiDivider{display:block;}
     #sidebar.collapsed #overviewNav,
     #sidebar.collapsed #calendarNav,
@@ -209,7 +208,7 @@
     .tagColorPill .dot{display:none;}
   .tagColorPill.selected{background-color:color-mix(in srgb,var(--tag-color) 48%,var(--bg));border-color:color-mix(in srgb,var(--tag-color) 58%,var(--bg));color:var(--text);box-shadow:0 0 0 1px color-mix(in srgb,var(--tag-color) 24%,transparent);}
   .Label.selected:not(.tagColorPill){background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
-  #sideTagsList,#boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
+  #boardTagFilters{display:flex;flex-wrap:wrap;gap:6px;}
 
   /* Main */
   #topbar{display:flex;align-items:center;gap:8px;padding:16px 20px 14px; border-bottom:1px solid var(--border);position:relative;background:var(--bg);}

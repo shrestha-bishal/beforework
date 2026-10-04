@@ -1,4 +1,3 @@
-
 export class OverviewView {
   constructor({getState,model,actions,overviewDetailsView,cloneTemplate}){
     this.getState=getState;
