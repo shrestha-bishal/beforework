@@ -14,7 +14,7 @@ function projectEntries(project){
   return entries;
 }
 
-function fieldControl(field,item,group,project,value,priorityOptions,scheduleFieldValue){
+function fieldControl(field,item,group,project,value,scheduleFieldValue){
   const dataset={
     pid:project.id,
     gid:group.id,
@@ -48,7 +48,7 @@ function fieldControl(field,item,group,project,value,priorityOptions,scheduleFie
         control.appendChild(element);
       });
     } else {
-      const options=field.type==="priority"?priorityOptions:window.BeforeworkFieldTypes.getInputChoices(field,{project,selected:[value]});
+      const options=window.BeforeworkFieldTypes.getInputChoices(field,{project,selected:[value]});
       [{id:"",label:"None"},...options].forEach(option=>{
         const element=document.createElement("option");
         element.value=option.id;
@@ -120,7 +120,6 @@ export class TableView {
       sortProjectRows,
       tagById,
       tagPillHtml,
-      priorityOptions,
       scheduleFieldValue,
       getItem,
       scheduleSave,
@@ -266,7 +265,7 @@ export class TableView {
         const cell=templates.querySelector("#tableViewFieldCellTemplate").content.firstElementChild.cloneNode(true);
         cell.dataset.columnId=`field:${field.id}`;
         const value=field.type==="location" ? item.values[field.id]??item.location??"" : item.values[field.id]??"";
-        const control=fieldControl(field,item,group,project,value,priorityOptions,scheduleFieldValue);
+        const control=fieldControl(field,item,group,project,value,scheduleFieldValue);
         cell.appendChild(control);
         if (tagsCell) tagsCell.before(cell);
         else row.appendChild(cell);

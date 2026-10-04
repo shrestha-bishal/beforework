@@ -170,7 +170,10 @@
         id:tag.id,name:tag.name,color:tag.color,
         ...(tag.hiddenInField===true?{hiddenInField:true}:{})
       })),
-      fields:(project.fields||[]).map(field=>({id:field.id,label:field.label,type:field.type,options:field.options||[]})),
+      fields:(project.fields||[]).map(field=>({
+        id:field.id,label:field.label,type:field.type,options:field.options||[],
+        ...(field.priorityOptionsCustomized===true?{priorityOptionsCustomized:true}:{})
+      })),
       views:project.views||[],
       activeViewId:project.activeViewId||null,
       itemDefaultType:project.itemDefaultType||"task"

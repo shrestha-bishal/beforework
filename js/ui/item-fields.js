@@ -7,15 +7,12 @@ window.BeforeworkItemFields=(()=>{
       tagPillHtml,
       projectItemEntries,
       fieldTypes,
-      priorityOptions,
       renderPartial
     }=dependencies||{};
     if ([escapeHtml,tagPillHtml,projectItemEntries,renderPartial].some(value=>typeof value!=="function")
       ||!fieldTypes||typeof fieldTypes.getInputChoices!=="function"){
       throw new TypeError("Item field rendering requires its UI dependencies.");
     }
-    if (!Array.isArray(priorityOptions)) throw new TypeError("Item field rendering requires priority options.");
-
     function labelHtml(field){
       return renderPartial("fieldLabel",{
         fieldId:escapeHtml(field.id),
@@ -47,9 +44,7 @@ window.BeforeworkItemFields=(()=>{
         });
       }
       if (field.type==="priority"||field.type==="select"){
-        const options=field.type==="priority"
-          ? [{id:"",label:"None"},...priorityOptions]
-          : [{id:"",label:"None"},...fieldTypes.getInputChoices(field,{project,selected:[value]})];
+        const options=[{id:"",label:"None"},...fieldTypes.getInputChoices(field,{project,selected:[value]})];
         return renderPartial("select",{
           labelHtml:label,
           fieldId,

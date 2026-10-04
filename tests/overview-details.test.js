@@ -38,3 +38,21 @@ test("hidden projects are excluded from Overview project entries",()=>{
     projects, isItemCompleted:()=>false
   }))),[{kind:"project",id:"visible",title:"Visible",meta:"0 open / 0 completed"}]);
 });
+
+test("overview item details show the configured priority label",()=>{
+  const model=new OverviewDetailsModel();
+  const project={id:"project-1",name:"Alpha"};
+  const row={project,group:{id:"group-1",name:"Planning"},item:{id:"item-1",title:"Ship release",values:{priority:"p1"}}};
+  const entries=model.getEntries("open",{
+    projects:[project],
+    openItems:[row],
+    overdueItems:[],
+    completedItems:[],
+    isItemCompleted:()=>false,
+    dueOf:()=>"",
+    priorityOf:()=> "p1",
+    priorityLabelOf:()=> "Critical"
+  });
+
+  assert.equal(entries[0].meta,"Alpha / Planning / Critical priority");
+});

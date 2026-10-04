@@ -12,6 +12,7 @@ const definitions=[
   {value:"select",label:"Select",description:"Choose one option",colors:["red","blue"]},
   {value:"multi-select",label:"Multi-select",description:"Choose multiple options",colors:["red","blue"]},
   {value:"date",label:"Date",description:"A date"},
+  {value:"priority",label:"Priority",description:"Best for urgency or ranking",maxPerProject:1},
   {value:"tags",label:"Tags",description:"Tags",maxPerProject:1},
   {value:"location",label:"Location",description:"Location"},
   {value:"schedule",label:"Schedule",description:"Schedule"}
@@ -34,7 +35,7 @@ function createFeature(overrides={}){
       get:type=>definitions.find(definition=>definition.value===type)||null,
       getEditableChoices:(field,{project})=>{
         const choices=field.type==="tags"?project.tags||[]:field.options||[];
-        return ["tags","select","multi-select"].includes(field.type)
+        return ["tags","select","multi-select","priority"].includes(field.type)
           ?choices.map(choice=>({
             id:choice.id,label:field.type==="tags"?choice.name:choice.label,
             hiddenInField:choice.hiddenInField===true
@@ -56,6 +57,14 @@ function createFeature(overrides={}){
           addLabel:"Add tag",
           inputPlaceholder:"Tag name"
         }
+        :field.type==="priority"
+        ?{
+          itemLabel:"priority level",
+          heading:"Priority levels",
+          description:"Hidden levels stay assigned to existing items but aren't offered for new selections.",
+          addLabel:"Add priority",
+          inputPlaceholder:"Priority name"
+        }
         :{
           itemLabel:"option",
           heading:"Options",
@@ -64,9 +73,11 @@ function createFeature(overrides={}){
           inputPlaceholder:"Option name"
         },
       getChoiceDeleteConfirmation:(field,{choices})=>({
-        title:`Delete ${field.type==="tags"?"tag":"option"}: ${choices.map(choice=>choice.label).join(", ")}`,
+        title:`Delete ${field.type==="tags"?"tag":field.type==="priority"?"priority level":"option"}: ${choices.map(choice=>choice.label).join(", ")}`,
         message:field.type==="tags"
           ?"This deletes this tag and removes it from all item assignments."
+          :field.type==="priority"
+          ?"This removes this priority level and clears it from item values."
           :"This removes this option from the field and clears it from item values."
       }),
       applyChoiceEdits:(field,context,changes)=>{
@@ -74,7 +85,8 @@ function createFeature(overrides={}){
         changes.forEach(change=>{
           if (change.added){
             if (change.deleted) return;
-            choices.push(change.choice);
+            if (field.type==="tags") context.project.tags.push(change.choice);
+            else field.options.push(change.choice);
             return;
           }
           const choice=choices.find(candidate=>candidate.id===change.id);
@@ -289,6 +301,39 @@ test("field edit creates new choices through the field type and saves them",asyn
   assert.deepEqual(field.options.map(option=>option.label),["To do","Review"]);
   assert.equal(field.options[1].id,"generated-1");
   assert.equal(field.options[1].color,"red");
+  assert.equal(calls.saved,1);
+});
+
+test("priority choice changes use the shared staged field editor and save action",async()=>{
+  const field={id:"priority",label:"Priority",type:"priority",options:[
+    {id:"high",label:"High"},
+    {id:"medium",label:"Medium"},
+    {id:"low",label:"Low"}
+  ]};
+  const item={id:"item-1",values:{priority:"medium"}};
+  const project={fields:[field],groups:[{items:[item]}]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(options=>({
+    values:["Priority"],
+    choices:[
+      {...options.choiceList.items[0],label:"Urgent",hiddenInField:true},
+      {...options.choiceList.items[1],deleted:true},
+      options.choiceList.items[2],
+      options.choiceList.createChoice("Trivial")
+    ]
+  }));
+
+  await feature.editField({stopPropagation(){}},field,project);
+
+  assert.equal(calls.dialogs[0].choiceList.copy.heading,"Priority levels");
+  assert.deepEqual(field.options.map(option=>option.label),["Urgent","Low","Trivial"]);
+  assert.equal(field.options[0].hiddenInField,true);
+  assert.deepEqual(item.values,{});
+  assert.deepEqual(calls.confirms[0],[
+    "Delete priority level: Medium",
+    "This removes this priority level and clears it from item values.",
+    true
+  ]);
   assert.equal(calls.saved,1);
 });
 

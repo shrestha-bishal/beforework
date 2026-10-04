@@ -48,6 +48,22 @@ test("normalizes supported due dates and priorities",()=>{
   assert.equal(csvImport.normalizePriority("unknown"),null);
 });
 
+test("imports custom priority labels using the project's configured choices",()=>{
+  const choices=[
+    {id:"p1-custom",label:"Critical"},
+    {id:"p2-custom",label:"Standard"}
+  ];
+  const parsed={headers:["Title","Priority"],rows:[
+    ["Escalate incident","Critical"],
+    ["Review request","p2-custom"]
+  ]};
+  const result=csvImport.prepareImport(parsed,{title:0,priority:1},[], "DMY",choices);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(result.tasks.map(task=>task.priority))),["p1-custom","p2-custom"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.errors)),[]);
+  assert.equal(csvImport.normalizePriority("High",choices),null);
+});
+
 test("validates CSV file types and size with actionable errors",()=>{
   assert.throws(()=>csvImport.validateFile({name:"Book2.xlsx",size:200}),/Save the spreadsheet as a CSV file/);
   assert.throws(()=>csvImport.validateFile({name:"tasks.xls",size:200}),/Excel workbooks aren't supported yet/);

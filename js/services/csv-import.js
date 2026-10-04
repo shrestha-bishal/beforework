@@ -77,12 +77,23 @@
     return `${String(year).padStart(4,"0")}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
   }
 
-  function normalizePriority(value){
+  function normalizePriority(value,choices){
     const text=String(value||"").trim().toLowerCase();
     if (!text) return "";
-    if (["high","urgent","p1"].includes(text)) return "high";
-    if (["medium","normal","p2"].includes(text)) return "medium";
-    if (["low","p3"].includes(text)) return "low";
+    if (Array.isArray(choices)){
+      const match=choices.find(choice=>
+        String(choice.id).trim().toLowerCase()===text
+        ||String(choice.label).trim().toLowerCase()===text
+      );
+      if (match) return match.id;
+    }
+    const normalized=["high","urgent","p1"].includes(text)?"high"
+      :["medium","normal","p2"].includes(text)?"medium"
+        :["low","p3"].includes(text)?"low":null;
+    if (normalized&&Array.isArray(choices)){
+      return choices.some(choice=>choice.id===normalized)?normalized:null;
+    }
+    if (normalized) return normalized;
     return null;
   }
 
@@ -98,7 +109,7 @@
     if (file.size>maxSize) throw new Error("CSV files must be 10 MB or smaller.");
   }
 
-  function prepareImport(parsed,mapping,groupNames=[],dateFormat="DMY"){
+  function prepareImport(parsed,mapping,groupNames=[],dateFormat="DMY",priorityChoices){
     const errors=[];
     const existingGroups=new Map(groupNames.map(name=>[name.trim().toLowerCase(),name]));
     const groupsToCreate=new Map();
@@ -115,7 +126,7 @@
         if (raw&&value===null) errors.push(`Row ${rowNumber}: ${key.replace("customDate:","custom date ")} doesn't match the selected format.`);
         customDates[key]=value||"";
       });
-      const priority=normalizePriority(read("priority"));
+      const priority=normalizePriority(read("priority"),priorityChoices);
       const rawStatus=read("status");
       const status=rawStatus ? existingGroups.get(rawStatus.toLowerCase())||rawStatus : "";
       const tags=read("tags").split(/[;,]/).map(tag=>tag.trim()).filter(Boolean);
@@ -124,7 +135,12 @@
       if (read("startDate") && startDate===null) errors.push(`Row ${rowNumber}: start date doesn't match the selected format.`);
       if (read("dueDate") && dueDate===null) errors.push(`Row ${rowNumber}: date doesn't match the selected format.`);
       if (startDate && dueDate && startDate>dueDate) errors.push(`Row ${rowNumber}: start date must be on or before the due date.`);
-      if (read("priority") && priority===null) errors.push(`Row ${rowNumber}: priority must be High, Medium, or Low.`);
+      if (read("priority") && priority===null){
+        const available=Array.isArray(priorityChoices)
+          ?priorityChoices.map(choice=>choice.label).join(", ")||"none"
+          :"High, Medium, or Low";
+        errors.push(`Row ${rowNumber}: priority must be an available priority level (${available}).`);
+      }
       if (rawStatus && !existingGroups.has(rawStatus.toLowerCase())) groupsToCreate.set(rawStatus.toLowerCase(),rawStatus);
 
       return {

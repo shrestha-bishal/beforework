@@ -115,6 +115,7 @@ test("field types own input normalization, sorting, and CSV formatting",()=>{
 
 test("choice editors are declared by option-owning field types only",()=>{
   const tags={id:"tags-field",type:"tags"};
+  const priority={id:"priority",type:"priority",options:[]};
   const select={id:"status",type:"select",options:[
     {id:"ready",label:"Ready"},
     {id:"hidden",label:"Hidden",hiddenInField:true}
@@ -157,6 +158,16 @@ test("choice editors are declared by option-owning field types only",()=>{
     [{id:"ready",label:"Ready"}]
   );
   assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getInputChoices(priority,{project,selected:[]}))),
+    [
+      {id:"high",label:"High",color:"var(--color-danger-fg)",rank:3},
+      {id:"medium",label:"Medium",color:"var(--color-attention-fg)",rank:2},
+      {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:1}
+    ]
+  );
+  assert.equal(fieldTypes.getInputChoices(priority,{project,selected:["high"]})[0].id,"high");
+  assert.equal(fieldTypes.getEditableChoices(priority,{project}).length,3);
+  assert.deepEqual(
     JSON.parse(JSON.stringify(fieldTypes.getFilterOptions(select,{field:select}))),
     [{value:"ready",label:"Ready"},{value:"hidden",label:"Hidden"}]
   );
@@ -174,6 +185,63 @@ test("choice editors are declared by option-owning field types only",()=>{
       message:"This removes this option from the field and clears it from item values."
     }
   );
+});
+
+test("priority levels default to High/Medium/Low and then use project-customized choices",()=>{
+  const priority={id:"priority",type:"priority",options:[]};
+  const item={values:{priority:"medium"}};
+  const project={fields:[priority],groups:[{items:[item]}]};
+  const filters=new Map([["priority",["high","medium"]]]);
+  const columns=new Map([["priority",new Set(["high","medium"])]]);
+  let nextId=0;
+  const context={
+    project,
+    uid:()=>`custom-${++nextId}`,
+    index:0,
+    projectItemEntries:value=>value.groups.flatMap(group=>group.items.map(entry=>({group,item:entry}))),
+    getBoardFilterFields:()=>filters,
+    getBoardFilterColumns:()=>columns,
+    getBoardFilterTags:()=>new Set()
+  };
+  const originalDefaults=fieldTypes.get("priority").options;
+  const custom=fieldTypes.createChoice(priority,context,"Trivial");
+
+  assert.deepEqual(JSON.parse(JSON.stringify(custom.choice)),{
+    id:"custom-1",label:"Trivial",color:"var(--color-accent-fg)",rank:0
+  });
+  fieldTypes.applyChoiceEdits(priority,context,[
+    {id:"high",label:"Urgent",hiddenInField:true},
+    {id:"medium",label:"Medium",deleted:true},
+    custom
+  ]);
+
+  assert.equal(priority.priorityOptionsCustomized,true);
+  assert.deepEqual(JSON.parse(JSON.stringify(priority.options.map(option=>option.id))),["high","low","custom-1"]);
+  assert.equal(priority.options[0].label,"Urgent");
+  assert.equal(priority.options[0].hiddenInField,true);
+  assert.equal(item.values.priority,undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify([...filters])),[["priority",["high"]]]);
+  assert.deepEqual(JSON.parse(JSON.stringify([...columns].map(([id,values])=>[id,[...values]]))),[["priority",["high"]]]);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getInputChoices(priority,{project,selected:[]}))),
+    [
+      {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:1},
+      {id:"custom-1",label:"Trivial",color:"var(--color-accent-fg)",rank:0}
+    ]
+  );
+  assert.equal(fieldTypes.formatValue(priority,{value:"high"}),"Urgent");
+  assert.equal(fieldTypes.sortValue(priority,{value:"custom-1"})<fieldTypes.sortValue(priority,{value:"low"}),true);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify([...fieldTypes.getFilterOptions(priority,{field:priority})].map(option=>option.value))),
+    ["high","low","custom-1"]
+  );
+  assert.deepEqual([...originalDefaults].map(option=>option.id),["high","medium","low"]);
+
+  fieldTypes.applyChoiceEdits(priority,context,priority.options.map(option=>({
+    id:option.id,label:option.label,deleted:true
+  })));
+  assert.deepEqual(JSON.parse(JSON.stringify(priority.options)),[]);
+  assert.deepEqual(JSON.parse(JSON.stringify(fieldTypes.getFieldChoices(priority,{project}))),[]);
 });
 
 test("tag and select modules apply their own visibility and deletion semantics",()=>{

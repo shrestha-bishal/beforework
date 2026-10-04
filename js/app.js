@@ -23,7 +23,6 @@
     "mdi:account-group-outline","mdi:file-document-outline","mdi:flag-outline","mdi:puzzle-outline",
     "mdi:school-outline","mdi:bank-outline"
   ];
-  const PRIORITY_OPTIONS=fieldTypes.get("priority").options;
   const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
@@ -1010,6 +1009,15 @@
       const statusField=selectedProject?.fields.find(field=>field.type==="select"&&field.label.trim().toLowerCase()==="status");
       const template=PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank;
       const templateHasStatus=destination.value==="new"&&template.fields.includes("status");
+      const priorityTarget=context.targets.find(target=>target.kind==="priority"&&selectedTargets.has(target.key));
+      const priorityField=priorityTarget
+        ? selectedProject
+          ? selectedProject.fields.find(field=>field.id===priorityTarget.fieldId)
+          : getTemplateFields()[priorityTarget.fieldIndex]
+        : null;
+      const priorityChoices=priorityField
+        ? fieldTypes.getInputChoices(priorityField,{project:selectedProject||undefined})
+        : undefined;
       const groupNames=selectedProject
         ? statusField
           ? (statusField.options||[]).map(option=>option.label)
@@ -1017,7 +1025,7 @@
         : templateHasStatus ? DEFAULT_STATUS_OPTIONS : template.groups;
       const mapsStatusToField=!!statusField||templateHasStatus;
       const prepared=context.parsed && hasTitle
-        ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,mappingRenderer.dateFormatSelect?.value||"DMY")
+        ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,mappingRenderer.dateFormatSelect?.value||"DMY",priorityChoices)
         : null;
       previewHead.replaceChildren();
       previewBody.replaceChildren();
@@ -1707,8 +1715,8 @@
   function fieldChipHtml(field, value, project){
     if (!value) return "";
     if (field.type==="priority"){
-      const opt = PRIORITY_OPTIONS.find(o=>o.id===value); if (!opt) return "";
-      return `<span class="priorityDot" style="background:${opt.color}" title="${opt.label} ${escapeHtml(field.label)}"></span>`;
+      const opt = fieldTypes.getFieldChoices(field,{project}).find(option=>option.id===value); if (!opt) return "";
+      return `<span class="priorityDot" style="background:${opt.color}" title="${escapeHtml(opt.label)} ${escapeHtml(field.label)}"></span>`;
     }
     if (["date","start-date","due-date"].includes(field.type)) return duePillHtml(value);
     if (field.type==="select"){
@@ -1738,8 +1746,8 @@
     if (field.type==="schedule") return item?escapeHtml(scheduleFieldValue(project,item))||"-":"-";
     if (field.type==="location") return value ? escapeHtml(String(value)) : "-";
     if (field.type==="priority"){
-      const opt = PRIORITY_OPTIONS.find(o=>o.id===value);
-      return opt ? `${fieldChipHtml(field,value)}${opt.label}` : "-";
+      const opt = fieldTypes.getFieldChoices(field,{project}).find(option=>option.id===value);
+      return opt ? `${fieldChipHtml(field,value,project)}${escapeHtml(opt.label)}` : "-";
     }
     if (["date","start-date","due-date"].includes(field.type)) return value ? duePillHtml(value) : "-";
     if (field.type==="select"){
@@ -3538,7 +3546,6 @@
     tagPillHtml,
     projectItemEntries,
     fieldTypes,
-    priorityOptions:PRIORITY_OPTIONS,
     renderPartial:(name,values)=>window.BeforeworkViewTemplates.renderPartial("itemFields",name,values)
   });
   function renderItemModal(){
@@ -4395,7 +4402,6 @@
         sortProjectRows,
         tagById,
         tagPillHtml,
-        priorityOptions:PRIORITY_OPTIONS,
         scheduleFieldValue,
         getItem,
         scheduleSave,
@@ -4460,10 +4466,14 @@
           isItemCompleted,
           dueDateField,
           priorityField,
+          priorityOptions:project=>fieldTypes.getInputChoices(priorityField(project),{project}),
           todayStr,
           projectRecords,
           formatUpdatedAt,
-          priorityColor:value=>PRIORITY_OPTIONS.find(option=>option.id===value)?.color
+          priorityColor:(project,value)=>{
+            const field=priorityField(project);
+            return fieldTypes.getFieldChoices(field,{project}).find(option=>option.id===value)?.color;
+          }
         },
         actions:{
           scheduleSave,

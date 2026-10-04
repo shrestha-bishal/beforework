@@ -12,7 +12,7 @@ export class OverviewDetailsModel {
     });
   }
 
-  getEntries(tone,{projects,openItems,overdueItems,completedItems,isItemCompleted,dueOf,priorityOf}){
+  getEntries(tone,{projects,openItems,overdueItems,completedItems,isItemCompleted,dueOf,priorityOf,priorityLabelOf}){
     if (tone==="projects"){
       return this.visibleProjects(projects).map(project=>{
         const items=Array.isArray(project.itemIndex)
@@ -33,7 +33,7 @@ export class OverviewDetailsModel {
       const priority=priorityOf(row);
       const meta=[row.project.name,row.group.name,
         due?`Due ${new Date(`${due}T00:00:00`).toLocaleDateString()}`:"",
-        priority?`${priority[0].toUpperCase()}${priority.slice(1)} priority`:""]
+        priority?`${priorityLabelOf?priorityLabelOf(row):`${priority[0].toUpperCase()}${priority.slice(1)}`} priority`:""]
         .filter(Boolean).join(" / ");
       return {kind:"item",id:row.item.id,projectId:row.project.id,groupId:row.group.id,
         title:row.item.title||"Untitled item",meta,due};

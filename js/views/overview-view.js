@@ -10,7 +10,7 @@ export class OverviewView {
   render(board){
     const state=this.getState();
     const {overviewDetailsView,cloneTemplate}=this;
-    const {allItemsFlat,isItemCompleted,dueDateField,priorityField,todayStr,projectRecords,formatUpdatedAt,priorityColor}=this.model;
+    const {allItemsFlat,isItemCompleted,dueDateField,priorityField,priorityOptions,todayStr,projectRecords,formatUpdatedAt,priorityColor}=this.model;
     const {scheduleSave,selectProject,openItemModal,openStandaloneCalendarItemModal,showNotice,openNewCalendarItemModal,showDialog,ensureProjectLoaded,addItem,navigateCalendar}=this.actions;
 
     const wrap = document.createElement("div");
@@ -26,6 +26,10 @@ export class OverviewView {
       return field ? row.item.values[field.id] : row.item.endDate||"";
     }
     function priorityOf(r){ const f = priorityField(r.project); return f ? (r.item.values[f.id]||"") : ""; }
+    function priorityLabelOf(row){
+      const value=priorityOf(row);
+      return priorityOptions(row.project).find(option=>option.id===value)?.label||value;
+    }
     const today = todayStr(0);
     const weekEnd = todayStr(7);
     const overdue = openItems.filter(row=>dueOf(row) && dueOf(row)<today);
@@ -33,27 +37,37 @@ export class OverviewView {
     const recent = [...activeItems].sort((a,b)=>b.item.updatedAt-a.item.updatedAt).slice(0,5);
 
     function priorityBreakdown(){
-      const counts = {high:0, medium:0, low:0, none:0};
-      openItems.forEach(r=>{
-        const p = priorityOf(r);
-        if (p==="high"||p==="medium"||p==="low") counts[p]++; else counts.none++;
+      const counts=new Map();
+      let noneCount=0;
+      projects.forEach(project=>{
+        priorityOptions(project).forEach(option=>{
+          const key=`${option.label}\u0000${option.color}`;
+          if (!counts.has(key)) counts.set(key,{label:option.label,color:option.color,rank:option.rank,count:0});
+        });
       });
-      const max = Math.max(1, ...Object.values(counts));
-      const rows = [
-        {label:"High",key:"high",color:"var(--color-danger-fg)"},
-        {label:"Medium",key:"medium",color:"var(--color-attention-fg)"},
-        {label:"Low",key:"low",color:"var(--color-attention-fg)"},
-        {label:"No priority",key:"none",color:"var(--color-neutral-muted)"},
-      ];
+      openItems.forEach(row=>{
+        const value=priorityOf(row);
+        const option=priorityOptions(row.project).find(candidate=>candidate.id===value);
+        if (!option){ noneCount++; return; }
+        const key=`${option.label}\u0000${option.color}`;
+        const current=counts.get(key)||{label:option.label,color:option.color,rank:option.rank,count:0};
+        current.count++;
+        counts.set(key,current);
+      });
+      const rows=[...counts.values()].sort((first,second)=>
+        (second.rank??0)-(first.rank??0)||first.label.localeCompare(second.label)
+      );
+      rows.push({label:"No priority",color:"var(--color-neutral-muted)",count:noneCount});
+      const max=Math.max(1,...rows.map(row=>row.count));
       const fragment = document.createDocumentFragment();
       rows.forEach((row,index)=>{
         if (index) fragment.appendChild(cloneElement("overviewDividerTemplate"));
         const element = cloneElement("overviewPriorityRowTemplate");
         element.querySelector("[data-priority-label]").textContent=row.label;
         const fill = element.querySelector("[data-priority-fill]");
-        fill.style.width=`${counts[row.key]/max*100}%`;
+        fill.style.width=`${row.count/max*100}%`;
         fill.style.background=row.color;
-        element.querySelector("[data-priority-count]").textContent=String(counts[row.key]);
+        element.querySelector("[data-priority-count]").textContent=String(row.count);
         fragment.appendChild(element);
       });
       return fragment;
@@ -209,7 +223,7 @@ export class OverviewView {
       overviewDetailsView.open({
         tone,
         stats:statRows,
-        data:{projects,openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf},
+        data:{projects,openItems,overdueItems:overdue,completedItems,isItemCompleted,dueOf,priorityOf,priorityLabelOf},
         actions:{openProject:selectProject,openItem:openItemModal}
       }).catch(error=>showNotice("Couldn't load overview details",error.message));
     }
@@ -299,9 +313,9 @@ export class OverviewView {
       const priorityDot=element.querySelector("[data-recent-priority]");
       priorityDot.hidden=!priority;
       if (priority){
-        const color=priorityColor(priority);
+        const color=priorityColor(row.project,priority);
         priorityDot.style.background=color;
-        priorityDot.title=`${priority[0].toUpperCase()}${priority.slice(1)} ${priorityField(row.project)?.label||"Priority"}`;
+        priorityDot.title=`${priorityLabelOf(row)} ${priorityField(row.project)?.label||"Priority"}`;
       }
       recentList.appendChild(element);
     });
