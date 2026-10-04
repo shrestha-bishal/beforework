@@ -168,6 +168,24 @@ test("filter tokens and autocomplete suggestions expose the same canonical choic
   assert.ok(!feature.suggestions(project,"Status:").some(option=>option.value==="todo"));
 });
 
+test("applied filter tokens retain selection order across filter types and restore",()=>{
+  const {feature,project,stored}=createFeature();
+  feature.setTags(["urgent"]);
+  feature.setGroups(["backlog"]);
+  feature.setTags(["urgent","follow-up"]);
+  feature.persistActive();
+
+  const expected=["Tag: urgent","group: Backlog","Tag: follow-up"];
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.tokens(project).map(token=>token.label))),expected);
+
+  const restored=createFeature({saved:JSON.parse(stored.get("filters"))});
+  restored.feature.restore("project");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(restored.feature.tokens(restored.project).map(token=>token.label))),
+    expected
+  );
+});
+
 test("filter autocomplete omits already selected values from field options",()=>{
   const {feature,project}=createFeature();
   feature.fields.set("priority",["high","medium"]);
@@ -211,9 +229,10 @@ test("filter query prefixes open focused autocomplete choices while leaving free
   const tagSuggestions=feature.suggestions(project,"tag:");
 
   assert.deepEqual(JSON.parse(JSON.stringify(tagSuggestions.map(option=>option.label))),
-    ["follow-up","quick-win","No tags"]);
+    ["follow-up","quick-win"]);
   assert.ok(!tagSuggestions.some(option=>option.value==="urgent"));
   assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:urg").map(option=>option.value))),[]);
+  assert.ok(!feature.suggestions(project,"No tags").some(option=>option.kind==="tag"));
   assert.ok(feature.suggestions(project,"")[0].kind==="operator");
   assert.ok(feature.suggestions(project,"is:").some(option=>option.value==="completed"));
   assert.ok(feature.suggestions(project,"Status:").some(option=>option.value==="todo"));
@@ -231,7 +250,8 @@ test("tag suggestions and filtering work without a custom Tags field",()=>{
   feature.tags.add("urgent");
 
   assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:").map(option=>option.value))),
-    ["follow-up","quick-win","__none__"]);
+    ["follow-up","quick-win"]);
+  assert.ok(feature.columnFilterOptions(project,"tags").some(option=>option.value==="__none__"));
   assert.equal(feature.matches(project,project.groups[0].items[0],project.groups[0]),true);
   assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),false);
 });

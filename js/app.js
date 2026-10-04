@@ -86,8 +86,7 @@
       openProject:selectProject,
       async openGroup(project,group){
         await selectProject(project.id);
-        filterFeature.groups.clear();
-        filterFeature.groups.add(group.id);
+        filterFeature.setGroups([group.id]);
         render();
       },
       async openProjectItem(project,group,item){
@@ -96,8 +95,7 @@
       },
       async openTag(project,tag){
         await selectProject(project.id);
-        filterFeature.tags.clear();
-        filterFeature.tags.add(tag.id);
+        filterFeature.setTags([tag.id]);
         render();
         renderSidebarTags();
       },
@@ -726,7 +724,7 @@
       group.items.forEach(item=>{ item.updatedAt = now; target.items.push(item); });
     }
     p.groups = p.groups.filter(g=>g.id!==gid);
-    filterFeature.groups.delete(gid);
+    filterFeature.setGroups([...filterFeature.groups].filter(id=>id!==gid));
     scheduleSave(); render(); renderProjectList();
   }
   async function editGroupName(project, group){
@@ -2112,7 +2110,7 @@
     wrap.querySelectorAll("[data-tagfilter]").forEach(el=>{
       el.onclick = () => {
         const tid = el.dataset.tagfilter;
-        if (filterFeature.tags.has(tid)) filterFeature.tags.delete(tid); else filterFeature.tags.add(tid);
+        filterFeature.toggleTag(tid);
         render(); renderSidebarTags();
       };
     });

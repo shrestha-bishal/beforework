@@ -29,6 +29,7 @@
     let tags=new Set();
     let fields=new Map();
     let columns=new Map();
+    let tokenOrder=[];
     let completion="open";
     let preferences=JSON.parse(storage.getItem(storageKey)||"{}");
     let suggestionIndex=-1;
@@ -39,6 +40,29 @@
       values.forEach(value=>target.add(value));
     }
 
+    function tokenOrderKey(token){
+      return JSON.stringify([token.kind,String(token.id),String(token.value)]);
+    }
+
+    function updateTokenOrder(kind,id,values){
+      const selected=values.map(value=>({kind,id:String(id),value:String(value)}));
+      const selectedKeys=new Set(selected.map(tokenOrderKey));
+      tokenOrder=tokenOrder.filter(token=>token.kind!==kind||String(token.id)!==String(id)||selectedKeys.has(tokenOrderKey(token)));
+      const existing=new Set(tokenOrder.map(tokenOrderKey));
+      selected.forEach(token=>{
+        const key=tokenOrderKey(token);
+        if (!existing.has(key)){
+          tokenOrder.push(token);
+          existing.add(key);
+        }
+      });
+    }
+
+    function updateFieldTokenOrder(id,selection){
+      const values=Array.isArray(selection)?selection:selection==null?[]:[selection];
+      updateTokenOrder("field",id,values.filter(value=>value&&value!=="__all__"));
+    }
+
     function savePreferences(){
       storage.setItem(storageKey,JSON.stringify(preferences));
     }
@@ -47,12 +71,14 @@
       const project=getProject(getActiveProjectId());
       if (!project) return;
       pruneColumns(project);
+      tokenList(project);
       preferences[project.id]={
         text,
         groups:[...groups],
         tags:[...tags],
         fields:Object.fromEntries(fields),
         columns:Object.fromEntries([...columns].map(([id,values])=>[id,[...values]])),
+        tokenOrder,
         completion
       };
       savePreferences();
@@ -77,9 +103,11 @@
       for (const [columnId,values] of [...columns]){
         if (columnId==="group"){
           values.forEach(value=>groups.add(value));
+          updateTokenOrder("group","group",[...groups]);
           columns.delete(columnId);
         } else if (columnId==="tags"){
           values.forEach(value=>tags.add(value));
+          updateTokenOrder("tag","tags",[...tags]);
           columns.delete(columnId);
         } else {
           const field=sharedColumnField(project,columnId);
@@ -88,6 +116,7 @@
           const selected=new Set(Array.isArray(current)?current:current&&current!=="__all__"?[current]:[]);
           values.forEach(value=>selected.add(value));
           fields.set(field.id,[...selected]);
+          updateFieldTokenOrder(field.id,[...selected]);
           columns.delete(columnId);
         }
       }
@@ -98,10 +127,18 @@
       text=saved.text||"";
       replaceSet(groups,Array.isArray(saved.groups)?saved.groups:[]);
       replaceSet(tags,Array.isArray(saved.tags)?saved.tags:[]);
+      tokenOrder=Array.isArray(saved.tokenOrder)?saved.tokenOrder.filter(token=>
+        token&&["text","group","tag","field","column"].includes(token.kind)&&
+        typeof token.id==="string"&&typeof token.value==="string"
+      ): [];
       fields.clear();
       columns.clear();
       fields=new Map(Object.entries(saved.fields||{}));
       columns=new Map(Object.entries(saved.columns||{}).map(([id,values])=>[id,new Set(Array.isArray(values)?values:[])]));
+      updateTokenOrder("text","text",text?[text]:[]);
+      updateTokenOrder("group","group",[...groups]);
+      updateTokenOrder("tag","tags",[...tags]);
+      fields.forEach((selection,id)=>updateFieldTokenOrder(id,selection));
       migrateColumns(getProject(projectId));
       completion=saved.completion==="completed"?"completed":"open";
     }
@@ -112,6 +149,7 @@
       tags.clear();
       fields.clear();
       columns.clear();
+      tokenOrder=[];
       suggestionsOpen=false;
       const input=inputElement();
       input.value="";
@@ -129,9 +167,8 @@
 
     function projectTagOptions(project){
       const tagsField=project?.fields?.find(field=>field.type==="tags");
-      const options=tagsField?fieldTypes.getFilterOptions(tagsField,{project})
+      return tagsField?fieldTypes.getFilterOptions(tagsField,{project})
         :(project?.tags||[]).map(tag=>({value:tag.id,label:tag.name,color:tag.color||""}));
-      return [...options,{value:NONE,label:"No tags",color:""}];
     }
 
     function columnValuesForItem(project,item,group,columnId){
@@ -225,8 +262,7 @@
       }
       if (columnId==="group") return getProjectGroups(project).find(group=>group.id===value)?.name||value;
       if (columnId==="tags"){
-        const tagsField=project.fields.find(candidate=>candidate.type==="tags");
-        return fieldTypes.getFilterOptions(tagsField,{project}).find(option=>String(option.value)===value)?.label||value;
+        return projectTagOptions(project).find(option=>String(option.value)===value)?.label||value;
       }
       if (columnId==="updated"){
         const date=new Date(`${value}T12:00:00`);
@@ -241,6 +277,7 @@
       if (columnId==="group") getProjectGroups(project).forEach(group=>values.add(String(group.id)));
       else if (columnId==="tags"){
         projectTagOptions(project).forEach(option=>values.add(String(option.value)));
+        values.add(NONE);
       } else if (columnId.startsWith("field:")){
         const field=project.fields.find(candidate=>candidate.id===columnId.slice(6));
         fieldTypes.getFilterOptions(field,{project,items}).forEach(option=>values.add(String(option.value)));
@@ -334,16 +371,21 @@
 
     function setColumnSelection(project,columnId,values){
       const selected=new Set(values);
-      if (columnId==="group") replaceSet(groups,selected);
+      if (columnId==="group"){
+        replaceSet(groups,selected);
+        updateTokenOrder("group","group",[...groups]);
+      }
       else if (columnId==="tags"){
         if (selected.has(NONE)) replaceSet(tags,[NONE]);
         else replaceSet(tags,selected);
+        updateTokenOrder("tag","tags",[...tags]);
       }
       else {
         const field=sharedColumnField(project,columnId);
         if (field){
           if (selected.size) fields.set(field.id,[...selected]);
           else fields.delete(field.id);
+          updateFieldTokenOrder(field.id,[...selected]);
         } else if (selected.size) columns.set(columnId,selected);
         else columns.delete(columnId);
       }
@@ -373,7 +415,18 @@
         [...selection].forEach(value=>add("column",columnId,String(value),
           columnFilterLabel?.(project,columnId,String(value))||`${columnId}: ${value}`));
       }
-      return tokens;
+      const available=new Set(tokens.map(tokenOrderKey));
+      tokenOrder=tokenOrder.filter(token=>available.has(tokenOrderKey(token)));
+      const ordered=new Set(tokenOrder.map(tokenOrderKey));
+      tokens.forEach(token=>{
+        const key=tokenOrderKey(token);
+        if (!ordered.has(key)){
+          tokenOrder.push({kind:token.kind,id:String(token.id),value:String(token.value)});
+          ordered.add(key);
+        }
+      });
+      const order=new Map(tokenOrder.map((token,index)=>[tokenOrderKey(token),index]));
+      return tokens.sort((first,second)=>order.get(tokenOrderKey(first))-order.get(tokenOrderKey(second)));
     }
 
     function suggestions(project,query){
@@ -460,7 +513,10 @@
         return;
       }
       if (suggestion.kind==="completion") completion=suggestion.value;
-      else if (suggestion.kind==="group") groups.add(suggestion.value);
+      else if (suggestion.kind==="group"){
+        groups.add(suggestion.value);
+        updateTokenOrder("group","group",[...groups]);
+      }
       else if (suggestion.kind==="tag"){
         if (suggestion.value===NONE){
           tags.clear();
@@ -469,6 +525,7 @@
           tags.delete(NONE);
           tags.add(suggestion.value);
         }
+        updateTokenOrder("tag","tags",[...tags]);
       }
       else {
         const field=getProject(getActiveProjectId())?.fields.find(candidate=>candidate.id===suggestion.id);
@@ -479,6 +536,7 @@
           selected.add(suggestion.value);
           fields.set(suggestion.id,[...selected]);
         }
+        updateFieldTokenOrder(suggestion.id,fields.get(suggestion.id));
       }
       inputElement().value="";
       suggestionIndex=-1;
@@ -490,7 +548,10 @@
     }
 
     function removeToken(token){
-      if (token.kind==="text") text="";
+      if (token.kind==="text"){
+        text="";
+        updateTokenOrder("text","text",[]);
+      }
       else if (token.kind==="group") groups.delete(token.value);
       else if (token.kind==="tag") tags.delete(token.value);
       else if (token.kind==="field"){
@@ -505,6 +566,10 @@
         selected?.delete(token.value);
         if (!selected?.size) columns.delete(token.id);
       }
+      if (token.kind==="group") updateTokenOrder("group","group",[...groups]);
+      else if (token.kind==="tag") updateTokenOrder("tag","tags",[...tags]);
+      else if (token.kind==="field") updateFieldTokenOrder(token.id,fields.get(token.id));
+      else if (token.kind==="column") updateTokenOrder("column",token.id,columns.get(token.id)||[]);
       persistActive();
       render();
       renderBar(getProject(getActiveProjectId()));
@@ -561,7 +626,7 @@
       });
       suggestionsWrap.querySelector("[data-filter-search]")?.addEventListener("click",()=>{
         suggestionsOpen=false;
-        text=input.value.trim();
+        setText(input.value.trim());
         input.value="";
         suggestionsWrap.hidden=true;
         persistActive();
@@ -616,7 +681,7 @@
               options[0].click();
               return;
             }
-            text=input.value.trim();
+            setText(input.value.trim());
             input.value="";
             persistActive();
             render();
@@ -655,11 +720,34 @@
       tokens:tokenList,
       suggestions,
       wire,
-      setText(value){ text=value; },
+      setText(value){
+        const next=String(value||"");
+        if (!text&&next) updateTokenOrder("text","text",[next]);
+        else if (text&&!next) updateTokenOrder("text","text",[]);
+        text=next;
+      },
       setCompletion(value){ completion=value; },
-      setGroups(value){ replaceSet(groups,value); },
-      setTags(value){ replaceSet(tags,value); },
-      setFields(value){ fields=new Map(value); },
+      setGroups(value){
+        replaceSet(groups,value);
+        updateTokenOrder("group","group",[...groups]);
+      },
+      setTags(value){
+        replaceSet(tags,value);
+        updateTokenOrder("tag","tags",[...tags]);
+      },
+      toggleTag(value){
+        const id=String(value);
+        if (tags.has(id)) tags.delete(id);
+        else tags.add(id);
+        updateTokenOrder("tag","tags",[...tags]);
+      },
+      setFields(value){
+        fields=new Map(value);
+        fields.forEach((selection,id)=>updateFieldTokenOrder(id,selection));
+        for (const token of [...tokenOrder]){
+          if (token.kind==="field"&&!fields.has(token.id)) updateTokenOrder("field",token.id,[]);
+        }
+      },
       clearPreferences(){
         preferences={};
         columns.clear();
