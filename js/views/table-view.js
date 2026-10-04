@@ -232,6 +232,7 @@ export class TableView {
     const tbody=wrap.querySelector("#tableTbody");
     const colCount=2+project.fields.length+(showGroupColumn?1:0);
     if (!rows.length){
+      updateSelection();
       const emptyRow=templates.querySelector("#tableViewEmptyRowTemplate").content.firstElementChild.cloneNode(true);
       const emptyCell=emptyRow.querySelector("[data-table-empty-cell]");
       emptyCell.colSpan=colCount;

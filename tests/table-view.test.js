@@ -52,6 +52,11 @@ test("Table keeps shared selection, sorting, and edits wired to app behavior",()
   assert.ok(app.includes('import("./views/table-view.js")'));
 });
 
+test("Table bulk actions stay hidden until an item is selected, including empty results",()=>{
+  assert.match(template,/<div class="bulkBar" data-selected="false">/);
+  assert.match(view,/if \(!rows\.length\)\{\s*updateSelection\(\);[\s\S]*?return;/);
+});
+
 test("Table group header visibility matches optional group cells",()=>{
   assert.ok(view.includes("if (showGroupColumn) groupHeader.hidden=false;"));
   assert.ok(view.includes("else groupCell.remove();"));

@@ -162,6 +162,7 @@ export class ListView {
     const colCount = 3 + project.fields.length + (tagsEnabled?1:0)
       + (showGroupColumn?1:0) + (showProgressColumn?1:0);
     if (!rows.length){
+      updateSelection();
       const emptyRow=templates.querySelector("#listViewEmptyRowTemplate").content.firstElementChild.cloneNode(true);
       const emptyCell=emptyRow.querySelector("[data-list-empty-cell]");
       emptyCell.colSpan=colCount;

@@ -57,6 +57,11 @@ test("List view structure and reusable row markup live in its page template",()=
   assert.ok(app.includes('cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")'));
 });
 
+test("List bulk actions stay hidden until an item is selected, including empty results",()=>{
+  assert.match(template,/<div class="bulkBar" data-selected="false">/);
+  assert.match(view,/if \(!rows\.length\)\{\s*updateSelection\(\);[\s\S]*?return;/);
+});
+
 test("List headers stay aligned with optional group and progress cells",()=>{
   assert.ok(view.includes("if (showGroupColumn) groupHeader.hidden=false;"));
   assert.ok(view.includes("if (showProgressColumn) progressHeader.hidden=false;"));
