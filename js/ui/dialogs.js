@@ -179,7 +179,7 @@
         search.hidden=!field.searchable;
         search.placeholder=field.searchPlaceholder||`Search ${field.label?.toLowerCase()||"options"}`;
         search.setAttribute("aria-label",search.placeholder);
-        menu.setAttribute("aria-label",field.label||"Select an option");
+        optionList.setAttribute("aria-label",field.label||"Select an option");
         const options=(field.options||[]).map((option,optionIndex)=>{
           const choice=document.createElement("button");
           choice.type="button";
