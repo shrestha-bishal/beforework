@@ -14,7 +14,7 @@
       getEditorCopy:()=>({
         itemLabel:"option",
         heading:"Options",
-        description:"Hidden options stay assigned to existing items but aren't offered for new selections.",
+        description:"Hidden options remain on items that already use them, but won't be available for new selections.",
         addLabel:"Add option",
         inputPlaceholder:"Option name"
       }),

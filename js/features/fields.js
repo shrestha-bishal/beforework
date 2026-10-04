@@ -129,11 +129,12 @@
       event?.stopPropagation();
       closeAllActionMenus();
       const choices=fieldTypes.getEditableChoices(field,{project});
+      const choiceCopy=choices?fieldTypes.getChoiceEditorCopy(field,{project}):null;
       const canRename=fieldTypes.canRename(field);
       const settings=fieldTypes.getSettings(field,{mode:"edit"});
       let addedChoiceCount=0;
       const result=await showDialog({
-        title:"Edit field",
+        title:`Edit ${fieldTypes.getDisplayLabel(field)}`,
         fields:[
           ...(canRename?[{label:"Field name",value:field.label}]:[]),
           ...settings
@@ -141,7 +142,7 @@
         confirmLabel:"Save",
         ...(choices?{choiceList:{
           items:choices,
-          copy:fieldTypes.getChoiceEditorCopy(field,{project}),
+          copy:choiceCopy,
           createChoice:label=>fieldTypes.createChoice(field,{project,uid,index:addedChoiceCount++},label)
         }}:{}),
         actionMenu:{

@@ -25,7 +25,7 @@
       getEditorCopy:()=>({
         itemLabel:"priority",
         heading:"Priority levels",
-        description:"Hidden levels stay assigned to existing items but aren't offered for new selections.",
+        description:"Hidden levels remain on items that already use them, but won't be available for new selections.",
         addLabel:"Add priority",
         inputPlaceholder:"Priority name"
       }),

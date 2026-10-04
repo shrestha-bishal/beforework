@@ -276,7 +276,6 @@
       const copy=choiceList.copy;
       const choiceRows=new WeakMap();
       container.hidden=false;
-      container.querySelector("[data-dialog-choice-heading]").textContent=copy.heading;
       container.querySelector("[data-dialog-choice-description]").textContent=copy.description;
       addButton.querySelector("[data-dialog-choice-add-label]").textContent=copy.addLabel;
       newChoiceInput.placeholder=copy.inputPlaceholder;
@@ -460,6 +459,7 @@
           const overlay=cloneTemplate(templates,"dialogShell");
           const {title,message="",fields=[],confirmLabel="Continue",secondaryLabel="",danger=false,cancelLabel="Cancel",actionMenu,choiceList}=options;
           const dialog=overlay.querySelector('[role="dialog"]');
+          dialog.classList.toggle("dialog--choice-editor",Boolean(choiceList));
           dialog.querySelector("[data-dialog-title]").textContent=title;
           if (actionMenu){
             const trigger=dialog.querySelector("[data-dialog-action-menu-trigger]");

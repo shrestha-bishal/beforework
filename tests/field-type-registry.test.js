@@ -205,7 +205,7 @@ test("choice editors are declared by option-owning field types only",()=>{
     {
       itemLabel:"tag",
       heading:"Tags",
-      description:"Hidden tags stay assigned to existing items but aren't offered for new assignments.",
+      description:"Hidden tags remain on items that already use them, but won't be available for new assignments.",
       addLabel:"Add tag",
       inputPlaceholder:"Tag name"
     }
@@ -215,7 +215,7 @@ test("choice editors are declared by option-owning field types only",()=>{
     {
       itemLabel:"option",
       heading:"Options",
-      description:"Hidden options stay assigned to existing items but aren't offered for new selections.",
+      description:"Hidden options remain on items that already use them, but won't be available for new selections.",
       addLabel:"Add option",
       inputPlaceholder:"Option name"
     }

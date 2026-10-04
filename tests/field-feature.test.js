@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const {createFieldTypes}=require("./helpers/field-types");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
 const indexSource=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
@@ -40,6 +41,7 @@ function createFeature(overrides={}){
     fieldTypes:{
       list:()=>definitions,
       get:type=>definitions.find(definition=>definition.value===type)||null,
+      getDisplayLabel:field=>field.label,
       canRename:field=>{
         const type=field.offeringType||field.type;
         const definition=type==="select"&&field.label==="Group"
@@ -81,7 +83,7 @@ function createFeature(overrides={}){
         ?{
           itemLabel:"tag",
           heading:"Tags",
-          description:"Hidden tags stay assigned to existing items but aren't offered for new assignments.",
+          description:"Hidden tags remain on items that already use them, but won't be available for new assignments.",
           addLabel:"Add tag",
           inputPlaceholder:"Tag name"
         }
@@ -89,14 +91,14 @@ function createFeature(overrides={}){
         ?{
           itemLabel:"priority level",
           heading:"Priority levels",
-          description:"Hidden levels stay assigned to existing items but aren't offered for new selections.",
+          description:"Hidden levels remain on items that already use them, but won't be available for new selections.",
           addLabel:"Add priority",
           inputPlaceholder:"Priority name"
         }
         :{
           itemLabel:"option",
           heading:"Options",
-          description:"Hidden options stay assigned to existing items but aren't offered for new selections.",
+          description:"Hidden options remain on items that already use them, but won't be available for new selections.",
           addLabel:"Add option",
           inputPlaceholder:"Option name"
         },
@@ -478,6 +480,24 @@ test("field edit rejects a new choice that duplicates an existing choice",async(
   assert.deepEqual(calls.notices,[["Choice already exists","Each choice must have a unique name."]]);
   assert.deepEqual(field.options.map(option=>option.id),["todo"]);
   assert.equal(calls.saved,0);
+});
+
+test("field editor titles identify every registered field type by its field label",async()=>{
+  const fieldDefinitions=createFieldTypes().list();
+  for (const [index,definition] of fieldDefinitions.entries()){
+    const field={
+      id:`field-${index}`,
+      label:`Custom ${definition.label}`,
+      type:definition.value,
+      options:[]
+    };
+    const {feature,calls,setDialogResults}=createFeature();
+    setDialogResults(null);
+
+    await feature.editField({stopPropagation(){}},field,{fields:[field]});
+
+    assert.equal(calls.dialogs[0].title,`Edit ${field.label}`,definition.value);
+  }
 });
 
 test("edit field dialog menu reuses the existing delete confirmation and cleanup",async()=>{

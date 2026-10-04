@@ -617,10 +617,9 @@
   .dialogHeaderActions .closeX{position:static;}
   .dialogFieldActions{position:relative;display:flex;}
   .dialogFieldActions[hidden]{display:none;}
-  .dialogChoiceList{display:flex;flex-direction:column;gap:8px;margin-top:18px;}
+  .dialogChoiceList{display:flex;flex-direction:column;gap:8px;margin-top:0;}
   .dialogChoiceList[hidden]{display:none;}
-  .dialogChoiceList h4{margin:0;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
-  .dialogChoiceHint{margin:0;color:var(--muted);font-size:12px;line-height:1.4;}
+  .dialogChoiceHint{margin:0;color:var(--muted);font-size:12.5px;line-height:1.5;}
   .dialogChoiceList [data-dialog-choice-rows]{display:flex;flex-direction:column;gap:2px;}
   .dialogChoiceRow{display:flex;min-height:40px;align-items:center;gap:10px;padding:5px 8px;border:0;border-radius:6px;transition:background .14s ease,box-shadow .14s ease;}
   .dialogChoiceRow:hover{background:var(--bg-soft);}

@@ -86,6 +86,8 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(dialogsTemplateSource,/data-dialog-choice-add[\s\S]*data-dialog-choice-add-label/);
   assert.match(dialogsTemplateSource,/data-dialog-choice-new-input[\s\S]*data-dialog-choice-new-confirm[\s\S]*data-dialog-choice-new-cancel/);
   assert.match(dialogsSource,/function renderChoiceList\(container,choiceList\)/);
+  assert.match(dialogsSource,/dialog\.classList\.toggle\("dialog--choice-editor",Boolean\(choiceList\)\)/);
+  assert.doesNotMatch(dialogsTemplateSource,/data-dialog-choice-heading/);
   assert.match(dialogsSource,/const updateFieldVisibility=\(\)=>/);
   assert.match(dialogsSource,/fieldsContainer\.addEventListener\("change",updateFieldVisibility\)/);
   assert.match(dialogsSource,/input\.dispatchEvent\(new global\.Event\("change",\{bubbles:true\}\)\)/);
@@ -105,6 +107,8 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
   assert.match(stylesSource,/\.fieldDetailSettings\{appearance:none;-webkit-appearance:none;display:grid/);
   assert.match(stylesSource,/\.fieldDetailSettings:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
+  assert.match(stylesSource,/\.dialogChoiceList\{display:flex;flex-direction:column;gap:8px;margin-top:0;\}/);
+  assert.doesNotMatch(stylesSource,/\.dialog--choice-editor h3/);
   assert.match(appSource,/data-action="addSchedule"/);
   assert.match(appSource,/scheduleField\s*\?\s*\(hasSchedule\s*\|\|\s*openItemRef\.scheduleOpen\s*\?/);
   assert.match(rendered,/data-description-tab="edit"/);
