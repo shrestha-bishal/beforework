@@ -85,7 +85,7 @@ test("project-management template starts with a useful status flow and ordered L
   assert.deepEqual(JSON.parse(JSON.stringify(taskboard.statusOptions)),[
     "Backlog","To do","In progress","Review","Blocked"
   ]);
-  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.tags)),["Urgent","Follow-up","Quick win"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.tags)),["urgent","follow-up","quick-win"]);
   assert.deepEqual(JSON.parse(JSON.stringify(taskboard.columnOrders.list)),[
     "title","field:status","field:priority","field:due","tags","progress","updated"
   ]);

@@ -15,7 +15,7 @@
       fields:["status","priority","due","tags"],
       groups:[],
       statusOptions:["Backlog","To do","In progress","Review","Blocked"],
-      tags:["Urgent","Follow-up","Quick win"],
+      tags:["urgent","follow-up","quick-win"],
       columnOrders:{
         table:["title","field:status","field:priority","field:due","tags"]
       }
@@ -27,7 +27,7 @@
       groups:[],
       boardGroupBy:"Status",
       statusOptions:["Backlog","To do","In progress","Review","Blocked"],
-      tags:["Urgent","Follow-up","Quick win"],
+      tags:["urgent","follow-up","quick-win"],
       columnOrders:{
         list:["title","field:status","field:priority","field:due","tags","progress","updated"],
         table:["title","field:status","field:priority","field:due","tags"]
