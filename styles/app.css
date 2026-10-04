@@ -511,7 +511,7 @@
   .appSelectMenu[hidden]{display:none;}
   .appSelectMenuTitle{padding:4px 6px 2px;color:var(--text);font-size:13px;font-weight:600;}
   .appSelectSearch{flex:none;width:100%;min-height:30px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;}
-  .appSelectSearch:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 2px var(--accent-soft);}
+  .appSelectSearch:focus{border-color:var(--border-strong);outline:0;box-shadow:0 0 0 1px var(--bg-soft2);}
   .appSelectOptions{display:flex;min-height:0;flex-direction:column;gap:2px;overflow:auto;}
   .appSelectOptions[hidden],.appSelectOption[hidden],.appSelectEmpty[hidden]{display:none;}
   .appSelectEmpty{padding:8px 9px;color:var(--muted);font-size:12px;}
