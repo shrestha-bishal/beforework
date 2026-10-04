@@ -15,6 +15,11 @@
     ].some(method=>typeof definition.choiceEditor[method]!=="function")){
       throw new TypeError(`Field type "${definition.value}" has an incomplete choice editor.`);
     }
+    if (!!definition.getSettings!==!!definition.applySettings
+      ||(definition.getSettings!==undefined&&typeof definition.getSettings!=="function")
+      ||(definition.applySettings!==undefined&&typeof definition.applySettings!=="function")){
+      throw new TypeError(`Field type "${definition.value}" has incomplete settings handlers.`);
+    }
     definitions.set(definition.value,Object.freeze({...definition}));
   }
 
@@ -24,6 +29,35 @@
 
   function getFilter(field){
     return behaviorFor(field?.type)?.filter||null;
+  }
+
+  function getSettings(field,context={}){
+    return behaviorFor(field?.type)?.getSettings?.({...context,field})||[];
+  }
+
+  function applySettings(field,context,values){
+    const apply=behaviorFor(field?.type)?.applySettings;
+    if (!apply) return;
+    return apply({...context,field,values});
+  }
+
+  function getDisplayLabel(field){
+    const getLabel=behaviorFor(field?.type)?.getDisplayLabel;
+    return getLabel?getLabel({field}):String(field?.label||"");
+  }
+
+  function getInputType(field){
+    return behaviorFor(field?.type)?.inputType||field?.type||"text";
+  }
+
+  function getSummaryMetadata(field){
+    const getMetadata=behaviorFor(field?.type)?.getSummaryMetadata;
+    return getMetadata?getMetadata({field}):{};
+  }
+
+  function validateField(field,context={}){
+    const validate=behaviorFor(field?.type)?.validateField;
+    return validate?validate({...context,field}):[];
   }
 
   function getChoiceEditor(field){
@@ -165,7 +199,8 @@
 
   global.BeforeworkFieldTypes=Object.freeze({
     register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,getChoiceEditorCopy,createChoice,
-    applyChoiceEdits,getChoiceDeleteConfirmation,
+    applyChoiceEdits,getChoiceDeleteConfirmation,getSettings,applySettings,
+    getDisplayLabel,getInputType,getSummaryMetadata,validateField,
     getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
     normalizeInput,sortValue,formatValue
   });

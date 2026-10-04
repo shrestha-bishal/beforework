@@ -173,6 +173,7 @@
       })),
       fields:(project.fields||[]).map(field=>({
         id:field.id,label:field.label,type:field.type,options:field.options||[],
+        ...global.BeforeworkFieldTypes.getSummaryMetadata(field),
         ...(field.priorityOptionsCustomized===true?{priorityOptionsCustomized:true}:{})
       })),
       views:project.views||[],

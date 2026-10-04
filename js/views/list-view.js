@@ -81,12 +81,13 @@ export class ListView {
       const fieldHeader=templates.querySelector("#listViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=field.id;
       fieldHeader.dataset.columnId=`field:${field.id}`;
-      fieldHeader.querySelector(".fieldColumnLabel").textContent=field.label;
+      const fieldLabel=window.BeforeworkFieldTypes.getDisplayLabel(field);
+      fieldHeader.querySelector(".fieldColumnLabel").textContent=fieldLabel;
       const dragHandle=fieldHeader.querySelector(".fieldColumnDragHandle");
-      dragHandle.setAttribute("aria-label",`Reorder ${field.label} column`);
+      dragHandle.setAttribute("aria-label",`Reorder ${fieldLabel} column`);
       dragHandle.title="Drag to reorder column";
       const menuButton=fieldHeader.querySelector(".fieldColumnMenuBtn");
-      menuButton.setAttribute("aria-label",`Actions for ${field.label}`);
+      menuButton.setAttribute("aria-label",`Actions for ${fieldLabel}`);
       menuButton.title="Column actions";
       if (tagsHeader) tagsHeader.before(fieldHeader);
       else headerRow.appendChild(fieldHeader);

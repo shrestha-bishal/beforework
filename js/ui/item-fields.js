@@ -16,7 +16,7 @@ window.BeforeworkItemFields=(()=>{
     function labelHtml(field){
       return renderPartial("fieldLabel",{
         fieldId:escapeHtml(field.id),
-        label:escapeHtml(field.label)
+        label:escapeHtml(fieldTypes.getDisplayLabel(field))
       });
     }
 
@@ -97,8 +97,7 @@ window.BeforeworkItemFields=(()=>{
         });
       }
 
-      const inputTypes={url:"url",email:"email",number:"number"};
-      const inputType=inputTypes[field.type]||"text";
+      const inputType=fieldTypes.getInputType(field);
       const placeholders={url:"https://example.com",email:"name@example.com"};
       return renderPartial("text",{
         labelHtml:label,

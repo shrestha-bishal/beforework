@@ -82,7 +82,7 @@ function fieldControl(field,item,group,project,value,scheduleFieldValue){
   control.className="form-control tableCell";
   Object.assign(control.dataset,dataset);
   control.type=field.type==="date"||field.type==="start-date"||field.type==="due-date" ? "date"
-    : ["number","url","email"].includes(field.type) ? field.type : "text";
+    : window.BeforeworkFieldTypes.getInputType(field);
   if (control.type==="number") control.step="any";
   if (field.type==="url") control.placeholder="https://...";
   if (field.type==="email") control.placeholder="name@example.com";
@@ -161,12 +161,13 @@ export class TableView {
       const fieldHeader=templates.querySelector("#tableViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=field.id;
       fieldHeader.dataset.columnId=`field:${field.id}`;
-      fieldHeader.querySelector(".fieldColumnLabel").textContent=field.label;
+      const fieldLabel=window.BeforeworkFieldTypes.getDisplayLabel(field);
+      fieldHeader.querySelector(".fieldColumnLabel").textContent=fieldLabel;
       const dragHandle=fieldHeader.querySelector(".fieldColumnDragHandle");
-      dragHandle.setAttribute("aria-label",`Reorder ${field.label} column`);
+      dragHandle.setAttribute("aria-label",`Reorder ${fieldLabel} column`);
       dragHandle.title="Drag to reorder column";
       const menuButton=fieldHeader.querySelector(".fieldColumnMenuBtn");
-      menuButton.setAttribute("aria-label",`Actions for ${field.label}`);
+      menuButton.setAttribute("aria-label",`Actions for ${fieldLabel}`);
       menuButton.title="Column actions";
       if (tagsHeader) tagsHeader.before(fieldHeader);
       else headerRow.appendChild(fieldHeader);

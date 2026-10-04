@@ -39,6 +39,17 @@
         field.options=(opts||"").split(",").map(value=>value.trim()).filter(Boolean)
           .map((optionLabel,index)=>({id:uid(),label:optionLabel,color:selectColors[index%selectColors.length]}));
       }
+      const settings=fieldTypes.getSettings(field,{mode:"create"});
+      if (settings.length){
+        const values=await showDialog({
+          title:`${fieldTypeLabel(type)} settings`,
+          message:`Configure settings for this ${fieldTypeLabel(type).toLowerCase()} field.`,
+          fields:settings,
+          confirmLabel:"Create field"
+        });
+        if (values===null) return;
+        fieldTypes.applySettings(field,{mode:"create"},values);
+      }
       project.fields.push(field);
       scheduleSave();
       renderAll();
@@ -99,7 +110,10 @@
       let addedChoiceCount=0;
       const result=await showDialog({
         title:"Edit field",
-        fields:[{label:"Field name",value:field.label}],
+        fields:[
+          {label:"Field name",value:field.label},
+          ...fieldTypes.getSettings(field,{mode:"edit"})
+        ],
         confirmLabel:"Save",
         ...(choices?{choiceList:{
           items:choices,
@@ -114,7 +128,8 @@
           }]
         }
       });
-      const label=choices?result?.values?.[0]:result;
+      const values=choices?result?.values:Array.isArray(result)?result:[result];
+      const label=values?.[0];
       if (!label||!label.trim()) return;
       if (choices){
         const choiceChanges=result.choices;
@@ -149,6 +164,7 @@
         },choiceChanges);
       }
       field.label=label.trim();
+      fieldTypes.applySettings(field,{mode:"edit"},values.slice(1));
       scheduleSave();
       renderAll();
       refreshOpenItemModal();

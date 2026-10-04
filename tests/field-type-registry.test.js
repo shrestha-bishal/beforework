@@ -66,6 +66,7 @@ test("field definitions declare project-level instance limits",()=>{
 
 test("field types own their filter matching and column values",()=>{
   const number={id:"estimate",type:"number"};
+  const currency={id:"budget",type:"currency",currency:"USD"};
   const multiSelect={id:"areas",type:"multi-select"};
   const checkbox={id:"done",type:"checkbox"};
   const date={id:"due",type:"due-date"};
@@ -74,6 +75,7 @@ test("field types own their filter matching and column values",()=>{
 
   assert.equal(fieldTypes.matchesFilter(number,{value:0,mode:"0"}),true);
   assert.equal(fieldTypes.matchesFilter(number,{value:0,mode:"2"}),false);
+  assert.equal(fieldTypes.matchesFilter(currency,{value:0,mode:"0"}),true);
   assert.equal(fieldTypes.matchesFilter(multiSelect,{value:["docs","design"],mode:["design"]}),true);
   assert.equal(fieldTypes.matchesFilter(checkbox,{value:"true",mode:["true"]}),true);
   assert.equal(fieldTypes.matchesFilter(date,{value:"2026-10-10",mode:"2026-10-10"}),true);
@@ -98,19 +100,62 @@ test("field types own their filter matching and column values",()=>{
 
 test("field types own input normalization, sorting, and CSV formatting",()=>{
   const number={id:"estimate",type:"number"};
+  const currency={id:"budget",type:"currency",currency:"USD",decimalPlaces:0};
   const multiSelect={id:"areas",type:"multi-select",options:[{id:"docs",label:"Docs"}]};
   const checkbox={id:"done",type:"checkbox"};
   const select={id:"status",type:"select",options:[{id:"ready",label:"Ready"}]};
 
   assert.equal(fieldTypes.normalizeInput(number,{input:{value:"2.5"}}),2.5);
+  assert.equal(fieldTypes.normalizeInput(currency,{input:{value:"1250"}}),1250);
   assert.deepEqual(
     [...fieldTypes.normalizeInput(multiSelect,{selectedOptions:[{value:"docs"}]})],
     ["docs"]
   );
   assert.equal(fieldTypes.normalizeInput(checkbox,{input:{checked:true}}),"true");
   assert.equal(fieldTypes.sortValue(number,{value:2})<fieldTypes.sortValue(number,{value:10}),true);
+  assert.equal(fieldTypes.sortValue(currency,{value:2})<fieldTypes.sortValue(currency,{value:10}),true);
+  assert.equal(
+    fieldTypes.formatValue(currency,{field:currency,value:1250}),
+    new Intl.NumberFormat(undefined,{style:"currency",currency:"USD",minimumFractionDigits:0,maximumFractionDigits:0}).format(1250)
+  );
   assert.equal(fieldTypes.formatValue(select,{field:select,value:"ready"}),"Ready");
   assert.equal(fieldTypes.formatValue(checkbox,{value:"true"}),"Yes");
+});
+
+test("field modules own their optional settings and apply settings generically",()=>{
+  const currency={id:"budget",label:"Budget",type:"currency"};
+  const settings=fieldTypes.getSettings(currency,{mode:"create"});
+
+  assert.equal(settings[0].label,"Currency");
+  assert.ok(settings[0].options.some(option=>option.value==="USD"));
+  assert.equal(settings[1].label,"Decimal places");
+  fieldTypes.applySettings(currency,{mode:"create"},["JPY","0"]);
+  assert.equal(currency.currency,"JPY");
+  assert.equal(currency.decimalPlaces,0);
+  assert.throws(
+    ()=>fieldTypes.applySettings(currency,{mode:"edit"},["NOT",""]),
+    /supported currency/
+  );
+  assert.deepEqual([...fieldTypes.getSettings({type:"number"})],[]);
+  assert.equal(fieldTypes.applySettings({type:"number"},{mode:"edit"},[]),undefined);
+});
+
+test("field modules own display labels, input types, summary metadata, and validation",()=>{
+  const currency={id:"budget",label:"Budget",type:"currency",currency:"JPY",decimalPlaces:0};
+  assert.equal(fieldTypes.getDisplayLabel(currency),"Budget (JPY)");
+  assert.equal(fieldTypes.getInputType(currency),"number");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(fieldTypes.getSummaryMetadata(currency))),
+    {currency:"JPY",decimalPlaces:0}
+  );
+  assert.deepEqual([...fieldTypes.validateField(currency,{path:"fields[0]"})],[]);
+  assert.ok(fieldTypes.validateField(
+    {...currency,currency:"NOT",decimalPlaces:7},
+    {path:"fields[0]"}
+  ).length>0);
+  assert.equal(fieldTypes.getDisplayLabel({label:"Estimate",type:"number"}),"Estimate");
+  assert.equal(fieldTypes.getInputType({type:"number"}),"number");
+  assert.deepEqual(JSON.parse(JSON.stringify(fieldTypes.getSummaryMetadata({type:"number"}))),{});
 });
 
 test("choice editors are declared by option-owning field types only",()=>{

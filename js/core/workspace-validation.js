@@ -98,6 +98,7 @@
         if (!isRecord(field)){ addError(`${path} must be an object.`); return; }
         if (!hasText(field.id) || !hasText(field.label)) addError(`${path} must have an id and label.`);
         if (field.options!==undefined && !Array.isArray(field.options)) addError(`${path}.options must be an array.`);
+        (global.BeforeworkFieldTypes?.validateField(field,{path})||[]).forEach(addError);
         (Array.isArray(field.options) ? field.options : []).forEach((option,optionIndex)=>{
           if (!isRecord(option) || !hasText(option.id) || !hasText(option.label)) addError(`${path}.options[${optionIndex}] must have an id and label.`);
         });

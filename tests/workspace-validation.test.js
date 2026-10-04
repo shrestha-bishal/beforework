@@ -12,7 +12,7 @@ const fieldTypes=createFieldTypes();
 
 const source = fs.readFileSync(path.join(__dirname,"../js/core/workspace-validation.js"),"utf8");
 const storageSource = fs.readFileSync(path.join(__dirname,"../js/services/storage/storage.js"),"utf8");
-const sandbox = {window:{}};
+const sandbox = {window:{BeforeworkFieldTypes:fieldTypes}};
 vm.runInNewContext(source,sandbox,{filename:"workspace-validation.js"});
 const validate = sandbox.window.BeforeworkWorkspaceValidation.validate;
 const seederSandbox = {window:{},Blob};
@@ -173,6 +173,21 @@ test("validates optional project archive status",()=>{
   const result=validate({projects:[{...project,archived:"yes"}]},7);
   assert.equal(result.valid,false);
   assert.ok(result.errors.some(error=>error==="projects[0].archived must be a boolean."));
+});
+
+test("validates currency field codes and decimal precision",()=>{
+  const project={id:"project-1",name:"Launch",groups:[],fields:[
+    {id:"budget",label:"Budget",type:"currency",currency:"AUD",decimalPlaces:2}
+  ]};
+  assert.equal(validate({projects:[project]},7).valid,true);
+  const invalidCurrency=validate({projects:[{
+    ...project,fields:[{...project.fields[0],currency:"NOT"}]
+  }]},7);
+  assert.ok(invalidCurrency.errors.some(error=>error.includes("currency must be a supported currency code")));
+  const invalidPrecision=validate({projects:[{
+    ...project,fields:[{...project.fields[0],decimalPlaces:7}]
+  }]},7);
+  assert.ok(invalidPrecision.errors.some(error=>error.includes("decimalPlaces must be an integer")));
 });
 
 test("validates project-owned items and allows projects without groups",()=>{
@@ -378,6 +393,16 @@ test("renders URL, email, number, and multi-select field controls", ()=>{
   assert.match(html[6],/type="date"/);
 });
 
+test("renders currency fields with numeric inputs",()=>{
+  const html=createItemFieldRenderer().render(
+    {id:"currency-field",label:"Budget",type:"currency",currency:"AUD"},
+    {values:{"currency-field":125.5}},
+    {}
+  );
+  assert.match(html,/type="number"/);
+  assert.match(html,/value="125.5"/);
+});
+
 test("renders safe URL links and searchable multi-select labels", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   const start=appSource.indexOf("function fieldChipHtml");
@@ -390,6 +415,7 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
     email:fieldCellHtml({type:"email"},"alex@example.com"),
     invalidEmail:fieldCellHtml({type:"email"},"not-an-email"),
     zero:fieldCellHtml({type:"number"},0),
+    currency:fieldCellHtml({type:"currency",currency:"AUD",decimalPlaces:0},1250),
     groupText:fieldCellHtml({type:"select",label:"Group",options:[{id:"new",label:"New",color:"red"}]},"new"),
     statusChip:fieldCellHtml({type:"select",label:"Status",options:[{id:"todo",label:"To do",color:"blue"}]},"todo"),
     choices:fieldCellHtml({type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},["docs","design"]),
@@ -402,6 +428,9 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
   assert.match(result.email,/href="mailto:alex@example\.com"/);
   assert.doesNotMatch(result.invalidEmail,/href=/);
   assert.equal(result.zero,"0");
+  assert.equal(result.currency,new Intl.NumberFormat(undefined,{
+    style:"currency",currency:"AUD",minimumFractionDigits:0,maximumFractionDigits:0
+  }).format(1250));
   assert.equal(result.groupText,"New");
   assert.doesNotMatch(result.groupText,/<span|dot/);
   assert.match(result.statusChip,/Label Label--secondary/);

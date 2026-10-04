@@ -12,6 +12,7 @@ const definitions=[
   {value:"select",label:"Select",description:"Choose one option",colors:["red","blue"]},
   {value:"multi-select",label:"Multi-select",description:"Choose multiple options",colors:["red","blue"]},
   {value:"date",label:"Date",description:"A date"},
+  {value:"currency",label:"Currency",description:"Store and display a monetary amount."},
   {value:"priority",label:"Priority",description:"Best for urgency or ranking",maxPerProject:1},
   {value:"tags",label:"Tags",description:"Tags",maxPerProject:1},
   {value:"location",label:"Location",description:"Location"},
@@ -33,6 +34,19 @@ function createFeature(overrides={}){
     fieldTypes:{
       list:()=>definitions,
       get:type=>definitions.find(definition=>definition.value===type)||null,
+      getSettings:(field)=>{
+        if (field.type!=="currency") return [];
+        return [
+          {label:"Currency",type:"select",options:[{value:"USD"},{value:"JPY"},{value:"EUR"}],value:field.currency||"USD"},
+          {label:"Decimal places",type:"select",options:[{value:""},{value:"0"},{value:"2"}],value:field.decimalPlaces==null?"":String(field.decimalPlaces)}
+        ];
+      },
+      applySettings:(field,{mode},values)=>{
+        if (field.type!=="currency") return;
+        field.currency=values[0];
+        if (values[1]==="") delete field.decimalPlaces;
+        else field.decimalPlaces=Number(values[1]);
+      },
       getEditableChoices:(field,{project})=>{
         const choices=field.type==="tags"?project.tags||[]:field.options||[];
         return ["tags","select","multi-select","priority"].includes(field.type)
@@ -176,6 +190,32 @@ test("adding a field creates its configured options and saves the project",async
   });
   assert.equal(calls.saved,1);
   assert.equal(calls.rendered,1);
+});
+
+test("currency fields store their ISO currency and optional decimal precision",async()=>{
+  const project={fields:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(["JPY",""]);
+  await feature.addField(project,"Budget","currency");
+
+  assert.equal(calls.dialogs[0].title,"Currency settings");
+  assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0])),{
+    id:"generated-1",label:"Budget",type:"currency",options:[],currency:"JPY"
+  });
+  assert.equal(calls.saved,1);
+});
+
+test("editing a currency field updates its code and decimal places",async()=>{
+  const project={fields:[{id:"budget",label:"Budget",type:"currency",currency:"USD"}]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(["Budget","EUR","0"]);
+
+  await feature.editField({stopPropagation(){}},project.fields[0],project);
+
+  assert.equal(calls.dialogs[0].fields[1].label,"Currency");
+  assert.equal(project.fields[0].currency,"EUR");
+  assert.equal(project.fields[0].decimalPlaces,0);
+  assert.equal(calls.saved,1);
 });
 
 test("field creation rejects reserved date names and duplicate field types",async()=>{

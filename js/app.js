@@ -1701,8 +1701,8 @@
       const href=safeEmailHref(value);
       return href ? `<a class="fieldUrlLink" href="${escapeHtml(href)}">${escapeHtml(value)}</a>` : (value ? escapeHtml(value) : "-");
     }
-    if (field.type==="number") return value!=="" && value!=null ? escapeHtml(String(value)) : "-";
-    return value ? escapeHtml(value) : "-";
+    const formattedValue=fieldTypes.formatValue(field,{value});
+    return formattedValue?escapeHtml(formattedValue):"-";
   }
   function scheduleFieldValue(project,item){
     const startField=startDateField(project);
