@@ -55,6 +55,8 @@ test("Table keeps shared selection, sorting, and edits wired to app behavior",()
 test("Table group header visibility matches optional group cells",()=>{
   assert.ok(view.includes("if (showGroupColumn) groupHeader.hidden=false;"));
   assert.ok(view.includes("else groupCell.remove();"));
+  assert.match(view,/if \(!tagsEnabled\)\{\s*tagsHeader\.remove\(\);\s*tagsHeader=null;\s*\}/);
+  assert.match(view,/const colCount=2\+project\.fields\.length\+\(showGroupColumn\?1:0\)/);
 });
 
 test("Table and List expose searchable multi-select filters on every data column",()=>{

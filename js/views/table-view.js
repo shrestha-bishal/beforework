@@ -139,7 +139,10 @@ export class TableView {
     const tagsEnabled=project.fields.some(field=>field.type==="tags");
     let tagsHeader=headerRow.querySelector('[data-column-id="tags"]');
     const tagsField=project.fields.find(field=>field.type==="tags");
-    if (!tagsEnabled) tagsHeader.remove();
+    if (!tagsEnabled){
+      tagsHeader.remove();
+      tagsHeader=null;
+    }
     else {
       const fieldHeader=templates.querySelector("#tableViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=tagsField.id;
@@ -227,7 +230,7 @@ export class TableView {
 
     const rows=sortProjectRows(project,rowsForSelection(project,true));
     const tbody=wrap.querySelector("#tableTbody");
-    const colCount=3+project.fields.length+(showGroupColumn?1:0);
+    const colCount=2+project.fields.length+(showGroupColumn?1:0);
     if (!rows.length){
       const emptyRow=templates.querySelector("#tableViewEmptyRowTemplate").content.firstElementChild.cloneNode(true);
       const emptyCell=emptyRow.querySelector("[data-table-empty-cell]");

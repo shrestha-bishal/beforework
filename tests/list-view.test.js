@@ -62,6 +62,11 @@ test("List headers stay aligned with optional group and progress cells",()=>{
   assert.ok(view.includes("if (showProgressColumn) progressHeader.hidden=false;"));
   assert.ok(view.includes("else groupCell.remove();"));
   assert.ok(view.includes("else progressCell.remove();"));
+  assert.match(view,/if \(!tagsEnabled\)\{\s*tagsHeader\.remove\(\);\s*tagsHeader=null;\s*\}/);
+  assert.match(view,/if \(tagsHeader\) tagsHeader\.before\(fieldHeader\);\s*else headerRow\.appendChild\(fieldHeader\);/);
+  assert.match(view,/if \(tagsCell\) tagsCell\.before\(cell\);\s*else row\.appendChild\(cell\);/);
+  assert.doesNotMatch(view,/fieldInsertionAnchor/);
+  assert.match(view,/const colCount = 3 \+ project\.fields\.length \+ \(tagsEnabled\?1:0\)/);
 });
 
 test("List multi-select field cells use appSelect and save selections",()=>{

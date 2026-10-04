@@ -57,7 +57,10 @@ export class ListView {
     let tagsHeader=headerRow.querySelector('[data-column-id="tags"]');
     const progressHeader=headerRow.querySelector("[data-list-progress-header]");
     const tagsField=project.fields.find(field=>field.type==="tags");
-    if (!tagsEnabled) tagsHeader.remove();
+    if (!tagsEnabled){
+      tagsHeader.remove();
+      tagsHeader=null;
+    }
     else {
       const fieldHeader=templates.querySelector("#listViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=tagsField.id;
@@ -74,7 +77,6 @@ export class ListView {
     else groupHeader.remove();
     if (showProgressColumn) progressHeader.hidden=false;
     else progressHeader.remove();
-    const fieldInsertionAnchor=tagsHeader||(showProgressColumn?progressHeader:null)||headerRow.querySelector('[data-column-id="updated"]');
     project.fields.filter(field=>field.type!=="tags").forEach(field=>{
       const fieldHeader=templates.querySelector("#listViewFieldHeaderTemplate").content.firstElementChild.cloneNode(true);
       fieldHeader.dataset.field=field.id;
@@ -86,7 +88,8 @@ export class ListView {
       const menuButton=fieldHeader.querySelector(".fieldColumnMenuBtn");
       menuButton.setAttribute("aria-label",`Actions for ${field.label}`);
       menuButton.title="Column actions";
-      fieldInsertionAnchor.before(fieldHeader);
+      if (tagsHeader) tagsHeader.before(fieldHeader);
+      else headerRow.appendChild(fieldHeader);
     });
     headerRow.querySelectorAll("th[data-column-id]").forEach(th=>wireColumnFilterHeader(th,project));
     wireTableColumnReordering(table,project,"list");
@@ -156,7 +159,8 @@ export class ListView {
     const rows=sortProjectRows(project,rowsForSelection(project,true));
 
     const tbody = wrap.querySelector("#listTbody");
-    const colCount = 4 + project.fields.length + (showGroupColumn?1:0) + (showProgressColumn?1:0);
+    const colCount = 3 + project.fields.length + (tagsEnabled?1:0)
+      + (showGroupColumn?1:0) + (showProgressColumn?1:0);
     if (!rows.length){
       const emptyRow=templates.querySelector("#listViewEmptyRowTemplate").content.firstElementChild.cloneNode(true);
       const emptyCell=emptyRow.querySelector("[data-list-empty-cell]");
@@ -224,8 +228,8 @@ export class ListView {
           });
           cell.appendChild(control);
         } else appendMarkup(cell,fieldCellHtml(field,item.values[field.id],project,item));
-        const anchor=tagsCell||row.querySelector('[data-column-id="progress"]')||row.querySelector('[data-column-id="updated"]');
-        anchor.before(cell);
+        if (tagsCell) tagsCell.before(cell);
+        else row.appendChild(cell);
       });
       tbody.appendChild(row);
     });
