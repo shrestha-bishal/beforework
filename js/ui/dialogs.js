@@ -237,6 +237,7 @@
       const newChoiceRow=container.querySelector("[data-dialog-choice-new]");
       const newChoiceInput=container.querySelector("[data-dialog-choice-new-input]");
       const newChoiceConfirm=container.querySelector("[data-dialog-choice-new-confirm]");
+      const newChoiceCancel=container.querySelector("[data-dialog-choice-new-cancel]");
       const copy=choiceList.copy;
       container.hidden=false;
       container.querySelector("[data-dialog-choice-heading]").textContent=copy.heading;
@@ -333,15 +334,17 @@
         addButton.hidden=false;
         addButton.focus();
       }
+      function cancelNewChoice(){
+        newChoiceInput.value="";
+        newChoiceRow.hidden=true;
+        addButton.hidden=false;
+        addButton.focus();
+      }
       newChoiceConfirm.addEventListener("click",finishNewChoice);
+      newChoiceCancel.addEventListener("click",cancelNewChoice);
       newChoiceInput.addEventListener("keydown",event=>{
         if (event.key==="Enter"){ event.preventDefault(); finishNewChoice(); }
-        if (event.key==="Escape"){
-          newChoiceInput.value="";
-          newChoiceRow.hidden=true;
-          addButton.hidden=false;
-          addButton.focus();
-        }
+        if (event.key==="Escape") cancelNewChoice();
       });
       return choices;
     }

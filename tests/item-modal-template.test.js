@@ -81,9 +81,10 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(fieldTypesSource,/function getChoiceDeleteConfirmation\(field,context\)/);
   assert.match(dialogsTemplateSource,/data-dialog-choice-list[\s\S]*data-dialog-choice-rows/);
   assert.match(dialogsTemplateSource,/data-dialog-choice-add[\s\S]*data-dialog-choice-add-label/);
-  assert.match(dialogsTemplateSource,/data-dialog-choice-new-input[\s\S]*data-dialog-choice-new-confirm/);
+  assert.match(dialogsTemplateSource,/data-dialog-choice-new-input[\s\S]*data-dialog-choice-new-confirm[\s\S]*data-dialog-choice-new-cancel/);
   assert.match(dialogsSource,/function renderChoiceList\(container,choiceList\)/);
   assert.match(dialogsSource,/event\.key==="Enter"[\s\S]*finishNewChoice/);
+  assert.match(dialogsSource,/newChoiceCancel\.addEventListener\("click",cancelNewChoice\)/);
   assert.match(dialogsTemplateSource,/data-dialog-action-menu-trigger[\s\S]*mdi:dots-horizontal[\s\S]*data-dialog-cancel aria-label="Close"/);
   assert.match(dialogsSource,/global\.BeforeworkActionMenu\.create\(\)\.register\(trigger,menu\)/);
   assert.match(fieldFeatureSource,/onSelect:event=>deleteFieldFromMenu\(event,field,project\)/);

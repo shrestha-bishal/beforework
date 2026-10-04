@@ -640,10 +640,13 @@
   .dialogChoiceAdd{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:2px;padding:5px 8px;border-radius:6px;color:var(--accent-strong);font-size:12px;}
   .dialogChoiceAdd:hover{background:var(--bg-soft);color:var(--accent-strong);}
   .dialogChoiceAdd iconify-icon{font-size:15px;}
-  .dialogChoiceNew{display:flex;align-items:center;gap:6px;width:100%;margin-top:2px;}
+  .dialogChoiceNew{display:grid;grid-template-columns:minmax(0,1fr) 28px 28px;align-items:center;gap:10px;width:100%;margin-top:2px;padding:5px 8px;}
   .dialogChoiceNew[hidden]{display:none;}
-  .dialogChoiceNew .dialogChoiceInput{flex:1;min-width:0;max-width:none;}
+  .dialogChoiceNew .dialogChoiceInput{grid-column:1;min-width:0;max-width:none;}
+  .dialogChoiceNew [data-dialog-choice-new-confirm]{grid-column:2;}
+  .dialogChoiceNew [data-dialog-choice-new-cancel]{grid-column:3;}
   .dialogChoiceNew .dialogChoiceAction{color:var(--accent-strong);}
+  .dialogChoiceNew [data-dialog-choice-new-cancel]:hover,.dialogChoiceNew [data-dialog-choice-new-cancel]:focus-visible{background:var(--danger-soft);}
   .dialogChoiceVisibility{display:grid;place-items:center;flex:none;width:28px;height:28px;cursor:pointer;}
   .dialogChoiceName{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;}
   .dialogChoiceInput{min-width:0;flex:1;height:30px;padding:4px 7px;font-size:13px;}
