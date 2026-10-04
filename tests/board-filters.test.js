@@ -160,7 +160,7 @@ test("filter tokens and autocomplete suggestions expose the same canonical choic
   feature.fields.set("status",["todo"]);
 
   assert.deepEqual(JSON.parse(JSON.stringify(feature.tokens(project).map(token=>token.label))),[
-    "Search: first","Group: Backlog","Tag: urgent","Status: To do"
+    "Search: first","group: Backlog","Tag: urgent","Status: To do"
   ]);
   assert.ok(!feature.suggestions(project,"urgent").some(option=>option.kind==="tag"&&option.value==="urgent"));
   assert.ok(feature.suggestions(project,"in progress").some(option=>option.kind==="field"&&option.value==="doing"));
@@ -251,6 +251,7 @@ test("applied filter tokens highlight values without rendering bordered chips",(
   const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 
   assert.match(featureSource,/class="filterTokenPrefix"/);
+  assert.match(featureSource,/escapeHtml\(prefix\.toLocaleLowerCase\(\)\)/);
   assert.match(featureSource,/class="filterTokenValue"/);
   assert.match(styles,/\.filterToken\{[^}]*border:0/);
   assert.match(styles,/\.filterTokenValue\{[^}]*background:var\(--color-accent-subtle\)/);

@@ -354,7 +354,7 @@
       const add=(kind,id,value,label)=>tokens.push({kind,id,value,label});
       if (text) add("text","text",text,`Search: ${text}`);
       for (const id of groups){
-        add("group","group",id,`Group: ${getProjectGroups(project).find(group=>group.id===id)?.name||id}`);
+        add("group","group",id,`group: ${getProjectGroups(project).find(group=>group.id===id)?.name||id}`);
       }
       for (const id of tags){
         add("tag","tags",id,`Tag: ${id===NONE?"No tags":project.tags?.find(tag=>tag.id===id)?.name||id}`);
@@ -541,7 +541,7 @@
         const separator=token.label.indexOf(":");
         const prefix=separator<0?"":token.label.slice(0,separator+1);
         const value=separator<0?token.label:token.label.slice(separator+1).trim();
-        return `<button type="button" class="filterToken" data-filter-token="${index}" aria-label="Remove ${escapeHtml(token.label)}">${prefix?`<span class="filterTokenPrefix">${escapeHtml(prefix)}</span>`:""}<span class="filterTokenValue">${escapeHtml(value)}</span><span class="filterTokenRemove" aria-hidden="true">×</span></button>`;
+        return `<button type="button" class="filterToken" data-filter-token="${index}" aria-label="Remove ${escapeHtml(token.label)}">${prefix?`<span class="filterTokenPrefix">${escapeHtml(prefix.toLocaleLowerCase())}</span>`:""}<span class="filterTokenValue">${escapeHtml(value)}</span><span class="filterTokenRemove" aria-hidden="true">×</span></button>`;
       }).join("");
       if (summary) summary.textContent=tokens.length?`${tokens.length} filter${tokens.length===1?"":"s"} applied`:"";
       tokenWrap.querySelectorAll("[data-filter-token]").forEach(button=>{
