@@ -64,6 +64,10 @@
           return true;
         });
         field.options.push(...added);
+        const orderedOptions=new Map(field.options.map(option=>[option.id,option]));
+        field.options=changes.filter(change=>!change.deleted)
+          .map(change=>orderedOptions.get(change.id)).filter(Boolean);
+        field.options.forEach((option,index)=>{ option.rank=field.options.length-index; });
         field.priorityOptionsCustomized=true;
         projectItemEntries(project).forEach(({item})=>{
           if (removed.has(item.values[field.id])) delete item.values[field.id];

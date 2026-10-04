@@ -239,6 +239,7 @@
       const newChoiceConfirm=container.querySelector("[data-dialog-choice-new-confirm]");
       const newChoiceCancel=container.querySelector("[data-dialog-choice-new-cancel]");
       const copy=choiceList.copy;
+      const choiceRows=new WeakMap();
       container.hidden=false;
       container.querySelector("[data-dialog-choice-heading]").textContent=copy.heading;
       container.querySelector("[data-dialog-choice-description]").textContent=copy.description;
@@ -250,6 +251,16 @@
       function renderChoice(choice){
         const row=document.createElement("div");
         row.className="dialogChoiceRow";
+        const dragHandle=document.createElement("button");
+        dragHandle.type="button";
+        dragHandle.className="btn btn-invisible dialogChoiceDragHandle";
+        dragHandle.draggable=true;
+        dragHandle.setAttribute("aria-label",`Reorder ${copy.itemLabel} ${choice.label}`);
+        dragHandle.title=`Drag to reorder ${copy.itemLabel}`;
+        const dragIcon=document.createElement("iconify-icon");
+        dragIcon.setAttribute("icon","mdi:drag-horizontal");
+        dragIcon.setAttribute("aria-hidden","true");
+        dragHandle.appendChild(dragIcon);
         const visibilityLabel=document.createElement("label");
         visibilityLabel.className="dialogChoiceVisibility";
         const checkbox=document.createElement("input");
@@ -308,8 +319,64 @@
           row.remove();
         });
 
-        row.append(visibilityLabel,name,input,editButton,deleteButton);
+        row.append(dragHandle,visibilityLabel,name,input,editButton,deleteButton);
         rows.appendChild(row);
+        const clearDragStyles=()=>{
+          rows.querySelectorAll(".dialogChoiceDragging,.dialogChoiceDropTarget,.dialogChoiceDropAfter")
+            .forEach(element=>element.classList.remove("dialogChoiceDragging","dialogChoiceDropTarget","dialogChoiceDropAfter"));
+        };
+        const moveChoice=(source,target,after)=>{
+          if (source===target) return;
+          const sourceIndex=choices.indexOf(source);
+          if (sourceIndex<0) return;
+          choices.splice(sourceIndex,1);
+          const targetIndex=choices.indexOf(target);
+          if (targetIndex<0){ choices.splice(sourceIndex,0,source); return; }
+          choices.splice(targetIndex+(after?1:0),0,source);
+          const sourceRow=choiceRows.get(source);
+          const targetRow=choiceRows.get(target);
+          if (sourceRow&&targetRow) rows.insertBefore(sourceRow,after?targetRow.nextSibling:targetRow);
+        };
+        choiceRows.set(choice,row);
+        dragHandle.addEventListener("click",event=>event.stopPropagation());
+        dragHandle.addEventListener("keydown",event=>{
+          if (event.key!=="ArrowUp"&&event.key!=="ArrowDown") return;
+          const visibleChoices=[...rows.children].map(element=>element.choice).filter(Boolean);
+          const index=visibleChoices.indexOf(choice);
+          const target=visibleChoices[index+(event.key==="ArrowUp"?-1:1)];
+          if (!target) return;
+          event.preventDefault();
+          moveChoice(choice,target,event.key==="ArrowDown");
+        });
+        dragHandle.addEventListener("dragstart",event=>{
+          event.stopPropagation();
+          event.dataTransfer.effectAllowed="move";
+          event.dataTransfer.setData("application/x-beforework-choice",choice.id);
+          row.classList.add("dialogChoiceDragging");
+        });
+        dragHandle.addEventListener("dragend",clearDragStyles);
+        row.addEventListener("dragover",event=>{
+          if (!event.dataTransfer||![...event.dataTransfer.types].includes("application/x-beforework-choice")) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect="move";
+          const after=event.clientY>=row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
+          row.classList.add("dialogChoiceDropTarget");
+          row.classList.toggle("dialogChoiceDropAfter",after);
+        });
+        row.addEventListener("dragleave",event=>{
+          if (row.contains(event.relatedTarget)) return;
+          row.classList.remove("dialogChoiceDropTarget","dialogChoiceDropAfter");
+        });
+        row.addEventListener("drop",event=>{
+          const sourceId=event.dataTransfer?.getData("application/x-beforework-choice");
+          const source=choices.find(candidate=>candidate.id===sourceId);
+          if (!source) return;
+          event.preventDefault();
+          const after=event.clientY>=row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
+          clearDragStyles();
+          moveChoice(source,choice,after);
+        });
+        row.choice=choice;
       }
       choices.forEach(renderChoice);
       addButton.addEventListener("click",()=>{

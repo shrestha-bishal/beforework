@@ -635,8 +635,11 @@
   .dialogChoiceList h4{margin:0;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
   .dialogChoiceHint{margin:0;color:var(--muted);font-size:12px;line-height:1.4;}
   .dialogChoiceList [data-dialog-choice-rows]{display:flex;flex-direction:column;gap:2px;}
-  .dialogChoiceRow{display:flex;min-height:40px;align-items:center;gap:10px;padding:5px 8px;border:0;border-radius:6px;transition:background .14s ease;}
+  .dialogChoiceRow{display:flex;min-height:40px;align-items:center;gap:10px;padding:5px 8px;border:0;border-radius:6px;transition:background .14s ease,box-shadow .14s ease;}
   .dialogChoiceRow:hover{background:var(--bg-soft);}
+  .dialogChoiceRow.dialogChoiceDragging{opacity:.45;}
+  .dialogChoiceRow.dialogChoiceDropTarget{box-shadow:inset 0 2px var(--accent);}
+  .dialogChoiceRow.dialogChoiceDropTarget.dialogChoiceDropAfter{box-shadow:inset 0 -2px var(--accent);}
   .dialogChoiceAdd{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-top:2px;padding:5px 8px;border-radius:6px;color:var(--accent-strong);font-size:12px;}
   .dialogChoiceAdd:hover{background:var(--bg-soft);color:var(--accent-strong);}
   .dialogChoiceAdd iconify-icon{font-size:15px;}
@@ -648,6 +651,10 @@
   .dialogChoiceNew .dialogChoiceAction{color:var(--accent-strong);}
   .dialogChoiceNew [data-dialog-choice-new-cancel]:hover,.dialogChoiceNew [data-dialog-choice-new-cancel]:focus-visible{background:var(--danger-soft);}
   .dialogChoiceVisibility{display:grid;place-items:center;flex:none;width:28px;height:28px;cursor:pointer;}
+  .dialogChoiceDragHandle{display:grid;place-items:center;flex:none;width:20px;height:28px;padding:0;color:var(--muted);cursor:grab;}
+  .dialogChoiceDragHandle:hover,.dialogChoiceDragHandle:focus-visible{color:var(--text);}
+  .dialogChoiceDragHandle:active{cursor:grabbing;}
+  .dialogChoiceDragHandle iconify-icon{font-size:16px;}
   .dialogChoiceName{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;}
   .dialogChoiceInput{min-width:0;flex:1;height:30px;padding:4px 7px;font-size:13px;}
   .dialogChoiceInput[hidden],.dialogChoiceName[hidden]{display:none;}

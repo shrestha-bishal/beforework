@@ -45,6 +45,9 @@
           return true;
         });
         field.options.push(...added);
+        const orderedOptions=new Map(field.options.map(option=>[option.id,option]));
+        field.options=changes.filter(change=>!change.deleted)
+          .map(change=>orderedOptions.get(change.id)).filter(Boolean);
         projectItemEntries(project).forEach(({item})=>{
           const value=item.values[field.id];
           if (Array.isArray(value)) item.values[field.id]=value.filter(id=>!removed.has(id));

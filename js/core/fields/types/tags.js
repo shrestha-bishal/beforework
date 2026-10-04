@@ -46,6 +46,7 @@
             tag.name=change.label.trim();
             if (change.hiddenInField) tag.hiddenInField=true;
             project.tags.push(tag);
+            tags.set(tag.id,tag);
             return;
           }
           const tag=tags.get(change.id);
@@ -62,6 +63,8 @@
           if (change.hiddenInField) tag.hiddenInField=true;
           else delete tag.hiddenInField;
         });
+        project.tags=changes.filter(change=>!change.deleted)
+          .map(change=>tags.get(change.id)).filter(Boolean);
         const columnFilters=getBoardFilterColumns();
         const columnFilter=columnFilters.get("tags");
         if (columnFilter&&typeof columnFilter.delete==="function"){

@@ -212,6 +212,7 @@ test("priority levels default to High/Medium/Low and then use project-customized
   fieldTypes.applyChoiceEdits(priority,context,[
     {id:"high",label:"Urgent",hiddenInField:true},
     {id:"medium",label:"Medium",deleted:true},
+    {id:"low",label:"Low"},
     custom
   ]);
 
@@ -225,8 +226,8 @@ test("priority levels default to High/Medium/Low and then use project-customized
   assert.deepEqual(
     JSON.parse(JSON.stringify(fieldTypes.getInputChoices(priority,{project,selected:[]}))),
     [
-      {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:1},
-      {id:"custom-1",label:"Trivial",color:"var(--color-accent-fg)",rank:0}
+      {id:"low",label:"Low",color:"var(--color-fg-muted)",rank:2},
+      {id:"custom-1",label:"Trivial",color:"var(--color-accent-fg)",rank:1}
     ]
   );
   assert.equal(fieldTypes.formatValue(priority,{value:"high"}),"Urgent");
@@ -311,6 +312,54 @@ test("tag and select modules apply their own visibility and deletion semantics",
   ]);
 });
 
+test("choice editor order is persisted for tags, select fields, and priorities",()=>{
+  const tagsField={id:"tags",type:"tags"};
+  const selectField={id:"status",type:"select",options:[
+    {id:"first",label:"First"},{id:"second",label:"Second"}
+  ]};
+  const multiField={id:"areas",type:"multi-select",options:[
+    {id:"first-area",label:"First area"},{id:"second-area",label:"Second area"}
+  ]};
+  const priorityField={id:"priority",type:"priority",options:[]};
+  const project={
+    tags:[{id:"first-tag",name:"First tag"},{id:"second-tag",name:"Second tag"}],
+    fields:[tagsField,selectField,multiField,priorityField],
+    groups:[]
+  };
+  const context={
+    project,
+    projectItemEntries:()=>[],
+    getBoardFilterTags:()=>new Set(),
+    getBoardFilterFields:()=>new Map(),
+    getBoardFilterColumns:()=>new Map()
+  };
+
+  fieldTypes.applyChoiceEdits(tagsField,context,[
+    {id:"second-tag",label:"Second tag"},
+    {id:"first-tag",label:"First tag"}
+  ]);
+  fieldTypes.applyChoiceEdits(selectField,context,[
+    {id:"second",label:"Second"},
+    {id:"first",label:"First"}
+  ]);
+  fieldTypes.applyChoiceEdits(multiField,context,[
+    {id:"second-area",label:"Second area"},
+    {id:"first-area",label:"First area"}
+  ]);
+  fieldTypes.applyChoiceEdits(priorityField,context,[
+    {id:"low",label:"Low"},
+    {id:"medium",label:"Medium"},
+    {id:"high",label:"High"}
+  ]);
+
+  assert.deepEqual(project.tags.map(tag=>tag.id),["second-tag","first-tag"]);
+  assert.deepEqual(selectField.options.map(option=>option.id),["second","first"]);
+  assert.deepEqual(multiField.options.map(option=>option.id),["second-area","first-area"]);
+  assert.deepEqual(priorityField.options.map(option=>option.id),["low","medium","high"]);
+  assert.deepEqual(priorityField.options.map(option=>option.rank),[3,2,1]);
+  assert.ok(fieldTypes.sortValue(priorityField,{value:"low"})>fieldTypes.sortValue(priorityField,{value:"high"}));
+});
+
 test("choice creation delegates IDs and type-specific defaults to each field module",()=>{
   const tagsField={id:"tags-field",type:"tags"};
   const statusField={id:"status",type:"select",options:[{id:"ready",label:"Ready"}]};
@@ -339,8 +388,14 @@ test("choice creation delegates IDs and type-specific defaults to each field mod
     id:"new-3",label:"Design",color:"var(--color-severe-fg)"
   });
   fieldTypes.applyChoiceEdits(tagsField,context,[newTag]);
-  fieldTypes.applyChoiceEdits(statusField,context,[newStatus]);
-  fieldTypes.applyChoiceEdits(areasField,context,[newArea]);
+  fieldTypes.applyChoiceEdits(statusField,context,[
+    {id:"ready",label:"Ready"},
+    newStatus
+  ]);
+  fieldTypes.applyChoiceEdits(areasField,context,[
+    {id:"docs",label:"Docs"},
+    newArea
+  ]);
   assert.deepEqual(JSON.parse(JSON.stringify(project.tags)),[
     {id:"new-1",name:"Urgent",color:"#0969da"}
   ]);
