@@ -484,8 +484,9 @@
   .dialogSelectOption[hidden]{display:none;}
   .dialogSelectOption.selected{padding-left:24px;background:var(--bg-soft);color:var(--text);font-weight:600;}
   .dialogSelectOption.selected,.appSelectOption.selected{position:relative;}
-  .dialogSelectOption.selected::before{position:absolute;top:8px;bottom:8px;left:8px;width:4px;border-radius:999px;background:var(--accent);content:"";}
-  .appSelectOption.selected::before{left:4px;}
+  .dialogSelectOption.selected::before,.appSelectOption.selected::before{position:absolute;width:4px;border-radius:999px;background:var(--accent);content:"";}
+  .dialogSelectOption.selected::before{top:8px;bottom:8px;left:8px;}
+  .appSelectOption.selected::before{top:4px;bottom:4px;left:4px;}
   .dialogSelectOptionText{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;}
   .dialogSelectOptionLabel{display:block;line-height:1.45;}
   .dialogSelectOptionMeta{display:block;color:var(--fg-muted);font-size:11px;line-height:1.45;}
