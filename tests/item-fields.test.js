@@ -1,8 +1,18 @@
 "use strict";
 
 const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
 const test=require("node:test");
 const {createItemFieldRenderer,templateSource}=require("./helpers/item-fields");
+
+test("tag labels use a rich color fill without a leading dot",()=>{
+  const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
+
+  assert.match(styles,/\.tagColorPill\{background-color:color-mix\(in srgb,var\(--tag-color\) 38%,var\(--bg\)\);[^}]*color:var\(--text\)/);
+  assert.match(styles,/\.tagColorPill \.dot\{display:none;\}/);
+  assert.match(styles,/\.Label\.selected:not\(\.tagColorPill\)/);
+});
 
 test("field editor templates render escaped labels, values, and settings controls",()=>{
   const renderer=createItemFieldRenderer();
