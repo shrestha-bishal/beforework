@@ -233,8 +233,12 @@
       if (!choiceList) return null;
       const choices=choiceList.items.map(choice=>({...choice}));
       const rows=container.querySelector("[data-dialog-choice-rows]");
+      const addButton=container.querySelector("[data-dialog-choice-add]");
+      const newChoiceRow=container.querySelector("[data-dialog-choice-new]");
+      const newChoiceInput=container.querySelector("[data-dialog-choice-new-input]");
+      const newChoiceConfirm=container.querySelector("[data-dialog-choice-new-confirm]");
       container.hidden=false;
-      choices.forEach(choice=>{
+      function renderChoice(choice){
         const row=document.createElement("div");
         row.className="dialogChoiceRow";
         const visibilityLabel=document.createElement("label");
@@ -297,6 +301,39 @@
 
         row.append(visibilityLabel,name,input,editButton,deleteButton);
         rows.appendChild(row);
+      }
+      choices.forEach(renderChoice);
+      addButton.addEventListener("click",()=>{
+        addButton.hidden=true;
+        newChoiceRow.hidden=false;
+        newChoiceInput.focus();
+      });
+      function finishNewChoice(){
+        const label=newChoiceInput.value.trim();
+        if (!label){ newChoiceInput.focus(); return; }
+        if (typeof choiceList.createChoice!=="function"){
+          throw new TypeError("Field choice creation requires a field-type choice factory.");
+        }
+        const choice=choiceList.createChoice(label);
+        if (!choice||typeof choice.id!=="string"||typeof choice.label!=="string"){
+          throw new TypeError("Field type returned an invalid choice.");
+        }
+        choices.push(choice);
+        renderChoice(choice);
+        newChoiceInput.value="";
+        newChoiceRow.hidden=true;
+        addButton.hidden=false;
+        addButton.focus();
+      }
+      newChoiceConfirm.addEventListener("click",finishNewChoice);
+      newChoiceInput.addEventListener("keydown",event=>{
+        if (event.key==="Enter"){ event.preventDefault(); finishNewChoice(); }
+        if (event.key==="Escape"){
+          newChoiceInput.value="";
+          newChoiceRow.hidden=true;
+          addButton.hidden=false;
+          addButton.focus();
+        }
       });
       return choices;
     }

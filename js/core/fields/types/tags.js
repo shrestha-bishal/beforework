@@ -22,13 +22,25 @@
     choiceEditor:{
       getChoices:({project})=>project.tags||[],
       getLabel:tag=>tag.name,
+      createChoice:({uid,label,project,index=0})=>({
+        id:uid(),name:label.trim(),color:colors[((project.tags||[]).length+index)%colors.length]
+      }),
       getDeleteConfirmation:({choices})=>({
         title:`Delete ${choices.length===1?"tag":"tags"}: ${choices.map(choice=>choice.label).join(", ")}`,
         message:`This deletes ${choices.length===1?"this tag":"these tags"} and removes ${choices.length===1?"it":"them"} from all item assignments.`
       }),
       applyChanges:({project,changes,projectItemEntries,getBoardFilterTags,getBoardFilterColumns})=>{
+        if (!Array.isArray(project.tags)) project.tags=[];
         const tags=new Map((project.tags||[]).map(tag=>[tag.id,tag]));
         changes.forEach(change=>{
+          if (change.added){
+            if (change.deleted) return;
+            const tag=change.choice;
+            tag.name=change.label.trim();
+            if (change.hiddenInField) tag.hiddenInField=true;
+            project.tags.push(tag);
+            return;
+          }
           const tag=tags.get(change.id);
           if (!tag) return;
           if (change.deleted){

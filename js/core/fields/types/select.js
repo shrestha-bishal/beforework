@@ -11,6 +11,9 @@
     choiceEditor:{
       getChoices:({field})=>field.options||[],
       getLabel:option=>option.label,
+      createChoice:({uid,label,field,index=0})=>({
+        id:uid(),label:label.trim(),color:colors[((field.options||[]).length+index)%colors.length]
+      }),
       getDeleteConfirmation:({choices})=>({
         title:`Delete ${choices.length===1?"option":"options"}: ${choices.map(choice=>choice.label).join(", ")}`,
         message:`This removes ${choices.length===1?"this option":"these options"} from the field and clears ${choices.length===1?"it":"them"} from item values.`
@@ -18,6 +21,12 @@
       applyChanges:({field,project,changes,projectItemEntries,getBoardFilterFields,getBoardFilterColumns})=>{
         const removed=new Set(changes.filter(change=>change.deleted).map(change=>change.id));
         const updated=new Map(changes.map(change=>[change.id,change]));
+        const added=changes.filter(change=>change.added&&!change.deleted).map(change=>{
+          const option=change.choice;
+          option.label=change.label.trim();
+          if (change.hiddenInField) option.hiddenInField=true;
+          return option;
+        });
         field.options=(field.options||[]).filter(option=>{
           if (removed.has(option.id)) return false;
           const change=updated.get(option.id);
@@ -28,6 +37,7 @@
           }
           return true;
         });
+        field.options.push(...added);
         projectItemEntries(project).forEach(({item})=>{
           if (removed.has(item.values[field.id])) delete item.values[field.id];
         });

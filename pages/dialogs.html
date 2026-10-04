@@ -17,6 +17,16 @@
         <h4>Field choices</h4>
         <p class="dialogChoiceHint">Hidden choices remain on existing items but are not offered for new selections.</p>
         <div data-dialog-choice-rows></div>
+        <button class="btn btn-invisible dialogChoiceAdd" data-dialog-choice-add type="button">
+          <iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon>
+          <span>Add choice</span>
+        </button>
+        <div class="dialogChoiceNew" data-dialog-choice-new hidden>
+          <input class="form-control dialogChoiceInput" data-dialog-choice-new-input type="text" placeholder="Choice name" aria-label="New choice name">
+          <button class="btn btn-invisible dialogChoiceAction" data-dialog-choice-new-confirm type="button" aria-label="Add choice" title="Add choice">
+            <iconify-icon icon="mdi:check" aria-hidden="true"></iconify-icon>
+          </button>
+        </div>
       </section>
       <div class="uiDivider modalDivider" aria-hidden="true"></div>
       <div class="modalFooter">

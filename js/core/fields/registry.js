@@ -11,7 +11,7 @@
       throw new Error(`Field type "${definition.value}" is already registered.`);
     }
     if (definition.choiceEditor&&[
-      "getChoices","getLabel","getDeleteConfirmation","applyChanges"
+      "getChoices","getLabel","createChoice","getDeleteConfirmation","applyChanges"
     ].some(method=>typeof definition.choiceEditor[method]!=="function")){
       throw new TypeError(`Field type "${definition.value}" has an incomplete choice editor.`);
     }
@@ -54,6 +54,21 @@
     const editor=getChoiceEditor(field);
     if (!editor) throw new Error(`Field type "${field?.type}" does not support choice editing.`);
     return editor.applyChanges({...context,field,changes});
+  }
+
+  function createChoice(field,context,label){
+    const editor=getChoiceEditor(field);
+    if (!editor?.createChoice) throw new Error(`Field type "${field?.type}" does not define choice creation.`);
+    if (typeof context?.uid!=="function") throw new TypeError("Choice creation requires an ID generator.");
+    const choice=editor.createChoice({...context,field,label});
+    if (!choice||typeof choice.id!=="string"||!choice.id) throw new TypeError(`Field type "${field.type}" returned a choice without an ID.`);
+    return {
+      id:choice.id,
+      label:editor.getLabel(choice),
+      hiddenInField:choice.hiddenInField===true,
+      added:true,
+      choice
+    };
   }
 
   function getChoiceDeleteConfirmation(field,context){
@@ -137,7 +152,7 @@
   }
 
   global.BeforeworkFieldTypes=Object.freeze({
-    register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,
+    register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,createChoice,
     applyChoiceEdits,getChoiceDeleteConfirmation,
     getFilterValues,getFilterOptions,matchesFilter,matchesQuery,
     normalizeInput,sortValue,formatValue

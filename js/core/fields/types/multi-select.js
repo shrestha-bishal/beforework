@@ -1,11 +1,19 @@
 (function(global){
   "use strict";
+  const colors=[
+    "var(--color-accent-fg)","var(--color-severe-fg)","var(--color-sponsors-fg)","var(--color-open-fg)",
+    "var(--color-danger-fg)","var(--color-attention-fg)","var(--color-success-fg)","var(--color-fg-muted)"
+  ];
   const none="__none__";
   global.BeforeworkFieldTypes.register({
     value:"multi-select",label:"Multi-select",description:"Choose more than one option.",
+    colors,
     choiceEditor:{
       getChoices:({field})=>field.options||[],
       getLabel:option=>option.label,
+      createChoice:({uid,label,field,index=0})=>({
+        id:uid(),label:label.trim(),color:colors[((field.options||[]).length+index)%colors.length]
+      }),
       getDeleteConfirmation:({choices})=>({
         title:`Delete ${choices.length===1?"option":"options"}: ${choices.map(choice=>choice.label).join(", ")}`,
         message:`This removes ${choices.length===1?"this option":"these options"} from the field and clears ${choices.length===1?"it":"them"} from item values.`
@@ -13,6 +21,12 @@
       applyChanges:({field,project,changes,projectItemEntries,getBoardFilterFields,getBoardFilterColumns})=>{
         const removed=new Set(changes.filter(change=>change.deleted).map(change=>change.id));
         const updated=new Map(changes.map(change=>[change.id,change]));
+        const added=changes.filter(change=>change.added&&!change.deleted).map(change=>{
+          const option=change.choice;
+          option.label=change.label.trim();
+          if (change.hiddenInField) option.hiddenInField=true;
+          return option;
+        });
         field.options=(field.options||[]).filter(option=>{
           if (removed.has(option.id)) return false;
           const change=updated.get(option.id);
@@ -23,6 +37,7 @@
           }
           return true;
         });
+        field.options.push(...added);
         projectItemEntries(project).forEach(({item})=>{
           const value=item.values[field.id];
           if (Array.isArray(value)) item.values[field.id]=value.filter(id=>!removed.has(id));

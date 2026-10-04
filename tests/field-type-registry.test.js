@@ -222,3 +222,40 @@ test("tag and select modules apply their own visibility and deletion semantics",
     ["areas",["docs"]]
   ]);
 });
+
+test("choice creation delegates IDs and type-specific defaults to each field module",()=>{
+  const tagsField={id:"tags-field",type:"tags"};
+  const statusField={id:"status",type:"select",options:[{id:"ready",label:"Ready"}]};
+  const areasField={id:"areas",type:"multi-select",options:[{id:"docs",label:"Docs"}]};
+  const project={tags:[],fields:[tagsField,statusField,areasField],groups:[]};
+  const context={
+    project,
+    uid:(()=>{ let id=0; return ()=>`new-${++id}`; })(),
+    index:0,
+    projectItemEntries:()=>[],
+    getBoardFilterTags:()=>new Set(),
+    getBoardFilterFields:()=>new Map(),
+    getBoardFilterColumns:()=>new Map()
+  };
+  const newTag=fieldTypes.createChoice(tagsField,context,"Urgent");
+  const newStatus=fieldTypes.createChoice(statusField,context,"In progress");
+  const newArea=fieldTypes.createChoice(areasField,context,"Design");
+
+  assert.deepEqual(JSON.parse(JSON.stringify(newTag.choice)),{
+    id:"new-1",name:"Urgent",color:"#0969da"
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(newStatus.choice)),{
+    id:"new-2",label:"In progress",color:"var(--color-severe-fg)"
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(newArea.choice)),{
+    id:"new-3",label:"Design",color:"var(--color-severe-fg)"
+  });
+  fieldTypes.applyChoiceEdits(tagsField,context,[newTag]);
+  fieldTypes.applyChoiceEdits(statusField,context,[newStatus]);
+  fieldTypes.applyChoiceEdits(areasField,context,[newArea]);
+  assert.deepEqual(JSON.parse(JSON.stringify(project.tags)),[
+    {id:"new-1",name:"Urgent",color:"#0969da"}
+  ]);
+  assert.equal(statusField.options[1].label,"In progress");
+  assert.equal(areasField.options[1].label,"Design");
+});

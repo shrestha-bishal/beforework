@@ -41,6 +41,13 @@ function createFeature(overrides={}){
           }))
           :null;
       },
+      createChoice:(field,{uid},label)=>{
+        const id=uid();
+        const choice=field.type==="tags"
+          ?{id,name:label.trim(),color:"red"}
+          :{id,label:label.trim(),color:"red"};
+        return {id,label:field.type==="tags"?choice.name:choice.label,hiddenInField:false,added:true,choice};
+      },
       getChoiceDeleteConfirmation:(field,{choices})=>({
         title:`Delete ${field.type==="tags"?"tag":"option"}: ${choices.map(choice=>choice.label).join(", ")}`,
         message:field.type==="tags"
@@ -50,6 +57,11 @@ function createFeature(overrides={}){
       applyChoiceEdits:(field,context,changes)=>{
         const choices=field.type==="tags"?context.project.tags:field.options;
         changes.forEach(change=>{
+          if (change.added){
+            if (change.deleted) return;
+            choices.push(change.choice);
+            return;
+          }
           const choice=choices.find(candidate=>candidate.id===change.id);
           if (!choice) return;
           if (change.deleted){
@@ -93,7 +105,11 @@ function createFeature(overrides={}){
     getBoardFilterTags:()=>boardFilterTags,
     getListSort:()=>listSort,
     setListSort:value=>{listSort=value;},
-    showDialog:async options=>{calls.dialogs.push(options);return dialogResults.shift()??null;},
+    showDialog:async options=>{
+      calls.dialogs.push(options);
+      const result=dialogResults.shift()??null;
+      return typeof result==="function"?result(options):result;
+    },
     showNotice:async(...args)=>calls.notices.push(args),
     showConfirm:async(...args)=>{calls.confirms.push(args);return true;},
     scheduleSave:()=>calls.saved++,
@@ -242,6 +258,42 @@ test("field edit stages choice changes and submits them through the field-type A
   assert.equal(calls.rendered,1);
   assert.equal(calls.refreshedItemModal,1);
   assert.deepEqual([...boardFilterTags],[]);
+});
+
+test("field edit creates new choices through the field type and saves them",async()=>{
+  const field={id:"status",label:"Status",type:"select",options:[{id:"todo",label:"To do"}]};
+  const project={fields:[field],groups:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(options=>({
+    values:["Status"],
+    choices:[...options.choiceList.items,options.choiceList.createChoice("Review")]
+  }));
+
+  await feature.editField({stopPropagation(){}},field,project);
+
+  assert.deepEqual(field.options.map(option=>option.label),["To do","Review"]);
+  assert.equal(field.options[1].id,"generated-1");
+  assert.equal(field.options[1].color,"red");
+  assert.equal(calls.saved,1);
+});
+
+test("field edit rejects a new choice that duplicates an existing choice",async()=>{
+  const field={id:"status",label:"Status",type:"select",options:[{id:"todo",label:"To do"}]};
+  const project={fields:[field],groups:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(options=>({
+    values:["Status"],
+    choices:[
+      ...options.choiceList.items,
+      {...options.choiceList.createChoice(" to DO "),label:" to DO "}
+    ]
+  }));
+
+  await feature.editField({stopPropagation(){}},field,project);
+
+  assert.deepEqual(calls.notices,[["Choice already exists","Each choice must have a unique name."]]);
+  assert.deepEqual(field.options.map(option=>option.id),["todo"]);
+  assert.equal(calls.saved,0);
 });
 
 test("edit field dialog menu reuses the existing delete confirmation and cleanup",async()=>{

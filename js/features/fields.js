@@ -96,11 +96,15 @@
       event?.stopPropagation();
       closeAllActionMenus();
       const choices=fieldTypes.getEditableChoices(field,{project});
+      let addedChoiceCount=0;
       const result=await showDialog({
         title:"Edit field",
         fields:[{label:"Field name",value:field.label}],
         confirmLabel:"Save",
-        ...(choices?{choiceList:{items:choices}}:{}),
+        ...(choices?{choiceList:{
+          items:choices,
+          createChoice:label=>fieldTypes.createChoice(field,{project,uid,index:addedChoiceCount++},label)
+        }}:{}),
         actionMenu:{
           items:[{
             label:"Delete",
@@ -115,13 +119,22 @@
         const choiceChanges=result.choices;
         const originalLabels=new Map(choices.map(choice=>[choice.id,choice.label]));
         const hasNewEmptyLabel=choiceChanges.some(choice=>
-          !choice.deleted&&!choice.label.trim()&&choice.label!==originalLabels.get(choice.id)
+          !choice.deleted&&!choice.label.trim()
+          &&(choice.added||choice.label!==originalLabels.get(choice.id))
         );
         if (hasNewEmptyLabel){
           await showNotice("Choice name required","Enter a name for each choice before saving.");
           return;
         }
-        const removed=choiceChanges.filter(choice=>choice.deleted);
+        const newChoiceNames=choiceChanges.filter(choice=>choice.added&&!choice.deleted)
+          .map(choice=>choice.label.trim().toLowerCase());
+        const existingChoiceNames=choiceChanges.filter(choice=>!choice.added&&!choice.deleted)
+          .map(choice=>choice.label.trim().toLowerCase());
+        if (newChoiceNames.some((name,index)=>existingChoiceNames.includes(name)||newChoiceNames.indexOf(name)!==index)){
+          await showNotice("Choice already exists","Each choice must have a unique name.");
+          return;
+        }
+        const removed=choiceChanges.filter(choice=>choice.deleted&&!choice.added);
         if (removed.length){
           const confirmation=fieldTypes.getChoiceDeleteConfirmation(field,{choices:removed});
           if (!await showConfirm(confirmation.title,confirmation.message,true)) return;
