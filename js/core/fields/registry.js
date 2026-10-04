@@ -41,6 +41,10 @@
     return getDefinitionForField(field)?.allowRename!==false;
   }
 
+  function isEditable(field){
+    return getDefinitionForField(field)?.isEditable!==false;
+  }
+
   function getFilter(field){
     return behaviorFor(field?.type)?.filter||null;
   }
@@ -212,7 +216,7 @@
   }
 
   global.BeforeworkFieldTypes=Object.freeze({
-    register,get,list,isFieldType,canAddToProject,canRename,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,getChoiceEditorCopy,createChoice,
+    register,get,list,isFieldType,canAddToProject,canRename,isEditable,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,getChoiceEditorCopy,createChoice,
     applyChoiceEdits,getChoiceDeleteConfirmation,getSettings,applySettings,
     getDisplayLabel,getInputType,getSummaryMetadata,validateField,
     getFilterValues,getFilterOptions,matchesFilter,matchesQuery,

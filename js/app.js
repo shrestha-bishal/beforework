@@ -3443,6 +3443,14 @@
         if (field) fieldFeature.editField(event,field,project);
       };
     });
+    modal.querySelectorAll(".fieldDetailMenuTrigger").forEach(button=>{
+      const menu=button.parentElement.querySelector("[data-field-menu]");
+      actionMenus.register(button,menu);
+      menu.querySelector("[data-field-menu-delete]").onclick=event=>{
+        const field=project.fields.find(candidate=>candidate.id===button.dataset.fieldid);
+        if (field) fieldFeature.deleteFieldFromMenu(event,field,project);
+      };
+    });
     const descriptionInput=modal.querySelector("#itemDescInput");
     const descriptionPreviewElement=modal.querySelector("#itemDescPreview");
     const descriptionToolbar=modal.querySelector(".itemMarkdownToolbar");

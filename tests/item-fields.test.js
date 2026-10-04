@@ -31,6 +31,29 @@ test("field editor templates render escaped labels, values, and settings control
   assert.doesNotMatch(html,/fieldDetailMenu|data-field-menu-action|data-action-menu-trigger/);
 });
 
+test("fixed built-in fields use a delete action menu instead of field settings",()=>{
+  const renderer=createItemFieldRenderer();
+  for (const [id,type,label] of [
+    ["start","start-date","Start date"],
+    ["due","due-date","Due date"],
+    ["location","location","Location"],
+    ["schedule","schedule","Schedule"]
+  ]){
+    const field={id,type,label};
+    const html=type==="location"
+      ?renderer.renderLocation(field,{values:{}})
+      :type==="schedule"
+        ?renderer.renderSchedule(field,"Schedule controls")
+        :renderer.render(field,{values:{}},{});
+
+    assert.match(html,/icon="mdi:dots-horizontal"/);
+    assert.match(html,/aria-label="More actions for/);
+    assert.match(html,/data-field-menu-delete/);
+    assert.match(html,/>\s*Delete\s*<\/button>/);
+    assert.doesNotMatch(html,/mdi:cog-outline/);
+  }
+});
+
 test("field types preserve their existing selectors, values, and empty states",()=>{
   const renderer=createItemFieldRenderer({
     priorityOptions:[{id:"high",label:"High"}]

@@ -3,6 +3,7 @@
   global.BeforeworkFieldTypes.register({
     value:"due-date",label:"Due date",description:"When this task should be completed.",
     allowRename:false,
+    isEditable:false,
     maxPerProject:1,
     filter:{
       kind:"date",

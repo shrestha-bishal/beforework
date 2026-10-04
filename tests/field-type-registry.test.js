@@ -77,6 +77,15 @@ test("field definitions control whether their names can be customized",()=>{
   assert.equal(fieldTypes.canRename({type:"text",label:"Description"}),true);
 });
 
+test("field definitions control whether their settings can be edited",()=>{
+  for (const type of ["start-date","due-date","location","schedule"]){
+    assert.equal(fieldTypes.get(type).isEditable,false,type);
+    assert.equal(fieldTypes.isEditable({type}),false,type);
+  }
+  assert.equal(fieldTypes.isEditable({type:"date"}),true);
+  assert.equal(fieldTypes.isEditable({type:"select",offeringType:"start-date"}),false);
+});
+
 test("field types own their filter matching and column values",()=>{
   const number={id:"estimate",type:"number"};
   const currency={id:"budget",type:"currency",currency:"USD"};

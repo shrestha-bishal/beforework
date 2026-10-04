@@ -4,6 +4,7 @@
   global.BeforeworkFieldTypes.register({
     value:"location",label:"Location",description:"Add an optional location or link to each item.",
     allowRename:false,
+    isEditable:false,
     maxPerProject:1,
     filter:{
       kind:"text",

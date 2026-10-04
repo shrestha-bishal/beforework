@@ -3,6 +3,7 @@
   global.BeforeworkFieldTypes.register({
     value:"start-date",label:"Start date",description:"When work on this task should begin.",
     allowRename:false,
+    isEditable:false,
     maxPerProject:1,
     filter:{
       kind:"date",

@@ -73,6 +73,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(appSource,/itemFieldRenderer\.renderSchedule\(scheduleField,scheduleHtml\)/);
   assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailSettings"\)/);
   assert.match(appSource,/fieldFeature\.editField\(event,field,project\)/);
+  assert.match(appSource,/modal\.querySelectorAll\("\.fieldDetailMenuTrigger"\)/);
+  assert.match(appSource,/actionMenus\.register\(button,menu\)/);
+  assert.match(appSource,/fieldFeature\.deleteFieldFromMenu\(event,field,project\)/);
   assert.match(appSource,/refreshOpenItemModal:\(\)=>\{\s*if \(openItemRef\) renderItemModal\(\);\s*\}/);
   assert.match(fieldFeatureSource,/fieldTypes\.getEditableChoices\(field,\{project\}\)/);
   assert.match(fieldFeatureSource,/fieldTypes\.applyChoiceEdits\(field/);
@@ -95,7 +98,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(dialogsTemplateSource,/data-dialog-action-menu-trigger[\s\S]*mdi:dots-horizontal[\s\S]*data-dialog-cancel aria-label="Close"/);
   assert.match(dialogsSource,/global\.BeforeworkActionMenu\.create\(\)\.register\(trigger,menu\)/);
   assert.match(fieldFeatureSource,/onSelect:event=>deleteFieldFromMenu\(event,field,project\)/);
-  assert.doesNotMatch(fieldTemplateSource,/fieldDetailMenu|data-field-menu-action/);
+  assert.match(fieldTemplateSource,/\{\{actionsHtml\}\}/);
+  assert.match(fieldTemplateSource,/<template data-view-partial="fieldActionMenu">[\s\S]*data-field-menu role="menu"/);
+  assert.match(fieldTemplateSource,/data-field-menu-delete/);
   assert.match(appSource,/enhanceSelectControls\(modal\)/);
   assert.match(stylesSource,/\.itemModalSidebar \.sideItem \.fieldDetailLabel\{display:flex;width:100%;min-height:24px/);
   assert.match(stylesSource,/\.fieldDetailSettings\{appearance:none;-webkit-appearance:none;display:grid/);

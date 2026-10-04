@@ -14,9 +14,15 @@ window.BeforeworkItemFields=(()=>{
       throw new TypeError("Item field rendering requires its UI dependencies.");
     }
     function labelHtml(field){
-      return renderPartial("fieldLabel",{
+      const label=escapeHtml(fieldTypes.getDisplayLabel(field));
+      const actionTemplate=fieldTypes.isEditable(field)?"fieldSettingsAction":"fieldActionMenu";
+      const actionsHtml=renderPartial(actionTemplate,{
         fieldId:escapeHtml(field.id),
-        label:escapeHtml(fieldTypes.getDisplayLabel(field))
+        label
+      });
+      return renderPartial("fieldLabel",{
+        label,
+        actionsHtml
       });
     }
 
