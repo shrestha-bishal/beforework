@@ -175,7 +175,7 @@ export class TableView {
     wireTableColumnReordering(table,project,"table");
 
     wrap.querySelector("#quickAddBtn").onclick=()=>openNewItemModal(project,groups[0]);
-    wrap.querySelector("#exportCsvBtn").onclick=()=>exportProjectCsv(project,"table");
+    wrap.querySelector('[data-view-action="export-csv"]').onclick=()=>exportProjectCsv(project,"table");
     const updateSelection=()=>{
       const selected=[...selectedItemIds];
       const selectedItems=projectItemEntries(project).map(row=>row.item).filter(item=>selected.includes(item.id));

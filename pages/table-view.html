@@ -1,7 +1,6 @@
 <template id="tableViewTemplate">
   <div class="listWrap">
     <div class="listAddRow">
-      <button class="btn btn-sm exportCsvBtn" id="exportCsvBtn" type="button"><iconify-icon icon="mdi:download" aria-hidden="true"></iconify-icon><span>Export CSV</span></button>
       <div class="listViewToolbarActions">
         <button class="btn btn-primary addListItemBtn" id="quickAddBtn" type="button">+ Add item</button>
         <div class="listViewMenuWrap">
@@ -14,6 +13,7 @@
               <div class="manageColumnsOptions" role="group" aria-label="Table columns"></div>
               <div class="manageColumnsEmpty" hidden>No columns found</div>
             </div>
+            <button type="button" class="menu-item" data-view-action="export-csv" role="menuitem">Export CSV</button>
           </div>
         </div>
       </div>

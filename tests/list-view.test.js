@@ -55,6 +55,9 @@ test("List view structure and reusable row markup live in its page template",()=
   assert.ok(!view.includes('wrap.innerHTML = `'));
   assert.ok(!view.includes('tbody.innerHTML ='));
   assert.ok(app.includes('cloneTemplate:()=>window.BeforeworkViewTemplates.clone("listView")'));
+  assert.match(template,/<div class="manageColumnsPanel" hidden>[\s\S]*?<\/div>\s*<button type="button" class="menu-item" data-view-action="export-csv" role="menuitem">Export CSV<\/button>\s*<\/div>/);
+  assert.doesNotMatch(template,/id="exportCsvBtn"|class="btn btn-sm exportCsvBtn"/);
+  assert.match(view,/querySelector\('\[data-view-action="export-csv"\]'\)\.onclick = \(\) => exportProjectCsv\(project,"list",showProgressColumn\)/);
 });
 
 test("List bulk actions stay hidden until an item is selected, including empty results",()=>{

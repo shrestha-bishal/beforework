@@ -98,7 +98,7 @@ export class ListView {
       openNewItemModal(project, groups[0]);
     };
     wrap.querySelector("#quickAddBtn").onclick = doQuickAdd;
-    wrap.querySelector("#exportCsvBtn").onclick = () => exportProjectCsv(project,"list",showProgressColumn);
+    wrap.querySelector('[data-view-action="export-csv"]').onclick = () => exportProjectCsv(project,"list",showProgressColumn);
     const updateSelection = () => {
       const selected = [...selectedItemIds];
       const selectedItems = projectItemEntries(project).map(row=>row.item).filter(item => selected.includes(item.id));

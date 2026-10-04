@@ -91,6 +91,8 @@ test("Table and List expose searchable multi-select filters on every data column
 test("Table and List expose column rearranging through their context menus",()=>{
   for (const markup of [template,listTemplate]){
     assert.match(markup,/class="menu action-menu action-menu--project fieldColumnMenu" role="menu" hidden/);
+    assert.match(markup,/<div class="manageColumnsPanel" hidden>[\s\S]*?<\/div>\s*<button type="button" class="menu-item" data-view-action="export-csv" role="menuitem">Export CSV<\/button>\s*<\/div>/);
+    assert.doesNotMatch(markup,/id="exportCsvBtn"|class="btn btn-sm exportCsvBtn"/);
     assert.match(markup,/data-group-action="delete" class="danger menu-item menu-item--danger" role="menuitem"/);
     assert.match(markup,/data-column-action="delete" class="danger menu-item menu-item--danger" role="menuitem"/);
     assert.match(markup,/class="btn btn-invisible btn-sm listViewMenuBtn action-menu__trigger"/);
