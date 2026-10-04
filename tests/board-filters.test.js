@@ -266,8 +266,12 @@ test("app delegates filter state and matching to the extracted feature and uses 
   assert.doesNotMatch(app,/function render(Field|Group|BoardTag)Filters/);
   assert.match(index,/id="filterTokens"/);
   assert.match(index,/id="filterInput"/);
-  assert.match(index,/placeholder="Search items or add a filter"/);
+  assert.doesNotMatch(index,/id="filterInput"[^>]*placeholder=/);
+  assert.match(index,/<div class="filterBarInputWrap">[\s\S]*?<input class="filterBarInput" id="filterInput"[^>]*>\s*<button[^>]*id="clearBoardFilters"[^>]*aria-label="Clear filters"/);
   assert.match(index,/id="filterSuggestions"/);
+  assert.doesNotMatch(index,/id="filterSummary"/);
+  assert.doesNotMatch(source,/getElementById\("filterSummary"\)/);
+  assert.match(fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8"),/\.filterClearButton\{[^}]*margin-left:auto/);
   assert.doesNotMatch(index,/id="filterPanel"/);
   assert.ok(index.indexOf('src="js/features/filters.js"')<index.indexOf('src="js/app.js"'));
 });

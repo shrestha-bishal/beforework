@@ -534,7 +534,6 @@
       if (!project) return;
       const tokenWrap=documentRef.getElementById("filterTokens");
       const suggestionsWrap=documentRef.getElementById("filterSuggestions");
-      const summary=documentRef.getElementById("filterSummary");
       if (!tokenWrap||!suggestionsWrap) return;
       const tokens=tokenList(project);
       tokenWrap.innerHTML=tokens.map((token,index)=>{
@@ -543,7 +542,6 @@
         const value=separator<0?token.label:token.label.slice(separator+1).trim();
         return `<button type="button" class="filterToken" data-filter-token="${index}" aria-label="Remove ${escapeHtml(token.label)}">${prefix?`<span class="filterTokenPrefix">${escapeHtml(prefix.toLocaleLowerCase())}</span>`:""}<span class="filterTokenValue">${escapeHtml(value)}</span><span class="filterTokenRemove" aria-hidden="true">×</span></button>`;
       }).join("");
-      if (summary) summary.textContent=tokens.length?`${tokens.length} filter${tokens.length===1?"":"s"} applied`:"";
       tokenWrap.querySelectorAll("[data-filter-token]").forEach(button=>{
         button.onclick=()=>removeToken(tokens[Number(button.dataset.filterToken)]);
       });

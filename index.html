@@ -145,11 +145,10 @@
           <div class="filterMainRow">
             <div class="filterBarInputWrap">
               <div class="filterTokens" id="filterTokens"></div>
-              <input class="filterBarInput" id="filterInput" type="text" autocomplete="off" placeholder="Search items or add a filter" aria-label="Search or filter items" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="filterSuggestions">
+              <input class="filterBarInput" id="filterInput" type="text" autocomplete="off" aria-label="Search or filter items" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="filterSuggestions">
+              <button class="btn btn-sm btn-invisible filterClearButton" id="clearBoardFilters" type="button" aria-label="Clear filters" title="Clear filters">×</button>
               <div class="filterSuggestions" id="filterSuggestions" role="listbox" hidden></div>
             </div>
-            <span class="filterSummary" id="filterSummary">All items</span>
-            <button class="btn btn-sm btn-invisible" id="clearBoardFilters">Clear</button>
             <label class="btn btn-sm btn-invisible filterToggle checkboxToggle" style="display:inline-flex;align-items:center;">
               <input type="checkbox" id="showArchivedToggle"> Archived
             </label>
