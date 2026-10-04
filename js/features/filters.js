@@ -171,6 +171,10 @@
         :(project?.tags||[]).map(tag=>({value:tag.id,label:tag.name,color:tag.color||""}));
     }
 
+    function tagFilterOptions(project){
+      return [...projectTagOptions(project),{value:NONE,label:"No tags",color:""}];
+    }
+
     function columnValuesForItem(project,item,group,columnId){
       if (columnId==="title") return item.title?[String(item.title)]:[NONE];
       if (columnId==="group") return group?.id?[String(group.id)]:[NONE];
@@ -448,6 +452,16 @@
       const addIfUnselected=(kind,id,value,label,color="")=>{
         if (!isSelected(kind,id,value)) add(kind,id,value,label,color);
       };
+      const operatorHasChoices=prefix=>{
+        if (prefix==="tag") return tagFilterOptions(project).some(option=>!isSelected("tag","tags",option.value));
+        if (prefix==="group") return getProjectGroups(project).some(group=>!isSelected("group","group",group.id));
+        if (prefix==="is") return true;
+        const field=projectFields.find(candidate=>candidate.label.toLowerCase()===prefix);
+        if (!field) return false;
+        const kind=fieldTypes.getFilter(field)?.kind;
+        return ["text","number","date"].includes(kind)||
+          fieldFilterOptions(project,field).some(option=>!isSelected("field",field.id,option.value));
+      };
       const addOperators=filter=>{
         const operators=[
           {prefix:"tag",label:"Tag",description:"Filter by a project tag"},
@@ -457,7 +471,7 @@
             prefix:field.label.toLowerCase(),label:field.label,description:`Filter by ${field.label.toLowerCase()}`
           }))
         ];
-        return operators.filter(option=>match(option.prefix,option.label)&&
+        return operators.filter(option=>operatorHasChoices(option.prefix)&&match(option.prefix,option.label)&&
           (!filter||option.prefix.toLowerCase().startsWith(filter.toLowerCase())))
           .map(option=>({kind:"operator",id:"",value:option.prefix,label:option.label,
             detail:option.description,color:""}));
@@ -479,7 +493,7 @@
       const prefix=filterQuery[1].trim().toLowerCase();
       const valueQuery=filterQuery[2].trim();
       if ("tag".startsWith(prefix)||"tags".startsWith(prefix)||"label".startsWith(prefix)){
-        projectTagOptions(project).forEach(option=>
+        tagFilterOptions(project).forEach(option=>
           addIfUnselected("tag","tags",option.value,option.label,option.color||""));
       } else if ("group".startsWith(prefix)){
         getProjectGroups(project).forEach(group=>addIfUnselected("group","group",group.id,group.name));
@@ -612,10 +626,11 @@
       });
       const input=inputElement();
       const choices=suggestions(project,input.value);
+      const hasSearchChoice=!!input.value.trim()&&!input.value.includes(":");
       suggestionsWrap.innerHTML=choices.map((choice,index)=>
         `<button type="button" class="filterSuggestion${choice.kind==="operator"?" filterSuggestionOperator":""}${index===suggestionIndex?" active":""}" role="option" aria-selected="${index===suggestionIndex}" data-suggestion="${index}">${choice.color?`<span class="filterSuggestionDot" style="--tag-color:${escapeHtml(choice.color)}"></span>`:""}<span class="filterSuggestionText">${escapeHtml(choice.label)}</span>${choice.kind==="operator"?`<span class="filterSuggestionSyntax">${escapeHtml(choice.value.toLowerCase())}:</span>`:choice.detail?`<span class="filterSuggestionDetail">${escapeHtml(choice.detail)}</span>`:""}</button>`
-      ).join("")+(input.value.trim()&&!input.value.includes(":")?`<button type="button" class="filterSuggestion filterSuggestionSearch" role="option" data-filter-search><span class="filterSuggestionText">Search for “${escapeHtml(input.value.trim())}”</span><span class="filterSuggestionDetail">Full-text search</span></button>`:"");
-      suggestionsWrap.hidden=!suggestionsOpen||(!choices.length&&!input.value.trim());
+      ).join("")+(hasSearchChoice?`<button type="button" class="filterSuggestion filterSuggestionSearch" role="option" data-filter-search><span class="filterSuggestionText">Search for “${escapeHtml(input.value.trim())}”</span><span class="filterSuggestionDetail">Full-text search</span></button>`:"");
+      suggestionsWrap.hidden=!suggestionsOpen||(!choices.length&&!hasSearchChoice);
       if (!suggestionsWrap.hidden) positionSuggestionsAtCaret(input,suggestionsWrap);
       input.setAttribute("aria-expanded",String(!suggestionsWrap.hidden));
       suggestionsWrap.querySelectorAll("[data-suggestion]").forEach(button=>{
@@ -645,7 +660,6 @@
         suggestionIndex=-1;
         suggestionsOpen=true;
         renderBar(getProject(getActiveProjectId()));
-        if (input.value.trim()) documentRef.getElementById("filterSuggestions").hidden=false;
       });
       input.addEventListener("focus",()=>{
         suggestionsOpen=true;

@@ -194,6 +194,17 @@ test("filter autocomplete omits already selected values from field options",()=>
     ["Low","No Priority"]);
 });
 
+test("filter suggestions return nothing and hide the menu when no choices remain",()=>{
+  const {feature,project}=createFeature();
+  project.tags=[];
+  feature.tags.add("urgent");
+  feature.tags.add("__none__");
+
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:"))),[]);
+  assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag"))),[]);
+  assert.match(source,/suggestionsWrap\.hidden=!suggestionsOpen\|\|\(!choices\.length&&!hasSearchChoice\)/);
+});
+
 test("filter suggestion menu anchors at the input caret",()=>{
   const start=source.indexOf("function positionSuggestionsAtCaret(input,suggestionsWrap)");
   const end=source.indexOf("\n    function renderBar",start);
@@ -229,8 +240,9 @@ test("filter query prefixes open focused autocomplete choices while leaving free
   const tagSuggestions=feature.suggestions(project,"tag:");
 
   assert.deepEqual(JSON.parse(JSON.stringify(tagSuggestions.map(option=>option.label))),
-    ["follow-up","quick-win"]);
+    ["follow-up","quick-win","No tags"]);
   assert.ok(!tagSuggestions.some(option=>option.value==="urgent"));
+  assert.ok(tagSuggestions.some(option=>option.value==="__none__"&&option.kind==="tag"));
   assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:urg").map(option=>option.value))),[]);
   assert.ok(!feature.suggestions(project,"No tags").some(option=>option.kind==="tag"));
   assert.ok(feature.suggestions(project,"")[0].kind==="operator");
@@ -250,7 +262,7 @@ test("tag suggestions and filtering work without a custom Tags field",()=>{
   feature.tags.add("urgent");
 
   assert.deepEqual(JSON.parse(JSON.stringify(feature.suggestions(project,"tag:").map(option=>option.value))),
-    ["follow-up","quick-win"]);
+    ["follow-up","quick-win","__none__"]);
   assert.ok(feature.columnFilterOptions(project,"tags").some(option=>option.value==="__none__"));
   assert.equal(feature.matches(project,project.groups[0].items[0],project.groups[0]),true);
   assert.equal(feature.matches(project,project.groups[1].items[0],project.groups[1]),false);
@@ -286,7 +298,7 @@ test("app delegates filter state and matching to the extracted feature and uses 
   assert.doesNotMatch(app,/function render(Field|Group|BoardTag)Filters/);
   assert.match(index,/id="filterTokens"/);
   assert.match(index,/id="filterInput"/);
-  assert.doesNotMatch(index,/id="filterInput"[^>]*placeholder=/);
+  assert.match(index,/id="filterInput"[^>]*placeholder="Search or filter items"/);
   assert.match(index,/<div class="filterBarInputWrap">[\s\S]*?<input class="filterBarInput" id="filterInput"[^>]*>\s*<button[^>]*id="clearBoardFilters"[^>]*aria-label="Clear filters"/);
   assert.match(index,/id="filterSuggestions"/);
   assert.doesNotMatch(index,/id="filterSummary"/);
