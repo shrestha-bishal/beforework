@@ -10,12 +10,22 @@ const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const itemFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/item.js"),"utf8");
 const fieldFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
 const groupDefinition=fs.readFileSync(path.join(__dirname,"../js/core/fields/types/group.js"),"utf8");
-const templateStart=app.indexOf("const PROJECT_TEMPLATES = {");
-const templateEnd=app.indexOf("function buildFieldsForTemplate",templateStart);
-const templates=app.slice(templateStart,templateEnd);
+const templateModuleSource=fs.readFileSync(path.join(__dirname,"../js/core/project-templates.js"),"utf8");
 const statusOptionStart=app.indexOf("function ensureStatusOptions(");
 const statusOptionEnd=app.indexOf("let calendarCursor",statusOptionStart);
 const statusOptionSource=app.slice(statusOptionStart,statusOptionEnd);
+const plain=value=>JSON.parse(JSON.stringify(value));
+
+function loadProjectTemplates(){
+  const sandbox={window:{}};
+  vm.runInNewContext(templateModuleSource,sandbox,{filename:"project-templates.js"});
+  let nextId=0;
+  return sandbox.window.BeforeworkProjectTemplates.create({
+    uid:()=>`template-${++nextId}`,
+    tagColors:["tag-blue","tag-purple","tag-pink"],
+    selectColors:["select-blue","select-green","select-red"]
+  });
+}
 
 function loadProjectItemHelpers(){
   const sandbox={window:{}};
@@ -30,16 +40,69 @@ function loadProjectItemHelpers(){
 }
 
 test("Simple list, Table, Calendar, and Blank templates start without groups",()=>{
+  const templates=loadProjectTemplates();
   for (const name of ["simple","table","calendarTpl","blank"]){
-    assert.match(templates,new RegExp(`${name}:\\s*\\{[^}]*groups:\\[\\]`));
+    assert.deepEqual(JSON.parse(JSON.stringify(templates.get(name).groups)),[]);
   }
-  assert.match(templates,/taskboard:[\s\S]*?groups:\[\]/);
+  assert.deepEqual(JSON.parse(JSON.stringify(templates.get("taskboard").groups)),[]);
+  assert.deepEqual(plain(templates.buildFields("simple")),[]);
+  assert.deepEqual(plain(templates.buildFields("blank")),[]);
+});
+
+test("Table and Calendar templates start with relevant editable fields",()=>{
+  const templates=loadProjectTemplates();
+  const table=templates.get("table");
+  const calendar=templates.get("calendarTpl");
+  assert.deepEqual(JSON.parse(JSON.stringify(table.fields)),["status","priority","due","tags"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(calendar.fields)),["start","due","location","schedule"]);
+  assert.equal(calendar.itemDefaultType,"event");
+  assert.deepEqual(JSON.parse(JSON.stringify(table.columnOrders.table)),[
+    "title","field:status","field:priority","field:due","tags"
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(calendar.columnOrders.list)),[
+    "title","field:start","field:due","field:location","field:schedule","updated"
+  ]);
+  assert.deepEqual(plain(templates.buildFields("calendarTpl").map(field=>field.type)),[
+    "start-date","due-date","location","schedule"
+  ]);
+  assert.match(app,/projectTemplates\.buildFields\(templateSelect\.value\)/);
 });
 
 test("project-management template uses an optional Status field instead of fixed groups",()=>{
-  assert.match(templates,/taskboard:\{[^}]*views:\["kanban","list","calendar","roadmap"\][^}]*fields:\[[^\]]*"status"\][^}]*groups:\[\][^}]*boardGroupBy:"Status"/);
-  assert.match(app,/const DEFAULT_STATUS_OPTIONS=\["To do","In progress","Review"\]/);
-  assert.match(app,/if \(k==="status"\) return \{id:uid\(\), label:"Status", type:"select", options:DEFAULT_STATUS_OPTIONS/);
+  const templates=loadProjectTemplates();
+  const taskboard=templates.get("taskboard");
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.views)),["list","kanban","calendar","roadmap"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.fields)),["priority","due","status","tags"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.groups)),[]);
+  assert.equal(taskboard.boardGroupBy,"Status");
+  assert.deepEqual(plain(templates.statusOptions("simple")),["To do","In progress","Review"]);
+  assert.match(app,/projectTemplates\.buildFields\(templateKey\)/);
+});
+
+test("project-management template starts with a useful status flow and ordered List/Table columns",()=>{
+  const templates=loadProjectTemplates();
+  const taskboard=templates.get("taskboard");
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.statusOptions)),[
+    "Backlog","To do","In progress","Review","Blocked"
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.tags)),["Urgent","Follow-up","Quick win"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.columnOrders.list)),[
+    "title","field:status","field:priority","field:due","tags","progress","updated"
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(taskboard.columnOrders.table)),[
+    "title","field:status","field:priority","field:due","tags"
+  ]);
+  const fields=templates.buildFields("taskboard");
+  assert.deepEqual(plain(fields.map(field=>field.type)),["priority","due-date","select","tags"]);
+  assert.deepEqual(plain(fields[2].options.map(option=>option.label)),plain(taskboard.statusOptions));
+  assert.deepEqual(plain(templates.buildTags("taskboard").map(tag=>tag.name)),plain(taskboard.tags));
+  assert.deepEqual(plain(templates.buildTags("taskboard").map(tag=>tag.color)),[
+    "tag-blue","tag-purple","tag-pink"
+  ]);
+  assert.match(app,/projectTemplates\.buildTags\(templateKey\)/);
+  assert.match(app,/projectTemplates\.entries\(\)\.map\(\(\[value,template\]\)=>\(\{value,label:template\.label\}\)\)/);
+  const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+  assert.ok(index.indexOf('src="js/core/project-templates.js"')<index.indexOf('src="js/app.js"'));
 });
 
 test("Add field offers an optional Group field backed by single-select options",()=>{

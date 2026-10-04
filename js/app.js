@@ -9,6 +9,9 @@
   const TAG_COLORS=TAG_FIELD.colors;
   const TAG_COLOR_OPTIONS=TAG_FIELD.colorOptions;
   const SELECT_COLORS=fieldTypes.get("select").colors;
+  const projectTemplates=window.BeforeworkProjectTemplates.create({
+    uid,tagColors:TAG_COLORS,selectColors:SELECT_COLORS
+  });
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
   const ROADMAP = "__roadmap__";
@@ -156,22 +159,6 @@
   // View type is per-project now (project.views + project.activeViewId), not global.
   const VIEW_DEFS=window.BeforeworkViewRegistry.list();
   function viewLabel(type){ return window.BeforeworkViewRegistry.label(type); }
-  const PROJECT_TEMPLATES = {
-    simple:   {label:"Simple list",               views:["list"],               fields:[],               groups:[]},
-    table:    {label:"Table (spreadsheet-style)",  views:["table"],              fields:[],               groups:[]},
-    taskboard:{label:"Project / task management",  views:["kanban","list","calendar","roadmap"], fields:["priority","due","status"], groups:[], boardGroupBy:"Status"},
-    calendarTpl:{label:"Calendar / events",        views:["calendar","list"],    fields:["due"],          groups:[], itemDefaultType:"event"},
-    blank:    {label:"Blank",                      views:["list"],              fields:[],               groups:[]},
-  };
-  const DEFAULT_STATUS_OPTIONS=["To do","In progress","Review"];
-  function buildFieldsForTemplate(keys){
-    return (keys||[]).map(k=>{
-      if (k==="priority") return {id:uid(), label:"Priority", type:"priority", options:[]};
-      if (k==="due") return {id:uid(), label:"Due date", type:"due-date", options:[]};
-      if (k==="status") return {id:uid(), label:"Status", type:"select", options:DEFAULT_STATUS_OPTIONS.map((label,index)=>({id:uid(),label,color:SELECT_COLORS[index%SELECT_COLORS.length]}))};
-      return null;
-    }).filter(Boolean);
-  }
   function ensureStatusOptions(field,names){
     if (!Array.isArray(field.options)) field.options=[];
     const options=new Map(field.options.map(option=>[option.label.trim().toLowerCase(),option]));
@@ -560,8 +547,8 @@
       }
       state.projects=[];
     }
-    const tpl = PROJECT_TEMPLATES[templateKey] || PROJECT_TEMPLATES.blank;
-    const fields=buildFieldsForTemplate(tpl.fields);
+    const tpl=projectTemplates.get(templateKey);
+    const fields=projectTemplates.buildFields(templateKey);
     const groupByFieldId=fields.find(field=>field.label===tpl.boardGroupBy)?.id;
     const views = tpl.views.map(type=>({
       id:uid(),
@@ -571,12 +558,15 @@
     }));
     const p = {
       id:uid(), name, description, createdAt:Date.now(), folderId:null,
-      tags:[],
+      tags:projectTemplates.buildTags(templateKey),
       fields,
       groups: tpl.groups.map(gName=>({id:uid(), name:gName, items:[]})),
       items:[],
       views, activeViewId: views[0].id,
       itemDefaultType: tpl.itemDefaultType || "task",
+      ...(tpl.columnOrders?{columnOrders:Object.fromEntries(
+        Object.entries(tpl.columnOrders).map(([viewType,columnIds])=>[viewType,[...columnIds]])
+      )}:{}),
     };
     if (state.folderLazy) state.projects=[p]; else state.projects.push(p);
     registerProjectSummary(p);
@@ -920,8 +910,7 @@
       nextButton.disabled=!context.parsed || (destination.value==="new" && !newName.value.trim());
     };
     const getTemplateFields=()=>{
-      const template=PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank;
-      return buildFieldsForTemplate(template.fields);
+      return projectTemplates.buildFields(templateSelect.value);
     };
     const currentTargetProject=()=>{
       if (destination.value==="new") return null;
@@ -1007,7 +996,7 @@
       const nameValid=destination.value!=="new" || !!newName.value.trim();
       const selectedProject=project;
       const statusField=selectedProject?.fields.find(field=>field.type==="select"&&field.label.trim().toLowerCase()==="status");
-      const template=PROJECT_TEMPLATES[templateSelect.value]||PROJECT_TEMPLATES.blank;
+      const template=projectTemplates.get(templateSelect.value);
       const templateHasStatus=destination.value==="new"&&template.fields.includes("status");
       const priorityTarget=context.targets.find(target=>target.kind==="priority"&&selectedTargets.has(target.key));
       const priorityField=priorityTarget
@@ -1022,7 +1011,7 @@
         ? statusField
           ? (statusField.options||[]).map(option=>option.label)
           : selectedProject.groups.map(group=>group.name)
-        : templateHasStatus ? DEFAULT_STATUS_OPTIONS : template.groups;
+        : templateHasStatus ? projectTemplates.statusOptions(templateSelect.value) : template.groups;
       const mapsStatusToField=!!statusField||templateHasStatus;
       const prepared=context.parsed && hasTitle
         ? window.BeforeworkCsvImport.prepareImport(context.parsed,mapping,groupNames,mappingRenderer.dateFormatSelect?.value||"DMY",priorityChoices)
@@ -4201,7 +4190,7 @@
   }
 
   async function createProjectFromMenu(){
-    const templateOptions = Object.entries(PROJECT_TEMPLATES).map(([value,tpl])=>({value,label:tpl.label}));
+    const templateOptions=projectTemplates.entries().map(([value,template])=>({value,label:template.label}));
     const result = await showDialog({title:"New project", fields:[
       {label:"Project name", placeholder:"e.g. Marketing launch"},
       {label:"Description", type:"textarea", placeholder:"What is this project about?"},
