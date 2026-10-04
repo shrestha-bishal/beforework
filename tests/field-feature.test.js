@@ -9,14 +9,15 @@ const vm=require("node:vm");
 const source=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
 const indexSource=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
 const definitions=[
+  {value:"group",label:"Group",description:"Group items",storageType:"select",allowRename:false,maxPerProject:1},
   {value:"select",label:"Select",description:"Choose one option",colors:["red","blue"]},
   {value:"multi-select",label:"Multi-select",description:"Choose multiple options",colors:["red","blue"]},
   {value:"date",label:"Date",description:"A date"},
   {value:"currency",label:"Currency",description:"Store and display a monetary amount."},
-  {value:"priority",label:"Priority",description:"Best for urgency or ranking",maxPerProject:1},
-  {value:"tags",label:"Tags",description:"Tags",maxPerProject:1},
-  {value:"location",label:"Location",description:"Location"},
-  {value:"schedule",label:"Schedule",description:"Schedule"}
+  {value:"priority",label:"Priority",description:"Best for urgency or ranking",allowRename:false,maxPerProject:1},
+  {value:"tags",label:"Tags",description:"Tags",allowRename:false,maxPerProject:1},
+  {value:"location",label:"Location",description:"Location",allowRename:false},
+  {value:"schedule",label:"Schedule",description:"Schedule",allowRename:false}
 ];
 const defaultPriorityOptions=[
   {id:"high",label:"High",color:"red",rank:3},
@@ -39,6 +40,13 @@ function createFeature(overrides={}){
     fieldTypes:{
       list:()=>definitions,
       get:type=>definitions.find(definition=>definition.value===type)||null,
+      canRename:field=>{
+        const type=field.offeringType||field.type;
+        const definition=type==="select"&&field.label==="Group"
+          ?definitions.find(candidate=>candidate.value==="group")
+          :definitions.find(candidate=>candidate.value===type);
+        return definition?.allowRename!==false;
+      },
       getSettings:(field)=>{
         if (field.type!=="currency") return [];
         return [
@@ -195,6 +203,10 @@ test("adding a field creates its configured options and saves the project",async
   assert.equal(calls.dialogs[0].fields[0].searchable,true);
   assert.equal(calls.dialogs[0].fields[0].options[0].description,definitions[0].description);
   assert.equal(calls.dialogs[0].fields[0].options.length,definitions.length);
+  assert.equal(calls.dialogs[0].fields.length,2);
+  assert.equal(calls.dialogs[0].fields[1].label,"Field name");
+  assert.equal(calls.dialogs[0].fields[1].visibleWhen(["select"]),true);
+  assert.equal(calls.dialogs[0].fields[1].visibleWhen(["group"]),false);
   assert.equal(calls.dialogs[1].title,"Field options");
   assert.equal(calls.dialogs[1].choiceList.copy.heading,"Options");
   assert.deepEqual(JSON.parse(JSON.stringify(calls.dialogs[1].choiceList.items)),[]);
@@ -211,10 +223,27 @@ test("adding a field creates its configured options and saves the project",async
   assert.equal(calls.rendered,1);
 });
 
+test("group creation uses its standard name and skips the field-name dialog",async()=>{
+  const project={fields:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(["group",""],options=>({
+    values:[],
+    choices:[options.choiceList.createChoice("To do")]
+  }));
+
+  await feature.addFieldFlow(project);
+
+  assert.deepEqual(calls.dialogs.map(dialog=>dialog.title),["Add field","Field options"]);
+  assert.equal(project.fields[0].label,"Group");
+  assert.equal(project.fields[0].type,"select");
+  assert.equal(project.fields[0].offeringType,"group");
+  assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0].options.map(option=>option.label))),["To do"]);
+});
+
 test("creating a priority field starts with the same default levels as editing",async()=>{
   const project={fields:[]};
   const {feature,calls,setDialogResults}=createFeature();
-  setDialogResults(["priority","Priority"],options=>({
+  setDialogResults(["priority",""],options=>({
     values:[],
     choices:options.choiceList.items
   }));
@@ -393,7 +422,7 @@ test("priority choice changes use the shared staged field editor and save action
   const project={fields:[field],groups:[{items:[item]}]};
   const {feature,calls,setDialogResults}=createFeature();
   setDialogResults(options=>({
-    values:["Priority"],
+    values:[],
     choices:[
       {...options.choiceList.items[0],label:"Urgent",hiddenInField:true},
       {...options.choiceList.items[1],deleted:true},
@@ -413,6 +442,22 @@ test("priority choice changes use the shared staged field editor and save action
     "This removes this priority level and clears it from item values.",
     true
   ]);
+  assert.equal(calls.saved,1);
+});
+
+test("fixed-name fields omit the name input while editing",async()=>{
+  const field={
+    id:"group",label:"Group",type:"select",
+    options:[{id:"todo",label:"To do"}]
+  };
+  const project={fields:[field],groups:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(options=>({values:[],choices:options.choiceList.items}));
+
+  await feature.editField({stopPropagation(){}},field,project);
+
+  assert.equal(calls.dialogs[0].fields.some(control=>control.label==="Field name"),false);
+  assert.equal(field.label,"Group");
   assert.equal(calls.saved,1);
 });
 

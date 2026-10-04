@@ -83,6 +83,9 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(dialogsTemplateSource,/data-dialog-choice-add[\s\S]*data-dialog-choice-add-label/);
   assert.match(dialogsTemplateSource,/data-dialog-choice-new-input[\s\S]*data-dialog-choice-new-confirm[\s\S]*data-dialog-choice-new-cancel/);
   assert.match(dialogsSource,/function renderChoiceList\(container,choiceList\)/);
+  assert.match(dialogsSource,/const updateFieldVisibility=\(\)=>/);
+  assert.match(dialogsSource,/fieldsContainer\.addEventListener\("change",updateFieldVisibility\)/);
+  assert.match(dialogsSource,/input\.dispatchEvent\(new global\.Event\("change",\{bubbles:true\}\)\)/);
   assert.match(dialogsSource,/mdi:drag-horizontal/);
   assert.match(dialogsSource,/application\/x-beforework-choice/);
   assert.match(dialogsSource,/event\.key!=="ArrowUp"&&event\.key!=="ArrowDown"/);

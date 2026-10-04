@@ -16,6 +16,7 @@
 
   global.BeforeworkFieldTypes.register({
     value:"priority",label:"Priority",description:"Best for urgency or ranking.",
+    allowRename:false,
     maxPerProject:1,
     options,
     choiceEditor:{

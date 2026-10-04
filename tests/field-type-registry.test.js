@@ -64,6 +64,19 @@ test("field definitions declare project-level instance limits",()=>{
   assert.equal(fieldTypes.canAddToProject("group",[{type:"select",offeringType:"group",label:"Board lane"}]),false);
 });
 
+test("field definitions control whether their names can be customized",()=>{
+  const fixedNameTypes=["group","start-date","due-date","priority","tags","location","schedule"];
+
+  for (const type of fixedNameTypes){
+    assert.equal(fieldTypes.get(type).allowRename,false,type);
+    assert.equal(fieldTypes.canRename({type}),false,type);
+  }
+  assert.equal(fieldTypes.canRename({type:"select",offeringType:"group"}),false);
+  assert.equal(fieldTypes.canRename({type:"select",label:"Group"}),false);
+  assert.equal(fieldTypes.canRename({type:"select",label:"Status"}),true);
+  assert.equal(fieldTypes.canRename({type:"text",label:"Description"}),true);
+});
+
 test("field types own their filter matching and column values",()=>{
   const number={id:"estimate",type:"number"};
   const currency={id:"budget",type:"currency",currency:"USD"};

@@ -231,6 +231,7 @@
           input.value=option.dataset.value;
           button.querySelector("[data-select-label]").textContent=option.querySelector(".dialogSelectOptionLabel")?.textContent||option.textContent;
           options.forEach(candidate=>{ candidate.classList.toggle("selected",candidate===option); candidate.setAttribute("aria-selected",String(candidate===option)); });
+          input.dispatchEvent(new global.Event("change",{bubbles:true}));
           close();
           button.focus();
         });
@@ -488,7 +489,24 @@
           confirm.classList.toggle("btn-primary",!danger);
           const selectedIconValues=fields.map(field=>field.type==="iconPicker"?(field.value||defaultProjectIcon):null);
           const fieldsContainer=dialog.querySelector("[data-dialog-fields]");
-          fields.forEach((field,index)=>fieldsContainer.appendChild(makeField(templates,field,index,selectedIconValues)));
+          const fieldRoots=fields.map((field,index)=>{
+            const root=makeField(templates,field,index,selectedIconValues);
+            fieldsContainer.appendChild(root);
+            return root;
+          });
+          const updateFieldVisibility=()=>{
+            const values=fields.map((field,index)=>
+              fieldsContainer.querySelector(`#dialogField${index}`)?.value??""
+            );
+            fields.forEach((field,index)=>{
+              if (typeof field.visibleWhen==="function"){
+                fieldRoots[index].hidden=!field.visibleWhen(values);
+              }
+            });
+          };
+          fieldsContainer.addEventListener("input",updateFieldVisibility);
+          fieldsContainer.addEventListener("change",updateFieldVisibility);
+          updateFieldVisibility();
           const choiceChanges=renderChoiceList(dialog.querySelector("[data-dialog-choice-list]"),choiceList);
           document.body.appendChild(overlay);
           const finish=value=>{

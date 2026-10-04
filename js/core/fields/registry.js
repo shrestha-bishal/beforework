@@ -27,6 +27,20 @@
     return definitions.get(type)||null;
   }
 
+  function getDefinitionForField(field){
+    if (field?.offeringType||field?.fieldType){
+      return get(field.offeringType||field.fieldType)||get(field.type);
+    }
+    const storageDefinition=[...definitions.values()].find(definition=>
+      definition.storageType===field?.type&&isFieldType(field,definition.value)
+    );
+    return storageDefinition||get(field?.type);
+  }
+
+  function canRename(field){
+    return getDefinitionForField(field)?.allowRename!==false;
+  }
+
   function getFilter(field){
     return behaviorFor(field?.type)?.filter||null;
   }
@@ -198,7 +212,7 @@
   }
 
   global.BeforeworkFieldTypes=Object.freeze({
-    register,get,list,isFieldType,canAddToProject,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,getChoiceEditorCopy,createChoice,
+    register,get,list,isFieldType,canAddToProject,canRename,getFilter,getChoiceEditor,getFieldChoices,getInputChoices,getEditableChoices,getChoiceEditorCopy,createChoice,
     applyChoiceEdits,getChoiceDeleteConfirmation,getSettings,applySettings,
     getDisplayLabel,getInputType,getSummaryMetadata,validateField,
     getFilterValues,getFilterOptions,matchesFilter,matchesQuery,

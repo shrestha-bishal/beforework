@@ -103,37 +103,40 @@
     async function addFieldFlow(project){
       const availableFieldTypes=fieldTypeOptions.filter(option=>
         fieldTypes.canAddToProject(option.value,project.fields));
-      const details=await showDialog({
+      const values=await showDialog({
         title:"Add field",
         fields:[
           {label:"Field type",type:"select",searchable:true,options:availableFieldTypes.map(({value,label,description})=>({value,label,description})),value:"select"},
-          {label:"Field name",placeholder:"e.g. Status, Type, Effort"}
+          {
+            label:"Field name",
+            placeholder:"e.g. Status, Type, Effort",
+            visibleWhen:values=>fieldTypes.get(values[0])?.allowRename!==false
+          }
         ],
         confirmLabel:"Add field"
       });
-      if (!details) return;
-      const [type,label]=details;
-      const fieldName=label?.trim()||(type==="group"?"Group":({
-        tags:"Tags",
-        location:"Location",
-        schedule:"Schedule",
-        "start-date":"Start date",
-        "due-date":"Due date"
-      }[type]||""));
+      if (!values) return;
+      const [type,customName]=values;
+      const definition=fieldTypes.get(type);
+      const fieldName=definition?.label;
       if (!fieldName) return;
-      await addField(project,fieldName,type);
+      const label=definition.allowRename===false?fieldName:customName?.trim()||fieldName;
+      if (!label) return;
+      await addField(project,label,type);
     }
 
     async function editField(event,field,project){
       event?.stopPropagation();
       closeAllActionMenus();
       const choices=fieldTypes.getEditableChoices(field,{project});
+      const canRename=fieldTypes.canRename(field);
+      const settings=fieldTypes.getSettings(field,{mode:"edit"});
       let addedChoiceCount=0;
       const result=await showDialog({
         title:"Edit field",
         fields:[
-          {label:"Field name",value:field.label},
-          ...fieldTypes.getSettings(field,{mode:"edit"})
+          ...(canRename?[{label:"Field name",value:field.label}]:[]),
+          ...settings
         ],
         confirmLabel:"Save",
         ...(choices?{choiceList:{
@@ -149,9 +152,10 @@
           }]
         }
       });
+      if (result===null) return;
       const values=choices?result?.values:Array.isArray(result)?result:[result];
-      const label=values?.[0];
-      if (!label||!label.trim()) return;
+      const label=canRename?values?.[0]:field.label;
+      if (canRename&&(!label||!label.trim())) return;
       if (choices){
         const choiceChanges=result.choices;
         const originalLabels=new Map(choices.map(choice=>[choice.id,choice.label]));
@@ -184,8 +188,8 @@
           getBoardFilterTags
         },choiceChanges);
       }
-      field.label=label.trim();
-      fieldTypes.applySettings(field,{mode:"edit"},values.slice(1));
+      if (canRename) field.label=label.trim();
+      fieldTypes.applySettings(field,{mode:"edit"},values.slice(canRename?1:0));
       scheduleSave();
       renderAll();
       refreshOpenItemModal();

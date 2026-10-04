@@ -3,6 +3,7 @@
   const schedule=({project,item,scheduleFieldValue})=>scheduleFieldValue(project,item);
   global.BeforeworkFieldTypes.register({
     value:"schedule",label:"Schedule",description:"Add dates, times, reminders, and recurrence controls to items.",
+    allowRename:false,
     maxPerProject:1,
     filter:{
       kind:"text",

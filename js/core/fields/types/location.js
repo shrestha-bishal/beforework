@@ -3,6 +3,7 @@
   const includes=(value,query)=>String(value??"").toLowerCase().includes(String(query??"").toLowerCase());
   global.BeforeworkFieldTypes.register({
     value:"location",label:"Location",description:"Add an optional location or link to each item.",
+    allowRename:false,
     maxPerProject:1,
     filter:{
       kind:"text",
