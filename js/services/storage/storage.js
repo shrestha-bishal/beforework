@@ -1,8 +1,8 @@
 /* ---------- Persistence ---------- */
-  // LEGACY_LS_KEY is only read once, to offer moving old browser-only data
-  // into a real file. It's never written to again - the connected file is
-  // the single source of truth from here on.
+  // LEGACY_LS_KEY is only read to offer moving old browser-only data into a
+  // real file. Demo mode uses its own isolated browser-storage key.
   const LEGACY_LS_KEY = "personal_dashboard_state_v2";
+  const DEMO_WORKSPACE_KEY = "beforework_demo_workspace_v1";
   const FILTER_KEY = "personal_dashboard_filters_v1";
   const DB_NAME = "dashboard_meta", DB_STORE = "kv", BACKUP_STORE = "recovery";
   const MAX_RECOVERY_SNAPSHOTS = 8;
@@ -36,7 +36,8 @@
     getLatestRecoverySnapshot,
     getRecoverySnapshots,
     saveRecoverySnapshot,
-    isLegacyFile:()=>!!fileHandle && fileHandle.kind!=="directory",
+    isLegacyFile:()=>!!fileHandle && fileHandle.kind!=="directory" && fileHandle.kind!=="demo",
+    loadDemoWorkspace,
     async loadFolderIndex(){
       if (!fileHandle || fileHandle.kind!=="directory") throw new Error("A folder workspace is not connected.");
       return folderIndex||getFolderWorkspace().loadIndex(fileHandle);
@@ -45,16 +46,40 @@
       if (!fileHandle || fileHandle.kind!=="directory") throw new Error("A folder workspace is not connected.");
       return getFolderWorkspace().loadProject(fileHandle,projectId,index||folderIndex);
     },
-    supportsAttachments:()=>!!fileHandle && fileHandle.kind==="directory",
+    supportsAttachments:()=>!!fileHandle && (fileHandle.kind==="directory" || fileHandle.kind==="demo"),
     async writeAttachment(id,file){
+      if (fileHandle?.kind==="demo"){
+        await idbSet("demoAttachment:"+id,file);
+        return;
+      }
       if (!fileHandle || fileHandle.kind!=="directory") throw new Error("Attachments require a folder workspace.");
       return getFolderWorkspace().writeAttachment(fileHandle,id,file);
     },
     async readAttachment(id){
+      if (fileHandle?.kind==="demo"){
+        const file=await idbGet("demoAttachment:"+id);
+        if (!file) throw new Error("That demo attachment is no longer available.");
+        return file;
+      }
       if (!fileHandle || fileHandle.kind!=="directory") throw new Error("Attachments require a folder workspace.");
       return getFolderWorkspace().readAttachment(fileHandle,id);
     }
   });
+
+  function loadDemoWorkspace(seedState){
+    const raw=localStorage.getItem(DEMO_WORKSPACE_KEY);
+    if (raw===null){
+      localStorage.setItem(DEMO_WORKSPACE_KEY,JSON.stringify(seedState));
+      return seedState;
+    }
+    const parsed=JSON.parse(raw);
+    const validation=window.BeforeworkWorkspaceValidation.validate(parsed,SCHEMA_VERSION);
+    if (!validation.valid) throw new Error(validation.errors.join(" "));
+    const migrated=migrateState(parsed);
+    const serialized=JSON.stringify(migrated);
+    if (serialized!==JSON.stringify(parsed)) localStorage.setItem(DEMO_WORKSPACE_KEY,serialized);
+    return migrated;
+  }
 
   function idbOpen(){
     return new Promise((resolve,reject)=>{
@@ -305,10 +330,8 @@
     if (gateStatus) gateStatus.textContent = text;
   }
 
-  // The connected file is the only place data lives. If it isn't connected
-  // yet (or the write fails), we deliberately do NOT fall back to writing a
-  // copy into localStorage - that would create a second source of truth
-  // that could silently drift from the file.
+  // Regular workspaces never fall back to browser storage; demo mode is the
+  // explicit exception and writes only to its own isolated key.
   function scheduleSave(){
     if (!fileHandle) return;
     if (state?.folderLazy){
@@ -319,7 +342,7 @@
       });
     }
     window.BeforeworkCommandPaletteInstance?.refreshCommands();
-    const targetLabel=fileHandle.kind==="directory" ? "workspace folder " : "file ";
+    const targetLabel=fileHandle.kind==="directory" ? "workspace folder " : fileHandle.kind==="demo" ? "demo workspace " : "file ";
     setSyncStatus("Saving changes to " + targetLabel + fileHandle.name + "...");
     const serialized = JSON.stringify(state);
     if (lastSavedState && lastSavedState !== serialized){
@@ -345,6 +368,17 @@
       const handle = fileHandle;
       if (!handle) return;
       try{
+        if (handle.kind==="demo"){
+          try{
+            const canonicalState=JSON.stringify(state);
+            localStorage.setItem(DEMO_WORKSPACE_KEY,canonicalState);
+            lastWrittenState=canonicalState;
+            setSyncStatus("Demo changes saved in this browser.");
+          }catch(err){
+            setSyncStatus("Couldn't save demo changes in this browser: " + window.BeforeworkErrorUtils.getMessage(err));
+          }
+          return;
+        }
         if (handle.kind==="directory"){
           await writeFolderWorkspace(handle);
           return;

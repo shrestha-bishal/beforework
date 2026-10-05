@@ -60,7 +60,7 @@ python3 -m http.server 8000
 
 Then open <http://localhost:8000/> in Chrome or Edge and create a workspace folder, open an existing folder workspace, or connect an older single-file JSON workspace.
 
-Local hosting starts with an empty workspace by default. For a demo workspace with sample projects, project notes, calendar events, and custom fields, use the hosted [Beforework demo](https://beforework-demo.netlify.app/) or build a local demo by enabling `BEFOREWORK_MODE=demo`.
+Local hosting starts with an empty workspace by default. The hosted [Beforework demo](https://beforework-demo.netlify.app/) opens directly into sample data without asking for folder access. Demo edits are saved only in that browser; use **Reset demo** to restore the sample workspace or **Use your own workspace** to open the regular folder-backed app.
 
 For development, if you need to run the demo data locally, build and serve the generated site with demo mode enabled:
 
@@ -74,11 +74,11 @@ The production build minifies JavaScript, CSS, and HTML in `dist`; source files 
 
 ## Deploy
 
-This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build minifies JavaScript, CSS, and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to seed new workspaces with sample projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which starts with an empty workspace.
+This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build minifies JavaScript, CSS, and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to open a browser-local sample workspace with projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which opens the folder-backed workspace setup flow.
 
-The app keeps the same local-first data model in both modes: a folder workspace on the user's device, optional attachments, and browser-side persistence. The demo site simply preloads sample content so new users can explore the UI without creating data manually.
+Demo workspace data is stored in browser local storage, and demo attachments are stored in IndexedDB. Neither is uploaded to a server or connected to a user's folder workspace. The demo site provides **Reset demo** to restore its sample data. The regular site retains the local-first folder workspace flow.
 
-To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Changes to an existing workspace file are unaffected by this setting.
+To host both versions, connect the same repository and branch to two Netlify sites. Leave `BEFOREWORK_MODE` unset (or set it to `clean`) for `beforework.netlify.app`, and set it to `demo` for `beforework-demo.netlify.app`. Existing folder workspaces are unaffected by this setting.
 
 The source config defaults to `clean`. The build script writes the selected mode into `dist/js/config/site-config.js` without changing the source config.
 

@@ -303,6 +303,30 @@
     connectGate.hide();
   }
 
+  async function resetDemoWorkspace(){
+    if (window.BEFOREWORK_CONFIG.initialWorkspace!=="demo") return;
+    const confirmed=await showDialog({
+      title:"Reset demo workspace",
+      message:"This replaces the demo data saved in this browser with a fresh sample workspace. This cannot be undone.",
+      confirmLabel:"Reset demo",
+      danger:true
+    });
+    if (!confirmed) return;
+    state=defaultState();
+    activeProjectId=OVERVIEW;
+    persistActiveLocation();
+    filterFeature.clearPreferences();
+    filterFeature.reset();
+    selectedItemIds.clear();
+    undoStack.length=0;
+    lastSavedState=JSON.stringify(state);
+    scheduleSave();
+    renderAll();
+    if (!await flushSave()){
+      await showNotice("Couldn't save the reset demo","The sample data is open in this tab, but the browser couldn't save it. Check the browser's storage settings and try again.");
+    }
+  }
+
   async function chooseWorkspaceConflict(fileName,externalValid,folderMode=false){
     const options=[];
     if (externalValid) options.push({value:"reload",label:"Load the folder version and keep this tab's version in recovery"});
@@ -3890,19 +3914,26 @@
   }
 
   /* ---------- Boot ----------
-     There is no in-memory-only or browser-storage-only mode: the connected
-     file is the single source of truth. Boot either silently resumes the
-     last-connected file, or shows the connect gate and waits - it never
-     falls back to a default or previously-legacy-saved workspace on its
-     own, since that would let the app "work" without ever settling on one
-     file. Auth (if a provider is available) is initialized independently
-     and never blocks or gates this flow. */
+     Regular mode silently resumes the last-connected file or shows the
+     connect gate. Demo mode loads its isolated browser workspace instead.
+     Auth (if a provider is available) is initialized independently. */
   async function boot({loadViewModules}){
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
+    const demoMode=window.BEFOREWORK_CONFIG.initialWorkspace==="demo";
     const tryBeforeworkLink=document.getElementById("tryBeforeworkLink");
-    if (tryBeforeworkLink && window.BEFOREWORK_CONFIG.initialWorkspace==="demo"){
-      tryBeforeworkLink.hidden=false;
+    const resetDemoButton=document.getElementById("resetDemoBtn");
+    if (demoMode){
+      if (tryBeforeworkLink) tryBeforeworkLink.hidden=false;
+      if (resetDemoButton) resetDemoButton.hidden=false;
+      const workspaceSwitcherButton=document.getElementById("workspaceSwitcherBtn");
+      if (workspaceSwitcherButton) workspaceSwitcherButton.disabled=true;
+      document.getElementById("workspaceSwitchBtn").hidden=true;
+      document.getElementById("workspaceNewBtn").hidden=true;
+      document.querySelector(".workspaceSwitcherChevron").hidden=true;
+    }
+    if (resetDemoButton){
+      resetDemoButton.onclick=resetDemoWorkspace;
     }
     navigation=window.BeforeworkNavigation.create({
       onOverview:()=>{
@@ -4151,6 +4182,33 @@
     try{ await focusTimer.init(); }
     catch(err){
       showNotice("Couldn't load focus timer", window.BeforeworkErrorUtils.getMessage(err));
+      return;
+    }
+    if (demoMode){
+      fileHandle={kind:"demo",name:"Demo workspace"};
+      let loadError=null;
+      try{
+        state=window.BeforeworkStorage.loadDemoWorkspace(defaultState());
+      }catch(err){
+        state=defaultState();
+        loadError=err;
+      }
+      lastSavedState=JSON.stringify(state);
+      lastWrittenState=lastSavedState;
+      try{
+        await window.BeforeworkDemoSeeder.writeAttachments(state,(id,file)=>window.BeforeworkStorage.writeAttachment(id,file));
+      }catch(err){
+        await showNotice("Couldn't prepare demo attachments",window.BeforeworkErrorUtils.getMessage(err));
+      }
+      if (loadError){
+        setSyncStatus("Couldn't load saved demo data: " + window.BeforeworkErrorUtils.getMessage(loadError));
+      }else{
+        setSyncStatus("Demo changes are saved in this browser only.");
+      }
+      renderAll();
+      if (loadError){
+        await showNotice("Couldn't load saved demo data","The sample workspace is open. Use Reset demo to replace the saved demo data with a fresh sample. " + window.BeforeworkErrorUtils.getMessage(loadError));
+      }
       return;
     }
     const reconnected = await tryReconnectFile();

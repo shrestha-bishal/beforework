@@ -34,8 +34,12 @@ test("bootstrap is the single application startup entry point",()=>{
     'src="js/services/google-calendar/google-calendar.js"',
     'src="js/app.js"'
   ]) assert.ok(errorUtils<index.indexOf(script),`${script} must load after the shared error utility`);
-  assert.match(index,/<a class="btn btn-sm btn-primary demoTryLink" id="tryBeforeworkLink" href="https:\/\/beforework\.netlify\.app\/" target="_blank" rel="noopener noreferrer" hidden>Try Beforework<\/a>/);
-  assert.match(app,/window\.BEFOREWORK_CONFIG\.initialWorkspace==="demo"/);
+  assert.match(index,/<a class="btn btn-sm btn-primary demoTryLink" id="tryBeforeworkLink" href="https:\/\/beforework\.netlify\.app\/" target="_blank" rel="noopener noreferrer" hidden>Use your own workspace<\/a>/);
+  assert.match(index,/<button class="btn btn-sm demoTryLink" id="resetDemoBtn" type="button" hidden>Reset demo<\/button>/);
+  assert.match(app,/const demoMode=window\.BEFOREWORK_CONFIG\.initialWorkspace==="demo"/);
   assert.match(app,/tryBeforeworkLink\.hidden=false/);
+  assert.match(app,/workspaceSwitcherButton\.disabled=true/);
+  assert.match(app,/loadDemoWorkspace\(defaultState\(\)\)/);
+  assert.match(app,/async function resetDemoWorkspace\(\)/);
   assert.ok(index.indexOf('src="js/app.js"')<index.indexOf('src="js/bootstrap.js"'));
 });
