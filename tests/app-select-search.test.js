@@ -6,14 +6,9 @@ const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
 
+const selectSource=fs.readFileSync(path.join(__dirname,"../js/ui/select-control.js"),"utf8");
 const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const appStyles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
-const start=appSource.indexOf("function enhanceSelectControl(select)");
-const end=appSource.indexOf("function enhanceSelectControls(root=document)",start);
-const snippet=appSource.slice(start,end);
-const positionStart=appSource.indexOf("function positionFloatingSelectMenu(button,menu)");
-const positionEnd=appSource.indexOf("function openFloatingSelectMenu",positionStart);
-const positionSnippet=appSource.slice(positionStart,positionEnd);
 let activeDocument;
 
 function createElement(){
@@ -23,7 +18,7 @@ function createElement(){
     children:[],
     dataset:{},
     attributes:{},
-    style:{},
+    style:{removeProperty(name){ delete this[name.replace(/-([a-z])/g,(_match,letter)=>letter.toUpperCase())]; }},
     classList:{
       add(name){ classes.add(name); },
       toggle(name,enabled){ if (enabled) classes.add(name); else classes.delete(name); },
@@ -39,6 +34,7 @@ function createElement(){
       }
       this.children.push(child);
       child.parentNode=this;
+      child.isConnected=!!this.isConnected;
       return child;
     },
     append(...children){ children.forEach(child=>this.appendChild(child)); },
@@ -51,6 +47,7 @@ function createElement(){
       const index=this.children.indexOf(reference);
       this.children.splice(index<0?this.children.length:index,0,child);
       child.parentNode=this;
+      child.isConnected=!!this.isConnected;
       return child;
     },
     getBoundingClientRect(){ return {width:160}; },
@@ -61,6 +58,7 @@ function createElement(){
 
 function createHarness({multiple=false,selectDataset={}}={}){
   const document={createElement,body:createElement(),activeElement:null};
+  document.body.isConnected=true;
   activeDocument=document;
   const select=createElement();
   select.multiple=multiple;
@@ -76,6 +74,7 @@ function createHarness({multiple=false,selectDataset={}}={}){
   select.value="todo";
   select.closest=()=>null;
   select.parentNode=createElement();
+  select.parentNode.isConnected=true;
   select.parentNode.appendChild(select);
   select.classList=Object.assign(select.classList,{add(){}});
   select.dispatchEvent=event=>{
@@ -86,17 +85,15 @@ function createHarness({multiple=false,selectDataset={}}={}){
   };
   const sandbox={
     document,
-    Event:function(type){ this.type=type; },
-    openFloatingSelectMenu(button,menu){
-      menu.hidden=false;
-      button.setAttribute("aria-expanded","true");
-    },
-    closeFloatingSelectMenu(menu){
-      menu.hidden=true;
-      menu._selectAnchor?.setAttribute("aria-expanded","false");
-    }
+    window:{innerWidth:1280,innerHeight:800},
+    Event:function(type){ this.type=type; }
   };
-  vm.runInNewContext(`${snippet}; enhanceSelectControl(select);`,{...sandbox,select});
+  vm.runInNewContext(selectSource,sandbox);
+  const controls=sandbox.window.BeforeworkSelectControl.create({
+    documentRef:document,
+    windowRef:sandbox.window
+  });
+  controls.enhanceSelectControl(select);
   const wrapper=select.parentNode;
   const button=wrapper.children.find(child=>child.getAttribute("aria-haspopup")==="listbox");
   const menu=wrapper.children.find(child=>child.className==="appSelectMenu");
@@ -232,20 +229,26 @@ test("appSelect refreshes changed native options each time it opens",()=>{
 test("appSelect can widen a menu beyond its compact header trigger",()=>{
   const button={isConnected:true,getBoundingClientRect:()=>({width:24,left:450,right:474,top:100,bottom:124})};
   const menu={hidden:false,dataset:{selectWidth:"320"},scrollHeight:120,style:{}};
-  vm.runInNewContext(`${positionSnippet}; positionFloatingSelectMenu(button,menu);`,{
-    window:{innerWidth:1280,innerHeight:800},button,menu
-  });
+  const sandbox={window:{innerWidth:1280,innerHeight:800},document:{body:createElement(),querySelectorAll(){return [];}}};
+  vm.runInNewContext(selectSource,sandbox);
+  sandbox.window.BeforeworkSelectControl.create({
+    documentRef:sandbox.document,
+    windowRef:sandbox.window
+  }).positionFloatingSelectMenu(button,menu);
   assert.equal(menu.style.width,"320px");
   assert.equal(menu.style.left,"450px");
 });
 
 test("appSelect exposes reusable enhancement methods for other controls",()=>{
-  assert.match(appSource,/window\.BeforeworkAppSelect=\{\s*enhance:enhanceSelectControl,\s*enhanceAll:enhanceSelectControls\s*\}/);
-  assert.match(snippet,/const isMultiple=select\.multiple/);
+  assert.match(selectSource,/function createSelectControls/);
+  assert.match(selectSource,/const isMultiple=select\.multiple/);
+  assert.match(appSource,/window\.BeforeworkAppSelect=Object\.freeze\(\{/);
+  assert.match(appSource,/enhance:selectControls\.enhanceSelectControl/);
+  assert.match(appSource,/enhanceSelectControl:selectControls\.enhanceSelectControl/);
 });
 
 test("selected option pill remains inside the scrollable option list",()=>{
-  assert.match(appStyles,/\.appSelectOption\.selected::before\{left:4px;\}/);
+  assert.match(appStyles,/\.appSelectOption\.selected::before\{[^}]*left:4px;/);
   assert.match(appStyles,/\.appSelectOption\.selected\{padding-left:15px;/);
   assert.match(appStyles,/\.itemModalSidebar \.appSelectButton\[aria-expanded="true"\]\{background:var\(--bg-soft\);\}/);
   assert.match(appStyles,/\.listTable \.columnFilterSelectWrap \.columnFilterToggle\[aria-expanded="true"\]\{opacity:1;visibility:visible;transform:translateX\(0\);background:var\(--bg-soft2\);color:var\(--text\);\}/);
