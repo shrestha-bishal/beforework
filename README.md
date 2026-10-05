@@ -7,16 +7,16 @@ Beforework is a serverless local-first project management workspace for projects
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d1246eb5-1276-4001-b1c7-254cc3c01815" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ce98605e-02e2-4dea-a043-6bd452bb8ac5" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/9b0b82c5-4833-4acf-b948-6dfbfd85b51b" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/ed9a1af5-cbf0-4622-9861-05d41594eec9" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/651a129c-d35a-4f4a-8dc1-37dfad7c03bb" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/06d37d10-57e1-401f-8627-3513a27ffbbd" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/5e930139-3644-414e-86e8-fcfe576fc497" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/d47de356-aeb4-4194-a6d9-be6983d1a87c" />
-<img width="1899" height="991" alt="image" src="https://github.com/user-attachments/assets/3687872e-f98f-4dde-b328-adce993f1a64" />
-<img width="1920" height="963" alt="image" src="https://github.com/user-attachments/assets/590f016f-5eaa-43cf-a80d-011ca4a4ab24" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/cd83a821-fee2-4d3b-85e9-13f819242a18" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/2d78fe60-46de-4d5f-b617-af59b9c4c873" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/deb28c9e-3e18-4157-8ca2-5fe2caa32d65" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/e2f02ded-49a3-4218-8a65-206ea4232c04" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/31e31514-3ada-42ea-a83a-34d5eec5d7f3" />
+<img width="1909" height="993" alt="image" src="https://github.com/user-attachments/assets/bbfe9116-2a49-4fac-8ac3-3f26701b9eab" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/f3f6e9c7-848a-4f66-a10e-b96187500b6e" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/c5f8a1fe-10cd-4cf9-85ac-430966c88c57" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/84a4522a-244c-4591-9993-433b2fee19c7" />
-<img width="1920" height="959" alt="image" src="https://github.com/user-attachments/assets/eacf2746-8352-4b64-a1ee-2ee9b50e3a1c" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/84a4522a-244c-4591-9993-433b2fee19c7" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/eacf2746-8352-4b64-a1ee-2ee9b50e3a1c" />
 
 ## Hosted version
 
