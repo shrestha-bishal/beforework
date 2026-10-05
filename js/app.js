@@ -26,7 +26,6 @@
     "mdi:account-group-outline","mdi:file-document-outline","mdi:flag-outline","mdi:puzzle-outline",
     "mdi:school-outline","mdi:bank-outline"
   ];
-  const TIME_FORMAT_KEY = "personal_dashboard_time_format_v1";
   const LOCATION_KEY = "personal_dashboard_location_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
   const GITHUB_SPONSORS_URL = "https://github.com/sponsors/shrestha-bishal";
@@ -205,22 +204,17 @@
   let googleSilentAuth = false;
   let googleTokenRefreshTimer = null;
 
-  function getTimeFormat(){
-    try{ return localStorage.getItem(TIME_FORMAT_KEY)==="24" ? "24" : "12"; }catch(err){ return "12"; }
-  }
-  function formatTime(date){
-    return date.toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit", hour12:getTimeFormat()==="12"});
-  }
-  function formatTimeValue(value){
-    if (!value) return "";
-    const [hours,minutes] = value.split(":").map(Number);
-    if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return value;
-    return formatTime(new Date(2000,0,1,hours,minutes));
-  }
-  function formatDateTime(timestamp){
-    const date = new Date(timestamp);
-    return date.toLocaleString(undefined, {dateStyle:"medium", timeStyle:"short", hour12:getTimeFormat()==="12"});
-  }
+  const dateTime=window.BeforeworkDateTime.create();
+  const {
+    getTimeFormat,
+    formatTimeValue,
+    formatDate,
+    formatDateTime,
+    formatUpdatedAt,
+    todayStr,
+    dateTimeLocalValue
+  }=dateTime;
+  const fmtDate=formatDate;
 
   function renderAuthUI(){
     if (activeProjectId===SETTINGS) render();
@@ -234,18 +228,6 @@
   /* ---------- Keyboard shortcuts modal ---------- */
   function showShortcutsModal(){
     shortcutsModal.open();
-  }
-
-  function todayStr(offsetDays){
-    const d = new Date();
-    d.setDate(d.getDate() + (offsetDays||0));
-    return d.toISOString().slice(0,10);
-  }
-  function dateTimeLocalValue(value){
-    if (!value) return "";
-    const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) return "";
-    return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
   }
 
   function defaultState(){
@@ -1550,26 +1532,6 @@
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
-  function fmtDate(dateStr){
-    if (!dateStr) return "";
-    const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
-  }
-  function formatUpdatedAt(timestamp){
-    const date = new Date(timestamp);
-    if (!Number.isFinite(date.getTime())) return "Unknown";
-    const now = new Date();
-    const dayStamp = value => Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
-    const daysAgo = Math.round((dayStamp(now) - dayStamp(date)) / 86400000);
-    const time = formatTime(date);
-    if (daysAgo===0) return `Today at ${time}`;
-    if (daysAgo===1) return `Yesterday at ${time}`;
-    if (daysAgo>1 && daysAgo<7) return `${daysAgo} days ago at ${time}`;
-    const dateLabel = date.toLocaleDateString(undefined, {
-      day:"numeric", month:"short", ...(date.getFullYear()===now.getFullYear() ? {} : {year:"numeric"})
-    });
-    return `${dateLabel} at ${time}`;
-  }
   function dueClass(dateStr){
     if (!dateStr) return "";
     if (dateStr < todayStr(0)) return "Label--danger";
@@ -2163,7 +2125,7 @@
       actions:{
       toggleTheme(board){ window.BeforeworkAppearance.toggleTheme(); renderSettings(board); },
       setTimeFormat(value){
-        try{ localStorage.setItem(TIME_FORMAT_KEY, value); }catch(err){/* ignore */}
+        dateTime.setTimeFormat(value);
         refreshTimePickerLabels();
         renderAll();
       },
