@@ -80,7 +80,7 @@ test("Table and List expose searchable multi-select filters on every data column
   assert.match(filters,/setColumnSelection\(project,columnId,values\)/);
   assert.match(filters,/function applyColumnFilterVisibility\(table,project\)/);
   assert.match(filters,/row\.hidden=!item\|\|!matches\(project,item,group\)/);
-  assert.match(styles,/\.appSelectOption\.selected::before\{left:4px;\}/);
+  assert.match(styles,/\.appSelectOption\.selected::before\{[^}]*left:4px;/);
   assert.match(filters,/th\.classList\.add\("hasColumnFilter"\)/);
   assert.match(styles,/\.listTable \.columnFilterSelectWrap\{position:absolute;top:50%;right:5px/);
   assert.match(styles,/\.listTable \.fieldColumnHeader\.hasColumnMenu \.columnFilterSelectWrap\{right:32px;\}/);

@@ -109,9 +109,10 @@ test("Add field offers an optional Group field backed by single-select options",
   assert.match(groupDefinition,/value:"group",label:"Group",description:"Create a single-select field for organising items into Board columns\."/);
   assert.match(groupDefinition,/maxPerProject:1/);
   assert.match(fieldFeatureSource,/const fieldTypeOptions=fieldTypes\.list\(\)/);
-  assert.match(fieldFeatureSource,/const fieldName=label\?\.trim\(\)\|\|\(type==="group"\?"Group"/);
+  assert.match(fieldFeatureSource,/const fieldName=definition\?\.label/);
+  assert.match(fieldFeatureSource,/definition\.allowRename===false\?fieldName:customName\?\.trim\(\)\|\|fieldName/);
   assert.match(fieldFeatureSource,/offeringType:type/);
-  assert.match(fieldFeatureSource,/if \(storageType==="select"\|\|storageType==="multi-select"\)/);
+  assert.match(fieldFeatureSource,/if \(storageType==="select"\|\|storageType==="multi-select"\|\|storageType==="priority"\)/);
 });
 
 test("CSV status values can extend Status options without duplicating case-insensitive matches",()=>{
@@ -219,7 +220,7 @@ test("deleting the final group can preserve its tasks directly in the project",(
       project,
       UNGROUPED_GROUP_ID:"__project_items__",
       getProject:()=>project,
-      filterFeature:{groups:new Set()},
+      filterFeature:{groups:new Set(),setGroups(){}},
       scheduleSave(){},
       render(){},
       renderProjectList(){}
