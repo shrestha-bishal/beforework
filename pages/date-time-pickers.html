@@ -1,0 +1,43 @@
+<template id="datePickerPopoverTemplate">
+  <div class="datePickerPopover" role="dialog" aria-label="Choose date">
+    <div class="datePickerHeader">
+      <button type="button" class="datePickerNav" data-date-action="previous" aria-label="Previous month">‹</button>
+      <strong data-date-month></strong>
+      <button type="button" class="datePickerNav" data-date-action="next" aria-label="Next month">›</button>
+    </div>
+    <div class="datePickerWeekdays" aria-hidden="true">
+      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+    </div>
+    <div class="datePickerGrid" data-date-grid></div>
+    <label class="datePickerTimeLabel" data-date-time-control hidden>
+      Time<input class="datePickerTimeInput" type="time">
+    </label>
+    <div class="datePickerFooter">
+      <button type="button" data-date-action="clear">Clear</button>
+      <button type="button" data-date-action="today">Today</button>
+    </div>
+  </div>
+</template>
+
+<template id="timePickerPopoverTemplate">
+  <div class="timePickerPopover" role="dialog" aria-label="Choose time">
+    <div class="timePickerHeader">Select time</div>
+    <div class="timePickerWheels">
+      <div class="timePickerWheel">
+        <div class="timePickerOptions" role="listbox" aria-label="Hour" data-time-wheel="hour"></div>
+      </div>
+      <span class="timePickerSeparator" aria-hidden="true">:</span>
+      <div class="timePickerWheel">
+        <div class="timePickerOptions" role="listbox" aria-label="Minute" data-time-wheel="minute"></div>
+      </div>
+      <div class="timePickerWheel" data-time-period-wrap>
+        <div class="timePickerOptions" role="listbox" aria-label="AM or PM" data-time-wheel="period"></div>
+      </div>
+      <div class="timePickerSelection" aria-hidden="true"></div>
+    </div>
+    <div class="timePickerFooter">
+      <button type="button" class="timePickerCancel" data-time-action="cancel">Cancel</button>
+      <button type="button" class="timePickerSave" data-time-action="save">Save</button>
+    </div>
+  </div>
+</template>

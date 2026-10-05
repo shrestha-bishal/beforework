@@ -13,7 +13,8 @@ window.BeforeworkViewTemplates = (()=>{
     shortcutsModal:"pages/shortcuts-modal.html",
     settings:"pages/settings.html",
     support:"pages/support.html",
-    focusTimer:"pages/focus-timer.html"
+    focusTimer:"pages/focus-timer.html",
+    dateTimePickers:"pages/date-time-pickers.html"
   };
   const onDemandPaths = {
     dialogs:"pages/dialogs.html",

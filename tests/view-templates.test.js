@@ -49,6 +49,7 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.includes("pages/dialogs.html"),false);
   assert.equal(requests.includes("pages/overview-details.html"),false);
   assert.equal(requests.filter(url=>url==="pages/focus-timer.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/date-time-pickers.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/list-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/table-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
@@ -78,6 +79,20 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/item-fields.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/shortcuts-modal.html").length,1);
   assert.deepEqual(loader.clone("dialogs"),{cloned:true});
+});
+
+test("date and time picker templates are loaded with application startup templates",async()=>{
+  const {loader,requests}=loadTemplatesModule();
+  const templatePath=path.join(__dirname,"../pages/date-time-pickers.html");
+  const templateSource=fs.readFileSync(templatePath,"utf8");
+
+  await loader.loadAll();
+
+  assert.equal(requests.filter(url=>url==="pages/date-time-pickers.html").length,1);
+  assert.match(templateSource,/<template id="datePickerPopoverTemplate">/);
+  assert.match(templateSource,/<template id="timePickerPopoverTemplate">/);
+  assert.match(templateSource,/data-date-grid/);
+  assert.match(templateSource,/data-time-wheel="hour"/);
 });
 
 test("renders named values into loaded templates and rejects missing values",async()=>{

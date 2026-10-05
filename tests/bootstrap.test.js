@@ -26,10 +26,14 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.doesNotMatch(app,/\bboot\(\);/);
   assert.doesNotMatch(app,/BeforeworkBootstrap/);
   assert.match(app,/await loadViewModules\(\)/);
+  assert.ok(app.indexOf('await window.BeforeworkViewTemplates.load("dateTimePickers")')<app.indexOf("dateTimePickers.enhanceDateInputs()"));
   const errorUtils=index.indexOf('src="js/core/error-utils.js"');
   assert.ok(errorUtils>=0);
   assert.ok(index.indexOf('src="js/helpers/date-time.js"')>errorUtils);
   assert.ok(index.indexOf('src="js/helpers/html.js"')>errorUtils);
+  assert.ok(index.indexOf('src="js/helpers/date-time.js"')<index.indexOf('src="js/ui/date-time-picker.js"'));
+  assert.ok(index.indexOf('src="js/ui/date-time-picker.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(index.indexOf('src="js/ui/templates.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/helpers/html.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/features/recurrence.js"')<index.indexOf('src="js/app.js"'));
   for (const script of [
