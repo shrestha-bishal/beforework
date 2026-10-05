@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const {createFieldTypes}=require("./helpers/field-types");
+const appScripts=require("./helpers/app-script-order");
 
 const fieldTypes=createFieldTypes();
 const root=path.join(__dirname,"..");
@@ -32,10 +33,10 @@ test("every field type is registered once with its own catalog metadata",()=>{
     ["high","medium","low"]
   );
   assert.equal(fieldTypes.get("tags").colors.length,fieldTypes.get("tags").colorOptions.length);
-  const registryPosition=index.indexOf('src="js/core/fields/registry.js"');
-  const appPosition=index.indexOf('src="js/app.js"');
+  const registryPosition=appScripts.indexOf("core/fields/registry.js");
+  const appPosition=appScripts.indexOf("app.js");
   for (const definition of definitions){
-    const typePosition=index.indexOf(`src="js/core/fields/types/${definition.value}.js"`);
+    const typePosition=appScripts.indexOf(`core/fields/types/${definition.value}.js`);
     assert.ok(typePosition>registryPosition&&typePosition<appPosition,
       `field type ${definition.value} must load after the registry and before app.js`);
   }

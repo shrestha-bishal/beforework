@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/ui/navigation.js"),"utf8");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
@@ -138,9 +139,9 @@ test("workspace switcher uses the shared action menu component",()=>{
 
   assert.match(source,/BeforeworkActionMenu\.create\(\{documentRef\}\)[\s\S]*?\.register\(workspaceSwitcherBtn,workspaceSwitcherMenu,\{styleTrigger:false\}\)/);
   assert.match(index,/class="menu action-menu action-menu--workspace workspaceSwitcherMenu"/);
-  assert.ok(index.indexOf('src="js/ui/action-menu.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("ui/action-menu.js")<appScripts.indexOf("app.js"));
   assert.match(app,/window\.BeforeworkNavigation\.create\(/);
   assert.doesNotMatch(app,/document\.getElementById\("workspaceSwitcherBtn"\)\.onclick/);
   assert.doesNotMatch(app,/document\.getElementById\("sidebarToggle"\)\.onclick/);
-  assert.ok(index.indexOf('src="js/ui/navigation.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("ui/navigation.js")<appScripts.indexOf("app.js"));
 });

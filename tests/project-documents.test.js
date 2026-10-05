@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const root=path.join(__dirname,"..");
 const index=fs.readFileSync(path.join(root,"index.html"),"utf8");
@@ -65,7 +66,7 @@ test("project document feature rejects invalid titles, templates, and content",(
 });
 
 test("Documents is a separately loaded project view with Markdown preview and export",()=>{
-  assert.match(index,/js\/features\/project-documents\.js/);
+  assert.ok(appScripts.includes("features/project-documents.js"));
   assert.match(bootstrapSource,/\.\/views\/documents-view\.js/);
   assert.match(appSource,/documentsView\.render\(project,board\)/);
   assert.match(appSource,/documents:\(project\.documents\|\|\[\]\)\.map\(document=>\(\{[\s\S]*?id:documentIds\.get\(document\.id\)/);

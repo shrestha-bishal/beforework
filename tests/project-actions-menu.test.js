@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/ui/project-actions-menu.js"),"utf8");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
@@ -158,5 +159,5 @@ test("index contains only a mount point for the generated header actions menu",(
   assert.match(index,/<div class="projectMenuWrap" id="projectMenuWrap"><\/div>/);
   assert.doesNotMatch(index,/showArchivedToggle|> Archived/);
   assert.doesNotMatch(index,/data-project-action=|id="editProjectBtn"|id="importProjectCsvBtn"/);
-  assert.ok(index.indexOf('src="js/ui/project-actions-menu.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("ui/project-actions-menu.js")<appScripts.indexOf("app.js"));
 });

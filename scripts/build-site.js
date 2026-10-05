@@ -56,6 +56,31 @@ const siteConfig = `window.BEFOREWORK_CONFIG = Object.freeze({
 
 fs.writeFileSync(path.join(output, "js", "config", "site-config.js"), siteConfig);
 
+function createAppBundle(){
+  const manifestPath=path.join(root,"js","manifest.js");
+  const manifest=fs.readFileSync(manifestPath,"utf8");
+  const imports=[...manifest.matchAll(/^import\s+["']\.\/([^"']+)["'];\s*$/gm)].map(([,file])=>file);
+  const withoutImports=manifest.replace(/^import\s+["']\.\/[^"']+["'];\s*$/gm,"").trim();
+  if (!imports.length || withoutImports){
+    throw new Error("The application manifest must contain only ordered relative imports.");
+  }
+  if (new Set(imports).size!==imports.length){
+    throw new Error("The application manifest contains duplicate scripts.");
+  }
+  const source=imports.map(file=>{
+    if (!/^[a-zA-Z0-9_/-]+\.js$/.test(file) || file.includes("..")){
+      throw new Error(`Application manifest contains an unsafe path: ${file}`);
+    }
+    const scriptPath=path.resolve(root,"js",file);
+    const relative=path.relative(path.join(root,"js"),scriptPath);
+    if (relative.startsWith("..") || path.isAbsolute(relative) || !fs.existsSync(scriptPath)){
+      throw new Error(`Application script is missing or outside js/: ${file}`);
+    }
+    return fs.readFileSync(scriptPath,"utf8");
+  }).join("\n;\n");
+  fs.writeFileSync(path.join(output,"js","app.min.js"),source);
+}
+
 function listFiles(directory){
   return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{
     const entryPath=path.join(directory,entry.name);
@@ -82,7 +107,7 @@ function expandStylesheetManifest(file, source){
 
 async function minifyJavaScriptFile(file){
   const source=fs.readFileSync(file,"utf8");
-  const isModule=/^\s*(?:import|export)\s/m.test(source);
+  const isModule=file.endsWith(`${path.sep}app.min.js`)||/^\s*(?:import|export)\s/m.test(source);
   const result=await minifyJavaScript(source,{
     module:isModule,
     compress:true,
@@ -94,6 +119,7 @@ async function minifyJavaScriptFile(file){
 }
 
 async function build(){
+  createAppBundle();
   const files=[
     ...listFiles(path.join(output,"js")),
     ...listFiles(path.join(output,"pages")),
@@ -126,6 +152,10 @@ async function build(){
         `href="${primerStylesheet.source}"`,
         `href="${primerStylesheet.target}"`
       );
+      source=source.replace(
+        '<script type="module" src="js/manifest.js"></script>',
+        '<script type="module" src="js/app.min.js"></script>'
+      );
     }
     const minified=await minifyHtml(source,{
       collapseWhitespace:true,
@@ -137,6 +167,13 @@ async function build(){
     });
     fs.writeFileSync(file,minified);
   }
+
+  const manifest=fs.readFileSync(path.join(root,"js","manifest.js"),"utf8");
+  const sourceFiles=[...manifest.matchAll(/^import\s+["']\.\/([^"']+)["'];\s*$/gm)].map(([,file])=>file);
+  for (const file of sourceFiles){
+    fs.rmSync(path.join(output,"js",file),{force:true});
+  }
+  fs.rmSync(path.join(output,"js","manifest.js"),{force:true});
 
   console.log(`Built and minified Beforework with ${mode} initial workspace data.`);
 }

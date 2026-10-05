@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/ui/project-create-menu.js"),"utf8");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
@@ -112,6 +113,6 @@ test("outside clicks dismiss the menu and app delegates its UI wiring",()=>{
 
   assert.match(app,/window\.BeforeworkProjectCreateMenu\.create\(/);
   assert.doesNotMatch(app,/projectCreateBtn\.onclick/);
-  assert.ok(index.indexOf('src="js/ui/action-menu.js"')<index.indexOf('src="js/app.js"'));
-  assert.ok(index.indexOf('src="js/ui/project-create-menu.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("ui/action-menu.js")<appScripts.indexOf("app.js"));
+  assert.ok(appScripts.indexOf("ui/project-create-menu.js")<appScripts.indexOf("app.js"));
 });

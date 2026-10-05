@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const itemFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/item.js"),"utf8");
@@ -102,7 +103,7 @@ test("project-management template starts with a useful status flow and ordered L
   assert.match(app,/projectTemplates\.buildTags\(templateKey\)/);
   assert.match(app,/projectTemplates\.entries\(\)\.map\(\(\[value,template\]\)=>\(\{value,label:template\.label\}\)\)/);
   const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
-  assert.ok(index.indexOf('src="js/core/project-templates.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("core/project-templates.js")<appScripts.indexOf("app.js"));
 });
 
 test("Add field offers an optional Group field backed by single-select options",()=>{

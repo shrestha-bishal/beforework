@@ -5,10 +5,10 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 const {createFieldTypes}=require("./helpers/field-types");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
-const indexSource=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
 const definitions=[
   {value:"group",label:"Group",description:"Group items",storageType:"select",allowRename:false,maxPerProject:1},
   {value:"select",label:"Select",description:"Choose one option",colors:["red","blue"]},
@@ -185,7 +185,7 @@ function createFeature(overrides={}){
 }
 
 test("field feature loads before the app entry point",()=>{
-  assert.ok(indexSource.indexOf('src="js/features/fields.js"')<indexSource.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("features/fields.js")<appScripts.indexOf("app.js"));
 });
 
 test("adding a field creates its configured options and saves the project",async()=>{

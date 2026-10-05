@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/features/filters.js"),"utf8");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
@@ -305,7 +306,7 @@ test("app delegates filter state and matching to the extracted feature and uses 
   assert.doesNotMatch(source,/getElementById\("filterSummary"\)/);
   assert.match(fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8"),/\.filterClearButton\{[^}]*margin-left:auto/);
   assert.doesNotMatch(index,/id="filterPanel"/);
-  assert.ok(index.indexOf('src="js/features/filters.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("features/filters.js")<appScripts.indexOf("app.js"));
 });
 
 test("app moves completion tabs out of the board before clearing its contents",()=>{

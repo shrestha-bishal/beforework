@@ -6,6 +6,7 @@ const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
 const MarkdownIt=require("markdown-it");
+const appScripts=require("./helpers/app-script-order");
 
 const root=path.join(__dirname,"..");
 const source=fs.readFileSync(path.join(root,"js/ui/markdown.js"),"utf8");
@@ -79,7 +80,8 @@ test("Markdown libraries are loaded locally in source and copied into production
 
   assert.match(index,/node_modules\/markdown-it\/dist\/browser\/markdown-it\.umd\.min\.js/);
   assert.match(index,/node_modules\/dompurify\/dist\/purify\.min\.js/);
-  assert.ok(index.indexOf("purify.min.js")<index.indexOf("js/ui/markdown.js"));
+  assert.ok(index.indexOf("purify.min.js")<index.indexOf('src="js/manifest.js"'));
+  assert.ok(appScripts.indexOf("ui/markdown.js")>=0);
   assert.match(build,/vendor\/markdown-it\.min\.js/);
   assert.match(build,/vendor\/purify\.min\.js/);
 });

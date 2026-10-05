@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/features/recurrence.js"),"utf8");
 const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
@@ -21,7 +22,7 @@ function json(value){
 }
 
 test("recurrence feature loads before the app and owns recurrence rules",()=>{
-  assert.ok(index.indexOf('src="js/features/recurrence.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("features/recurrence.js")<appScripts.indexOf("app.js"));
   assert.match(app,/recurrenceFeature=window\.BeforeworkRecurrence\.create\(\)/);
   assert.doesNotMatch(app,/function (normaliseRecurrence|recurrenceSummary|expandRecurringDates)\(/);
   assert.match(app,/function updateRecurrenceSummary\(/);

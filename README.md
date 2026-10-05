@@ -71,11 +71,11 @@ node scripts/build-site.js
 python -m http.server 8000 --directory dist
 ```
 
-The production build minifies JavaScript, CSS, and HTML in `dist`; source files remain readable and unchanged. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
+The ordered imports in `js/manifest.js` are the application script manifest. For source development, the browser loads that manifest as an ES module. The production build combines its imports into one minified `js/app.min.js`, and minifies CSS and HTML in `dist`; source files remain readable and unchanged. Lazy-loaded view modules remain separate. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
 
 ## Deploy
 
-This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build minifies JavaScript, CSS, and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to open a browser-local sample workspace with projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which opens the folder-backed workspace setup flow.
+This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build reads the JavaScript import manifest, bundles and minifies startup scripts, and minifies CSS and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to open a browser-local sample workspace with projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which opens the folder-backed workspace setup flow.
 
 Demo workspace data is stored in browser local storage, and demo attachments are stored in IndexedDB. Neither is uploaded to a server or connected to a user's folder workspace. The demo site provides **Reset demo** to restore its sample data. The regular site retains the local-first folder workspace flow.
 

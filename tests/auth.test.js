@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
+const appScripts=require("./helpers/app-script-order");
 
 const authSource=fs.readFileSync(path.join(__dirname,"../js/services/auth/auth.js"),"utf8");
 const netlifySource=fs.readFileSync(path.join(__dirname,"../js/services/auth/netlify-identity.js"),"utf8");
@@ -108,7 +109,7 @@ test("application composes the generic manager with the Netlify provider",()=>{
   assert.match(app,/providers:\[window\.BeforeworkNetlifyIdentityProvider\.create\(\)\]/);
   assert.match(app,/accountName:authService\.getAccountName\(\)/);
   assert.match(app,/logout\(\)\{ authService\.logout\(\); \}/);
-  assert.ok(index.indexOf('src="js/services/auth/netlify-identity.js"')<index.indexOf('src="js/services/auth/auth.js"'));
-  assert.ok(index.indexOf('src="js/services/auth/auth.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(appScripts.indexOf("services/auth/netlify-identity.js")<appScripts.indexOf("services/auth/auth.js"));
+  assert.ok(appScripts.indexOf("services/auth/auth.js")<appScripts.indexOf("app.js"));
   assert.doesNotMatch(app,/function loadNetlifyIdentity|NETLIFY_IDENTITY_ENABLED/);
 });
