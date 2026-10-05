@@ -1470,46 +1470,16 @@
     });
   }
 
-  function serializeCsvRows(rows){
-    return rows.map(row=>row.map(value=>{
-      let text=String(value??"");
-      const leading=text.trimStart();
-      const isNumber=/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(leading);
-      if (/^[=+@\-\t\r]/.test(leading) && !isNumber) text="'"+text;
-      return `"${text.replace(/"/g,'""')}"`;
-    }).join(",")).join("\r\n");
-  }
-
-  function buildProjectCsv(project,viewType,showProgressColumn,rows){
-    const showGroupColumn=(project.groups||[]).length+((project.items||[]).length?1:0)>1;
-    const columns=[
-      {id:"title",label:"Title",value:row=>row.item.title},
-      ...(showGroupColumn?[{id:"group",label:"Group",value:row=>row.group.name}]:[]),
-      ...project.fields.filter(field=>field.type!=="tags").map(field=>({id:`field:${field.id}`,label:field.label,value:row=>field.type==="schedule"
-        ? scheduleFieldValue(project,row.item)
-        : csvFieldValue(field,row.item.values[field.id],project)})),
-      ...(project.fields.some(field=>field.type==="tags")?[{id:"tags",label:project.fields.find(field=>field.type==="tags").label,value:row=>
-        fieldTypes.formatValue(project.fields.find(field=>field.type==="tags"),{item:row.item,project})}]:[]),
-      ...(viewType==="list" && showProgressColumn?[{id:"progress",label:"Progress",value:row=>row.item.subitems.length?`${row.item.subitems.filter(subitem=>subitem.done).length}/${row.item.subitems.length}`:""}]:[]),
-      ...(viewType==="list"?[{id:"updated",label:"Updated",value:row=>formatUpdatedAt(row.item.updatedAt)}]:[])
-    ];
-    const byId=new Map(columns.map(column=>[column.id,column]));
-    const ordered=orderedTableColumns(project,viewType,columns.map(column=>column.id)).map(id=>byId.get(id)).filter(Boolean);
-    return serializeCsvRows([ordered.map(column=>column.label),...rows.map(row=>ordered.map(column=>column.value(row)))]);
-  }
-
-  function exportProjectCsv(project,viewType,showProgressColumn=false){
-    const rows=sortProjectRows(project,rowsForSelection(project));
-    const csv=buildProjectCsv(project,viewType,showProgressColumn,rows);
-    const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"});
-    const url=URL.createObjectURL(blob);
-    const link=document.createElement("a");
-    const safeName=project.name.trim().replace(/[<>:"/\\|?*\x00-\x1f]/g,"-")||"beforework";
-    link.href=url;
-    link.download=`${safeName}.csv`;
-    link.click();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }
+  const csvExport=window.BeforeworkCsvExport.create({
+    getRows:project=>sortProjectRows(project,rowsForSelection(project)),
+    formatFieldValue:(field,value,project,item)=>field.type==="tags"
+      ? fieldTypes.formatValue(field,{item,project})
+      : csvFieldValue(field,value,project),
+    formatScheduleValue:scheduleFieldValue,
+    formatUpdatedAt,
+    orderedTableColumns
+  });
+  const exportProjectCsv=csvExport.exportProjectCsv;
 
   /* ---------- Rendering: shell ---------- */
   function renderAll(){

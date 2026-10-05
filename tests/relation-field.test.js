@@ -62,7 +62,7 @@ test("relation field editor searches and selects only other project items",()=>{
 });
 
 test("relation values render and export item titles rather than stored IDs",()=>{
-  const helpers=runSnippet("function relatedItemTitles","function serializeCsvRows",`
+  const helpers=runSnippet("function relatedItemTitles","const csvExport=window.BeforeworkCsvExport.create",`
     JSON.stringify({
       cell:fieldCellHtml({id:"related",type:"relation"},["target","missing"],project),
       csv:csvFieldValue({id:"related",type:"relation"},["target","missing"],project)
