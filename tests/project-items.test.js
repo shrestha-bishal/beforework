@@ -65,7 +65,7 @@ test("Table and Calendar templates start with relevant editable fields",()=>{
   assert.deepEqual(plain(templates.buildFields("calendarTpl").map(field=>field.type)),[
     "start-date","due-date","location","schedule"
   ]);
-  assert.match(app,/projectTemplates\.buildFields\(templateSelect\.value\)/);
+  assert.match(app,/projectTemplates\.buildFields\(templateKey\)/);
 });
 
 test("project-management template uses an optional Status field instead of fixed groups",()=>{

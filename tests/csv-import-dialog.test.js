@@ -127,11 +127,15 @@ test("CSV mapping renderer clears previous fields and skips missing parsed data"
 });
 
 test("app delegates column mapping rendering to the CSV import UI module",()=>{
-  assert.match(appSource,/window\.BeforeworkCsvImportDialog\.createMappingRenderer\(\{/);
-  assert.match(appSource,/mappingFieldTemplate,/);
-  assert.match(appSource,/dateFormatTemplate,/);
-  assert.match(appSource,/mappingRenderer\.render\(context\)/);
-  assert.doesNotMatch(appSource,/function renderMapping\(\)\{[\s\S]{0,500}createElement\("select"\)/);
+  assert.match(source,/function createCsvImportDialog/);
+  assert.match(appSource,/window\.BeforeworkCsvImportDialog\.create\(\{/);
+  assert.match(appSource,/makeTargets:csvImportTargets/);
+  assert.match(appSource,/getPreviewOptions:csvImportPreviewOptions/);
+  assert.match(appSource,/resolveProject:ensureProjectLoaded/);
+  assert.match(appSource,/importTasks:importCsvTasks/);
+  assert.match(appSource,/await csvImportDialog\.open\(\{destinationMode,targetProjectId\}\)/);
+  assert.doesNotMatch(appSource,/function renderMapping\(\)/);
+  assert.doesNotMatch(appSource,/function refreshPreview\(\)/);
 });
 
 test("CSV mapping field and date controls are defined in the dialog HTML template",()=>{
@@ -142,8 +146,18 @@ test("CSV mapping field and date controls are defined in the dialog HTML templat
   assert.match(templateSource,/data-csv-mapping-caption/);
   assert.match(templateSource,/data-csv-mapping-select/);
   assert.match(templateSource,/data-csv-date-format/);
-  assert.match(appSource,/templateFragment\.querySelector\("#csvImportMappingFieldTemplate"\)/);
-  assert.match(appSource,/templateFragment\.querySelector\("#csvImportDateFormatTemplate"\)/);
+  assert.match(source,/templateFragment\.querySelector\("#csvImportMappingFieldTemplate"\)/);
+  assert.match(source,/templateFragment\.querySelector\("#csvImportDateFormatTemplate"\)/);
+  assert.match(source,/templateFragment\.querySelector\("#csvImportPreviewHeadRowTemplate"\)/);
+  assert.match(source,/templateFragment\.querySelector\("#csvImportPreviewHeadingCellTemplate"\)/);
+  assert.match(source,/templateFragment\.querySelector\("#csvImportPreviewBodyRowTemplate"\)/);
+  assert.match(source,/templateFragment\.querySelector\("#csvImportPreviewBodyCellTemplate"\)/);
+  assert.match(templateSource,/<template id="csvImportDialog">/);
+  assert.match(templateSource,/<template id="csvImportPreviewHeadRowTemplate">[\s\S]*?<tr><\/tr>/);
+  assert.match(templateSource,/<template id="csvImportPreviewHeadingCellTemplate">[\s\S]*?<th scope="col"><\/th>/);
+  assert.match(templateSource,/<template id="csvImportPreviewBodyRowTemplate">[\s\S]*?<tr><\/tr>/);
+  assert.match(templateSource,/<template id="csvImportPreviewBodyCellTemplate">[\s\S]*?<td><\/td>/);
+  assert.doesNotMatch(source,/document\.createElement\("(?:tr|th|td)"\)/);
   assert.doesNotMatch(source,/innerHTML\s*=/);
 });
 
@@ -162,5 +176,15 @@ test("CSV mapping renderer validates its required dependencies",()=>{
       onChange(){}
     }),
     /requires mapping field and date format templates/
+  );
+});
+
+test("CSV import dialog validates app-owned workflow callbacks",()=>{
+  const window={BeforeworkCsvImport:{parseCsv(){},prepareImport(){}}};
+  vm.runInNewContext(source,{window},{filename:"csv-import-dialog.js"});
+
+  assert.throws(
+    ()=>window.BeforeworkCsvImportDialog.create(),
+    /requires template, project, import, and notice callbacks/
   );
 });

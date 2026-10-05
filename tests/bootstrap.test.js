@@ -35,6 +35,8 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.ok(index.indexOf('src="js/ui/date-time-picker.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/ui/select-control.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/ui/select-control.js"')>index.indexOf('src="js/helpers/html.js"'));
+  assert.ok(index.indexOf('src="js/services/csv-import.js"')<index.indexOf('src="js/ui/csv-import-dialog.js"'));
+  assert.ok(index.indexOf('src="js/ui/csv-import-dialog.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/ui/templates.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/helpers/html.js"')<index.indexOf('src="js/app.js"'));
   assert.ok(index.indexOf('src="js/features/recurrence.js"')<index.indexOf('src="js/app.js"'));
