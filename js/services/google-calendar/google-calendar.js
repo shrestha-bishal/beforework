@@ -164,8 +164,8 @@
         <h3>Link Google calendars</h3>
         <p class="dialogMessage">Choose one or more calendars for Beforework to sync. Unlinking stops future syncs but does not delete Google events.</p>
         <div class="googleCalendarChoices">${calendars.length ? calendars.map(calendar=>`
-          <label class="googleCalendarChoice"><input type="checkbox" value="${escapeHtml(calendar.id)}" ${linked.has(calendar.id)?"checked":""}>
-            <span><strong>${escapeHtml(calendar.summary||calendar.id)}</strong>${calendar.primary?" <span class=\"color-fg-muted\">(primary)</span>":""}</span>
+          <label class="googleCalendarChoice"><input type="checkbox" value="${window.BeforeworkHtml.escapeHtml(calendar.id)}" ${linked.has(calendar.id)?"checked":""}>
+            <span><strong>${window.BeforeworkHtml.escapeHtml(calendar.summary||calendar.id)}</strong>${calendar.primary?" <span class=\"color-fg-muted\">(primary)</span>":""}</span>
           </label>`).join("") : `<div class="commentEmpty">No writable Google calendars found.</div>`}</div>
         <div class="modalFooter"><button class="btn btn-invisible" data-google-cancel>Cancel</button><button class="btn btn-primary btn-sm" data-google-save>Save links</button></div>
       </div>`;

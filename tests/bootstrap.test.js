@@ -28,7 +28,9 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.match(app,/await loadViewModules\(\)/);
   const errorUtils=index.indexOf('src="js/core/error-utils.js"');
   assert.ok(errorUtils>=0);
-  assert.ok(index.indexOf('src="js/core/date-time.js"')>errorUtils);
+  assert.ok(index.indexOf('src="js/helpers/date-time.js"')>errorUtils);
+  assert.ok(index.indexOf('src="js/helpers/html.js"')>errorUtils);
+  assert.ok(index.indexOf('src="js/helpers/html.js"')<index.indexOf('src="js/app.js"'));
   for (const script of [
     'src="js/services/storage/storage.js"',
     'src="js/services/storage/workspace-recovery.js"',

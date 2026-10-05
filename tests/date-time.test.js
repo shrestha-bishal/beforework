@@ -6,7 +6,7 @@ const path=require("node:path");
 const test=require("node:test");
 const vm=require("node:vm");
 
-const source=fs.readFileSync(path.join(__dirname,"../js/core/date-time.js"),"utf8");
+const source=fs.readFileSync(path.join(__dirname,"../js/helpers/date-time.js"),"utf8");
 const TIME_FORMAT_KEY="personal_dashboard_time_format_v1";
 
 function createDateTime({preferences={},now}={}){

@@ -113,6 +113,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/services/reminders/` - in-app reminder scheduling and notifications
 - `js/ui/` - shared UI components, appearance preferences, and HTML template loading
 - `js/features/` - cohesive application features
+- `js/helpers/` - shared date/time and HTML escaping utilities
 - `js/config/` - build-generated runtime configuration
 - `js/demo/` - demo workspace data and attachments
 - `js/models/` and `js/views/` - application models and view modules

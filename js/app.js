@@ -19,6 +19,7 @@
   const SETTINGS = "__settings__";
   const SUPPORT = "__support__";
   const DEFAULT_PROJECT_ICON = "mdi:clipboard-text-outline";
+  const escapeHtml=window.BeforeworkHtml.escapeHtml;
   const PROJECT_DEFAULT_ICONS = [
     "mdi:clipboard-text-outline","mdi:folder-outline","mdi:briefcase-outline","mdi:rocket-launch-outline",
     "mdi:code-tags","mdi:chart-box-outline","mdi:calendar-month-outline","mdi:lightbulb-outline",
@@ -1529,9 +1530,6 @@
   }
 
   /* ---------- Shared helpers ---------- */
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  }
   function dueClass(dateStr){
     if (!dateStr) return "";
     if (dateStr < todayStr(0)) return "Label--danger";
