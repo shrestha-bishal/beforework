@@ -5,6 +5,7 @@
   // Primer's own semantic fg tokens, not hand-picked hex - these track
   // light/dark theme automatically instead of needing a second palette.
   const fieldTypes=window.BeforeworkFieldTypes;
+  const recurrenceFeature=window.BeforeworkRecurrence.create();
   const TAG_FIELD=fieldTypes.get("tags");
   const TAG_COLORS=TAG_FIELD.colors;
   const TAG_COLOR_OPTIONS=TAG_FIELD.colorOptions;
@@ -2334,7 +2335,7 @@
       (state.calendarItems||[]).forEach(item=>{
         const date = item.startDate || item.endDate;
         if (date){
-          const repeatDates = expandRecurringDates(date, item.endDate && item.endDate>=date ? item.endDate : date, normaliseRecurrence(item.recurrence));
+          const repeatDates = recurrenceFeature.expandDates(date,item.endDate&&item.endDate>=date?item.endDate:date,recurrenceFeature.normalise(item.recurrence));
           repeatDates.forEach(({date:occurrenceDate, endDate})=>{
             entries.push({project:null, group:null, item, field:{id:"__standalone__", label:"Calendar", type:"date"}, date:occurrenceDate, endDate});
           });
@@ -2347,7 +2348,7 @@
       projectItems.forEach(({group,item})=>{
       const fields = calendarDateFields(project);
       const datedField = fields.find(field=>item.values[field.id]);
-      const repeatDates = expandRecurringDates(item.values[datedField?.id] || item.endDate || "", item.endDate || item.values[datedField?.id] || "", normaliseRecurrence(item.recurrence));
+      const repeatDates = recurrenceFeature.expandDates(item.values[datedField?.id]||item.endDate||"",item.endDate||item.values[datedField?.id]||"",recurrenceFeature.normalise(item.recurrence));
       if (datedField){
         repeatDates.forEach(({date, endDate})=>{
           entries.push({project, group, item, field:datedField, date, endDate:endDate && endDate>=date ? endDate : date});
@@ -2369,63 +2370,6 @@
     const value = new Date(parts[0], parts[1]-1, parts[2] + (addDays||0));
     return value.getFullYear()+String(value.getMonth()+1).padStart(2,"0")+String(value.getDate()).padStart(2,"0");
   }
-  function parseCalendarDate(dateKey){
-    if (!dateKey) return null;
-    const [year, month, day] = String(dateKey).split("-").map(Number);
-    return new Date(year, month - 1, day);
-  }
-  function formatCalendarDate(date){
-    const year = date.getFullYear();
-    const month = String(date.getMonth()+1).padStart(2,"0");
-    const day = String(date.getDate()).padStart(2,"0");
-    return `${year}-${month}-${day}`;
-  }
-  function addDaysToDate(date, days){
-    const next = new Date(date); next.setDate(next.getDate() + days); return next;
-  }
-  function addMonthsToDate(date, months){
-    const next = new Date(date);
-    const day = next.getDate();
-    next.setDate(1);
-    next.setMonth(next.getMonth() + months);
-    next.setDate(Math.min(day, new Date(next.getFullYear(), next.getMonth()+1, 0).getDate()));
-    return next;
-  }
-  function normaliseRecurrence(recurrence){
-    if (!recurrence || recurrence.frequency === "none") return null;
-    const allowed = ["daily","weekly","monthly","custom"];
-    const frequency = allowed.includes(recurrence.frequency) ? recurrence.frequency : "custom";
-    const interval = Number.isFinite(Number(recurrence.interval)) ? Math.max(1, Number(recurrence.interval)) : 1;
-    const byDay = Array.isArray(recurrence.byDay) ? recurrence.byDay.filter(day=>day && ["sun","mon","tue","wed","thu","fri","sat"].includes(day)) : [];
-    return {
-      frequency,
-      interval,
-      unit: ["day","week","month"].includes(recurrence.unit) ? recurrence.unit : "week",
-      byDay,
-      until: recurrence.until || null,
-      customText: recurrence.customText || ""
-    };
-  }
-  function recurrenceSummary(recurrence){
-    const normalized = normaliseRecurrence(recurrence);
-    if (!normalized) return "Does not repeat";
-
-    const weekdayMap = {sun:"Sun",mon:"Mon",tue:"Tue",wed:"Wed",thu:"Thu",fri:"Fri",sat:"Sat"};
-    const dayText = normalized.byDay.length ? normalized.byDay.map(day=>weekdayMap[day] || day).join(", ") : "";
-
-    let summary;
-    if (normalized.frequency === "daily") summary = normalized.interval === 1 ? "Every day" : `Every ${normalized.interval} days`;
-    else if (normalized.frequency === "weekly"){
-      if (!dayText) summary = normalized.interval === 1 ? "Every week" : `Every ${normalized.interval} weeks`;
-      else summary = normalized.interval === 1 ? `Every week on ${dayText}` : `Every ${normalized.interval} weeks on ${dayText}`;
-    } else if (normalized.frequency === "monthly") summary = normalized.interval === 1 ? "Every month" : `Every ${normalized.interval} months`;
-    else {
-      const unit = normalized.unit || "week";
-      const unitLabel = normalized.interval === 1 ? unit : `${unit}s`;
-      summary = `Every ${normalized.interval} ${unitLabel}${unit === "week" && dayText ? ` on ${dayText}` : ""}`;
-    }
-    return normalized.until ? `${summary} · through ${normalized.until}` : summary;
-  }
   function updateRecurrenceSummary(modal, standalone=false){
     const prefix = standalone ? "standalone" : "item";
     const frequencyEl = modal.querySelector(`#${prefix}RepeatFrequency`);
@@ -2438,7 +2382,7 @@
     const until = untilEl?.value || null;
     const byDay = [...modal.querySelectorAll(".repeatDayChip input:checked")].map(input=>input.value);
     const unit = unitEl?.value || "week";
-    const summary = recurrenceSummary(frequency === "none" ? null : {frequency, interval: Math.max(1, isNaN(interval) ? 1 : interval), unit, until, byDay});
+    const summary=recurrenceFeature.summary(frequency==="none"?null:{frequency,interval:Math.max(1,isNaN(interval)?1:interval),unit,until,byDay});
     if (!summaryEl) return summary;
     summaryEl.textContent = summary;
     summaryEl.title = summary;
@@ -2454,52 +2398,6 @@
       row.hidden = !visible;
     });
     return summary;
-  }
-  function getWeekdayIndex(date){
-    return date.getDay();
-  }
-  function expandRecurringDates(startDate, endDate, recurrence, limit = 320){
-    if (!startDate || !recurrence || recurrence.frequency === "none") return [{date:startDate, endDate:endDate || startDate}];
-    const normalized = normaliseRecurrence(recurrence);
-    if (!normalized) return [{date:startDate, endDate:endDate || startDate}];
-    const start = parseCalendarDate(startDate);
-    const initialEnd = parseCalendarDate(endDate || startDate);
-    const durationDays = Math.max(0, Math.round((initialEnd - start) / 86400000));
-    const until = normalized.until ? parseCalendarDate(normalized.until) : null;
-    const results = [];
-    const weekdayMap = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
-    const selectedDays = normalized.byDay.map(day=>weekdayMap[day]).filter(day=>day !== undefined).sort((a,b)=>a-b);
-    const addOccurrence = occurrenceStart=>{
-      results.push({date:formatCalendarDate(occurrenceStart), endDate:formatCalendarDate(addDaysToDate(occurrenceStart, durationDays))});
-    };
-
-    if ((normalized.frequency === "weekly" || (normalized.frequency === "custom" && normalized.unit === "week")) && selectedDays.length){
-      const firstWeek = addDaysToDate(start, -getWeekdayIndex(start));
-      for (let weekOffset=0; results.length<limit; weekOffset+=normalized.interval){
-        let hasFutureDate = false;
-        for (const weekday of selectedDays){
-          const occurrenceStart = addDaysToDate(firstWeek, weekOffset * 7 + weekday);
-          if (occurrenceStart < start) continue;
-          if (until && occurrenceStart > until) continue;
-          hasFutureDate = true;
-          addOccurrence(occurrenceStart);
-          if (results.length >= limit) break;
-        }
-        const nextWeekStart = addDaysToDate(firstWeek, (weekOffset + normalized.interval) * 7);
-        if (!hasFutureDate && until && nextWeekStart > until) break;
-        if (until && nextWeekStart > until && results.length === 0) break;
-      }
-    } else {
-      let currentStart = new Date(start);
-      for (let index=0; index<limit; index++){
-        if (until && currentStart > until) break;
-        addOccurrence(currentStart);
-        if (normalized.frequency === "daily" || (normalized.frequency === "custom" && normalized.unit === "day")) currentStart = addDaysToDate(currentStart, normalized.interval);
-        else if (normalized.frequency === "monthly" || (normalized.frequency === "custom" && normalized.unit === "month")) currentStart = addMonthsToDate(start, (index + 1) * normalized.interval);
-        else currentStart = addDaysToDate(currentStart, 7 * normalized.interval);
-      }
-    }
-    return results;
   }
   /* Google Calendar integration moved to js/services/google-calendar/google-calendar.js */
   async function showGoogleCalendarInfo(){
@@ -2564,7 +2462,7 @@
         </div>
         <div class="recurrenceRow recurrenceRuleRow" data-repeat-field="summary">
           <span class="recurrenceLabel">Rule</span>
-          <div class="recurrenceRuleText" id="standaloneRepeatSummary" aria-live="polite">${escapeHtml(recurrenceSummary(item.recurrence))}</div>
+          <div class="recurrenceRuleText" id="standaloneRepeatSummary" aria-live="polite">${escapeHtml(recurrenceFeature.summary(item.recurrence))}</div>
         </div>
       </div>
       <div class="uiDivider modalDivider" aria-hidden="true"></div>
@@ -2632,7 +2530,7 @@
         startTime:modal.querySelector("#standaloneStart").value,
         endTime:modal.querySelector("#standaloneEnd").value,
         completedAt:null,
-        recurrence: normaliseRecurrence({
+        recurrence: recurrenceFeature.normalise({
           frequency: modal.querySelector("#standaloneRepeatFrequency").value,
           interval: Number(modal.querySelector("#standaloneRepeatInterval").value || 1),
           unit: modal.querySelector("#standaloneRepeatUnit").value,
@@ -2671,7 +2569,7 @@
       item.reminderAt = modal.querySelector("#standaloneReminderAt").value ? new Date(modal.querySelector("#standaloneReminderAt").value).toISOString() : null;
       item.startTime = modal.querySelector("#standaloneStart").value;
       item.endTime = modal.querySelector("#standaloneEnd").value;
-      item.recurrence = normaliseRecurrence({
+      item.recurrence = recurrenceFeature.normalise({
         frequency: modal.querySelector("#standaloneRepeatFrequency").value,
         interval: Number(modal.querySelector("#standaloneRepeatInterval").value || 1),
         unit: modal.querySelector("#standaloneRepeatUnit").value,
@@ -3251,7 +3149,7 @@
     const locationHtml=locationField?itemFieldRenderer.renderLocation(locationField,item):"";
     const scheduleField=project.fields.find(field=>field.type==="schedule");
     const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
-    const recurrence = normaliseRecurrence(item.recurrence);
+    const recurrence=recurrenceFeature.normalise(item.recurrence);
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
     const scheduleHtml = scheduleField ? (hasSchedule || openItemRef.scheduleOpen ? `
       <div class="scheduleEditor">
@@ -3305,7 +3203,7 @@
           </div>
           <div class="recurrenceRow recurrenceRuleRow" data-repeat-field="summary">
             <span class="recurrenceLabel">Rule</span>
-            <div class="recurrenceRuleText" id="recurrenceSummary" aria-live="polite">${escapeHtml(recurrenceSummary(recurrence))}</div>
+            <div class="recurrenceRuleText" id="recurrenceSummary" aria-live="polite">${escapeHtml(recurrenceFeature.summary(recurrence))}</div>
           </div>
         </div>
       </div>` : `<button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>`) : "";

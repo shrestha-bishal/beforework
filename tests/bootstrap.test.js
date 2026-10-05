@@ -31,6 +31,7 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.ok(index.indexOf('src="js/helpers/date-time.js"')>errorUtils);
   assert.ok(index.indexOf('src="js/helpers/html.js"')>errorUtils);
   assert.ok(index.indexOf('src="js/helpers/html.js"')<index.indexOf('src="js/app.js"'));
+  assert.ok(index.indexOf('src="js/features/recurrence.js"')<index.indexOf('src="js/app.js"'));
   for (const script of [
     'src="js/services/storage/storage.js"',
     'src="js/services/storage/workspace-recovery.js"',
