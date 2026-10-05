@@ -122,9 +122,28 @@ test("item modal registers its shared action menus and wires detail tabs",()=>{
 });
 
 test("item modal view wiring is connected to app rendering",()=>{
-  assert.match(appSource,/window\.BeforeworkItemModal\.create\(\)/);
+  assert.match(appSource,/window\.BeforeworkItemModal\.create\(\{[\s\S]*?renderTemplate:values=>window\.BeforeworkViewTemplates\.render\("itemModal",values\)/);
+  assert.match(appSource,/itemModalView\.render\(modal,\{/);
   assert.match(appSource,/itemModalView\.wire\(modal,\{onClose:closeItemModal\}\)/);
   assert.equal((appSource.match(/querySelectorAll\("\.itemDetailTab"\)/g)||[]).length,0);
+});
+
+test("item modal view renders only through injected template callbacks",()=>{
+  const window={};
+  window.BeforeworkActionMenu={create:()=>({register(){}})};
+  vm.runInNewContext(source,{window},{filename:"item-modal.js"});
+  const view=window.BeforeworkItemModal.create({
+    renderTemplate:values=>`<div>${values.title}</div>`,
+    renderPartial:(name,values)=>`${name}:${values.title}`
+  });
+  const modal={};
+
+  view.render(modal,{title:"Task"});
+  assert.equal(modal.innerHTML,"<div>Task</div>");
+  assert.equal(view.renderPartial("subitemRow",{title:"Review"}),"subitemRow:Review");
+  assert.throws(()=>view.render(null,{}),/requires a DOM element to render into/);
+  const withoutPartialRenderer=window.BeforeworkItemModal.create({renderTemplate:()=>""});
+  assert.throws(()=>withoutPartialRenderer.renderPartial("subitemRow",{}),/requires its partial template renderer/);
 });
 
 test("item modal wiring requires a DOM element",()=>{

@@ -87,7 +87,7 @@ test("Markdown libraries are loaded locally in source and copied into production
 });
 
 test("item descriptions, comments, Calendar, and Roadmap use the shared Markdown renderer",()=>{
-  assert.match(appSource,/BeforeworkMarkdown\.render\(c\.text\)/);
+  assert.match(appSource,/body:window\.BeforeworkMarkdown\.render\(comment\.text\)/);
   assert.match(appSource,/BeforeworkMarkdown\.render\(descriptionInput\.value\)/);
   assert.match(appSource,/e\.key==="Enter"&&\(e\.ctrlKey\|\|e\.metaKey\)/);
   assert.match(calendarSource,/BeforeworkMarkdown\.render\(details\.description\)/);

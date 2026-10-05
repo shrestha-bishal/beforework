@@ -9,6 +9,7 @@ window.BeforeworkViewTemplates = (()=>{
     tableView:"pages/table-view.html",
     boardView:"pages/board-view.html",
     itemModal:"pages/item-modal.html",
+    itemModalParts:"pages/item-modal-parts.html",
     itemFields:"pages/item-fields.html",
     shortcutsModal:"pages/shortcuts-modal.html",
     settings:"pages/settings.html",

@@ -1,8 +1,25 @@
 (function(global){
   "use strict";
 
-  function createItemModal({documentRef=global.document}={}){
+  function createItemModal({documentRef=global.document,renderTemplate,renderPartial}={}){
     const actionMenus=global.BeforeworkActionMenu.create({documentRef});
+
+    function render(modal,values){
+      if (typeof renderTemplate!=="function"){
+        throw new TypeError("An item modal requires its HTML template renderer.");
+      }
+      if (!modal || typeof modal!=="object"){
+        throw new TypeError("An item modal requires a DOM element to render into.");
+      }
+      modal.innerHTML=renderTemplate(values);
+    }
+
+    function renderPart(name,values){
+      if (typeof renderPartial!=="function"){
+        throw new TypeError("An item modal requires its partial template renderer.");
+      }
+      return renderPartial(name,values);
+    }
 
     function wire(modal,{onClose}={}){
       if (!modal || typeof modal.querySelector!=="function" || typeof modal.querySelectorAll!=="function"){
@@ -37,7 +54,7 @@
       });
     }
 
-    return Object.freeze({wire});
+    return Object.freeze({render,renderPartial:renderPart,wire});
   }
 
   global.BeforeworkItemModal=Object.freeze({create:createItemModal});

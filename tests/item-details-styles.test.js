@@ -12,8 +12,9 @@ const stylesManifest=fs.readFileSync(path.join(__dirname,"../styles/manifest.css
 
 test("item comments and activity styles are isolated and included in the manifest",()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const itemModalParts=fs.readFileSync(path.join(__dirname,"../pages/item-modal-parts.html"),"utf8");
   assert.doesNotMatch(appStyles,/#[Cc]ommentsList|\.comment(?:Row|Body|Meta|Text|Empty)\b|\.itemDetail(?:Tabs|Tab|Panel)\b|#activityList|\.activity(?:Row|Meta|Badge)\b/);
-  assert.match(appSource,/<div id="commentsList">\$\{commentsHtml\}<\/div>/);
+  assert.match(itemModalParts,/<div id="commentsList">\{\{comments\}\}<\/div>/);
   assert.match(itemDetailsStyles,/#commentsList/);
   assert.match(itemDetailsStyles,/#activityList/);
   assert.match(itemDetailsStyles,/\.itemDetailTabs/);
@@ -54,13 +55,16 @@ test("Markdown description editor and preview fill the available column width",(
 test("subitems use a compact progress header, structured rows, and a clear add action",()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
   const itemModalTemplate=fs.readFileSync(path.join(__dirname,"../pages/item-modal.html"),"utf8");
+  const itemModalParts=fs.readFileSync(path.join(__dirname,"../pages/item-modal-parts.html"),"utf8");
   assert.match(itemModalTemplate,/class="mainSection subitemsSection"/);
   assert.match(itemModalTemplate,/class="mainSectionHead subitemsSectionHead"/);
   assert.match(itemModalTemplate,/class="btn btn-invisible btn-sm subitemAddButton"/);
-  assert.match(appSource,/aria-label="Subitem completion" aria-valuemin="0"/);
+  assert.match(itemModalParts,/aria-label="Subitem completion" aria-valuemin="0"/);
+  assert.match(itemModalParts,/data-view-partial="subitemRow"/);
   assert.match(itemDetailsStyles,/\.subitemsProgressRing\{display:block;width:18px;height:18px;flex:none;transform:rotate\(-90deg\);\}/);
   assert.match(itemDetailsStyles,/\.subitemsProgressValue\{stroke:var\(--color-success-fg\);stroke-dasharray:50\.265;stroke-dashoffset:var\(--subitems-progress-offset,50\.265\);stroke-linecap:round;animation:subitemsProgressFill/);
-  assert.match(appSource,/--subitems-progress-offset:\$\{\(1-subPct\/100\)\*50\.265\}/);
+  assert.match(itemModalParts,/style="--subitems-progress-offset:\{\{offset\}\}"/);
+  assert.match(appSource,/offset:\(1-subPct\/100\)\*50\.265/);
   assert.match(itemDetailsStyles,/animation:subitemsProgressFill \.55s cubic-bezier\(\.2,\.7,\.3,1\) both/);
   assert.doesNotMatch(appSource,/\$\{subPct\}%<\/span>/);
   assert.match(itemDetailsStyles,/#subitemsList \.subitemRow:hover\{border-color:var\(--border\);background:var\(--bg-soft\);\}/);

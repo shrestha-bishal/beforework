@@ -1,0 +1,190 @@
+<template data-view-partial="projectOptions">
+  <div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">{{options}}</select></div>
+</template>
+<template data-view-partial="projectOption">
+  <option value="{{id}}" {{selected}}>{{name}}</option>
+</template>
+<template data-view-partial="milestoneSelector">
+  <div class="sideItem">
+    <label class="sideItemLabel" for="itemMilestoneSelect">Milestone</label>
+    <select class="form-control" id="itemMilestoneSelect"><option value="">No milestone</option>{{options}}</select>
+  </div>
+</template>
+<template data-view-partial="milestoneOption">
+  <option value="{{id}}" {{selected}}>{{title}}</option>
+</template>
+<template data-view-partial="groupSelector">
+  <div class="sideItem">
+    <div class="sideItemLabel">Group</div>
+    <select class="form-control" id="itemGroupSelect">{{options}}</select>
+  </div>
+</template>
+<template data-view-partial="groupOption">
+  <option value="{{id}}" {{selected}}>{{name}}</option>
+</template>
+<template data-view-partial="subitemRow">
+  <div class="subitemRow {{doneClass}}" data-sid="{{id}}">
+    <input type="checkbox" {{checked}} data-action="toggleSub">
+    <span class="subitemTitle" contenteditable="true" data-action="editSub">{{title}}</span>
+    <button class="btn btn-invisible btn-sm" data-action="delSub">✕</button>
+  </div>
+</template>
+<template data-view-partial="scheduleEditor">
+  <div class="scheduleEditor">
+    <div class="sideItemRow2">
+      <div class="sideItem">
+        <div class="sideItemLabel">Start time</div>
+        <input class="form-control" type="time" id="itemStartTimeInput" value="{{startTime}}" aria-label="Start time">
+      </div>
+      <div class="sideItem">
+        <div class="sideItemLabel">End time</div>
+        <input class="form-control" type="time" id="itemEndTimeInput" value="{{endTime}}" aria-label="End time">
+      </div>
+    </div>
+    <div class="sideItem">
+      <div class="sideItemLabel">End date</div>
+      <input class="form-control" type="date" id="itemEndDateInput" value="{{endDate}}" aria-label="End date">
+    </div>
+    <div class="sideItem">
+      <label class="sideItemLabel" for="itemReminderAt">Reminder</label>
+      <input class="form-control" type="datetime-local" id="itemReminderAt" value="{{reminderAt}}" aria-label="Reminder date and time">
+    </div>
+    <div class="recurrencePanel">
+      <div class="recurrenceRow">
+        <label class="recurrenceLabel" for="itemRepeatFrequency">Repeat</label>
+        <select class="form-control" id="itemRepeatFrequency">
+          <option value="none" {{noneSelected}}>Does not repeat</option>
+          <option value="daily" {{dailySelected}}>Daily</option>
+          <option value="weekly" {{weeklySelected}}>Weekly</option>
+          <option value="monthly" {{monthlySelected}}>Monthly</option>
+          <option value="custom" {{customSelected}}>Custom</option>
+        </select>
+      </div>
+      <div class="recurrenceRow" data-repeat-field="interval">
+        <label class="recurrenceLabel" id="itemRepeatIntervalLabel" for="itemRepeatInterval">Every</label>
+        <div class="recurrenceIntervalControls">
+          <input class="form-control" type="number" id="itemRepeatInterval" min="1" max="365" value="{{interval}}">
+          <select class="form-control" id="itemRepeatUnit" data-repeat-field="customUnit" aria-label="Custom repeat unit">
+            <option value="day" {{daySelected}}>days</option>
+            <option value="week" {{weekSelected}}>weeks</option>
+            <option value="month" {{monthSelected}}>months</option>
+          </select>
+        </div>
+      </div>
+      <div class="recurrenceRow" data-repeat-field="weekdays">
+        <span class="recurrenceLabel">On</span>
+        <div class="repeatDayPicker">{{weekdays}}</div>
+      </div>
+      <div class="recurrenceRow" data-repeat-field="until">
+        <label class="recurrenceLabel" for="itemRepeatUntil">Ends</label>
+        <input class="form-control" type="date" id="itemRepeatUntil" value="{{until}}">
+      </div>
+      <div class="recurrenceRow recurrenceRuleRow" data-repeat-field="summary">
+        <span class="recurrenceLabel">Rule</span>
+        <div class="recurrenceRuleText" id="recurrenceSummary" aria-live="polite">{{summary}}</div>
+      </div>
+    </div>
+  </div>
+</template>
+<template data-view-partial="repeatDayChip">
+  <label class="repeatDayChip {{selectedClass}}"><input type="checkbox" value="{{day}}" {{checked}}><span>{{label}}</span></label>
+</template>
+<template data-view-partial="scheduleAdd">
+  <button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>
+</template>
+<template data-view-partial="commentRow">
+  <div class="commentRow" data-cid="{{id}}">
+    <div class="commentBody">
+      <div class="commentMeta">{{createdAt}}</div>
+      <div class="commentText markdownBody">{{body}}</div>
+    </div>
+    <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="{{id}}" title="Delete comment">✕</button>
+  </div>
+</template>
+<template data-view-partial="commentEmpty">
+  <div class="commentEmpty">No comments yet.</div>
+</template>
+<template data-view-partial="activityRow">
+  <div class="activityRow"><div class="activityBadge">{{label}}</div><div class="activityMeta">{{date}}</div></div>
+</template>
+<template data-view-partial="activityEmpty">
+  <div class="commentEmpty">No activity yet.</div>
+</template>
+<template data-view-partial="descriptionActions">
+  <div class="itemDescriptionActions">
+    <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-action="toggleDescriptionMenu" aria-label="Description actions" aria-haspopup="menu" aria-expanded="false" aria-controls="descriptionActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+    <div class="menu action-menu action-menu--description" id="descriptionActionMenu" role="menu" hidden>
+      {{editAction}}
+      <button type="button" role="menuitem" data-action="copyDescriptionMarkdown"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Copy Markdown</span></button>
+    </div>
+  </div>
+</template>
+<template data-view-partial="descriptionEditAction">
+  <button type="button" role="menuitem" data-action="toggleDescriptionEdit"><iconify-icon icon="mdi:pencil-outline" aria-hidden="true"></iconify-icon><span>Edit description</span></button>
+</template>
+<template data-view-partial="descriptionEditControls">
+  <div class="itemDescriptionEditControls" hidden>
+    <button class="btn btn-sm" type="button" data-action="cancelDescriptionEdit">Cancel</button>
+    <button class="btn btn-primary btn-sm" type="button" data-action="saveDescriptionEdit">Save</button>
+  </div>
+</template>
+<template data-view-partial="itemActions">
+  <div class="itemModalActions">
+    <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
+    <div class="menu action-menu action-menu--item" id="itemActionMenu" role="menu" hidden>
+      <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
+      <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>{{archiveLabel}}</span></button>
+      <div class="action-menu__separator" role="separator"></div>
+      <button type="button" role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
+    </div>
+  </div>
+</template>
+<template data-view-partial="subitemProgress">
+  <div class="subitemsProgressSummary">
+    <span class="subitemsProgressRing" role="progressbar" aria-label="Subitem completion" aria-valuemin="0" aria-valuemax="{{total}}" aria-valuenow="{{done}}">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <circle class="subitemsProgressTrack" cx="10" cy="10" r="8"></circle>
+        <circle class="subitemsProgressValue" cx="10" cy="10" r="8" style="--subitems-progress-offset:{{offset}}"></circle>
+      </svg>
+    </span>
+    <span class="subitemsProgressCount">{{count}}/{{total}} complete</span>
+  </div>
+</template>
+<template data-view-partial="subitemProgressEmpty">
+  <span class="subitemsProgressCount">0 items</span>
+</template>
+<template data-view-partial="existingItemDetails">
+  <div class="mainSection">
+    <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
+      <button type="button" class="itemDetailTab active" data-item-tab="comments" role="tab" aria-selected="true">Comments</button>
+      <button type="button" class="itemDetailTab" data-item-tab="attachments" role="tab" aria-selected="false">Attachments <span class="itemAttachmentCount">{{attachmentCount}}</span></button>
+      <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
+    </div>
+    <div class="itemDetailPanel active" data-item-panel="comments">
+      <div id="commentsList">{{comments}}</div>
+      <div class="commentComposer">
+        <textarea class="form-control" id="newCommentInput" rows="2" placeholder="Write a comment..."></textarea>
+        <div class="commentComposerFooter">
+          <span class="itemMarkdownHint">Markdown supported · Ctrl+Enter to add</span>
+          <button class="btn btn-sm" data-action="addComment">Add comment</button>
+        </div>
+      </div>
+    </div>
+    <div class="itemDetailPanel" data-item-panel="attachments">
+      <div class="itemAttachmentList" data-attachment-list>{{attachments}}</div>
+    </div>
+    <div class="itemDetailPanel" data-item-panel="activity">{{activity}}</div>
+  </div>
+</template>
+<template data-view-partial="newItemAttachments">
+  <div class="mainSection itemAttachmentsSection">
+    <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">{{attachmentCount}}</span></div>
+    <div class="itemAttachmentList" data-attachment-list>{{attachments}}</div>
+  </div>
+</template>
+<template data-view-partial="saveItemAction">
+  <button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>
+</template>
+<template data-view-partial="completeItemAction">
+  <button class="btn {{buttonClass}} btn-sm" data-action="completeItem">{{label}}</button>
+</template>

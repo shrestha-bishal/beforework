@@ -8,6 +8,7 @@ const vm=require("node:vm");
 
 function loadTemplatesModule(){
   const requests=[];
+  const itemModalParts=fs.readFileSync(path.join(__dirname,"../pages/item-modal-parts.html"),"utf8");
   const window={};
   const sandbox={
     window,
@@ -15,6 +16,8 @@ function loadTemplatesModule(){
       requests.push(url);
       return {ok:true,text:async()=>url==="pages/item-modal.html"
         ? "<div>{{value}}</div>"
+        : url==="pages/item-modal-parts.html"
+          ? itemModalParts
         : url==="pages/item-fields.html"
           ? '<template data-view-partial="label"><b>{{label}}</b></template>'
           : `<template>${url}</template>`};
@@ -55,6 +58,7 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/calendar.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/item-modal.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/item-modal-parts.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/item-fields.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/shortcuts-modal.html").length,1);
 
@@ -76,6 +80,7 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/calendar.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/item-modal.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/item-modal-parts.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/item-fields.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/shortcuts-modal.html").length,1);
   assert.deepEqual(loader.clone("dialogs"),{cloned:true});
@@ -110,4 +115,20 @@ test("renders named partials from loaded HTML and reports unknown or missing val
   assert.equal(loader.renderPartial("itemFields","label",{label:"Priority"}),"<b>Priority</b>");
   assert.throws(()=>loader.renderPartial("itemFields","label",{}),/Missing value "label"/);
   assert.throws(()=>loader.renderPartial("itemFields","unknown",{}),/Unknown partial "unknown"/);
+});
+
+test("item modal markup partials load through the shared template registry",async()=>{
+  const {loader}=loadTemplatesModule();
+  await loader.load("itemModalParts");
+
+  assert.match(loader.renderPartial("itemModalParts","scheduleAdd",{}),/data-action="addSchedule"/);
+  assert.match(loader.renderPartial("itemModalParts","subitemRow",{
+    doneClass:"done",id:"sub-1",checked:"checked",title:"Review"
+  }),/data-sid="sub-1"/);
+  assert.match(loader.renderPartial("itemModalParts","scheduleEditor",{
+    startTime:"09:00",endTime:"10:00",endDate:"2026-10-05",reminderAt:"",
+    noneSelected:"selected",dailySelected:"",weeklySelected:"",monthlySelected:"",customSelected:"",
+    interval:"1",daySelected:"selected",weekSelected:"",monthSelected:"",
+    weekdays:"<label>Mon</label>",until:"",summary:"Repeats daily"
+  }),/id="itemRepeatFrequency"/);
 });

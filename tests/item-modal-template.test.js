@@ -9,7 +9,9 @@ const {createItemFieldRenderer,templateSource:fieldTemplateSource}=require("./he
 
 const templatePath=path.join(__dirname,"../pages/item-modal.html");
 const templateSource=fs.readFileSync(templatePath,"utf8");
+const partsSource=fs.readFileSync(path.join(__dirname,"../pages/item-modal-parts.html"),"utf8");
 const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+const itemModalSource=fs.readFileSync(path.join(__dirname,"../js/ui/item-modal.js"),"utf8");
 const fieldFeatureSource=fs.readFileSync(path.join(__dirname,"../js/features/fields.js"),"utf8");
 const stylesSource=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 const templatesSource=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"utf8");
@@ -23,15 +25,26 @@ function loadTemplateModule(){
     window,
     fetch:async url=>({
       ok:true,
-      text:async()=>url==="pages/item-modal.html" ? templateSource : ""
+      text:async()=>url==="pages/item-modal.html" ? templateSource
+        : url==="pages/item-modal-parts.html" ? partsSource
+          : ""
     }),
     document:{
       createElement(){
         let html="";
+        const content={
+          cloneNode(){ return {}; },
+          querySelectorAll(selector){
+            return selector==="template[data-view-partial]"
+              ? [...html.matchAll(/<template data-view-partial="([^"]+)">([\s\S]*?)<\/template>/g)]
+                .map(([,name,innerHTML])=>({dataset:{viewPartial:name},innerHTML}))
+              : [];
+          }
+        };
         return {
           get innerHTML(){ return html; },
           set innerHTML(value){ html=value; },
-          content:{cloneNode(){ return {}; }}
+          content
         };
       }
     }
@@ -42,7 +55,7 @@ function loadTemplateModule(){
 
 test("item modal markup lives in a separately loaded parameterized HTML template",async()=>{
   const loader=loadTemplateModule();
-  await loader.load("itemModal");
+  await Promise.all([loader.load("itemModal"),loader.load("itemModalParts")]);
   const tokens=[...templateSource.matchAll(/\{\{([a-zA-Z][a-zA-Z0-9_]*)\}\}/g)].map(match=>match[1]);
   const values=Object.fromEntries([...new Set(tokens)].map(token=>[token,`value-${token}`]));
   const rendered=loader.render("itemModal",values);
@@ -52,14 +65,14 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   for (const id of ["itemTitleInput","itemDescInput","itemDescPreview","itemCalendarType","itemModalFooter"]){
     assert.ok(rendered.includes(`id="${id}"`) || rendered.includes(`class="${id}"`),`missing ${id}`);
   }
-  assert.match(appSource,/data-action="toggleDescriptionMenu"/);
-  assert.match(appSource,/data-action="copyDescriptionMarkdown"/);
-  assert.match(appSource,/Copy Markdown/);
-  assert.match(appSource,/mdi:pencil-outline/);
+  assert.match(partsSource,/data-action="toggleDescriptionMenu"/);
+  assert.match(partsSource,/data-action="copyDescriptionMarkdown"/);
+  assert.match(partsSource,/Copy Markdown/);
+  assert.match(partsSource,/mdi:pencil-outline/);
   assert.match(rendered,/itemDescriptionCard/);
-  assert.match(appSource,/id="descriptionActionMenu"/);
-  assert.match(appSource,/class="menu action-menu action-menu--item"/);
-  assert.match(appSource,/role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"/);
+  assert.match(partsSource,/id="descriptionActionMenu"/);
+  assert.match(partsSource,/class="menu action-menu action-menu--item"/);
+  assert.match(partsSource,/role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"/);
   assert.match(rendered,/itemDescPreview/);
   assert.match(rendered,/class="itemMarkdownToolbar"/);
   assert.match(templateSource,/\{\{location\}\}/);
@@ -109,15 +122,15 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(stylesSource,/\.fieldDetailSettings:focus-visible\{outline:2px solid var\(--accent\);outline-offset:2px;\}/);
   assert.match(stylesSource,/\.dialogChoiceList\{display:flex;flex-direction:column;gap:8px;margin-top:0;\}/);
   assert.doesNotMatch(stylesSource,/\.dialog--choice-editor h3/);
-  assert.match(appSource,/data-action="addSchedule"/);
+  assert.match(partsSource,/data-action="addSchedule"/);
   assert.match(appSource,/scheduleField\s*\?\s*\(hasSchedule\s*\|\|\s*openItemRef\.scheduleOpen\s*\?/);
   assert.match(rendered,/data-description-tab="edit"/);
   assert.match(rendered,/data-description-tab="preview"/);
   assert.match(rendered,/data-md-action="bold"/);
   assert.match(rendered,/data-md-action="task-list"/);
-  assert.match(appSource,/data-action="cancelDescriptionEdit"/);
-  assert.match(appSource,/data-action="saveDescriptionEdit"/);
-  assert.match(appSource,/data-action="saveDescriptionEdit">Save<\/button>/);
+  assert.match(partsSource,/data-action="cancelDescriptionEdit"/);
+  assert.match(partsSource,/data-action="saveDescriptionEdit"/);
+  assert.match(partsSource,/data-action="saveDescriptionEdit">Save<\/button>/);
   assert.match(rendered,/aria-label="Markdown formatting"/);
   assert.match(templateSource,/<\/div>\s*<\/div>\s*\{\{descriptionEditControls\}\}/);
   assert.match(appSource,/descriptionInput\.value=item\.description\|\|""/);
@@ -130,7 +143,15 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.doesNotMatch(templateSource,/\{\{description(?:Input|Preview)Hidden\}\}/);
   assert.match(appSource,/descriptionInput\.setRangeText\(replacement,start,end,"select"\)/);
   assert.match(appSource,/descriptionEditButton\.onclick=/);
-  assert.match(appSource,/BeforeworkViewTemplates\.render\("itemModal"/);
+  assert.match(itemModalSource,/modal\.innerHTML=renderTemplate\(values\)/);
+  assert.match(appSource,/renderPartial:\(name,values\)=>window\.BeforeworkViewTemplates\.renderPartial\("itemModalParts",name,values\)/);
+  const itemModalRenderSource=appSource.slice(
+    appSource.indexOf("  function renderItemModal(){"),
+    appSource.indexOf("\n  function ",appSource.indexOf("  function renderItemModal(){")+1)
+  );
+  assert.match(itemModalRenderSource,/itemModalView\.render\(modal,\{/);
+  assert.doesNotMatch(itemModalRenderSource,/BeforeworkViewTemplates\.render\("itemModal"/);
+  assert.match(loader.renderPartial("itemModalParts","scheduleAdd",{}),/data-action="addSchedule"/);
   assert.match(appSource,/modal\.open\(\{id:"itemOverlay",content,onBackdrop:closeItemModal\}\)/);
 });
 

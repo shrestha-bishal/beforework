@@ -50,7 +50,10 @@
   });
   const modal = window.BeforeworkModal.create();
   const actionMenus = window.BeforeworkActionMenu.create();
-  const itemModalView = window.BeforeworkItemModal.create();
+  const itemModalView = window.BeforeworkItemModal.create({
+    renderTemplate:values=>window.BeforeworkViewTemplates.render("itemModal",values),
+    renderPartial:(name,values)=>window.BeforeworkViewTemplates.renderPartial("itemModalParts",name,values)
+  });
   const shortcutsModal = window.BeforeworkShortcutsModal.create({
     modal,
     cloneTemplate:()=>window.BeforeworkViewTemplates.clone("shortcutsModal")
@@ -2347,30 +2350,42 @@
     const modal = document.getElementById("itemModal");
     if (!item || !modal) { closeItemModal(); return; }
 
-    const projectOptions = isNew && openItemRef.globalNew ? `<div class="sideItem"><div class="sideItemLabel">Project</div><select class="form-control" id="itemProjectSelect">${activeProjectRecords().map(candidate=>`<option value="${candidate.id}" ${candidate.id===projectId?"selected":""}>${escapeHtml(candidate.name)}</option>`).join("")}</select></div>` : "";
-    const milestoneOptions = (project.milestones||[]).map(milestone=>
-      `<option value="${escapeHtml(milestone.id)}" ${item.milestoneId===milestone.id?"selected":""}>${escapeHtml(milestone.title)}</option>`).join("");
-    const milestoneSelector = item.calendarType!=="event" && milestoneOptions ? `<div class="sideItem">
-      <label class="sideItemLabel" for="itemMilestoneSelect">Milestone</label>
-      <select class="form-control" id="itemMilestoneSelect"><option value="">No milestone</option>${milestoneOptions}</select>
-    </div>` : "";
+    const projectOptions = isNew && openItemRef.globalNew
+      ? itemModalView.renderPartial("projectOptions",{
+        options:activeProjectRecords().map(candidate=>itemModalView.renderPartial("projectOption",{
+          id:escapeHtml(candidate.id),
+          selected:candidate.id===projectId?"selected":"",
+          name:escapeHtml(candidate.name)
+        })).join("")
+      })
+      : "";
+    const milestoneOptions=(project.milestones||[]).map(milestone=>itemModalView.renderPartial("milestoneOption",{
+      id:escapeHtml(milestone.id),
+      selected:item.milestoneId===milestone.id?"selected":"",
+      title:escapeHtml(milestone.title)
+    })).join("");
+    const milestoneSelector=item.calendarType!=="event"&&milestoneOptions
+      ? itemModalView.renderPartial("milestoneSelector",{options:milestoneOptions})
+      : "";
     const groups=projectGroups(project);
-    const groupOptions = groups.map(g=>
-      `<option value="${g.id}" ${g.id===groupId?"selected":""}>${escapeHtml(g.name)}</option>`).join("");
-    const groupSelector = groups.length>1 ? `<div class="sideItem">
-            <div class="sideItemLabel">Group</div>
-            <select class="form-control" id="itemGroupSelect">${groupOptions}</select>
-          </div>` : "";
+    const groupOptions=groups.map(group=>itemModalView.renderPartial("groupOption",{
+      id:escapeHtml(group.id),
+      selected:group.id===groupId?"selected":"",
+      name:escapeHtml(group.name)
+    })).join("");
+    const groupSelector=groups.length>1
+      ? itemModalView.renderPartial("groupSelector",{options:groupOptions})
+      : "";
     const isCompleted = isItemCompleted(item);
 
     const doneSubCount = item.subitems.filter(s=>s.done).length;
     const subPct = item.subitems.length ? Math.round(doneSubCount/item.subitems.length*100) : 0;
-    const subitemsHtml = item.subitems.map(s=>`
-      <div class="subitemRow ${s.done?"done":""}" data-sid="${s.id}">
-        <input type="checkbox" ${s.done?"checked":""} data-action="toggleSub">
-        <span class="subitemTitle" contenteditable="true" data-action="editSub">${escapeHtml(s.title)}</span>
-        <button class="btn btn-invisible btn-sm" data-action="delSub">✕</button>
-      </div>`).join("");
+    const subitemsHtml=item.subitems.map(subitem=>itemModalView.renderPartial("subitemRow",{
+      doneClass:subitem.done?"done":"",
+      id:escapeHtml(subitem.id),
+      checked:subitem.done?"checked":"",
+      title:escapeHtml(subitem.title)
+    })).join("");
 
     const fieldsHtml=fieldsWithStartBeforeDue(project.fields).filter(field=>field.type!=="schedule"&&field.type!=="location").map(field=>itemFieldRenderer.render(field,item,project)).join("");
     const locationField=project.fields.find(field=>field.type==="location");
@@ -2379,74 +2394,43 @@
     const hasSchedule = !!(item.startTime || item.endTime || item.endDate || item.recurrence || item.reminderAt);
     const recurrence=recurrenceFeature.normalise(item.recurrence);
     const recurrenceUnit = item.recurrence?.unit || (item.recurrence?.frequency === "custom" ? "week" : "day");
-    const scheduleHtml = scheduleField ? (hasSchedule || openItemRef.scheduleOpen ? `
-      <div class="scheduleEditor">
-        <div class="sideItemRow2">
-          <div class="sideItem">
-            <div class="sideItemLabel">Start time</div>
-            <input class="form-control" type="time" id="itemStartTimeInput" value="${escapeHtml(item.startTime||"")}" aria-label="Start time">
-          </div>
-          <div class="sideItem">
-            <div class="sideItemLabel">End time</div>
-            <input class="form-control" type="time" id="itemEndTimeInput" value="${escapeHtml(item.endTime||"")}" aria-label="End time">
-          </div>
-        </div>
-        <div class="sideItem">
-          <div class="sideItemLabel">End date</div>
-          <input class="form-control" type="date" id="itemEndDateInput" value="${escapeHtml(item.endDate||"")}" aria-label="End date">
-        </div>
-        <div class="sideItem">
-          <label class="sideItemLabel" for="itemReminderAt">Reminder</label>
-          <input class="form-control" type="datetime-local" id="itemReminderAt" value="${escapeHtml(dateTimeLocalValue(item.reminderAt))}" aria-label="Reminder date and time">
-        </div>
-        <div class="recurrencePanel">
-          <div class="recurrenceRow">
-            <label class="recurrenceLabel" for="itemRepeatFrequency">Repeat</label>
-            <select class="form-control" id="itemRepeatFrequency">
-              <option value="none" ${!recurrence ? "selected" : ""}>Does not repeat</option>
-              <option value="daily" ${recurrence && recurrence.frequency==="daily" ? "selected" : ""}>Daily</option>
-              <option value="weekly" ${recurrence && recurrence.frequency==="weekly" ? "selected" : ""}>Weekly</option>
-              <option value="monthly" ${recurrence && recurrence.frequency==="monthly" ? "selected" : ""}>Monthly</option>
-              <option value="custom" ${recurrence && recurrence.frequency==="custom" ? "selected" : ""}>Custom</option>
-            </select>
-          </div>
-          <div class="recurrenceRow" data-repeat-field="interval">
-            <label class="recurrenceLabel" id="itemRepeatIntervalLabel" for="itemRepeatInterval">Every</label>
-            <div class="recurrenceIntervalControls">
-              <input class="form-control" type="number" id="itemRepeatInterval" min="1" max="365" value="${escapeHtml(String(recurrence?.interval || 1))}">
-              <select class="form-control" id="itemRepeatUnit" data-repeat-field="customUnit" aria-label="Custom repeat unit">
-                <option value="day" ${recurrenceUnit==="day"?"selected":""}>days</option>
-                <option value="week" ${recurrenceUnit==="week"?"selected":""}>weeks</option>
-                <option value="month" ${recurrenceUnit==="month"?"selected":""}>months</option>
-              </select>
-            </div>
-          </div>
-          <div class="recurrenceRow" data-repeat-field="weekdays">
-            <span class="recurrenceLabel">On</span>
-            <div class="repeatDayPicker">${["sun","mon","tue","wed","thu","fri","sat"].map(day=>`<label class="repeatDayChip ${recurrence?.byDay?.includes(day) ? "selected" : ""}"><input type="checkbox" value="${day}" ${recurrence?.byDay?.includes(day) ? "checked" : ""}><span>${day.slice(0,3)}</span></label>`).join("")}</div>
-          </div>
-          <div class="recurrenceRow" data-repeat-field="until">
-            <label class="recurrenceLabel" for="itemRepeatUntil">Ends</label>
-            <input class="form-control" type="date" id="itemRepeatUntil" value="${escapeHtml(recurrence?.until || "")}">
-          </div>
-          <div class="recurrenceRow recurrenceRuleRow" data-repeat-field="summary">
-            <span class="recurrenceLabel">Rule</span>
-            <div class="recurrenceRuleText" id="recurrenceSummary" aria-live="polite">${escapeHtml(recurrenceFeature.summary(recurrence))}</div>
-          </div>
-        </div>
-      </div>` : `<button class="btn btn-invisible btn-sm scheduleAddBtn" type="button" data-action="addSchedule">+ Add date and time</button>`) : "";
+    const scheduleHtml = scheduleField ? (hasSchedule || openItemRef.scheduleOpen
+      ? itemModalView.renderPartial("scheduleEditor",{
+        startTime:escapeHtml(item.startTime||""),
+        endTime:escapeHtml(item.endTime||""),
+        endDate:escapeHtml(item.endDate||""),
+        reminderAt:escapeHtml(dateTimeLocalValue(item.reminderAt)),
+        noneSelected:recurrence?"":"selected",
+        dailySelected:recurrence?.frequency==="daily"?"selected":"",
+        weeklySelected:recurrence?.frequency==="weekly"?"selected":"",
+        monthlySelected:recurrence?.frequency==="monthly"?"selected":"",
+        customSelected:recurrence?.frequency==="custom"?"selected":"",
+        interval:escapeHtml(String(recurrence?.interval||1)),
+        daySelected:recurrenceUnit==="day"?"selected":"",
+        weekSelected:recurrenceUnit==="week"?"selected":"",
+        monthSelected:recurrenceUnit==="month"?"selected":"",
+        weekdays:["sun","mon","tue","wed","thu","fri","sat"].map(day=>{
+          const selected=recurrence?.byDay?.includes(day)||false;
+          return itemModalView.renderPartial("repeatDayChip",{
+            selectedClass:selected?"selected":"",
+            day,
+            checked:selected?"checked":"",
+            label:day.slice(0,3)
+          });
+        }).join(""),
+        until:escapeHtml(recurrence?.until||""),
+        summary:escapeHtml(recurrenceFeature.summary(recurrence))
+      })
+      : itemModalView.renderPartial("scheduleAdd",{})) : "";
     const scheduleSectionHtml=scheduleField?itemFieldRenderer.renderSchedule(scheduleField,scheduleHtml):"";
     const comments = item.comments || [];
     const commentsHtml = comments.length
-      ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(c=>`
-        <div class="commentRow" data-cid="${c.id}">
-          <div class="commentBody">
-            <div class="commentMeta">${escapeHtml(formatDateTime(c.createdAt))}</div>
-            <div class="commentText markdownBody">${window.BeforeworkMarkdown.render(c.text)}</div>
-          </div>
-          <button class="btn btn-invisible btn-sm" data-action="delComment" data-cid="${c.id}" title="Delete comment">✕</button>
-        </div>`).join("")
-      : `<div class="commentEmpty">No comments yet.</div>`;
+      ? [...comments].sort((a,b)=>b.createdAt-a.createdAt).map(comment=>itemModalView.renderPartial("commentRow",{
+        id:escapeHtml(comment.id),
+        createdAt:escapeHtml(formatDateTime(comment.createdAt)),
+        body:window.BeforeworkMarkdown.render(comment.text)
+      })).join("")
+      : itemModalView.renderPartial("commentEmpty",{});
     const descriptionEditing=isNew||!!openItemRef.descriptionEditing;
     const descriptionPreview=window.BeforeworkMarkdown.render(item.description||"")
       || `<p class="markdownEmpty">No description yet.</p>`;
@@ -2454,73 +2438,51 @@
     const activityHtml = activityEvents.length
       ? activityEvents.map(event=>{
           const label = event.type==="created" ? "Created" : event.type==="commented" ? "Commented" : event.type==="completed" ? "Marked complete" : event.type==="reopened" ? "Reopened" : event.type==="moved" ? `Moved${event.from?` from ${event.from}`:""}${event.to?` to ${event.to}`:""}` : "Updated";
-          return `<div class="activityRow"><div class="activityBadge">${escapeHtml(label)}</div><div class="activityMeta">${escapeHtml(formatUpdatedAt(event.at))}</div></div>`;
+          return itemModalView.renderPartial("activityRow",{
+            label:escapeHtml(label),
+            date:escapeHtml(formatUpdatedAt(event.at))
+          });
         }).join("")
-      : `<div class="commentEmpty">No activity yet.</div>`;
-    const descriptionActions = !isNew ? `<div class="itemDescriptionActions">
-      <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-action="toggleDescriptionMenu" aria-label="Description actions" aria-haspopup="menu" aria-expanded="false" aria-controls="descriptionActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
-      <div class="menu action-menu action-menu--description" id="descriptionActionMenu" role="menu" hidden>
-        ${descriptionEditing?"":`<button type="button" role="menuitem" data-action="toggleDescriptionEdit"><iconify-icon icon="mdi:pencil-outline" aria-hidden="true"></iconify-icon><span>Edit description</span></button>`}
-        <button type="button" role="menuitem" data-action="copyDescriptionMarkdown"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Copy Markdown</span></button>
-      </div>
-    </div>` : "";
-    const descriptionEditControls=!isNew ? `<div class="itemDescriptionEditControls" hidden>
-      <button class="btn btn-sm" type="button" data-action="cancelDescriptionEdit">Cancel</button>
-      <button class="btn btn-primary btn-sm" type="button" data-action="saveDescriptionEdit">Save</button>
-    </div>` : "";
-    const itemActions = !isNew ? `<div class="itemModalActions">
-      <button class="btn btn-invisible btn-sm action-menu__trigger" type="button" data-action="toggleItemMenu" aria-label="More item actions" aria-haspopup="menu" aria-expanded="false" aria-controls="itemActionMenu"><iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon></button>
-      <div class="menu action-menu action-menu--item" id="itemActionMenu" role="menu" hidden>
-        <button type="button" role="menuitem" data-action="duplicateItem"><iconify-icon icon="mdi:content-copy" aria-hidden="true"></iconify-icon><span>Duplicate</span></button>
-        <button type="button" role="menuitem" data-action="toggleArchive"><iconify-icon icon="mdi:archive-outline" aria-hidden="true"></iconify-icon><span>${item.archived ? "Unarchive" : "Archive"}</span></button>
-        <div class="action-menu__separator" role="separator"></div>
-        <button type="button" role="menuitem" class="danger menu-item menu-item--danger" data-action="deleteItem"><iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon><span>Delete item</span></button>
-      </div>
-    </div>` : "";
-    const subitemCount = item.subitems.length
-      ? `<div class="subitemsProgressSummary">
-          <span class="subitemsProgressRing" role="progressbar" aria-label="Subitem completion" aria-valuemin="0" aria-valuemax="${item.subitems.length}" aria-valuenow="${doneSubCount}">
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <circle class="subitemsProgressTrack" cx="10" cy="10" r="8"></circle>
-              <circle class="subitemsProgressValue" cx="10" cy="10" r="8" style="--subitems-progress-offset:${(1-subPct/100)*50.265}"></circle>
-            </svg>
-          </span>
-          <span class="subitemsProgressCount">${doneSubCount}/${item.subitems.length} complete</span>
-        </div>`
-      : `<span class="subitemsProgressCount">0 items</span>`;
-    const existingItemDetails = !isNew ? `
-      <div class="mainSection">
-        <div class="itemDetailTabs" role="tablist" aria-label="Item details tabs">
-          <button type="button" class="itemDetailTab active" data-item-tab="comments" role="tab" aria-selected="true">Comments</button>
-          <button type="button" class="itemDetailTab" data-item-tab="attachments" role="tab" aria-selected="false">Attachments <span class="itemAttachmentCount">${(item.attachments||[]).length}</span></button>
-          <button type="button" class="itemDetailTab" data-item-tab="activity" role="tab" aria-selected="false">Activity</button>
-        </div>
-        <div class="itemDetailPanel active" data-item-panel="comments">
-          <div id="commentsList">${commentsHtml}</div>
-          <div class="commentComposer">
-            <textarea class="form-control" id="newCommentInput" rows="2" placeholder="Write a comment..."></textarea>
-            <div class="commentComposerFooter">
-              <span class="itemMarkdownHint">Markdown supported · Ctrl+Enter to add</span>
-              <button class="btn btn-sm" data-action="addComment">Add comment</button>
-            </div>
-          </div>
-        </div>
-        <div class="itemDetailPanel" data-item-panel="attachments">
-          <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
-        </div>
-        <div class="itemDetailPanel" data-item-panel="activity">${activityHtml}</div>
-      </div>` : "";
-    const newItemAttachments = isNew ? `<div class="mainSection itemAttachmentsSection">
-      <div class="mainSectionHead"><div class="mainSectionLabel">Attachments</div><span class="itemAttachmentCount">${(item.attachments||[]).length}</span></div>
-      <div class="itemAttachmentList" data-attachment-list>${attachmentListHtml(item.attachments||[])}</div>
-    </div>` : "";
+      : itemModalView.renderPartial("activityEmpty",{});
+    const descriptionActions = !isNew ? itemModalView.renderPartial("descriptionActions",{
+      editAction:descriptionEditing?"":itemModalView.renderPartial("descriptionEditAction",{})
+    }) : "";
+    const descriptionEditControls=!isNew
+      ? itemModalView.renderPartial("descriptionEditControls",{})
+      : "";
+    const itemActions = !isNew
+      ? itemModalView.renderPartial("itemActions",{archiveLabel:item.archived?"Unarchive":"Archive"})
+      : "";
+    const subitemCount=item.subitems.length
+      ? itemModalView.renderPartial("subitemProgress",{
+        total:item.subitems.length,
+        done:doneSubCount,
+        offset:(1-subPct/100)*50.265,
+        count:doneSubCount
+      })
+      : itemModalView.renderPartial("subitemProgressEmpty",{});
+    const attachmentCount=(item.attachments||[]).length;
+    const attachmentsHtml=attachmentListHtml(item.attachments||[]);
+    const existingItemDetails = !isNew ? itemModalView.renderPartial("existingItemDetails",{
+      attachmentCount,
+      comments:commentsHtml,
+      attachments:attachmentsHtml,
+      activity:activityHtml
+    }) : "";
+    const newItemAttachments = isNew ? itemModalView.renderPartial("newItemAttachments",{
+      attachmentCount,
+      attachments:attachmentsHtml
+    }) : "";
     const footerActions = isNew
-      ? `<button class="btn btn-primary btn-sm" data-action="saveItem">Add item</button>`
+      ? itemModalView.renderPartial("saveItemAction",{})
       : item.calendarType!=="event"
-        ? `<button class="btn ${isCompleted?"btn-invisible":"btn-primary"} btn-sm" data-action="completeItem">${isCompleted?"Reopen":"Mark complete"}</button>`
+        ? itemModalView.renderPartial("completeItemAction",{
+          buttonClass:isCompleted?"btn-invisible":"btn-primary",
+          label:isCompleted?"Reopen":"Mark complete"
+        })
         : "";
 
-    modal.innerHTML = window.BeforeworkViewTemplates.render("itemModal",{
+    itemModalView.render(modal,{
       breadcrumb:`${escapeHtml(project.name)} <span aria-hidden="true">/</span> ${escapeHtml(group?.name||"")}`,
       title:escapeHtml(item.title),
       itemActions,
