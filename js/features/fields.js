@@ -28,7 +28,7 @@
         id:uid(),label,type:storageType,options:[],
         ...(storageType!==type?{offeringType:type}:{})
       };
-      if (storageType==="select"||storageType==="multi-select"||storageType==="priority"){
+      if (["select","multi-select","priority","tags"].includes(storageType)){
         let addedChoiceCount=0;
         const choiceChanges=await showDialog({
           title:"Field options",

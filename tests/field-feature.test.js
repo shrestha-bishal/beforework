@@ -242,6 +242,29 @@ test("group creation uses its standard name and skips the field-name dialog",asy
   assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0].options.map(option=>option.label))),["To do"]);
 });
 
+test("adding a Tags field opens the tag editor before saving the field",async()=>{
+  const project={fields:[],tags:[]};
+  const {feature,calls,setDialogResults}=createFeature();
+  setDialogResults(["tags",""],options=>({
+    values:[],
+    choices:[options.choiceList.createChoice("Urgent")]
+  }));
+
+  await feature.addFieldFlow(project);
+
+  assert.deepEqual(calls.dialogs.map(dialog=>dialog.title),["Add field","Field options"]);
+  assert.equal(calls.dialogs[1].choiceList.copy.heading,"Tags");
+  assert.equal(calls.dialogs[1].choiceList.copy.addLabel,"Add tag");
+  assert.deepEqual(JSON.parse(JSON.stringify(project.tags)),[
+    {id:"generated-2",name:"Urgent",color:"red"}
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(project.fields[0])),{
+    id:"generated-1",label:"Tags",type:"tags",options:[]
+  });
+  assert.equal(calls.saved,1);
+  assert.equal(calls.rendered,1);
+});
+
 test("creating a priority field starts with the same default levels as editing",async()=>{
   const project={fields:[]};
   const {feature,calls,setDialogResults}=createFeature();
