@@ -6,6 +6,8 @@
     const label=root?.querySelector("[data-operation-label]");
     const progress=root?.querySelector("[data-operation-progress]");
     const hint=root?.querySelector(".appOperationStatusHint");
+    const brand=root?.querySelector(".appOperationBrand");
+    const spinner=root?.querySelector(".appOperationSpinner");
     const active=new Map();
     let nextId=0;
     let startup=true;
@@ -16,6 +18,9 @@
       const current=[...active.values()].filter(operation=>operation.visible).pop();
       root.hidden=!startup&&!current;
       root.classList.toggle("is-startup",startup);
+      if (brand) brand.hidden=!startup;
+      if (hint) hint.hidden=!startup;
+      if (spinner) spinner.hidden=startup||!!current?.progress;
       if (startup){
         label.textContent=current?.label||"Preparing your workspace…";
         if (hint){
@@ -33,7 +38,6 @@
       }
       if (!current) return;
       label.textContent=current.label;
-      if (hint) hint.hidden=!startup;
       if (current.progress&&current.progress.total>0){
         progress.hidden=false;
         progress.max=current.progress.total;

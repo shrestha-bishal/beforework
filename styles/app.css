@@ -824,6 +824,7 @@
   /* Connect gate */
   .appOperationStatus{position:fixed;inset:0 auto auto 50%;z-index:300;display:flex;justify-content:center;width:max-content;max-width:calc(100vw - 28px);padding-top:14px;transform:translateX(-50%);pointer-events:none;}
   .appOperationStatus[hidden]{display:none;}
+  .appOperationStatus [hidden]{display:none!important;}
   .appOperationStatus.is-startup{inset:0;align-items:center;width:auto;max-width:none;padding:20px;background:radial-gradient(ellipse at 50% 42%,var(--bg) 0%,var(--bg-soft) 72%);transform:none;pointer-events:auto;}
   .appOperationStatusCard{display:flex;align-items:center;gap:11px;max-width:100%;min-height:42px;padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:var(--bg);box-shadow:0 8px 24px rgba(27,31,36,.14);color:var(--text);font-size:13px;font-weight:500;}
   .is-startup .appOperationStatusCard{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;width:min(390px,100%);min-height:0;padding:34px 36px 30px;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg);box-shadow:0 24px 70px rgba(27,31,36,.12),0 3px 12px rgba(27,31,36,.05);font-size:14px;}
