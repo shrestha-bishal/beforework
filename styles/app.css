@@ -197,6 +197,7 @@
   #projectList .SideNav-item .projectIcon{font-size:15px;flex:none;color:var(--faint);}
   #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #projectList .SideNav-item .projectPinIcon{flex:none;color:var(--accent-strong);font-size:12px;}
   #projectList .SideNav-item .projectQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
 
   .sideSection{padding-top:0;}

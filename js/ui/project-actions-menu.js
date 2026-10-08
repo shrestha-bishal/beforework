@@ -4,6 +4,7 @@
   const ACTIONS=[
     [
       {id:"edit",label:"Edit"},
+      {id:"pin",label:project=>project?.pinned?"Unpin from sidebar":"Pin to sidebar"},
       {id:"overview-visibility",label:project=>project?.hiddenFromOverview?"Show on Overview":"Hide from Overview"},
       {id:"move",label:"Move to folder"},
       {id:"duplicate",label:"Duplicate"}
@@ -80,6 +81,8 @@
       project=nextProject;
       const visibilityItem=menu.querySelector('[data-project-action="overview-visibility"]');
       visibilityItem.textContent=ACTIONS.flat().find(action=>action.id==="overview-visibility").label(project);
+      const pinItem=menu.querySelector('[data-project-action="pin"]');
+      pinItem.textContent=ACTIONS.flat().find(action=>action.id==="pin").label(project);
       const archiveItem=menu.querySelector('[data-project-action="archive"]');
       archiveItem.textContent=ACTIONS.flat().find(action=>action.id==="archive").label(project);
       button.setAttribute("aria-label",project?`Project actions for ${project.name}`:"Project actions");

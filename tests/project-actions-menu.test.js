@@ -62,7 +62,7 @@ function createHarness(){
   vm.runInNewContext(source,{window},{filename:"project-actions-menu.js"});
   const calls=[];
   const actions=Object.fromEntries(
-    ["edit","overview-visibility","archive","move","duplicate","documents","add-field","import-csv","undo","print","delete"]
+    ["edit","pin","overview-visibility","archive","move","duplicate","documents","add-field","import-csv","undo","print","delete"]
       .map(action=>[action,(project)=>calls.push([action,project])])
   );
   const menu=window.BeforeworkProjectActionsMenu.create({
@@ -77,7 +77,7 @@ test("both project action menu variants are generated from the same ordered acti
   const labels=container.children[1].children.map(item=>item.textContent);
 
   assert.deepEqual(labels,[
-    "Edit","Hide from Overview","Move to folder","Duplicate","","Documents","",
+    "Edit","Pin to sidebar","Hide from Overview","Move to folder","Duplicate","","Documents","",
     "Add field","Import from CSV","",
     "Undo","Print / PDF","",
     "Archive","Delete"
@@ -95,7 +95,7 @@ test("both project action menu variants are generated from the same ordered acti
   });
   assert.deepEqual(
     sidebarContainer.children[1].children.map(item=>item.textContent),
-    ["Edit","Show on Overview","Move to folder","Duplicate","","Documents","","Add field","Import from CSV","","Undo","Print / PDF","","Archive","Delete"]
+    ["Edit","Pin to sidebar","Show on Overview","Move to folder","Duplicate","","Documents","","Add field","Import from CSV","","Undo","Print / PDF","","Archive","Delete"]
   );
   assert.equal(sidebarContainer.children[1].children.some(item=>item.textContent==="New group"),false);
 });
@@ -108,6 +108,14 @@ test("project archive menu action toggles its label based on project state",()=>
   menu.setProject({id:"project-1",name:"Launch",archived:true});
 
   assert.equal(archive.textContent,"Unarchive");
+});
+
+test("project pin action label tracks pinned state",()=>{
+  const {container,menu}=createHarness();
+  const pin=container.children[1].querySelector('[data-project-action="pin"]');
+  assert.equal(pin.textContent,"Pin to sidebar");
+  menu.setProject({id:"project-1",name:"Launch",pinned:true});
+  assert.equal(pin.textContent,"Unpin from sidebar");
 });
 
 test("project visibility action label tracks the selected project",()=>{
@@ -141,6 +149,11 @@ test("app uses the shared component for header and sidebar menus, keeping operat
   assert.match(app,/BeforeworkProjectActionsMenu\.create\(\{[\s\S]*container:wrap,[\s\S]*variant:"sidebar"/);
   assert.match(app,/BeforeworkProjectActionsMenu\.create\(\{[\s\S]*container,[\s\S]*variant:"header"/);
   assert.match(app,/const projectActionHandlers=\{/);
+  assert.match(app,/pin:project=>toggleProjectPinned\(project\.id\)/);
+  assert.match(app,/const pinnedProjects=activeProjects\.filter\(project=>project\.pinned\)/);
+  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\)/);
+  assert.match(app,/pin\.className="projectPinIcon";[\s\S]*?pin\.setAttribute\("icon","mdi:pin"\)/);
+  assert.doesNotMatch(app,/pinnedProjectsHeading|name\.textContent="Pinned"/);
   assert.match(app,/edit:async project=>\{[\s\S]*?ensureProjectLoaded\(project\.id\)/);
   assert.match(app,/"overview-visibility":project=>toggleProjectOverviewVisibility\(project\.id\)/);
   assert.match(app,/archive:project=>toggleProjectArchive\(project\.id\)/);

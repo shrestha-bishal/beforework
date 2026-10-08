@@ -75,6 +75,9 @@
       if (project.hiddenFromOverview!==undefined && typeof project.hiddenFromOverview!=="boolean"){
         addError(`${projectPath}.hiddenFromOverview must be a boolean.`);
       }
+      if (project.pinned!==undefined && typeof project.pinned!=="boolean"){
+        addError(`${projectPath}.pinned must be a boolean.`);
+      }
       if (project.archived!==undefined && typeof project.archived!=="boolean"){
         addError(`${projectPath}.archived must be a boolean.`);
       }

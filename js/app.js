@@ -712,6 +712,7 @@
       ...project,
       id:uid(),
       name:name.trim(),
+      pinned:false,
       createdAt:now,
       fields,
       tags,
@@ -1506,6 +1507,19 @@
     }
   }
 
+  async function toggleProjectPinned(projectId){
+    try{
+      const project=await ensureProjectLoaded(projectId);
+      if (!project) throw new Error("The project could not be found.");
+      project.pinned=!project.pinned;
+      if (state.folderLazy) registerProjectSummary(project);
+      scheduleSave();
+      renderAll();
+    }catch(error){
+      await showNotice("Couldn't update project pin",window.BeforeworkErrorUtils.getMessage(error));
+    }
+  }
+
   async function toggleProjectArchive(projectId){
     try{
       const project=await ensureProjectLoaded(projectId);
@@ -1524,6 +1538,7 @@
       const loaded=await ensureProjectLoaded(project.id);
       if (loaded) await editProject(loaded);
     },
+    pin:project=>toggleProjectPinned(project.id),
     "overview-visibility":project=>toggleProjectOverviewVisibility(project.id),
     archive:project=>toggleProjectArchive(project.id),
     move:async project=>{
@@ -1582,6 +1597,16 @@
       const name = document.createElement("span");
       name.className = "projectName";
       name.textContent = p.name;
+      if (p.pinned){
+        const pin=document.createElement("iconify-icon");
+        pin.className="projectPinIcon";
+        pin.setAttribute("icon","mdi:pin");
+        pin.setAttribute("title","Pinned project");
+        pin.setAttribute("aria-label","Pinned project");
+        li.append(icon,name,pin);
+      } else {
+        li.append(icon,name);
+      }
       const cnt = document.createElement("span");
       cnt.className = "cnt";
       cnt.textContent = String(count);
@@ -1594,14 +1619,16 @@
         project:p,
         actions:projectActionHandlers
       });
-      li.append(icon, name, cnt, wrap);
+      li.append(cnt, wrap);
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
     };
     const projects=projectRecords();
     const activeProjects=projects.filter(project=>!project.archived);
     const archivedProjects=projects.filter(project=>project.archived);
-    const unfiled = activeProjects.filter(project=>!project.folderId || !state.folders.some(folder=>folder.id===project.folderId));
+    const pinnedProjects=activeProjects.filter(project=>project.pinned);
+    pinnedProjects.forEach(project=>appendProject(project));
+    const unfiled = activeProjects.filter(project=>!project.pinned&&(!project.folderId || !state.folders.some(folder=>folder.id===project.folderId)));
     unfiled.forEach(project=>appendProject(project));
     state.folders.forEach(folder=>{
       const heading = document.createElement("li");
@@ -1612,7 +1639,7 @@
         divider.setAttribute("aria-hidden","true");
         heading.appendChild(divider);
       }
-      const projectCount = activeProjects.filter(project=>project.folderId===folder.id).length;
+      const projectCount = activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).length;
       const icon = document.createElement("iconify-icon");
       icon.className = "folderIcon";
       icon.setAttribute("icon", "mdi:folder-outline");
@@ -1680,7 +1707,7 @@
       wrap.append(menuBtn, menu);
       heading.append(icon, name, count, wrap);
       ul.appendChild(heading);
-      activeProjects.filter(project=>project.folderId===folder.id).forEach(project=>appendProject(project, true));
+      activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).forEach(project=>appendProject(project, true));
     });
     if (archivedProjects.length){
       const heading=document.createElement("li");

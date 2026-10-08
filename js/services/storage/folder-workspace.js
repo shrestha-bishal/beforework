@@ -157,6 +157,7 @@
       name:project.name,
       description:project.description??null,
       hiddenFromOverview:project.hiddenFromOverview===true,
+      pinned:project.pinned===true,
       archived:project.archived===true,
       milestones:(project.milestones||[]).map(milestone=>({id:milestone.id,title:milestone.title,dueDate:milestone.dueDate||null})),
       icon:project.icon||"",

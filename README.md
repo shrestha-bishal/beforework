@@ -29,7 +29,7 @@ Beforework is source-available under the [PolyForm Noncommercial License 1.0.0](
 
 ## Features
 
-- Projects and folders with project-owned tasks that can be organised into optional groups; workflow templates can provide starter groups
+- Projects and folders with project-owned tasks that can be organised into optional groups; pin frequently used projects to the top of the sidebar, and use workflow templates for starter groups
 - Markdown-formatted task descriptions and comments with a live preview; existing text stays compatible and raw HTML is disabled
 - Project Documents view for named Markdown briefs and notes, with in-app writing and preview, a starter project brief, and `.md` export
 - List, table, board, calendar, roadmap, milestone, and Documents views with per-project view configuration
