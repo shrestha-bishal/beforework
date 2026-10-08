@@ -51,8 +51,9 @@ test("bootstrap is the single application startup entry point",()=>{
     "services/google-calendar/google-calendar.js",
     "app.js"
   ]) assert.ok(errorUtils<position(script),`${script} must load after the shared error utility`);
-  assert.equal(index.match(/<script type="module" src="js\/manifest\.js"><\/script>/g)?.length,1);
+  assert.equal(index.match(/<script src="js\/dev-loader\.js"><\/script>/g)?.length,1);
   assert.match(build,/src="js\/app\.min\.js"/);
+  assert.match(build,/const hasModuleSyntax=\/\^\\s\*\(\?:import\|export\)\\s\/m\.test\(source\);[\s\S]*?module:hasModuleSyntax/);
   assert.match(index,/<a class="btn btn-sm btn-primary demoTryLink" id="tryBeforeworkLink" href="https:\/\/beforework\.netlify\.app\/" target="_blank" rel="noopener noreferrer" hidden>Use your own workspace<\/a>/);
   assert.match(index,/<button class="btn btn-sm demoTryLink" id="resetDemoBtn" type="button" hidden>Reset demo<\/button>/);
   assert.match(app,/const demoMode=window\.BEFOREWORK_CONFIG\.initialWorkspace==="demo"/);
@@ -61,4 +62,27 @@ test("bootstrap is the single application startup entry point",()=>{
   assert.match(app,/loadDemoWorkspace\(defaultState\(\)\)/);
   assert.match(app,/async function resetDemoWorkspace\(\)/);
   assert.ok(appPosition<position("bootstrap.js"));
+});
+
+test("development loader executes manifest scripts in classic-script order",async()=>{
+  const devLoader=fs.readFileSync(path.join(__dirname,"../js/dev-loader.js"),"utf8");
+  const scripts=[];
+  const manifestUrl="https://beforework.test/js/manifest.js";
+  const documentRef={
+    currentScript:{src:"https://beforework.test/js/dev-loader.js"},
+    head:{appendChild(script){ scripts.push(script.src); queueMicrotask(()=>script.onload()); }},
+    createElement(){ return {}; }
+  };
+  const window={};
+  vm.runInNewContext(devLoader,{
+    window,
+    document:documentRef,
+    URL,
+    fetch:async()=>({ok:true,status:200,text:async()=>fs.readFileSync(path.join(__dirname,"../js/manifest.js"),"utf8")}),
+    console:{error(){}}
+  },{filename:"dev-loader.js"});
+
+  await window.BeforeworkDevLoader.load();
+  const expected=appScripts.map(file=>new URL(file,manifestUrl).href);
+  assert.deepEqual(scripts,expected);
 });

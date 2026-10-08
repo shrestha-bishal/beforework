@@ -53,7 +53,7 @@ Beforework uses the File System Access API to open and save a workspace root and
 
 Custom field types are registered from individual modules in `js/core/fields/types/`. Each module owns its catalog metadata and any type-specific filtering, value normalisation, sorting, and export behavior; add new modules to the field script list in `index.html`.
 
-If Python is installed:
+For local source development, serve the repository root directly; the source loader runs the ordered application scripts without a build:
 
 ```sh
 python3 -m http.server 8000
@@ -63,7 +63,7 @@ Then open <http://localhost:8000/> in Chrome or Edge and create a workspace fold
 
 Local hosting starts with an empty workspace by default. The hosted [Beforework demo](https://beforework-demo.netlify.app/) opens directly into sample data without asking for folder access. Demo edits are saved only in that browser; use **Reset demo** to restore the sample workspace or **Use your own workspace** to open the regular folder-backed app.
 
-For development, if you need to run the demo data locally, build and serve the generated site with demo mode enabled:
+To test the generated production bundle with demo data, build and serve `dist`:
 
 ```powershell
 $env:BEFOREWORK_MODE = "demo"
@@ -71,7 +71,7 @@ node scripts/build-site.js
 python -m http.server 8000 --directory dist
 ```
 
-The ordered imports in `js/manifest.js` are the application script manifest. For source development, the browser loads that manifest as an ES module. The production build combines its imports into one minified `js/app.min.js`, and minifies CSS and HTML in `dist`; source files remain readable and unchanged. Lazy-loaded view modules remain separate. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
+The ordered imports in `js/manifest.js` are the application script manifest. `js/dev-loader.js` loads those files sequentially as classic scripts for local source development, preserving the shared declarations expected by the app. The production build combines the same ordered files into one minified `js/app.min.js`, and minifies CSS and HTML in `dist`; source files remain readable and unchanged. Lazy-loaded view modules remain separate. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
 
 ## Deploy
 

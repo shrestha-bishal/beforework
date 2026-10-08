@@ -178,7 +178,7 @@ test("Tags controls are rendered by the optional Tags field and retain tag assig
 test("item modal overlays the sidebar and reflows with viewport size",()=>{
   assert.match(stylesSource,/\.overlay\{[^}]*z-index:100;/);
   assert.match(stylesSource,/#itemOverlay\.overlay\{align-items:stretch;justify-content:flex-end;padding:0;\}/);
-  assert.match(stylesSource,/#itemOverlay #itemModal\{width:min\(1080px,92vw\);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh/);
+  assert.match(stylesSource,/#itemOverlay #itemModal\{width:min\(1440px,90vw\);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh/);
   assert.match(stylesSource,/@media \(max-width:900px\)\{[\s\S]*?\.itemModalBody\{flex-direction:column;/);
   assert.match(stylesSource,/@media \(max-width:560px\)\{[\s\S]*?#itemOverlay #itemModal\{width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;\}/);
   assert.match(stylesSource,/@media \(prefers-reduced-motion:reduce\)\{#itemOverlay #itemModal\{animation:none;\}\}/);

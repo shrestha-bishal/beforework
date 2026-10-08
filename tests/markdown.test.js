@@ -80,7 +80,7 @@ test("Markdown libraries are loaded locally in source and copied into production
 
   assert.match(index,/node_modules\/markdown-it\/dist\/browser\/markdown-it\.umd\.min\.js/);
   assert.match(index,/node_modules\/dompurify\/dist\/purify\.min\.js/);
-  assert.ok(index.indexOf("purify.min.js")<index.indexOf('src="js/manifest.js"'));
+  assert.ok(index.indexOf("purify.min.js")<index.indexOf('src="js/dev-loader.js"'));
   assert.ok(appScripts.indexOf("ui/markdown.js")>=0);
   assert.match(build,/vendor\/markdown-it\.min\.js/);
   assert.match(build,/vendor\/purify\.min\.js/);

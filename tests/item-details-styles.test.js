@@ -23,7 +23,7 @@ test("item comments and activity styles are isolated and included in the manifes
 });
 
 test("Markdown description editor and preview fill the available column width",()=>{
-  assert.match(appStyles,/#itemOverlay #itemModal\{width:min\(1080px,92vw\)/);
+  assert.match(appStyles,/#itemOverlay #itemModal\{width:min\(1440px,90vw\)/);
   const itemModalHeaderRule=appStyles.match(/\.itemModalHeader\{[^}]+\}/)?.[0]||"";
   assert.ok(itemModalHeaderRule);
   assert.doesNotMatch(itemModalHeaderRule,/border-bottom/);

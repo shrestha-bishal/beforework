@@ -107,9 +107,9 @@ function expandStylesheetManifest(file, source){
 
 async function minifyJavaScriptFile(file){
   const source=fs.readFileSync(file,"utf8");
-  const isModule=file.endsWith(`${path.sep}app.min.js`)||/^\s*(?:import|export)\s/m.test(source);
+  const hasModuleSyntax=/^\s*(?:import|export)\s/m.test(source);
   const result=await minifyJavaScript(source,{
-    module:isModule,
+    module:hasModuleSyntax,
     compress:true,
     mangle:true,
     format:{comments:/@license|@preserve|^!/}
@@ -153,7 +153,7 @@ async function build(){
         `href="${primerStylesheet.target}"`
       );
       source=source.replace(
-        '<script type="module" src="js/manifest.js"></script>',
+        '<script src="js/dev-loader.js"></script>',
         '<script type="module" src="js/app.min.js"></script>'
       );
     }
@@ -174,6 +174,7 @@ async function build(){
     fs.rmSync(path.join(output,"js",file),{force:true});
   }
   fs.rmSync(path.join(output,"js","manifest.js"),{force:true});
+  fs.rmSync(path.join(output,"js","dev-loader.js"),{force:true});
 
   console.log(`Built and minified Beforework with ${mode} initial workspace data.`);
 }
