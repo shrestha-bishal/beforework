@@ -339,8 +339,13 @@
   .cardCommentCount{display:inline-flex;align-items:center;gap:3px;}
   .cardCommentCount iconify-icon{font-size:12px;}
   .Label .dot{width:6px;height:6px;border-radius:50%;flex:none;margin-right:4px;}
+  .fieldSelectBadge{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border:1px solid color-mix(in srgb,var(--field-choice-color) 24%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--field-choice-color) 10%,var(--bg));color:var(--text);font-size:11px;line-height:1.4;white-space:nowrap;}
+  .fieldSelectBadge .dot{width:6px;height:6px;border-radius:50%;flex:none;background:var(--field-choice-color);}
+  .fieldDateValue.Label--danger{color:var(--color-danger-fg);font-weight:600;}
+  .fieldDateValue.Label--attention{color:var(--color-attention-fg);font-weight:600;}
+  .fieldPriorityValue{display:inline-flex;align-items:center;white-space:nowrap;}
 
-  .priorityDot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block;margin-right:7px;}
+  .priorityDot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block;margin-right:5px;}
   /* Overdue/due-soon coloring now comes from Primer's own Label--danger /
      Label--attention modifiers (see duePillHtml) instead of a custom
      due-overdue/due-soon class, so it tracks theme changes automatically. */

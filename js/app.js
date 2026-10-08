@@ -1247,9 +1247,9 @@
     if (dateStr <= todayStr(3)) return "Label--attention";
     return "";
   }
-  function duePillHtml(dateStr){
+  function dueFieldTextHtml(dateStr){
     if (!dateStr) return "";
-    return `<span class="Label Label--secondary ${dueClass(dateStr)}">${fmtDate(dateStr)}</span>`;
+    return `<span class="fieldDateValue ${dueClass(dateStr)}">${fmtDate(dateStr)}</span>`;
   }
   function tagPillHtml(t, selected=false, filterable=false){
     const color = t.color || TAG_COLORS[0];
@@ -1347,13 +1347,14 @@
   function fieldChipHtml(field, value, project){
     if (!value) return "";
     if (field.type==="priority"){
-      const opt = fieldTypes.getFieldChoices(field,{project}).find(option=>option.id===value); if (!opt) return "";
-      return `<span class="priorityDot" style="background:${opt.color}" title="${escapeHtml(opt.label)} ${escapeHtml(field.label)}"></span>`;
+      const opt = fieldTypes.getFieldChoices(field,{project}).find(option=>option.id===value);
+      if (!opt) return "";
+      return `<span class="fieldPriorityValue" title="${escapeHtml(field.label)}"><span class="priorityDot" style="background:${escapeHtml(opt.color)}"></span>${escapeHtml(opt.label)}</span>`;
     }
-    if (["date","start-date","due-date"].includes(field.type)) return duePillHtml(value);
+    if (["date","start-date","due-date"].includes(field.type)) return dueFieldTextHtml(value);
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value); if (!opt) return "";
-      return `<span class="Label Label--secondary"><span class="dot" style="background:${opt.color}"></span>${escapeHtml(opt.label)}</span>`;
+      return `<span class="fieldSelectBadge" style="--field-choice-color:${escapeHtml(opt.color)}"><span class="dot"></span>${escapeHtml(opt.label)}</span>`;
     }
     if (field.type==="multi-select"){
       const selected=Array.isArray(value) ? value : [];
@@ -1377,11 +1378,8 @@
   function fieldCellHtml(field, value, project, item){
     if (field.type==="schedule") return item?escapeHtml(scheduleFieldValue(project,item))||"-":"-";
     if (field.type==="location") return value ? escapeHtml(String(value)) : "-";
-    if (field.type==="priority"){
-      const opt = fieldTypes.getFieldChoices(field,{project}).find(option=>option.id===value);
-      return opt ? `${fieldChipHtml(field,value,project)}${escapeHtml(opt.label)}` : "-";
-    }
-    if (["date","start-date","due-date"].includes(field.type)) return value ? duePillHtml(value) : "-";
+    if (field.type==="priority") return fieldChipHtml(field,value,project)||"-";
+    if (["date","start-date","due-date"].includes(field.type)) return value ? dueFieldTextHtml(value) : "-";
     if (field.type==="select"){
       const opt = (field.options||[]).find(o=>o.id===value);
       if (opt&&field.label.trim().toLowerCase()==="group") return escapeHtml(opt.label);

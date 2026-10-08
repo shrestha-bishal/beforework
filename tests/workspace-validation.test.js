@@ -454,10 +454,14 @@ test("renders currency fields with numeric inputs",()=>{
 
 test("renders safe URL links and searchable multi-select labels", ()=>{
   const appSource=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
-  const start=appSource.indexOf("function fieldChipHtml");
+  const start=appSource.indexOf("function dueClass");
   const end=appSource.indexOf("function itemMatchesFilter");
   const snippet=appSource.slice(start,end);
-  const context={URL,fieldTypes,escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),duePillHtml:()=>""};
+  const context={
+    URL,fieldTypes,fmtDate:value=>value,
+    todayStr:()=> "2026-10-08",
+    escapeHtml:value=>String(value).replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))
+  };
   const result=JSON.parse(vm.runInNewContext(`${snippet}; JSON.stringify({
     safe:fieldCellHtml({type:"url"},"https://example.com/docs"),
     unsafe:fieldCellHtml({type:"url"},"javascript:alert(1)"),
@@ -466,8 +470,11 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
     zero:fieldCellHtml({type:"number"},0),
     currency:fieldCellHtml({type:"currency",currency:"AUD",decimalPlaces:0},1250),
     groupText:fieldCellHtml({type:"select",label:"Group",options:[{id:"new",label:"New",color:"red"}]},"new"),
-    statusChip:fieldCellHtml({type:"select",label:"Status",options:[{id:"todo",label:"To do",color:"blue"}]},"todo"),
+    statusBadge:fieldCellHtml({type:"select",label:"Status",options:[{id:"todo",label:"To do",color:"blue"}]},"todo"),
     choices:fieldCellHtml({type:"multi-select",options:[{id:"docs",label:"Docs"},{id:"design",label:"Design"}]},["docs","design"]),
+    dateText:fieldCellHtml({type:"date"},"2026-10-10"),
+    overdueDate:fieldCellHtml({type:"due-date"},"2026-10-07"),
+    priority:fieldCellHtml({id:"priority",label:"Priority",type:"priority",options:[{id:"high",label:"High",color:"red"}]},"high"),
     numericSort:fieldSortValue({type:"number"},2)<fieldSortValue({type:"number"},10)
   });`,context));
 
@@ -482,7 +489,12 @@ test("renders safe URL links and searchable multi-select labels", ()=>{
   }).format(1250));
   assert.equal(result.groupText,"New");
   assert.doesNotMatch(result.groupText,/<span|dot/);
-  assert.match(result.statusChip,/Label Label--secondary/);
+  assert.match(result.statusBadge,/fieldSelectBadge/);
+  assert.match(result.statusBadge,/--field-choice-color:blue/);
+  assert.doesNotMatch(result.dateText,/Label/);
+  assert.match(result.overdueDate,/fieldDateValue Label--danger/);
+  assert.match(result.priority,/priorityDot/);
+  assert.match(result.priority,/High/);
   assert.match(result.choices,/Docs/);
   assert.match(result.choices,/Design/);
   assert.equal(result.numericSort,true);
