@@ -321,6 +321,7 @@ test("seeds a full-featured demo workspace with validated examples", async ()=>{
   assert.ok(launch.views.some(view=>view.type==="milestones"));
   assert.ok(launch.views.some(view=>view.type==="table"));
   assert.ok(launch.views.some(view=>view.type==="roadmap"));
+  assert.ok(launch.views.some(view=>view.type==="documents"));
   assert.equal(launch.documents.length,2);
   assert.equal(launch.activeDocumentId,launch.documents[0].id);
   assert.match(launch.documents[0].content,/^# Product launch/m);

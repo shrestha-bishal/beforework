@@ -77,8 +77,15 @@
     const validation=window.BeforeworkWorkspaceValidation.validate(parsed,SCHEMA_VERSION);
     if (!validation.valid) throw new Error(validation.errors.join(" "));
     const migrated=migrateState(parsed);
+    const migratedSerialized=JSON.stringify(migrated);
+    (migrated.projects||[]).forEach(project=>{
+      if (!Array.isArray(project.documents)||project.documents.length===0) return;
+      if (!Array.isArray(project.views)) project.views=[];
+      if (project.views.some(view=>view.type==="documents")) return;
+      project.views.push({id:`demo-documents-${project.id}`,type:"documents",name:"Documents"});
+    });
     const serialized=JSON.stringify(migrated);
-    if (serialized!==JSON.stringify(parsed)) localStorage.setItem(DEMO_WORKSPACE_KEY,serialized);
+    if (serialized!==migratedSerialized) localStorage.setItem(DEMO_WORKSPACE_KEY,serialized);
     return migrated;
   }
 

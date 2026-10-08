@@ -56,6 +56,28 @@ test("demo workspace is initialized from sample data and loaded from browser sto
   assert.equal(JSON.stringify(harness.storage.loadDemoWorkspace(sample)),JSON.stringify(saved));
 });
 
+test("saved demo projects with documents gain the Documents view without replacing user data",()=>{
+  const harness=createHarness();
+  const saved={
+    schemaVersion:8,
+    projects:[{
+      id:"launch",
+      name:"Product launch",
+      description:"My customized project",
+      documents:[{id:"brief",title:"My brief",content:"# Keep this"}],
+      views:[{id:"list",type:"list",name:"List"}]
+    }]
+  };
+  harness.values.set(demoKey,JSON.stringify(saved));
+
+  const loaded=harness.storage.loadDemoWorkspace({schemaVersion:8,projects:[]});
+  const project=loaded.projects[0];
+  assert.equal(project.description,"My customized project");
+  assert.equal(project.documents[0].content,"# Keep this");
+  assert.ok(project.views.some(view=>view.type==="documents"&&view.name==="Documents"));
+  assert.ok(JSON.parse(harness.values.get(demoKey)).projects[0].views.some(view=>view.type==="documents"));
+});
+
 test("demo edits persist in browser storage without writing a workspace file",async()=>{
   const harness=createHarness();
   harness.context.fileHandle={kind:"demo",name:"Demo workspace"};
