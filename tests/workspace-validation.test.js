@@ -617,7 +617,7 @@ test("milestones view renders linked task progress", ()=>{
   assert.deepEqual(opened,[["project-1","group-1","task-1"]]);
 });
 
-test("date picker month arrows navigate in both directions", ()=>{
+test("date picker supports month and year navigation without scrolling through every month", ()=>{
   const pickerSource=fs.readFileSync(path.join(__dirname,"../js/ui/date-time-picker.js"),"utf8");
   const {document,window,cloneTemplate}=createPickerTestEnvironment();
   const input=createElement();
@@ -647,12 +647,45 @@ test("date picker month arrows navigate in both directions", ()=>{
   });
   };
 
-  assert.match(popover.querySelector("[data-date-month]").textContent,/September 2026/);
+  assert.equal(popover.querySelector("[data-date-month-select]").textContent,"September");
+  assert.equal(popover.querySelector("[data-date-year-select]").textContent,"2026");
   assert.equal(popover.querySelector("[data-date-grid]").children.length,42);
   clickAction("next");
-  assert.match(popover.querySelector("[data-date-month]").textContent,/October 2026/);
+  assert.equal(popover.querySelector("[data-date-month-select]").textContent,"October");
   clickAction("previous");
-  assert.match(popover.querySelector("[data-date-month]").textContent,/September 2026/);
+  assert.equal(popover.querySelector("[data-date-month-select]").textContent,"September");
+  const clickPickerTarget=(selector,targetSelector)=>{
+    const target=popover.querySelector(targetSelector);
+    popover.listeners.click({
+      target:{closest:candidate=>candidate===selector?target:null},
+      preventDefault(){},
+      stopPropagation(){}
+    });
+  };
+  clickPickerTarget("[data-date-month-select]","[data-date-month-select]");
+  assert.equal(popover.querySelector("[data-date-grid]").children.length,12);
+  clickPickerTarget("[data-date-year-select]","[data-date-year-select]");
+  assert.equal(popover.querySelector("[data-date-grid]").children.length,12);
+  clickAction("previous");
+  clickAction("previous");
+  clickAction("previous");
+  assert.equal(popover.querySelector("[data-date-year-select]").textContent,"1990s");
+  const year1990=popover.querySelectorAll("[data-date-year-option]").find(option=>option.dataset.dateYearOption==="1990");
+  popover.listeners.click({
+    target:{closest:selector=>selector==="[data-date-year-option]"?year1990:null},
+    preventDefault(){},
+    stopPropagation(){}
+  });
+  assert.equal(popover.querySelector("[data-date-year-select]").textContent,"1990");
+  assert.equal(popover.querySelector("[data-date-grid]").children.length,12);
+  const january=popover.querySelectorAll("[data-date-month-option]").find(option=>option.dataset.dateMonthOption==="0");
+  popover.listeners.click({
+    target:{closest:selector=>selector==="[data-date-month-option]"?january:null},
+    preventDefault(){},
+    stopPropagation(){}
+  });
+  assert.equal(popover.querySelector("[data-date-month-select]").textContent,"January");
+  assert.equal(popover.querySelector("[data-date-grid]").children.length,42);
 });
 
 test("persists independent List and Table column orders", ()=>{

@@ -77,9 +77,12 @@ function makeTemplateRoot(templateId){
     root.className="datePickerPopover";
     const header=createElement();
     const month=createElement();
-    month.dataset.dateMonth="";
-    header.append(createAction("previous"),month,createAction("next"));
+    month.dataset.dateMonthSelect="";
+    const year=createElement();
+    year.dataset.dateYearSelect="";
+    header.append(createAction("previous"),month,year,createAction("next"));
     const weekdays=createElement();
+    weekdays.dataset.dateWeekdays="";
     const grid=createElement();
     grid.className="datePickerGrid";
     grid.dataset.dateGrid="";

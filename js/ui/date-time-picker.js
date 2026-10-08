@@ -43,6 +43,8 @@
       wrapper.appendChild(button);
       document.body.appendChild(popover);
       let month=new Date();
+      let view="days";
+      let yearDecade=Math.floor(month.getFullYear()/10)*10;
       const parseDate=()=>{
         const value=input.value.slice(0,10);
         const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -59,28 +61,58 @@
       const render=()=>{
         const selected=parseDate();
         const today=new Date();
-        const firstDay=new Date(month.getFullYear(),month.getMonth(),1);
-        const start=new Date(month.getFullYear(),month.getMonth(),1-firstDay.getDay());
         const grid=popover.querySelector("[data-date-grid]");
-        const monthLabel=popover.querySelector("[data-date-month]");
+        const monthButton=popover.querySelector("[data-date-month-select]");
+        const yearButton=popover.querySelector("[data-date-year-select]");
+        const weekdays=popover.querySelector("[data-date-weekdays]");
         const timeControl=popover.querySelector("[data-date-time-control]");
         const timeInput=popover.querySelector(".datePickerTimeInput");
-        monthLabel.textContent=month.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+        monthButton.hidden=view==="years";
+        monthButton.textContent=view==="months"?"Choose month":month.toLocaleDateString(undefined,{month:"long"});
+        monthButton.setAttribute("aria-label",view==="months"?"Choose month":"Choose month");
+        yearButton.textContent=view==="years"?`${yearDecade}s`:String(month.getFullYear());
+        yearButton.setAttribute("aria-label",view==="years"?"Choose a different decade":"Choose year");
+        popover.querySelector('[data-date-action="previous"]').setAttribute("aria-label",`Previous ${view==="days"?"month":view==="months"?"year":"decade"}`);
+        popover.querySelector('[data-date-action="next"]').setAttribute("aria-label",`Next ${view==="days"?"month":view==="months"?"year":"decade"}`);
+        weekdays.hidden=view!=="days";
         timeControl.hidden=!isDateTime;
         if (timeInput) timeInput.value=input.value.slice(11,16);
         grid.replaceChildren();
-        for (let index=0;index<42;index++){
-          const date=new Date(start.getFullYear(),start.getMonth(),start.getDate()+index);
-          const currentMonth=date.getMonth()===month.getMonth();
-          const isSelected=selected && date.getTime()===selected.getTime();
-          const isToday=date.toDateString()===today.toDateString();
-          const day=document.createElement("button");
-          day.type="button";
-          day.className=`datePickerDay${currentMonth?"":" is-outside"}${isSelected?" is-selected":""}${isToday?" is-today":""}`;
-          day.dataset.date=isoDate(date);
-          day.setAttribute("aria-label",date.toLocaleDateString());
-          day.textContent=String(date.getDate());
-          grid.appendChild(day);
+        grid.className=`datePickerGrid is-${view}`;
+        if (view==="days"){
+          const firstDay=new Date(month.getFullYear(),month.getMonth(),1);
+          const start=new Date(month.getFullYear(),month.getMonth(),1-firstDay.getDay());
+          for (let index=0;index<42;index++){
+            const date=new Date(start.getFullYear(),start.getMonth(),start.getDate()+index);
+            const currentMonth=date.getMonth()===month.getMonth();
+            const isSelected=selected && date.getTime()===selected.getTime();
+            const isToday=date.toDateString()===today.toDateString();
+            const day=document.createElement("button");
+            day.type="button";
+            day.className=`datePickerDay${currentMonth?"":" is-outside"}${isSelected?" is-selected":""}${isToday?" is-today":""}`;
+            day.dataset.date=isoDate(date);
+            day.setAttribute("aria-label",date.toLocaleDateString());
+            day.textContent=String(date.getDate());
+            grid.appendChild(day);
+          }
+        }else if (view==="months"){
+          for (let index=0;index<12;index++){
+            const monthButtonOption=document.createElement("button");
+            monthButtonOption.type="button";
+            monthButtonOption.className=`datePickerMonthOption${index===month.getMonth()?" is-selected":""}`;
+            monthButtonOption.dataset.dateMonthOption=String(index);
+            monthButtonOption.textContent=new Date(month.getFullYear(),index,1).toLocaleDateString(undefined,{month:"long"});
+            grid.appendChild(monthButtonOption);
+          }
+        }else{
+          for (let year=yearDecade-1;year<=yearDecade+10;year++){
+            const yearOption=document.createElement("button");
+            yearOption.type="button";
+            yearOption.className=`datePickerYearOption${year===month.getFullYear()?" is-selected":""}${year<yearDecade||year>yearDecade+9?" is-outside":""}`;
+            yearOption.dataset.dateYearOption=String(year);
+            yearOption.textContent=String(year);
+            grid.appendChild(yearOption);
+          }
         }
         if (timeInput) timeInput.onchange=()=>{ if (input.value.slice(0,10)) { input.value=`${input.value.slice(0,10)}T${timeInput.value}`; label.textContent=labelDate(); emitChange(); } };
       };
@@ -98,14 +130,58 @@
           event.preventDefault();
           event.stopPropagation();
           const action=control.dataset.dateAction;
-          if (action==="previous") month=new Date(month.getFullYear(),month.getMonth()-1,1);
-          if (action==="next") month=new Date(month.getFullYear(),month.getMonth()+1,1);
+          if (action==="previous"){
+            if (view==="days") month=new Date(month.getFullYear(),month.getMonth()-1,1);
+            else if (view==="months") month=new Date(month.getFullYear()-1,month.getMonth(),1);
+            else yearDecade-=10;
+          }
+          if (action==="next"){
+            if (view==="days") month=new Date(month.getFullYear(),month.getMonth()+1,1);
+            else if (view==="months") month=new Date(month.getFullYear()+1,month.getMonth(),1);
+            else yearDecade+=10;
+          }
           if (action==="clear"){ input.value=""; emitChange(); close(); }
           if (action==="today") chooseDate(new Date());
           if (action==="previous" || action==="next"){
             render();
             popover.querySelector(`[data-date-action="${action}"]`)?.focus();
           }
+          return;
+        }
+        if (event.target.closest("[data-date-month-select]")){
+          event.preventDefault();
+          event.stopPropagation();
+          view=view==="months"?"days":"months";
+          render();
+          return;
+        }
+        if (event.target.closest("[data-date-year-select]")){
+          event.preventDefault();
+          event.stopPropagation();
+          if (view==="years") view="months";
+          else {
+            view="years";
+            yearDecade=Math.floor(month.getFullYear()/10)*10;
+          }
+          render();
+          return;
+        }
+        const monthOption=event.target.closest("[data-date-month-option]");
+        if (monthOption){
+          event.preventDefault();
+          event.stopPropagation();
+          month=new Date(month.getFullYear(),Number(monthOption.dataset.dateMonthOption),1);
+          view="days";
+          render();
+          return;
+        }
+        const yearOption=event.target.closest("[data-date-year-option]");
+        if (yearOption){
+          event.preventDefault();
+          event.stopPropagation();
+          month=new Date(Number(yearOption.dataset.dateYearOption),month.getMonth(),1);
+          view="months";
+          render();
           return;
         }
         const day=event.target.closest(".datePickerDay");
@@ -124,7 +200,7 @@
         const popoverRect=popover.getBoundingClientRect();
         if (popoverRect.bottom>window.innerHeight-12) popover.style.top=`${Math.max(12,rect.top-popoverRect.height-6)}px`;
       };
-      button.onclick=event=>{ event.stopPropagation(); if (popover.hidden){ const selected=parseDate(); month=selected?new Date(selected.getFullYear(),selected.getMonth(),1):new Date(); render(); popover.hidden=false; button.setAttribute("aria-expanded","true"); positionPopover(); }else close(); };
+      button.onclick=event=>{ event.stopPropagation(); if (popover.hidden){ const selected=parseDate(); month=selected?new Date(selected.getFullYear(),selected.getMonth(),1):new Date(); view="days"; yearDecade=Math.floor(month.getFullYear()/10)*10; render(); popover.hidden=false; button.setAttribute("aria-expanded","true"); positionPopover(); }else close(); };
       button.onkeydown=event=>{ if (event.key==="Enter" || event.key===" "){ event.preventDefault(); button.click(); } };
       input.addEventListener("change",()=>{ label.textContent=labelDate(); });
       label.textContent=labelDate();

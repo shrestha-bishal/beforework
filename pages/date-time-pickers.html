@@ -1,11 +1,14 @@
 <template id="datePickerPopoverTemplate">
   <div class="datePickerPopover" role="dialog" aria-label="Choose date">
     <div class="datePickerHeader">
-      <button type="button" class="datePickerNav" data-date-action="previous" aria-label="Previous month">‹</button>
-      <strong data-date-month></strong>
-      <button type="button" class="datePickerNav" data-date-action="next" aria-label="Next month">›</button>
+      <button type="button" class="datePickerNav" data-date-action="previous" aria-label="Previous">‹</button>
+      <div class="datePickerHeading">
+        <button type="button" class="datePickerHeadingButton" data-date-month-select aria-label="Choose month"></button>
+        <button type="button" class="datePickerHeadingButton" data-date-year-select aria-label="Choose year"></button>
+      </div>
+      <button type="button" class="datePickerNav" data-date-action="next" aria-label="Next">›</button>
     </div>
-    <div class="datePickerWeekdays" aria-hidden="true">
+    <div class="datePickerWeekdays" data-date-weekdays aria-hidden="true">
       <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
     </div>
     <div class="datePickerGrid" data-date-grid></div>
