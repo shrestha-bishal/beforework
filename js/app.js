@@ -1992,6 +1992,7 @@
     const activeView=project.views.find(view=>view.id===project.activeViewId);
     const missing = VIEW_DEFS.filter(d=>!project.views.some(v=>v.type===d.type));
     wrap.innerHTML = `
+      <label class="viewSelectorLabel" for="projectViewSelector">View</label>
       <select class="form-control viewSelector" id="projectViewSelector" aria-label="Project view">
         ${project.views.map(view=>`<option value="${escapeHtml(view.id)}"${view.id===project.activeViewId?" selected":""}>${escapeHtml(viewLabel(view.type))}</option>`).join("")}
       </select>

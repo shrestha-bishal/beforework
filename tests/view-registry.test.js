@@ -45,6 +45,7 @@ test("app uses the view registry rather than defining its own catalog",()=>{
 
 test("project views use a selector while retaining add and remove actions",()=>{
   assert.match(indexSource,/<div class="viewTabs" id="viewTabs"/);
+  assert.match(appSource,/<label class="viewSelectorLabel" for="projectViewSelector">View<\/label>\s*<select class="form-control viewSelector"/);
   assert.match(appSource,/id="projectViewSelector" aria-label="Project view"/);
   assert.match(appSource,/project\.views\.map\(view=>`<option value="\$\{escapeHtml\(view\.id\)\}"\$\{view\.id===project\.activeViewId\?" selected":""\}>\$\{escapeHtml\(viewLabel\(view\.type\)\)\}<\/option>`\)/);
   assert.match(appSource,/selector\.addEventListener\("change",\(\)=>\{/);
