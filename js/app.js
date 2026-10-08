@@ -507,7 +507,7 @@
     return out;
   }
 
-  async function addProject(name, templateKey, description=null){
+  async function addProject(name, templateKey, description=null, folderId=null){
     if (state.folderLazy && state.projects.length){
       if (!await flushSave()){
         await showNotice("Project creation paused","Resolve the pending save before unloading the open project.");
@@ -525,7 +525,7 @@
       ...(type==="kanban"&&groupByFieldId?{groupByFieldId}:{})
     }));
     const p = {
-      id:uid(), name, description, createdAt:Date.now(), folderId:null,
+      id:uid(), name, description, createdAt:Date.now(), folderId,
       documents:[],
       tags:projectTemplates.buildTags(templateKey),
       fields,
@@ -1663,6 +1663,7 @@
       menu.setAttribute("role","menu");
       menu.hidden=true;
       menu.innerHTML = `
+        <button type="button" data-folder-action="new-project">New project</button>
         <button type="button" data-folder-action="rename">Rename</button>
         <button type="button" data-folder-action="delete" class="danger menu-item menu-item--danger" role="menuitem">Delete</button>
       `;
@@ -1672,7 +1673,9 @@
           event.stopPropagation();
           folderActionMenu.close();
           const action = button.dataset.folderAction;
-          if (action === "rename") {
+          if (action === "new-project") {
+            await createProjectFromMenu(folder.id);
+          } else if (action === "rename") {
             const updated = await showDialog({
               title: "Rename folder",
               fields: [{label: "Folder name", value: folder.name}],
@@ -2974,16 +2977,17 @@
     });
   }
 
-  async function createProjectFromMenu(){
+  async function createProjectFromMenu(folderId=null){
     const templateOptions=projectTemplates.entries().map(([value,template])=>({value,label:template.label}));
-    const result = await showDialog({title:"New project", fields:[
+    const folder=folderId?state.folders.find(candidate=>candidate.id===folderId):null;
+    const result = await showDialog({title:folder?`New project in ${folder.name}`:"New project", fields:[
       {label:"Project name", placeholder:"e.g. Marketing launch"},
       {label:"Description", type:"textarea", placeholder:"What is this project about?"},
       {label:"Template", type:"select", options:templateOptions, value:"taskboard"}
     ], confirmLabel:"Create project"});
     if (!result) return;
     const [name, description, templateKey] = result;
-    if (name && name.trim()) await addProject(name.trim(), templateKey, description.trim()||null);
+    if (name && name.trim()) await addProject(name.trim(), templateKey, description.trim()||null, folderId);
   }
 
   function wireProjectCreateMenu(){

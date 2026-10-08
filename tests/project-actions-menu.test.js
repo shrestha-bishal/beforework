@@ -168,6 +168,15 @@ test("app uses the shared component for header and sidebar menus, keeping operat
   assert.doesNotMatch(app,/menu\.innerHTML = `[\s\S]*data-project-action/);
 });
 
+test("folder context menu creates a project directly inside that folder",()=>{
+  assert.match(app,/data-folder-action="new-project">New project/);
+  assert.match(app,/if \(action === "new-project"\) \{\s*await createProjectFromMenu\(folder\.id\);/);
+  assert.match(app,/async function createProjectFromMenu\(folderId=null\)/);
+  assert.match(app,/await addProject\(name\.trim\(\), templateKey, description\.trim\(\)\|\|null, folderId\)/);
+  assert.match(app,/async function addProject\(name, templateKey, description=null, folderId=null\)/);
+  assert.match(app,/id:uid\(\), name, description, createdAt:Date\.now\(\), folderId,/);
+});
+
 test("index contains only a mount point for the generated header actions menu",()=>{
   assert.match(index,/<div class="projectMenuWrap" id="projectMenuWrap"><\/div>/);
   assert.doesNotMatch(index,/showArchivedToggle|> Archived/);
