@@ -5,9 +5,14 @@
   <h3 data-calendar-month></h3>
   <span class="filterSummary" data-calendar-scope></span>
   <button class="btn btn-sm" data-calendar-action="new">+ New</button>
-  <button class="btn btn-sm" data-calendar-action="ics">Export .ics</button>
-  <button class="btn btn-sm" data-calendar-action="integrations" data-calendar-global hidden><iconify-icon icon="mdi:link-variant" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Link calendars</button>
-  <button class="btn btn-sm btn-primary" data-calendar-action="google" data-calendar-global hidden><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon>Sync now</button>
+  <button class="btn btn-sm btn-primary" data-calendar-action="google" data-calendar-global hidden><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon><span data-google-action-label>Sync now</span></button>
+  <div class="calendarToolbarMenuWrap">
+    <button class="btn btn-invisible btn-sm calendarToolbarMenuBtn action-menu__trigger" type="button" aria-label="Calendar actions" aria-haspopup="menu" aria-expanded="false" aria-controls="calendarActionsMenu">⋮</button>
+    <div class="menu action-menu action-menu--view calendarToolbarMenu" id="calendarActionsMenu" role="menu" hidden>
+      <button type="button" data-calendar-action="ics"><iconify-icon icon="mdi:calendar-export-outline" aria-hidden="true"></iconify-icon><span>Export .ics</span></button>
+      <button type="button" data-calendar-action="integrations" data-calendar-global hidden><iconify-icon icon="mdi:link-variant" aria-hidden="true"></iconify-icon><span>Link calendars</span></button>
+    </div>
+  </div>
   <span class="calendarSyncStatus" data-calendar-sync-status data-google-sync-status data-calendar-global hidden></span>
   <progress class="calendarSyncProgress" data-google-sync-progress data-calendar-global max="1" value="0" hidden></progress>
 </div>

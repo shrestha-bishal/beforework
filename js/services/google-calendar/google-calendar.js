@@ -52,7 +52,9 @@
   }
   function updateGoogleCalendarButtons(){
     document.querySelectorAll('[data-calendar-action="google"]').forEach(button=>{
-      button.textContent = googleSyncInFlight ? "Syncing..." : "Sync now";
+      const label=button.querySelector("[data-google-action-label]");
+      if (label) label.textContent = googleSyncInFlight ? "Syncing..." : googleAccessToken ? "Sync now" : "Connect Google Calendar";
+      else button.textContent = googleSyncInFlight ? "Syncing..." : googleAccessToken ? "Sync now" : "Connect Google Calendar";
       button.disabled = googleSyncInFlight;
     });
     document.querySelectorAll("[data-integration-sync]").forEach(button=>{
@@ -64,10 +66,13 @@
   function updateGoogleCalendarStatus(text, progress){
     if (text!==undefined) googleSyncFeedbackMessage = text;
     if (progress!==undefined) googleSyncProgress = progress;
-    const readyStatus = googleAccessToken ? (linkedGoogleCalendarIds().length ? "Ready to sync" : "No calendars linked") : "Connect Google Calendar in Integrations";
+    const readyStatus = googleAccessToken ? (linkedGoogleCalendarIds().length ? "Ready to sync" : "No calendars linked") : "";
     const status = googleSyncFeedbackMessage || readyStatus;
     googleOperation?.update(status,googleSyncProgress);
-    document.querySelectorAll("[data-calendar-sync-status], [data-google-sync-status]").forEach(element=>{ element.textContent = status; });
+    document.querySelectorAll("[data-calendar-sync-status], [data-google-sync-status]").forEach(element=>{
+      element.textContent = status;
+      if (element.matches("[data-calendar-sync-status]")) element.hidden = !status;
+    });
     document.querySelectorAll("[data-google-sync-feedback]").forEach(element=>{ element.hidden = !googleSyncFeedbackMessage; });
     document.querySelectorAll("[data-google-sync-progress]").forEach(element=>{
       element.hidden = !googleSyncProgress;

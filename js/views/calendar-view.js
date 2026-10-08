@@ -151,6 +151,9 @@ export class CalendarView {
     wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); setCalendarCursor(new Date(now.getFullYear(), now.getMonth(), 1)); render(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
+    const calendarMenuButton=wrap.querySelector(".calendarToolbarMenuBtn");
+    const calendarMenu=wrap.querySelector(".calendarToolbarMenu");
+    window.BeforeworkActionMenu.create().register(calendarMenuButton,calendarMenu);
     const integrationsButton = wrap.querySelector('[data-calendar-action="integrations"]');
     if (integrationsButton) integrationsButton.onclick = navigateToIntegrations;
     const googleButton = wrap.querySelector('[data-calendar-action="google"]');

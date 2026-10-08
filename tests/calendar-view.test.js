@@ -25,6 +25,26 @@ test("Calendar renderer is wired as a separate view and reuses its page template
   assert.ok(!app.includes("function renderCalendar("));
 });
 
+test("Calendar toolbar puts secondary actions in a vertical overflow menu",()=>{
+  assert.match(template,/class="btn btn-invisible btn-sm calendarToolbarMenuBtn action-menu__trigger"[^>]*>⋮<\/button>/);
+  assert.match(template,/class="menu action-menu action-menu--view calendarToolbarMenu"[^>]*role="menu"/);
+  assert.ok(template.indexOf('data-calendar-action="google"')<template.indexOf('class="calendarToolbarMenuWrap"'));
+  assert.match(template,/data-calendar-action="ics"/);
+  assert.match(template,/data-calendar-action="integrations" data-calendar-global hidden/);
+  assert.doesNotMatch(template,/<button[^>]*data-calendar-action="ics"[^>]*class="btn/);
+  assert.match(view,/BeforeworkActionMenu\.create\(\)\.register\(calendarMenuButton,calendarMenu\)/);
+  assert.match(view,/exportCalendarIcs\(scopeProject\)/);
+});
+
+test("Calendar Google action labels connect and sync states without idle helper copy",()=>{
+  const googleCalendar=fs.readFileSync(path.join(__dirname,"../js/services/google-calendar/google-calendar.js"),"utf8");
+  assert.match(template,/<span data-google-action-label>Sync now<\/span>/);
+  assert.match(googleCalendar,/googleAccessToken \? "Sync now" : "Connect Google Calendar"/);
+  assert.match(googleCalendar,/const readyStatus = googleAccessToken \?[\s\S]*: "";/);
+  assert.match(googleCalendar,/if \(element\.matches\("\[data-calendar-sync-status\]"\)\) element\.hidden = !status/);
+  assert.doesNotMatch(googleCalendar,/Connect Google Calendar in Integrations/);
+});
+
 test("Calendar view receives app-owned calendar state and mutation callbacks",()=>{
   for (const dependency of [
     "calendarEntries",
