@@ -24,6 +24,7 @@
     const SCHEMA_VERSION = schemaVersion;
     const TAG_COLORS = tagColors;
     const now = Date.now();
+    const day = 86400000;
     const productFolder = {id:uid(), name:"Product"};
     const operationsFolder = {id:uid(), name:"Operations"};
     const personalFolder = {id:uid(), name:"Personal"};
@@ -32,8 +33,10 @@
     const makeItem = (title, description, values={}, options={}) => ({
       id:uid(), title, description, attachments:options.attachments || [], calendarType:options.calendarType || "task",
       startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "", milestoneId:options.milestoneId || null,
-      endDate:options.endDate || "", recurrence:options.recurrence || null, completedAt:options.completedAt || null, tagIds:options.tagIds || [], values,
-      subitems:options.subitems || [], comments:options.comments || [], activity:[{id:uid(), type:"created", at:now}], archived:!!options.archived,
+      endDate:options.endDate || "", recurrence:options.recurrence || null, reminderAt:options.reminderAt || null,
+      completedAt:options.completedAt || null, tagIds:options.tagIds || [], values,
+      subitems:options.subitems || [], comments:options.comments || [],
+      activity:options.activity||[{id:uid(), type:"created", at:now-(options.ageDays||0)*day}], archived:!!options.archived,
       createdAt:now, updatedAt:now - (options.ageDays || 0) * 86400000
     });
     const views = types => types.map(type=>({id:uid(), type, name:viewLabel(type)}));
@@ -42,6 +45,9 @@
     const startDateField = makeField("Start date", "start-date");
     const dueDateField = makeField("Due date", "due-date");
     const reviewDateField = makeField("Review date", "date");
+    const relatedItemsField = makeField("Related items", "relation");
+    const locationField = makeField("Location", "location");
+    const scheduleField = makeField("Schedule", "schedule");
     const launchStatus = makeField("Status", "select", [
       {id:uid(), label:"Backlog", color:TAG_COLORS[7]},
       {id:uid(), label:"In progress", color:TAG_COLORS[5]},
@@ -67,7 +73,7 @@
     ];
     const launch = {
       id:uid(), name:"Product launch", description:"Coordinate the release from final quality checks through customer communication and post-launch follow-up.", icon:"mdi:rocket-launch-outline", folderId:productFolder.id, createdAt:now,
-      tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[makeField("Tags","tags"), priorityField, startDateField, dueDateField, reviewDateField, launchStatus],
+      tags:[launchTag, featureTag, designTag, customerTag, qualityTag], fields:[makeField("Tags","tags"), priorityField, startDateField, dueDateField, reviewDateField, launchStatus, relatedItemsField, locationField, scheduleField],
       views:launchViews, activeViewId:launchViews[0].id, itemDefaultType:"task", milestones:launchMilestones, groups:launchGroups
     };
     launchGroups[0].items.push(
@@ -89,7 +95,7 @@
       makeItem("Collect customer feedback", "Gather feedback after the release and bring themes to the post-launch review.", {[priorityField.id]:"medium", [reviewDateField.id]:todayStr(14), [launchStatus.id]:launchStatus.options[0].id}, {tagIds:[customerTag.id]})
     );
     launchGroups[1].items.push(
-      makeItem("Finish recurring schedules", "Complete repeat rules for daily, weekly, and custom calendar entries.", {[priorityField.id]:"high", [startDateField.id]:todayStr(-2), [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[featureTag.id, qualityTag.id], subitems:[{id:uid(), title:"Cover weekly weekday selection", done:true}, {id:uid(), title:"Verify custom month-end dates", done:false}], comments:[{id:uid(), text:"The interval and end-date cases are covered. I am checking the month-end behavior before review.", createdAt:now - 3600000}]}),
+      makeItem("Finish recurring schedules", "Complete repeat rules for daily, weekly, and custom calendar entries.", {[priorityField.id]:"high", [startDateField.id]:todayStr(-2), [dueDateField.id]:todayStr(1), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[featureTag.id, qualityTag.id], subitems:[{id:uid(), title:"Cover weekly weekday selection", done:true}, {id:uid(), title:"Verify custom month-end dates", done:false}], comments:[{id:uid(), text:"The interval and end-date cases are covered. I am checking the month-end behavior before review.", createdAt:now - 3600000}], reminderAt:new Date(now+day).toISOString()}),
       makeItem("Refine first-run setup", "Make the first connection flow clear for people creating a workspace from scratch.", {[priorityField.id]:"medium", [startDateField.id]:todayStr(1), [dueDateField.id]:todayStr(4), [launchStatus.id]:launchStatus.options[1].id}, {tagIds:[designTag.id], ageDays:1})
     );
     launchGroups[2].items.push(
@@ -124,6 +130,61 @@
     ]);
     launchGroups[3].items.find(item=>item.title==="Add workspace recovery guidance").completedAt=now-86400000;
 
+    const releaseOverview=launchGroups[0].items.find(item=>item.title==="Publish the release overview");
+    const recurringSchedules=launchGroups[1].items.find(item=>item.title==="Finish recurring schedules");
+    const firstRunSetup=launchGroups[1].items.find(item=>item.title==="Refine first-run setup");
+    releaseOverview.values[relatedItemsField.id]=[recurringSchedules.id,firstRunSetup.id];
+    recurringSchedules.values[relatedItemsField.id]=[releaseOverview.id];
+    releaseOverview.values[locationField.id]="https://beforework.netlify.app/";
+    releaseOverview.location="https://beforework.netlify.app/";
+    releaseOverview.activity.push(
+      {id:uid(),type:"updated",at:now-2*3600000},
+      {id:uid(),type:"commented",at:now-1800000}
+    );
+    launch.documents=[
+      {
+        id:uid(),
+        title:"Launch brief",
+        content:[
+          "# Product launch",
+          "",
+          "## Goal",
+          "Make Beforework's local-first project workflow easier to discover and try.",
+          "",
+          "## Audience",
+          "Small teams and individuals who want flexible planning while keeping workspace files under their control.",
+          "",
+          "## Success measures",
+          "- New users can create or open a workspace without guidance.",
+          "- Core project views are easy to compare.",
+          "- Calendar and reminder workflows are understandable.",
+          "",
+          "## Release guardrails",
+          "- Keep user data in the local workspace.",
+          "- Verify keyboard access and narrow-screen layouts.",
+          "- Keep sample content clearly separate from real user data."
+        ].join("\n"),
+        createdAt:now-5*day,
+        updatedAt:now-2*3600000
+      },
+      {
+        id:uid(),
+        title:"Release checklist",
+        content:[
+          "# Release checklist",
+          "",
+          "- [x] Confirm feature scope",
+          "- [x] Review project, calendar, and document flows",
+          "- [ ] Complete responsive and keyboard checks",
+          "- [ ] Publish release notes and support guidance",
+          "- [ ] Review feedback after launch"
+        ].join("\n"),
+        createdAt:now-3*day,
+        updatedAt:now-3600000
+      }
+    ];
+    launch.activeDocumentId=launch.documents[0].id;
+
     const onboardingStatus = makeField("Stage", "select", [
       {id:uid(), label:"New", color:TAG_COLORS[7]},
       {id:uid(), label:"Onboarding", color:TAG_COLORS[5]},
@@ -152,6 +213,11 @@
       makeItem("Schedule onboarding check-ins", "Set a short check-in after setup and another after the first week of use.", {[onboardingStatus.id]:onboardingStatus.options[1].id, [onboardingDate.id]:todayStr(1), [onboardingPriority.id]:"medium", [onboardingEmailSent.id]:"", [onboardingReference.id]:"https://example.com/onboarding/check-ins", [onboardingSeats.id]:4, [onboardingTopics.id]:[onboardingTopics.options[2].id]}, {tagIds:[onboarding.tags[0].id], ageDays:2}),
       makeItem("Summarise activation feedback", "Group feedback by setup, navigation, and recurring work so the product team can prioritise follow-up.", {[onboardingStatus.id]:onboardingStatus.options[2].id, [onboardingDate.id]:todayStr(7), [onboardingPriority.id]:"low", [onboardingEmailSent.id]:"", [onboardingReference.id]:"", [onboardingSeats.id]:0, [onboardingTopics.id]:[]}, {tagIds:[onboarding.tags[1].id]})
     );
+    onboardingGroup.items[0].comments.push({
+      id:uid(),
+      text:"The setup checklist is in the project brief. I’ll confirm the handoff after the first review.",
+      createdAt:now-4*3600000
+    });
 
     const personalStatus = makeField("Status", "select", [
       {id:uid(), label:"Next up", color:TAG_COLORS[7]},
@@ -209,7 +275,13 @@
       {...makeItem("Language class", "Weekly evening class.", {}, {calendarType:"event", startTime:"18:30", endTime:"19:30", location:"Community learning centre", endDate:todayStr(3)}), standalone:true},
       {...makeItem("Weekend trail walk", "A relaxed morning walk with time set aside to unplug.", {}, {calendarType:"event", startTime:"09:00", endTime:"10:30", location:"Local trail", endDate:todayStr(6)}), standalone:true}
     ];
-    return {schemaVersion:SCHEMA_VERSION, projects:[launch, onboarding, teamCalendar, personalPlanning], folders:[productFolder, operationsFolder, personalFolder], calendarItems, focusSessions:[], googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
+    const focusSessions=[
+      {id:uid(),projectId:launch.id,startedAt:now-45*60000,completedAt:now-20*60000,durationSeconds:25*60},
+      {id:uid(),projectId:launch.id,startedAt:now-2*day-50*60000,completedAt:now-2*day-20*60000,durationSeconds:30*60},
+      {id:uid(),projectId:onboarding.id,startedAt:now-3*day-35*60000,completedAt:now-3*day-10*60000,durationSeconds:25*60},
+      {id:uid(),projectId:personalPlanning.id,startedAt:now-5*day-40*60000,completedAt:now-5*day-10*60000,durationSeconds:30*60}
+    ];
+    return {schemaVersion:SCHEMA_VERSION, projects:[launch, onboarding, teamCalendar, personalPlanning], folders:[productFolder, operationsFolder, personalFolder], calendarItems, focusSessions, googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
   }
 
   async function writeAttachments(workspace,writeAttachment){

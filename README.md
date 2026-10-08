@@ -75,7 +75,7 @@ The ordered imports in `js/manifest.js` are the application script manifest. `js
 
 ## Deploy
 
-This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build reads the JavaScript import manifest, bundles and minifies startup scripts, and minifies CSS and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to open a browser-local sample workspace with projects, calendar items, checkbox/URL/Email/Number/Multi-select fields, and a downloadable project-notes attachment. The default is `clean`, which opens the folder-backed workspace setup flow.
+This is a static site. Netlify installs the build dependencies, runs `npm run build`, and publishes `dist`. The build reads the JavaScript import manifest, bundles and minifies startup scripts, and minifies CSS and HTML in the deploy output without changing source files. Set the site environment variable `BEFOREWORK_MODE` to `demo` to open a browser-local sample workspace with project documents, related items, custom fields, reminders, focus sessions, milestones, multiple project and calendar views, and downloadable attachments. The default is `clean`, which opens the folder-backed workspace setup flow.
 
 Demo workspace data is stored in browser local storage, and demo attachments are stored in IndexedDB. Neither is uploaded to a server or connected to a user's folder workspace. The demo site provides **Reset demo** to restore its sample data. The regular site retains the local-first folder workspace flow.
 

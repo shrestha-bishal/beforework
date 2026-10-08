@@ -283,7 +283,7 @@ test("rejects future schema versions instead of downgrading them", ()=>{
   assert.match(result.errors[0],/newer than the supported version/);
 });
 
-test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>{
+test("seeds a full-featured demo workspace with validated examples", async ()=>{
   let nextId=0;
   const workspace=seederSandbox.window.BeforeworkDemoSeeder.create({
     schemaVersion:8,
@@ -321,6 +321,22 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   assert.ok(launch.views.some(view=>view.type==="milestones"));
   assert.ok(launch.views.some(view=>view.type==="table"));
   assert.ok(launch.views.some(view=>view.type==="roadmap"));
+  assert.equal(launch.documents.length,2);
+  assert.equal(launch.activeDocumentId,launch.documents[0].id);
+  assert.match(launch.documents[0].content,/^# Product launch/m);
+  const relatedItemsField=launch.fields.find(field=>field.type==="relation");
+  const locationField=launch.fields.find(field=>field.type==="location");
+  const scheduleField=launch.fields.find(field=>field.type==="schedule");
+  assert.ok(relatedItemsField);
+  assert.ok(locationField);
+  assert.ok(scheduleField);
+  assert.ok(launchItems.some(item=>item.values[relatedItemsField.id]?.length>0));
+  assert.ok(launchItems.some(item=>item.values[locationField.id]==="https://beforework.netlify.app/"));
+  const reminderItem=launchItems.find(item=>item.reminderAt);
+  assert.ok(reminderItem);
+  assert.ok(Number.isFinite(Date.parse(reminderItem.reminderAt)));
+  assert.ok(launchItems.find(item=>item.title==="Publish the release overview").activity
+    .some(entry=>entry.type==="updated"));
   const betaMilestone=launch.milestones.find(milestone=>milestone.title==="Beta readiness");
   const betaTasks=launch.groups.flatMap(group=>group.items).filter(item=>item.milestoneId===betaMilestone.id);
   assert.equal(betaTasks.length,3);
@@ -360,6 +376,9 @@ test("seeds checkbox, overdue, and downloadable attachment examples", async ()=>
   );
   assert.ok(overdueOpenItems.length>0);
   const seededItems=workspace.projects.flatMap(project=>project.groups.flatMap(group=>group.items));
+  assert.ok(workspace.focusSessions.length>=3);
+  assert.ok(workspace.focusSessions.every(session=>session.completedAt&&session.durationSeconds>0));
+  assert.ok(workspace.focusSessions.every(session=>workspace.projects.some(project=>project.id===session.projectId)));
   assert.ok(seededItems.every(item=>Array.isArray(item.attachments)));
   const releaseItem=seededItems.find(item=>item.title==="Publish the release overview");
   const [attachment]=releaseItem.attachments;
