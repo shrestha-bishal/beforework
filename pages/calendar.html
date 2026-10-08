@@ -4,6 +4,11 @@
   <button class="btn btn-sm" data-calendar-action="next" aria-label="Next month">›</button>
   <h3 data-calendar-month></h3>
   <span class="filterSummary" data-calendar-scope></span>
+  <div class="calendarViewModes" role="group" aria-label="Calendar view">
+    <button class="btn btn-sm" type="button" data-calendar-view="day" aria-pressed="false">Day</button>
+    <button class="btn btn-sm" type="button" data-calendar-view="week" aria-pressed="false">Week</button>
+    <button class="btn btn-sm" type="button" data-calendar-view="month" aria-pressed="true">Month</button>
+  </div>
   <button class="btn btn-sm" data-calendar-action="new">+ New</button>
   <button class="btn btn-sm btn-primary" data-calendar-action="google" data-calendar-global hidden><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon><span data-google-action-label>Sync now</span></button>
   <div class="calendarToolbarMenuWrap">
@@ -30,12 +35,4 @@
     </button>
   </div>
 </template>
-<div class="calendarGrid">
-  <div class="calendarWeekday">Sun</div>
-  <div class="calendarWeekday">Mon</div>
-  <div class="calendarWeekday">Tue</div>
-  <div class="calendarWeekday">Wed</div>
-  <div class="calendarWeekday">Thu</div>
-  <div class="calendarWeekday">Fri</div>
-  <div class="calendarWeekday">Sat</div>
-</div>
+<div class="calendarGrid" data-calendar-grid></div>

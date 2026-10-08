@@ -25,6 +25,22 @@ test("Calendar renderer is wired as a separate view and reuses its page template
   assert.ok(!app.includes("function renderCalendar("));
 });
 
+test("Calendar supports Month, Week, and Day views with timed schedules",()=>{
+  for (const mode of ["day","week","month"]){
+    assert.match(template,new RegExp(`data-calendar-view="${mode}"`));
+    assert.match(view,new RegExp(`this\\.mode="${mode}"|button\\.dataset\\.calendarView===mode`));
+  }
+  assert.match(template,/class="calendarViewModes" role="group" aria-label="Calendar view"/);
+  assert.match(view,/className=`calendarSchedule calendarSchedule-\$\{mode\}`/);
+  assert.match(view,/className="calendarTimeAxis"/);
+  assert.match(view,/className=`calendarTimeLane\$\{key===today\?" today":""\}`/);
+  assert.match(view,/event\.style\.top=`\$\{block\.startMinutes\}px`/);
+  assert.match(view,/event\.style\.height=`\$\{Math\.max\(30,block\.endMinutes-block\.startMinutes\)\}px`/);
+  assert.match(view,/className="calendarAllDayRow"/);
+  assert.match(view,/if \(mode==="day"\) return new Date\(year,month,cursor\.getDate\(\)\+amount\)/);
+  assert.match(view,/if \(mode==="week"\) return new Date\(year,month,cursor\.getDate\(\)\+amount\*7\)/);
+});
+
 test("Calendar toolbar puts secondary actions in a vertical overflow menu",()=>{
   assert.match(template,/class="btn btn-invisible btn-sm calendarToolbarMenuBtn action-menu__trigger"[^>]*>⋮<\/button>/);
   assert.match(template,/class="menu action-menu action-menu--view calendarToolbarMenu"[^>]*role="menu"/);

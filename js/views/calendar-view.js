@@ -1,6 +1,7 @@
 export class CalendarView {
   constructor(dependencies){
     this.dependencies=dependencies;
+    this.mode="month";
   }
 
   render(board,scopeProject){
@@ -34,42 +35,25 @@ export class CalendarView {
     wrap.className = "calendarWrap";
     const view = cloneTemplate();
     const entries = calendarEntries(scopeProject);
-    const year = getCalendarCursor().getFullYear();
-    const month = getCalendarCursor().getMonth();
-    const monthLabel = getCalendarCursor().toLocaleDateString(undefined,{month:"long",year:"numeric"});
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const cursor=getCalendarCursor();
+    const mode=this.mode;
+    const year=cursor.getFullYear();
+    const month=cursor.getMonth();
+    const monthLabel=cursor.toLocaleDateString(undefined,{month:"long",year:"numeric"});
     const today = todayStr(0);
-    const lanesByWeek = Array.from({length:6},()=>new Map());
-    for (let week=0; week<6; week++){
-      const weekStart = calendarDateKey(new Date(year, month, 1-firstDay+week*7));
-      const weekEnd = calendarDateKey(new Date(year, month, 7-firstDay+week*7));
-      const weekEntries = entries.filter(entry=>entry.date<=weekEnd && entry.endDate>=weekStart && itemMatchesFilter(entry.project, entry.item, entry.group))
-        .sort((a,b)=>a.date.localeCompare(b.date) || b.endDate.localeCompare(a.endDate) || (a.item.title||"").localeCompare(b.item.title||""));
-      const laneEnds = [];
-      weekEntries.forEach(entry=>{
-        let lane = laneEnds.findIndex(endDate=>endDate<entry.date);
-        if (lane===-1) lane = laneEnds.length;
-        laneEnds[lane] = entry.endDate;
-        lanesByWeek[week].set(entry,lane);
-      });
-    }
-    const cells = [];
-    for (let index=0; index<42; index++){
-      const dayOffset = index - firstDay;
-      const cell = new Date(year, month, dayOffset + 1);
-      const dateNumber = cell.getDate();
-      const cellDate = calendarDateKey(cell);
-      const inMonth = dayOffset >= 0 && dayOffset < daysInMonth;
-      const weekLanes = lanesByWeek[Math.floor(index/7)];
-      const dayEntries = entries.filter(entry=>cellDate>=entry.date && cellDate<=entry.endDate && itemMatchesFilter(entry.project, entry.item, entry.group))
-        .sort((a,b)=>weekLanes.get(a)-weekLanes.get(b));
-      const day = view.querySelector("#calendarDayTemplate").content.firstElementChild.cloneNode(true);
-      day.dataset.date = cellDate;
-      day.classList.toggle("muted", !inMonth);
-      day.classList.toggle("today", cellDate===today);
-      day.querySelector(".calendarDayNumber").textContent = String(dateNumber);
-      dayEntries.forEach(entry=>{
+    const dateKey=date=>calendarDateKey(date);
+    const visibleDates=()=>{
+      if (mode==="day") return [new Date(year,month,cursor.getDate())];
+      if (mode==="week"){
+        const start=new Date(year,month,cursor.getDate()-cursor.getDay());
+        return Array.from({length:7},(_,index)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+index));
+      }
+      const firstDay=new Date(year,month,1).getDay();
+      return Array.from({length:42},(_,index)=>new Date(year,month,index-firstDay+1));
+    };
+    const dates=visibleDates();
+    const filteredEntries=entries.filter(entry=>itemMatchesFilter(entry.project,entry.item,entry.group));
+    const makeEvent=(entry,{cellDate,index,weekLanes,compact=false}={})=>{
         const event = view.querySelector("#calendarEventTemplate").content.firstElementChild.cloneNode(true);
         const isEvent = entry.item.calendarType==="event";
         const isCompleted = isItemCompleted(entry.item);
@@ -78,7 +62,7 @@ export class CalendarView {
         event.classList.toggle("task", !isEvent);
         event.classList.toggle("completed", isCompleted);
         event.classList.toggle("multiDay", isMultiDay);
-        if (isMultiDay){
+        if (isMultiDay&&typeof index==="number"){
           const startsSegment = cellDate===entry.date || index%7===0;
           const endsSegment = cellDate===entry.endDate || index%7===6;
           event.classList.toggle("multiDayStart", startsSegment);
@@ -86,6 +70,7 @@ export class CalendarView {
           event.classList.toggle("multiDayLabel", startsSegment);
           event.classList.toggle("multiDayOrigin", cellDate===entry.date);
         }
+        if (compact) event.classList.add("calendarScheduleEvent");
         event.dataset.pid = entry.project ? entry.project.id : "";
         event.dataset.gid = entry.group ? entry.group.id : "";
         event.dataset.iid = entry.item.id;
@@ -128,27 +113,176 @@ export class CalendarView {
           isCompleted
         };
         const projectName = event.querySelector(".eventProject");
-        if (scopeProject || !entry.project) projectName.remove();
+        if (compact || scopeProject || !entry.project) projectName.remove();
         else {
           projectName.textContent = entry.project.name;
           projectName.title = entry.project.name;
           projectName.hidden = false;
         }
-        day.appendChild(event);
+        return event;
+    };
+    const grid=view.querySelector("[data-calendar-grid]");
+    grid.replaceChildren();
+    grid.classList.toggle("calendarGridMonth",mode==="month");
+    grid.classList.toggle("calendarGridSchedule",mode!=="month");
+    if (mode==="month"){
+      const firstDay=new Date(year,month,1).getDay();
+      const daysInMonth=new Date(year,month+1,0).getDate();
+      const lanesByWeek=Array.from({length:6},()=>new Map());
+      for (let week=0;week<6;week++){
+        const weekStart=dateKey(new Date(year,month,1-firstDay+week*7));
+        const weekEnd=dateKey(new Date(year,month,7-firstDay+week*7));
+        const weekEntries=filteredEntries.filter(entry=>entry.date<=weekEnd&&entry.endDate>=weekStart)
+          .sort((a,b)=>a.date.localeCompare(b.date)||b.endDate.localeCompare(a.endDate)||(a.item.title||"").localeCompare(b.item.title||""));
+        const laneEnds=[];
+        weekEntries.forEach(entry=>{
+          let lane=laneEnds.findIndex(endDate=>endDate<entry.date);
+          if (lane===-1) lane=laneEnds.length;
+          laneEnds[lane]=entry.endDate;
+          lanesByWeek[week].set(entry,lane);
+        });
+      }
+      ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(label=>{
+        const weekday=document.createElement("div");
+        weekday.className="calendarWeekday";
+        weekday.textContent=label;
+        grid.appendChild(weekday);
       });
-      cells.push(day);
+      dates.forEach((cell,index)=>{
+        const cellDate=dateKey(cell);
+        const dayOffset=index-firstDay;
+        const day=view.querySelector("#calendarDayTemplate").content.firstElementChild.cloneNode(true);
+        day.dataset.date=cellDate;
+        day.classList.toggle("muted",dayOffset<0||dayOffset>=daysInMonth);
+        day.classList.toggle("today",cellDate===today);
+        day.querySelector(".calendarDayNumber").textContent=String(cell.getDate());
+        filteredEntries.filter(entry=>cellDate>=entry.date&&cellDate<=entry.endDate)
+          .sort((a,b)=>(lanesByWeek[Math.floor(index/7)].get(a)??0)-(lanesByWeek[Math.floor(index/7)].get(b)??0))
+          .forEach(entry=>day.appendChild(makeEvent(entry,{cellDate,index})));
+        grid.appendChild(day);
+      });
+    }else{
+      grid.classList.add(mode==="day"?"calendarGridDay":"calendarGridWeek");
+      const schedule=document.createElement("div");
+      schedule.className=`calendarSchedule calendarSchedule-${mode}`;
+      const header=document.createElement("div");
+      header.className="calendarScheduleHeader";
+      const headerSpacer=document.createElement("div");
+      headerSpacer.className="calendarScheduleGutter";
+      header.appendChild(headerSpacer);
+      dates.forEach(date=>{
+        const key=dateKey(date);
+        const dayHeader=document.createElement("div");
+        dayHeader.className=`calendarScheduleDayHeader${key===today?" today":""}`;
+        dayHeader.dataset.date=key;
+        const weekday=document.createElement("span");
+        weekday.textContent=date.toLocaleDateString(undefined,{weekday:"short"});
+        const dayNumber=document.createElement("strong");
+        dayNumber.textContent=String(date.getDate());
+        dayHeader.append(weekday,dayNumber);
+        header.appendChild(dayHeader);
+      });
+      const scheduleColumns=`60px repeat(${dates.length},minmax(${mode==="week"?"96px":"240px"},1fr))`;
+      header.style.gridTemplateColumns=scheduleColumns;
+      schedule.appendChild(header);
+      const allDay=document.createElement("div");
+      allDay.className="calendarAllDayRow";
+      const allDayLabel=document.createElement("div");
+      allDayLabel.className="calendarScheduleGutter calendarAllDayLabel";
+      allDayLabel.textContent="All day";
+      allDay.appendChild(allDayLabel);
+      dates.forEach(date=>{
+        const key=dateKey(date);
+        const lane=document.createElement("div");
+        lane.className=`calendarAllDayLane${key===today?" today":""}`;
+        lane.dataset.date=key;
+        filteredEntries.filter(entry=>key>=entry.date&&key<=entry.endDate&&(!entry.item.startTime||entry.endDate>entry.date))
+          .forEach(entry=>lane.appendChild(makeEvent(entry,{cellDate:key,compact:true})));
+        allDay.appendChild(lane);
+      });
+      allDay.style.gridTemplateColumns=scheduleColumns;
+      schedule.appendChild(allDay);
+      const timeGrid=document.createElement("div");
+      timeGrid.className="calendarTimeGrid";
+      const axis=document.createElement("div");
+      axis.className="calendarTimeAxis";
+      for (let hour=0;hour<24;hour++){
+        const label=document.createElement("span");
+        label.textContent=new Date(2000,0,1,hour).toLocaleTimeString(undefined,{hour:"numeric"});
+        label.style.top=`${hour*60}px`;
+        axis.appendChild(label);
+      }
+      timeGrid.appendChild(axis);
+      dates.forEach(date=>{
+        const key=dateKey(date);
+        const lane=document.createElement("div");
+        lane.className=`calendarTimeLane${key===today?" today":""}`;
+        lane.dataset.date=key;
+        const timed=filteredEntries.filter(entry=>key>=entry.date&&key<=entry.endDate
+          &&entry.item.startTime&&entry.endDate===entry.date);
+        const blocks=timed.map(entry=>{
+          const [hour=9,minute=0]=entry.item.startTime.split(":").map(Number);
+          const [endHour,endMinute]=entry.item.endTime?entry.item.endTime.split(":").map(Number):[hour+1,minute];
+          const startMinutes=hour*60+minute;
+          const endMinutes=Math.max(startMinutes+30,Math.min(1440,endHour*60+endMinute));
+          return {entry,startMinutes,endMinutes,lane:0};
+        }).sort((a,b)=>a.startMinutes-b.startMinutes||a.endMinutes-b.endMinutes);
+        const laneEnds=[];
+        blocks.forEach(block=>{
+          let overlapLane=laneEnds.findIndex(end=>end<=block.startMinutes);
+          if (overlapLane===-1) overlapLane=laneEnds.length;
+          block.lane=overlapLane;
+          laneEnds[overlapLane]=block.endMinutes;
+        });
+        blocks.forEach(block=>{
+          const event=makeEvent(block.entry,{cellDate:key,compact:true});
+          event.style.top=`${block.startMinutes}px`;
+          event.style.height=`${Math.max(30,block.endMinutes-block.startMinutes)}px`;
+          event.style.left=`${block.lane*100/Math.max(1,laneEnds.length)}%`;
+          event.style.width=`${100/Math.max(1,laneEnds.length)}%`;
+          lane.appendChild(event);
+        });
+        timeGrid.appendChild(lane);
+      });
+      timeGrid.style.gridTemplateColumns=scheduleColumns;
+      schedule.appendChild(timeGrid);
+      grid.appendChild(schedule);
     }
-    view.querySelector("[data-calendar-month]").textContent = monthLabel;
+    const rangeStart=dates[0];
+    const rangeEnd=dates[dates.length-1];
+    const rangeLabel=mode==="month"?monthLabel:mode==="day"
+      ?cursor.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"})
+      :rangeStart.getMonth()===rangeEnd.getMonth()
+      ?`${rangeStart.toLocaleDateString(undefined,{month:"short",day:"numeric"})} – ${rangeEnd.toLocaleDateString(undefined,{day:"numeric",year:"numeric"})}`
+      :`${rangeStart.toLocaleDateString(undefined,{month:"short",day:"numeric",...(rangeStart.getFullYear()!==rangeEnd.getFullYear()?{year:"numeric"}:{})})} – ${rangeEnd.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}`;
+    view.querySelector("[data-calendar-month]").textContent=rangeLabel;
+    wrap.dataset.calendarView=mode;
+    view.querySelectorAll("[data-calendar-view]").forEach(button=>{
+      const selected=button.dataset.calendarView===mode;
+      button.setAttribute("aria-pressed",String(selected));
+      button.classList.toggle("selected",selected);
+      button.onclick=()=>{ this.mode=button.dataset.calendarView; render(); };
+    });
+    const navigationUnit=mode==="month"?"month":mode;
+    ["prev","next"].forEach(direction=>{
+      const button=view.querySelector(`[data-calendar-action="${direction}"]`);
+      const label=direction==="prev"?"Previous":"Next";
+      button.setAttribute("aria-label",`${label} ${navigationUnit}`);
+    });
     view.querySelector("[data-calendar-scope]").textContent = scopeProject ? scopeProject.name : "All projects";
     view.querySelectorAll("[data-calendar-global]").forEach(element=>{ element.hidden = !!scopeProject; });
     view.querySelector("[data-calendar-sync-status]").textContent = getState().googleLastSyncAt ? `Last synced ${new Date(getState().googleLastSyncAt).toLocaleString()}` : "Not synced yet";
-    const grid = view.querySelector(".calendarGrid");
-    cells.forEach(day=>grid.appendChild(day));
     wrap.appendChild(view);
     updateGoogleCalendarButtons();
-    wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { setCalendarCursor(new Date(year, month-1, 1)); render(); };
-    wrap.querySelector('[data-calendar-action="next"]').onclick = () => { setCalendarCursor(new Date(year, month+1, 1)); render(); };
-    wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); setCalendarCursor(new Date(now.getFullYear(), now.getMonth(), 1)); render(); };
+    const shiftCursor=amount=>{
+      if (mode==="day") return new Date(year,month,cursor.getDate()+amount);
+      if (mode==="week") return new Date(year,month,cursor.getDate()+amount*7);
+      const targetMonth=month+amount;
+      return new Date(year,targetMonth,Math.min(cursor.getDate(),new Date(year,targetMonth+1,0).getDate()));
+    };
+    wrap.querySelector('[data-calendar-action="prev"]').onclick = () => { setCalendarCursor(shiftCursor(-1)); render(); };
+    wrap.querySelector('[data-calendar-action="next"]').onclick = () => { setCalendarCursor(shiftCursor(1)); render(); };
+    wrap.querySelector('[data-calendar-action="today"]').onclick = () => { const now = new Date(); setCalendarCursor(new Date(now.getFullYear(),now.getMonth(),now.getDate())); render(); };
     wrap.querySelector('[data-calendar-action="new"]').onclick = () => openNewCalendarItemModal(scopeProject, todayStr(0));
     wrap.querySelector('[data-calendar-action="ics"]').onclick = () => exportCalendarIcs(scopeProject);
     const calendarMenuButton=wrap.querySelector(".calendarToolbarMenuBtn");
@@ -159,10 +293,10 @@ export class CalendarView {
     const googleButton = wrap.querySelector('[data-calendar-action="google"]');
     if (googleButton) googleButton.onclick = () => connectGoogleCalendar(null);
     updateGoogleCalendarStatus();
-    wrap.querySelectorAll(".calendarDay").forEach(day=>{
+    wrap.querySelectorAll(".calendarDay,.calendarAllDayLane,.calendarTimeLane").forEach(day=>{
       day.addEventListener("click", event=>{
         if (event.target.closest(".calendarEvent")) return;
-        if (!day.classList.contains("muted")) openNewCalendarItemModal(scopeProject, day.dataset.date);
+        if (!day.classList.contains("muted")&&day.dataset.date) openNewCalendarItemModal(scopeProject, day.dataset.date);
       });
       day.addEventListener("dragover", event=>{ event.preventDefault(); day.classList.add("dragover"); });
       day.addEventListener("dragleave", ()=>day.classList.remove("dragover"));

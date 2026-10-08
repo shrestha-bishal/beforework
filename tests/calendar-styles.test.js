@@ -12,6 +12,11 @@ const stylesManifest=fs.readFileSync(path.join(__dirname,"../styles/manifest.css
 test("Calendar styles, including responsive and print rules, are isolated in the manifest",()=>{
   assert.doesNotMatch(appStyles,/\.calendar(?:Wrap|Toolbar|Grid|Weekday|Day|Event|Context|Empty|Sync|DateTimeGroup|LocationRow)\b|#board:has\(\.calendarWrap\)/);
   assert.match(calendarStyles,/\.calendarGrid/);
+  assert.match(calendarStyles,/\.calendarGridSchedule\{display:block;overflow:auto;\}/);
+  assert.match(calendarStyles,/\.calendarTimeLane\{position:relative;height:1440px/);
+  assert.match(calendarStyles,/\.calendarScheduleWeek \.calendarTimeLane\{min-width:96px;\}/);
+  assert.match(calendarStyles,/\.calendarViewModes button\[aria-pressed="true"\]\{background:var\(--accent-soft\);color:var\(--accent-strong\);font-weight:600;\}/);
+  assert.match(calendarStyles,/@media \(max-width:480px\)[\s\S]*\.calendarViewModes/);
   assert.match(calendarStyles,/\.calendarContextPopover/);
   assert.match(calendarStyles,/@media print[\s\S]*\.calendarWrap/);
   assert.match(calendarStyles,/@media \(max-width:480px\)[\s\S]*\.calendarEvent \.eventProject/);
