@@ -126,6 +126,8 @@ test("item modal view wiring is connected to app rendering",()=>{
   assert.match(appSource,/itemModalView\.render\(modal,\{/);
   assert.match(appSource,/itemModalView\.wire\(modal,\{onClose:closeItemModal\}\)/);
   assert.match(appSource,/function createItemModalShell\(\)\{[\s\S]*?setAttribute\("role","dialog"\)[\s\S]*?setAttribute\("aria-modal","true"\)[\s\S]*?setAttribute\("aria-label","Item details"\)[\s\S]*?modal\.open\(\{id:"itemOverlay",content,onBackdrop:closeItemModal\}\)/);
+  assert.match(appSource,/function closeItemModal\(\)\{[\s\S]*?classList\.contains\("itemOverlayClosing"\)[\s\S]*?matchMedia\("\(prefers-reduced-motion: reduce\)"\)[\s\S]*?classList\.add\("itemOverlayClosing"\)[\s\S]*?setTimeout\([\s\S]*?modal\.close\("itemOverlay"\)[\s\S]*?\},320\)/);
+  assert.match(appSource,/else if \(top\.id==="itemOverlay"\) closeItemModal\(\);/);
   assert.match(appSource,/function openNewItemModal\([\s\S]*?createItemModalShell\(\);/);
   assert.equal((appSource.match(/querySelectorAll\("\.itemDetailTab"\)/g)||[]).length,0);
 });

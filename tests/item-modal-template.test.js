@@ -181,5 +181,8 @@ test("item modal overlays the sidebar and reflows with viewport size",()=>{
   assert.match(stylesSource,/#itemOverlay #itemModal\{width:min\(1440px,90vw\);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh/);
   assert.match(stylesSource,/@media \(max-width:900px\)\{[\s\S]*?\.itemModalBody\{flex-direction:column;/);
   assert.match(stylesSource,/@media \(max-width:560px\)\{[\s\S]*?#itemOverlay #itemModal\{width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;\}/);
-  assert.match(stylesSource,/@media \(prefers-reduced-motion:reduce\)\{#itemOverlay #itemModal\{animation:none;\}\}/);
+  assert.match(stylesSource,/@keyframes itemDrawerEnter\{from\{transform:translateX\(100%\);\}to\{transform:translateX\(0\);\}\}/);
+  assert.match(stylesSource,/#itemOverlay\.itemOverlayClosing #itemModal\{animation:itemDrawerExit \.32s cubic-bezier\(\.4,0,\.2,1\) both;\}/);
+  assert.match(stylesSource,/@keyframes itemDrawerExit\{from\{transform:translateX\(0\);\}to\{transform:translateX\(100%\);\}\}/);
+  assert.match(stylesSource,/@media \(prefers-reduced-motion:reduce\)\{#itemOverlay,#itemOverlay #itemModal,#itemOverlay\.itemOverlayClosing,#itemOverlay\.itemOverlayClosing #itemModal\{animation:none;\}\}/);
 });

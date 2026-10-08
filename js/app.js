@@ -2299,8 +2299,21 @@
     modal.open({id:"itemOverlay",content,onBackdrop:closeItemModal});
   }
   function closeItemModal(){
-    modal.close("itemOverlay");
-    openItemRef = null;
+    const overlay=document.getElementById("itemOverlay");
+    if (!overlay){
+      openItemRef=null;
+      return;
+    }
+    if (overlay.classList.contains("itemOverlayClosing")) return;
+    openItemRef=null;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      modal.close("itemOverlay");
+      return;
+    }
+    overlay.classList.add("itemOverlayClosing");
+    window.setTimeout(()=>{
+      if (document.getElementById("itemOverlay")===overlay) modal.close("itemOverlay");
+    },320);
   }
   const enhanceSelectControl=selectControls.enhanceSelectControl;
   const enhanceSelectControls=selectControls.enhanceSelectControls;
@@ -2899,8 +2912,8 @@
         if (overlays.length){
           const top = overlays[overlays.length-1];
           if (top.id==="dialogOverlay") dialogs.dismissActive();
+          else if (top.id==="itemOverlay") closeItemModal();
           else {
-            if (top.id==="itemOverlay") openItemRef = null;
             top.remove();
           }
         }

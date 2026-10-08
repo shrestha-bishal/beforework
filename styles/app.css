@@ -650,9 +650,15 @@
 
   /* Item details use a GitHub-style drawer; other overlays keep the centered modal layout. */
   #itemOverlay.overlay{align-items:stretch;justify-content:flex-end;padding:0;}
-  #itemOverlay #itemModal{width:min(1440px,90vw);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px 0 0 16px;animation:itemDrawerEnter .22s cubic-bezier(.2,.7,.3,1) both;}
-  @keyframes itemDrawerEnter{from{opacity:.75;transform:translateX(32px);}to{opacity:1;transform:translateX(0);}}
-  @media (prefers-reduced-motion:reduce){#itemOverlay #itemModal{animation:none;}}
+  #itemOverlay{animation:itemOverlayEnter .22s ease-out both;}
+  #itemOverlay #itemModal{width:min(1440px,90vw);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px 0 0 16px;animation:itemDrawerEnter .32s cubic-bezier(.22,1,.36,1) both;}
+  @keyframes itemOverlayEnter{from{opacity:0;}to{opacity:1;}}
+  @keyframes itemDrawerEnter{from{transform:translateX(100%);}to{transform:translateX(0);}}
+  #itemOverlay.itemOverlayClosing{pointer-events:none;animation:itemOverlayExit .32s cubic-bezier(.4,0,.2,1) both;}
+  #itemOverlay.itemOverlayClosing #itemModal{animation:itemDrawerExit .32s cubic-bezier(.4,0,.2,1) both;}
+  @keyframes itemOverlayExit{from{opacity:1;}to{opacity:0;}}
+  @keyframes itemDrawerExit{from{transform:translateX(0);}to{transform:translateX(100%);}}
+  @media (prefers-reduced-motion:reduce){#itemOverlay,#itemOverlay #itemModal,#itemOverlay.itemOverlayClosing,#itemOverlay.itemOverlayClosing #itemModal{animation:none;}}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
   .itemModalActions{position:relative;display:flex;align-items:center;gap:2px;flex:none;z-index:3;}
   .itemModalHeader{position:relative;flex:none;padding:16px 24px 14px;background:var(--bg);}
