@@ -645,6 +645,8 @@
   .dialogChoiceNew [data-dialog-choice-new-cancel]{grid-column:3;}
   .dialogChoiceNew .dialogChoiceAction{color:var(--accent-strong);}
   .dialogChoiceNew [data-dialog-choice-new-cancel]:hover,.dialogChoiceNew [data-dialog-choice-new-cancel]:focus-visible{background:var(--danger-soft);}
+  .dialogChoiceError{margin:0;padding:0 8px;color:var(--danger);font-size:12px;line-height:1.4;}
+  .dialogChoiceError[hidden]{display:none;}
   .dialogChoiceVisibility{display:grid;place-items:center;flex:none;width:28px;height:28px;cursor:pointer;}
   .dialogChoiceDragHandle{display:grid;place-items:center;flex:none;width:20px;height:28px;padding:0;color:var(--muted);cursor:grab;}
   .dialogChoiceDragHandle:hover,.dialogChoiceDragHandle:focus-visible{color:var(--text);}

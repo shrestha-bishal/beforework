@@ -273,6 +273,7 @@
       const newChoiceInput=container.querySelector("[data-dialog-choice-new-input]");
       const newChoiceConfirm=container.querySelector("[data-dialog-choice-new-confirm]");
       const newChoiceCancel=container.querySelector("[data-dialog-choice-new-cancel]");
+      const newChoiceError=container.querySelector("[data-dialog-choice-error]");
       const copy=choiceList.copy;
       const choiceRows=new WeakMap();
       container.hidden=false;
@@ -421,6 +422,15 @@
       function finishNewChoice(){
         const label=newChoiceInput.value.trim();
         if (!label){ newChoiceInput.focus(); return; }
+        const normalizedLabel=label.toLowerCase();
+        if (choices.some(choice=>!choice.deleted&&choice.label.trim().toLowerCase()===normalizedLabel)){
+          newChoiceError.textContent=`An ${copy.itemLabel} with this name already exists.`;
+          newChoiceError.hidden=false;
+          newChoiceInput.setAttribute("aria-invalid","true");
+          newChoiceInput.setAttribute("aria-describedby",newChoiceError.id);
+          newChoiceInput.focus();
+          return;
+        }
         if (typeof choiceList.createChoice!=="function"){
           throw new TypeError("Field choice creation requires a field-type choice factory.");
         }
@@ -431,12 +441,26 @@
         choices.push(choice);
         renderChoice(choice);
         newChoiceInput.value="";
+        newChoiceInput.removeAttribute("aria-invalid");
+        newChoiceInput.removeAttribute("aria-describedby");
+        newChoiceError.hidden=true;
+        newChoiceError.textContent="";
         newChoiceRow.hidden=true;
         addButton.hidden=false;
         addButton.focus();
       }
+      newChoiceInput.addEventListener("input",()=>{
+        newChoiceInput.removeAttribute("aria-invalid");
+        newChoiceInput.removeAttribute("aria-describedby");
+        newChoiceError.hidden=true;
+        newChoiceError.textContent="";
+      });
       function cancelNewChoice(){
         newChoiceInput.value="";
+        newChoiceInput.removeAttribute("aria-invalid");
+        newChoiceInput.removeAttribute("aria-describedby");
+        newChoiceError.hidden=true;
+        newChoiceError.textContent="";
         newChoiceRow.hidden=true;
         addButton.hidden=false;
         addButton.focus();

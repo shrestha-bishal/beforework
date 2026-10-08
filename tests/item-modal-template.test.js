@@ -98,7 +98,11 @@ test("item modal markup lives in a separately loaded parameterized HTML template
   assert.match(dialogsTemplateSource,/data-dialog-choice-list[\s\S]*data-dialog-choice-rows/);
   assert.match(dialogsTemplateSource,/data-dialog-choice-add[\s\S]*data-dialog-choice-add-label/);
   assert.match(dialogsTemplateSource,/data-dialog-choice-new-input[\s\S]*data-dialog-choice-new-confirm[\s\S]*data-dialog-choice-new-cancel/);
+  assert.match(dialogsTemplateSource,/data-dialog-choice-error[^>]*role="alert"[^>]*hidden/);
   assert.match(dialogsSource,/function renderChoiceList\(container,choiceList\)/);
+  assert.match(dialogsSource,/choices\.some\(choice=>!choice\.deleted&&choice\.label\.trim\(\)\.toLowerCase\(\)===normalizedLabel\)/);
+  assert.match(dialogsSource,/newChoiceError\.textContent=`An \$\{copy\.itemLabel\} with this name already exists\.`/);
+  assert.match(dialogsSource,/newChoiceInput\.setAttribute\("aria-invalid","true"\)/);
   assert.match(dialogsSource,/dialog\.classList\.toggle\("dialog--choice-editor",Boolean\(choiceList\)\)/);
   assert.doesNotMatch(dialogsTemplateSource,/data-dialog-choice-heading/);
   assert.match(dialogsSource,/const updateFieldVisibility=\(\)=>/);
