@@ -934,12 +934,7 @@
     if (!project || !group) return;
     openItemRef = {projectId:project.id, groupId:group.id, itemId:null, isNew:true, globalNew:false,
       draft:createDraft(project,milestoneId,fieldAssignment)};
-    const overlay = document.createElement("div");
-    overlay.className = "overlay";
-    overlay.id = "itemOverlay";
-    overlay.innerHTML = `<div class="Overlay Overlay--size-medium position-relative" data-modal id="itemModal"></div>`;
-    overlay.addEventListener("click", event=>{ if (event.target===overlay) closeItemModal(); });
-    document.body.appendChild(overlay);
+    createItemModalShell();
     renderItemModal();
     const titleInput = document.getElementById("itemTitleInput");
     if (titleInput) titleInput.focus();
@@ -2297,6 +2292,9 @@
     const content=document.createElement("div");
     content.className="Overlay Overlay--size-medium position-relative";
     content.setAttribute("data-modal","");
+    content.setAttribute("role","dialog");
+    content.setAttribute("aria-modal","true");
+    content.setAttribute("aria-label","Item details");
     content.id="itemModal";
     modal.open({id:"itemOverlay",content,onBackdrop:closeItemModal});
   }

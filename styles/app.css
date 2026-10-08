@@ -648,9 +648,11 @@
   .dialogChoiceAction:hover,.dialogChoiceAction:focus-visible{color:var(--text);}
   .dialogChoiceAction.danger{color:var(--danger);}
 
-  /* Item modal - GitHub-issue style two-pane layout: fixed header and
-     footer, with a scrollable body split into a main column and a metadata sidebar. */
-  #itemModal{width:min(1440px,calc(100vw - 32px));max-height:min(90vh,900px);max-height:min(90dvh,900px);padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;}
+  /* Item details use a GitHub-style drawer; other overlays keep the centered modal layout. */
+  #itemOverlay.overlay{align-items:stretch;justify-content:flex-end;padding:0;}
+  #itemOverlay #itemModal{width:min(1080px,92vw);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px 0 0 16px;animation:itemDrawerEnter .22s cubic-bezier(.2,.7,.3,1) both;}
+  @keyframes itemDrawerEnter{from{opacity:.75;transform:translateX(32px);}to{opacity:1;transform:translateX(0);}}
+  @media (prefers-reduced-motion:reduce){#itemOverlay #itemModal{animation:none;}}
   #itemModal .closeX{top:14px;right:14px;z-index:2;}
   .itemModalActions{position:relative;display:flex;align-items:center;gap:2px;flex:none;z-index:3;}
   .itemModalHeader{position:relative;flex:none;padding:16px 24px 14px;background:var(--bg);}
@@ -764,16 +766,14 @@
   .itemModalSidebarDivider{display:none;}
   .itemModalFooterNote{font-size:11.5px;color:var(--faint);}
   @media (max-width:900px){
-    #itemOverlay.overlay{padding:12px;}
-    #itemModal{width:100%;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);}
+    #itemOverlay #itemModal{width:min(1080px,92vw);height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;}
     .itemModalBody{flex-direction:column;overflow-y:auto;}
     .itemModalSidebar{width:100%;border-left:none;}
     .itemModalSidebar>.sideItem{padding-bottom:0;border-bottom:0;}
     .itemModalSidebarDivider{display:block;}
   }
   @media (max-width:560px){
-    #itemOverlay.overlay{padding:8px;}
-    #itemModal{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);border-radius:12px;}
+    #itemOverlay #itemModal{width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;}
     .itemModalHeader{padding:14px 16px 12px;}
     .itemModalMain{padding:18px 16px;}
     .itemModalSidebar{padding:18px 16px;}

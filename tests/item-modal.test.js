@@ -125,6 +125,8 @@ test("item modal view wiring is connected to app rendering",()=>{
   assert.match(appSource,/window\.BeforeworkItemModal\.create\(\{[\s\S]*?renderTemplate:values=>window\.BeforeworkViewTemplates\.render\("itemModal",values\)/);
   assert.match(appSource,/itemModalView\.render\(modal,\{/);
   assert.match(appSource,/itemModalView\.wire\(modal,\{onClose:closeItemModal\}\)/);
+  assert.match(appSource,/function createItemModalShell\(\)\{[\s\S]*?setAttribute\("role","dialog"\)[\s\S]*?setAttribute\("aria-modal","true"\)[\s\S]*?setAttribute\("aria-label","Item details"\)[\s\S]*?modal\.open\(\{id:"itemOverlay",content,onBackdrop:closeItemModal\}\)/);
+  assert.match(appSource,/function openNewItemModal\([\s\S]*?createItemModalShell\(\);/);
   assert.equal((appSource.match(/querySelectorAll\("\.itemDetailTab"\)/g)||[]).length,0);
 });
 
