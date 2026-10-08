@@ -1,6 +1,7 @@
 /* Google Calendar integration */
   let googleSyncFeedbackMessage = "";
   let googleSyncProgress = null;
+  let googleOperation=null;
   let googlePendingConflictCount = 0;
   let googleResumeRetryCount = 0;
   let googleResumeRetryTimer = null;
@@ -65,6 +66,7 @@
     if (progress!==undefined) googleSyncProgress = progress;
     const readyStatus = googleAccessToken ? (linkedGoogleCalendarIds().length ? "Ready to sync" : "No calendars linked") : "Connect Google Calendar in Integrations";
     const status = googleSyncFeedbackMessage || readyStatus;
+    googleOperation?.update(status,googleSyncProgress);
     document.querySelectorAll("[data-calendar-sync-status], [data-google-sync-status]").forEach(element=>{ element.textContent = status; });
     document.querySelectorAll("[data-google-sync-feedback]").forEach(element=>{ element.hidden = !googleSyncFeedbackMessage; });
     document.querySelectorAll("[data-google-sync-progress]").forEach(element=>{
@@ -529,6 +531,7 @@
     }
     clearTimeout(googleAutoSyncTimer);
     googleSyncInFlight = true;
+    googleOperation=window.BeforeworkOperationStatusInstance?.begin("Starting Google Calendar sync…")||null;
     updateGoogleCalendarStatus("Starting Google Calendar sync...",{completed:0,total:1});
     updateGoogleCalendarButtons();
     try{
@@ -663,6 +666,8 @@
         error.status===401?`${detail} Reconnect and approve Calendar access.`:detail);
     }finally{
       googleSyncInFlight = false;
+      googleOperation?.finish();
+      googleOperation=null;
       updateGoogleCalendarButtons();
       if (googleAccessToken && linkedGoogleCalendarIds().length) startGoogleCalendarPolling();
       if (googleSyncQueued && googleAccessToken && linkedGoogleCalendarIds().length){

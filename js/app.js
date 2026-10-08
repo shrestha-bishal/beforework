@@ -5,6 +5,8 @@
   // Primer's own semantic fg tokens, not hand-picked hex - these track
   // light/dark theme automatically instead of needing a second palette.
   const fieldTypes=window.BeforeworkFieldTypes;
+  const operationStatus=window.BeforeworkOperationStatus.create();
+  window.BeforeworkOperationStatusInstance=operationStatus;
   const recurrenceFeature=window.BeforeworkRecurrence.create();
   const TAG_FIELD=fieldTypes.get("tags");
   const TAG_COLORS=TAG_FIELD.colors;
@@ -272,6 +274,7 @@
     schemaMigration,
     storage:window.BeforeworkStorage,
     validation:window.BeforeworkWorkspaceValidation,
+    operationStatus,
     showNotice,
     showConfirm,
     onWorkspaceReplaced(kind){
@@ -367,26 +370,31 @@
       if (!await flushSave()) throw new Error("Resolve the pending save before loading another project.");
       state.projects=[];
     }
-    let project=await window.BeforeworkStorage.loadFolderProject(pid);
-    project.folderId=summary.folderId;
-    if (!Array.isArray(project.items)) project.items=[];
-    let migratedProject=false;
-    const items=projectItemEntries(project).map(row=>row.item);
-    const hasLegacyDateFields=project.fields.some(field=>field.type==="date"
-      && /^(start|start date|starts on|due|due date|deadline)$/.test(String(field.label||"").trim().toLowerCase()));
-    const hasLegacyStartDates=items.some(item=>item.calendarType!=="event"&&item.startDate)
-      && !project.fields.some(field=>field.type==="start-date");
-    if (state.schemaVersion<SCHEMA_VERSION||hasLegacyDateFields||hasLegacyStartDates){
-      const sourceVersion=state.schemaVersion<SCHEMA_VERSION?state.schemaVersion:7;
-      const migrated=migrateState({...state,schemaVersion:sourceVersion,projects:[project],folderLazy:false,projectSummaries:undefined});
-      project=migrated.projects[0];
-      state.schemaVersion=SCHEMA_VERSION;
-      migratedProject=true;
+    const operation=operationStatus.begin("Loading project…");
+    try{
+      let project=await window.BeforeworkStorage.loadFolderProject(pid);
+      project.folderId=summary.folderId;
+      if (!Array.isArray(project.items)) project.items=[];
+      let migratedProject=false;
+      const items=projectItemEntries(project).map(row=>row.item);
+      const hasLegacyDateFields=project.fields.some(field=>field.type==="date"
+        && /^(start|start date|starts on|due|due date|deadline)$/.test(String(field.label||"").trim().toLowerCase()));
+      const hasLegacyStartDates=items.some(item=>item.calendarType!=="event"&&item.startDate)
+        && !project.fields.some(field=>field.type==="start-date");
+      if (state.schemaVersion<SCHEMA_VERSION||hasLegacyDateFields||hasLegacyStartDates){
+        const sourceVersion=state.schemaVersion<SCHEMA_VERSION?state.schemaVersion:7;
+        const migrated=migrateState({...state,schemaVersion:sourceVersion,projects:[project],folderLazy:false,projectSummaries:undefined});
+        project=migrated.projects[0];
+        state.schemaVersion=SCHEMA_VERSION;
+        migratedProject=true;
+      }
+      state.projects.push(project);
+      registerProjectSummary(project);
+      if (migratedProject) scheduleSave();
+      return project;
+    }finally{
+      operation.finish();
     }
-    state.projects.push(project);
-    registerProjectSummary(project);
-    if (migratedProject) scheduleSave();
-    return project;
   }
   async function toggleCalendarTaskCompletion(details){
     let project=null;
@@ -2977,12 +2985,15 @@
      connect gate. Demo mode loads its isolated browser workspace instead.
      Auth (if a provider is available) is initialized independently. */
   async function boot({loadViewModules}){
+    const startupOperation=operationStatus.begin("Preparing your workspace…");
     window.BeforeworkAppearance.initTheme();
     window.BeforeworkAppearance.initSidebarCollapse();
     try{
       await window.BeforeworkViewTemplates.load("dateTimePickers");
     }catch(error){
       await showNotice("Couldn't load date and time pickers",window.BeforeworkErrorUtils.getMessage(error));
+      startupOperation.finish();
+      operationStatus.finishStartup();
       return;
     }
     const demoMode=window.BEFOREWORK_CONFIG.initialWorkspace==="demo";
@@ -3242,11 +3253,15 @@
       await window.BeforeworkViewTemplates.loadAll();
     }catch(err){
       showNotice("Couldn't load views", window.BeforeworkErrorUtils.getMessage(err));
+      startupOperation.finish();
+      operationStatus.finishStartup();
       return;
     }
     try{ await focusTimer.init(); }
     catch(err){
       showNotice("Couldn't load focus timer", window.BeforeworkErrorUtils.getMessage(err));
+      startupOperation.finish();
+      operationStatus.finishStartup();
       return;
     }
     if (demoMode){
@@ -3271,6 +3286,8 @@
         setSyncStatus("Demo changes are saved in this browser only.");
       }
       renderAll();
+      startupOperation.finish();
+      operationStatus.finishStartup();
       if (loadError){
         await showNotice("Couldn't load saved demo data","The sample workspace is open. Use Reset demo to replace the saved demo data with a fresh sample. " + window.BeforeworkErrorUtils.getMessage(loadError));
       }
@@ -3287,9 +3304,13 @@
       }
       renderAll();
       resumeGoogleCalendarSync();
+      startupOperation.finish();
+      operationStatus.finishStartup();
       await workspaceRecovery.maybeShowMigrationNotice();
     } else {
       showConnectGate();
+      startupOperation.finish();
+      operationStatus.finishStartup();
     }
   }
   window.BeforeworkApp = {

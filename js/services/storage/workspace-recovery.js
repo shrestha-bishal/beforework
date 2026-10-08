@@ -3,7 +3,7 @@
 
   function create({
     getState,setState,isConnected,getSchemaVersion,migrateState,schemaMigration,
-    storage,validation,showNotice,showConfirm,onWorkspaceReplaced
+    storage,validation,showNotice,showConfirm,onWorkspaceReplaced,operationStatus
   }){
     async function maybeShowMigrationNotice(){
       const info=schemaMigration.takeMigrationInfo();
@@ -46,19 +46,22 @@
       }
       const when=new Date(saved.savedAt).toLocaleString();
       if (!await showConfirm("Restore pre-migration data","This replaces your current data with the version saved automatically on " + when + ", just before it was last upgraded (from schema v" + saved.fromVersion + "). This cannot be undone with Ctrl+Z.")) return;
+      const operation=operationStatus.begin("Restoring workspace…");
       const result=validation.validate(saved.data,getSchemaVersion());
       if (!result.valid){
+        operation.finish();
         await showNotice("Couldn't restore pre-migration data",result.errors.join(" "));
         return;
       }
       try{
         await storage.saveRecoverySnapshot(JSON.stringify(getState()),"pre-migration-restore");
+        setState({...saved.data,schemaVersion:saved.fromVersion});
+        onWorkspaceReplaced("migration-restore");
       }catch(error){
         await showNotice("Couldn't protect current workspace",global.BeforeworkErrorUtils.getMessage(error));
-        return;
+      }finally{
+        operation.finish();
       }
-      setState({...saved.data,schemaVersion:saved.fromVersion});
-      onWorkspaceReplaced("migration-restore");
     }
 
     async function restoreRecoverySnapshot(snapshotId){
@@ -69,6 +72,7 @@
       }
       const when=new Date(snapshot.savedAt).toLocaleString();
       if (!await showConfirm("Restore recovery snapshot",`This replaces the connected workspace with the snapshot from ${when}. A snapshot of the current workspace will be saved first.`)) return;
+      const operation=operationStatus.begin("Restoring workspace…");
       try{
         const parsed=JSON.parse(snapshot.data);
         const result=validation.validate(parsed,getSchemaVersion());
@@ -78,6 +82,8 @@
         onWorkspaceReplaced("recovery-restore");
       }catch(error){
         await showNotice("Couldn't restore recovery snapshot",global.BeforeworkErrorUtils.getMessage(error));
+      }finally{
+        operation.finish();
       }
     }
 
@@ -86,17 +92,29 @@
         await showNotice("Connect a file first","Import replaces the data in your connected file - connect or create one first.");
         return;
       }
+      const readingOperation=operationStatus.begin("Reading import file…");
+      let parsed;
       try{
-        const parsed=JSON.parse(await file.text());
+        parsed=JSON.parse(await file.text());
         const result=validation.validate(parsed,getSchemaVersion());
         if (!result.valid) throw new Error(result.errors.join(" "));
-        if (!await showConfirm("Replace workspace data","The imported file will replace the current workspace. A recovery snapshot of the current workspace will be saved first.")) return;
+      }catch(error){
+        readingOperation.finish();
+        await showNotice("Import failed","Could not read that file: " + global.BeforeworkErrorUtils.getMessage(error));
+        return;
+      }
+      readingOperation.finish();
+      if (!await showConfirm("Replace workspace data","The imported file will replace the current workspace. A recovery snapshot of the current workspace will be saved first.")) return;
+      const operation=operationStatus.begin("Importing workspace…");
+      try{
         await storage.saveRecoverySnapshot(JSON.stringify(getState()),"pre-import");
         setState(migrateState(parsed));
         onWorkspaceReplaced("import");
         await maybeShowMigrationNotice();
       }catch(error){
         await showNotice("Import failed","Could not read that file: " + global.BeforeworkErrorUtils.getMessage(error));
+      }finally{
+        operation.finish();
       }
     }
 

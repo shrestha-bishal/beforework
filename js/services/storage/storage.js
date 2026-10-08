@@ -11,6 +11,7 @@
   let pendingReconnectHandle = null; // a previously-used handle waiting on a user gesture to re-grant permission
   let fileWriteQueue = Promise.resolve();
   let syncStatusText = "No workspace connected.";
+  let saveOperation=null;
   let latestRecoverySnapshot = null;
   let availableRecoverySnapshots = [];
   let lastAutomaticBackupAt = 0;
@@ -304,6 +305,12 @@
 
   function setSyncStatus(text){
     syncStatusText = text;
+    if (/^Saving changes/.test(text)){
+      if (!saveOperation) saveOperation=window.BeforeworkOperationStatusInstance?.begin("Saving changes…",{delay:250})||null;
+    } else if (saveOperation){
+      saveOperation.finish();
+      saveOperation=null;
+    }
     const workspaceLabel=document.getElementById("workspaceSwitcherLabel");
     const workspaceName=fileHandle?.name||"Workspace";
     if (workspaceLabel) workspaceLabel.textContent=workspaceName;
@@ -600,9 +607,11 @@
   async function createNewWorkspaceFolder(){
     let directory=null;
     let initialized=false;
+    let operation=null;
     try{
       directory=await chooseWorkspaceDirectory();
       if (!directory) return;
+      operation=window.BeforeworkOperationStatusInstance?.begin("Creating workspace…")||null;
       const initialState=defaultState();
       await window.BeforeworkDemoSeeder.writeAttachments(initialState,(id,file)=>getFolderWorkspace().writeAttachment(directory,id,file));
       await getFolderWorkspace().save(directory,initialState);
@@ -625,6 +634,8 @@
         setSyncStatus("Couldn't create workspace folder: " + window.BeforeworkErrorUtils.getMessage(err));
         showNotice("Couldn't create workspace folder",window.BeforeworkErrorUtils.getMessage(err));
       }
+    }finally{
+      operation?.finish();
     }
   }
 
@@ -633,6 +644,7 @@
       showNotice("Folder access unavailable","Use a Chromium-based browser to open a folder workspace.");
       return;
     }
+    let operation=null;
     try{
       const root=await chooseWorkspaceRoot();
       const rootIsWorkspace=await getFolderWorkspace().isWorkspace(root);
@@ -640,6 +652,7 @@
       await idbSet("workspaceRootHandle",workspaceRootHandle);
       const directory=rootIsWorkspace ? root : await chooseWorkspaceFromRoot(root);
       if (!directory) return;
+      operation=window.BeforeworkOperationStatusInstance?.begin("Opening workspace…")||null;
       let loaded;
       try{ loaded=await loadFolderState(directory); }
       catch(err){
@@ -665,15 +678,19 @@
         setSyncStatus("Couldn't open workspace folder: " + window.BeforeworkErrorUtils.getMessage(err));
         showNotice("Couldn't open workspace folder",window.BeforeworkErrorUtils.getMessage(err));
       }
+    }finally{
+      operation?.finish();
     }
   }
 
   async function openExistingFile(){
     if (!("showOpenFilePicker" in window)) return;
+    let operation=null;
     try{
       const [handle] = await window.showOpenFilePicker({types:[{description:"Beforework data", accept:{"application/json":[".json"]}}]});
       const perm = await handle.requestPermission({mode:"readwrite"});
       if (perm !== "granted"){ showNotice("Permission needed", "Read-write access is required so changes can be saved back to this file."); return; }
+      operation=window.BeforeworkOperationStatusInstance?.begin("Opening workspace…")||null;
       const previousRevision=fileRevision;
       let loaded;
       try{ loaded = await loadFromHandle(handle); }
@@ -700,6 +717,8 @@
         setSyncStatus("Couldn't open workspace: " + window.BeforeworkErrorUtils.getMessage(err));
         showNotice("Couldn't open workspace",window.BeforeworkErrorUtils.getMessage(err));
       }
+    }finally{
+      operation?.finish();
     }
   }
 
@@ -723,9 +742,11 @@
     }
     let directory=null;
     let initialized=false;
+    let operation=null;
     try{
       directory=await chooseWorkspaceDirectory();
       if (!directory) return;
+      operation=window.BeforeworkOperationStatusInstance?.begin("Creating folder workspace…")||null;
       const folderState=JSON.parse(JSON.stringify(state));
       await getFolderWorkspace().save(directory,folderState);
       const lazyState=await loadFolderState(directory);
@@ -746,6 +767,8 @@
         setSyncStatus("Couldn't create folder copy: " + window.BeforeworkErrorUtils.getMessage(err));
         showNotice("Couldn't create folder copy",window.BeforeworkErrorUtils.getMessage(err));
       }
+    }finally{
+      operation?.finish();
     }
   }
 
@@ -776,9 +799,11 @@
     catch(err){ showNotice("Couldn't read old data", "The data previously saved in this browser looks corrupted: " + window.BeforeworkErrorUtils.getMessage(err)); return; }
     let directory=null;
     let initialized=false;
+    let operation=null;
     try{
       directory=await chooseWorkspaceDirectory();
       if (!directory) return;
+      operation=window.BeforeworkOperationStatusInstance?.begin("Moving browser data…")||null;
       await getFolderWorkspace().save(directory,parsed);
       const lazyState=await loadFolderState(directory);
       initialized=true;
@@ -801,6 +826,8 @@
         setSyncStatus("Couldn't migrate browser data: " + window.BeforeworkErrorUtils.getMessage(err));
         showNotice("Couldn't migrate browser data",window.BeforeworkErrorUtils.getMessage(err));
       }
+    }finally{
+      operation?.finish();
     }
   }
 

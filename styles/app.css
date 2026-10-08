@@ -648,7 +648,6 @@
   .dialogChoiceAction:hover,.dialogChoiceAction:focus-visible{color:var(--text);}
   .dialogChoiceAction.danger{color:var(--danger);}
 
-  /* Item details use a GitHub-style drawer; other overlays keep the centered modal layout. */
   #itemOverlay.overlay{align-items:stretch;justify-content:flex-end;padding:0;}
   #itemOverlay{animation:itemOverlayEnter .22s ease-out both;}
   #itemOverlay #itemModal{width:min(1440px,90vw);max-width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:16px 0 0 16px;animation:itemDrawerEnter .32s cubic-bezier(.22,1,.36,1) both;}
@@ -823,6 +822,29 @@
     font-family:inherit;font-size:11.5px;color:var(--text);}
 
   /* Connect gate */
+  .appOperationStatus{position:fixed;inset:0 auto auto 50%;z-index:300;display:flex;justify-content:center;width:max-content;max-width:calc(100vw - 28px);padding-top:14px;transform:translateX(-50%);pointer-events:none;}
+  .appOperationStatus[hidden]{display:none;}
+  .appOperationStatus.is-startup{inset:0;align-items:center;width:auto;max-width:none;padding:20px;background:radial-gradient(ellipse at 50% 42%,var(--bg) 0%,var(--bg-soft) 72%);transform:none;pointer-events:auto;}
+  .appOperationStatusCard{display:flex;align-items:center;gap:11px;max-width:100%;min-height:42px;padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:var(--bg);box-shadow:0 8px 24px rgba(27,31,36,.14);color:var(--text);font-size:13px;font-weight:500;}
+  .is-startup .appOperationStatusCard{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;width:min(390px,100%);min-height:0;padding:34px 36px 30px;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg);box-shadow:0 24px 70px rgba(27,31,36,.12),0 3px 12px rgba(27,31,36,.05);font-size:14px;}
+  .is-startup .appOperationStatusCard:before{position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--accent),var(--color-success-fg,var(--accent)));content:"";}
+  .appOperationBrand{display:flex;align-items:center;gap:10px;margin-bottom:32px;color:var(--text);font-size:17px;font-weight:650;letter-spacing:-.35px;}
+  .appOperationBrand img{display:block;width:42px;height:42px;object-fit:contain;}
+  .is-startup .appOperationSpinner{width:22px;height:22px;margin-bottom:18px;border-width:2px;}
+  .is-startup .appOperationStatusLabel{max-width:100%;font-size:17px;font-weight:600;letter-spacing:-.25px;text-align:center;}
+  .appOperationStatusHint{margin-top:7px;color:var(--muted);font-size:12.5px;text-align:center;}
+  .is-startup .appOperationProgress{width:100%;height:4px;margin-top:23px;border-radius:999px;}
+  .is-startup .appOperationProgress:not([value]){appearance:none;background:var(--bg-soft2);overflow:hidden;}
+  .is-startup .appOperationProgress:not([value])::-webkit-progress-bar{background:var(--bg-soft2);border-radius:999px;}
+  .is-startup .appOperationProgress:not([value])::-webkit-progress-value{width:35%;border-radius:999px;background:var(--accent);animation:appOperationIndeterminate 1.35s ease-in-out infinite;}
+  .is-startup .appOperationProgress:not([value])::-moz-progress-bar{width:35%;border-radius:999px;background:var(--accent);animation:appOperationIndeterminate 1.35s ease-in-out infinite;}
+  .appOperationSpinner{width:16px;height:16px;flex:none;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:appOperationSpin .75s linear infinite;}
+  .appOperationStatusLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .appOperationProgress{width:110px;height:6px;flex:none;accent-color:var(--accent);}
+  @keyframes appOperationSpin{to{transform:rotate(360deg);}}
+  @keyframes appOperationIndeterminate{from{transform:translateX(-110%);}to{transform:translateX(310%);}}
+  @media (max-width:480px){.is-startup .appOperationStatusCard{padding:30px 24px 26px;border-radius:18px;}}
+  @media (prefers-reduced-motion:reduce){.appOperationSpinner,.is-startup .appOperationProgress:not([value])::-webkit-progress-value,.is-startup .appOperationProgress:not([value])::-moz-progress-bar{animation:none;}}
   #connectGate{display:none;position:fixed;inset:0;background:rgba(20,21,26,.5);backdrop-filter:blur(3px);
     z-index:100;align-items:center;justify-content:center;padding:16px;}
   #connectGate.open{display:flex;}

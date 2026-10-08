@@ -36,6 +36,7 @@ function createRecovery(overrides={}){
     validation:{validate:()=>({valid:true,errors:[]})},
     showNotice:async(...args)=>notices.push(args),
     showConfirm:async(...args)=>{confirmations.push(args);return true;},
+    operationStatus:{begin:()=>({finish(){}})},
     onWorkspaceReplaced:kind=>replacements.push(kind),
     ...overrides
   };

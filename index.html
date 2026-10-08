@@ -34,6 +34,18 @@
       <link rel="stylesheet" href="styles/manifest.css">
   </head>
   <body>
+    <div id="appOperationStatus" class="appOperationStatus is-startup" role="status" aria-live="polite" aria-atomic="true">
+      <div class="appOperationStatusCard">
+        <div class="appOperationBrand">
+          <img src="images/icon.png" alt="" width="42" height="42">
+          <span>Beforework</span>
+        </div>
+        <span class="appOperationSpinner" aria-hidden="true"></span>
+        <span class="appOperationStatusLabel" data-operation-label>Preparing your workspace…</span>
+        <span class="appOperationStatusHint">Getting your workspace ready</span>
+        <progress class="appOperationProgress" data-operation-progress hidden></progress>
+      </div>
+    </div>
     <div id="connectGate">
       <div class="Overlay Overlay--size-medium position-relative" data-modal>
         <h3>Connect your Beforework workspace</h3>
