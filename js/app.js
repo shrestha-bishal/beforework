@@ -1989,27 +1989,27 @@
 
   function renderViewTabs(project){
     const wrap = document.getElementById("viewTabs");
-    const tabsHtml = project.views.map(v=>`
-      <span class="tab ${v.id===project.activeViewId?"active":""}" data-view-id="${v.id}">
-        ${escapeHtml(viewLabel(v.type))}${project.views.length>1 ? `<span class="tabClose" data-remove-view="${v.id}" title="Remove this view">✕</span>` : ""}
-      </span>`).join("");
+    const activeView=project.views.find(view=>view.id===project.activeViewId);
     const missing = VIEW_DEFS.filter(d=>!project.views.some(v=>v.type===d.type));
-    const addBtn = missing.length ? `<button class="btn btn-invisible btn-sm addViewBtn" id="addViewBtn" title="Add a view">+</button>` : "";
-    wrap.innerHTML = tabsHtml + addBtn;
-    wrap.querySelectorAll(".tab").forEach(tab=>{
-      tab.addEventListener("click", e=>{
-        if (e.target.closest(".tabClose")) return;
-        if (project.activeViewId === tab.dataset.viewId) return;
-        project.activeViewId = tab.dataset.viewId;
-        scheduleSave(); render();
-      });
+    wrap.innerHTML = `
+      <select class="form-control viewSelector" id="projectViewSelector" aria-label="Project view">
+        ${project.views.map(view=>`<option value="${escapeHtml(view.id)}"${view.id===project.activeViewId?" selected":""}>${escapeHtml(viewLabel(view.type))}</option>`).join("")}
+      </select>
+      ${project.views.length>1?`<button type="button" class="btn btn-invisible btn-sm removeViewBtn" id="removeViewBtn" aria-label="Remove ${escapeHtml(viewLabel(activeView.type))} view" title="Remove this view">×</button>`:""}
+      ${missing.length?`<button type="button" class="btn btn-invisible btn-sm addViewBtn" id="addViewBtn" title="Add a view" aria-label="Add a view">+</button>`:""}`;
+    const selector=wrap.querySelector("#projectViewSelector");
+    selector.addEventListener("change",()=>{
+      if (project.activeViewId===selector.value) return;
+      project.activeViewId=selector.value;
+      scheduleSave();
+      render();
     });
-    wrap.querySelectorAll("[data-remove-view]").forEach(x=>{
-      x.onclick = async (e) => {
-        e.stopPropagation();
-        if (await showConfirm("Remove this view", "This only removes the tab - your items and their data are unaffected.")) removeView(project, x.dataset.removeView);
-      };
-    });
+    const removeViewBtn=wrap.querySelector("#removeViewBtn");
+    if (removeViewBtn) removeViewBtn.onclick=async()=>{
+      if (await showConfirm("Remove this view","This only removes the view - your items and their data are unaffected.")){
+        removeView(project,project.activeViewId);
+      }
+    };
     const addViewBtn = document.getElementById("addViewBtn");
     if (addViewBtn) addViewBtn.onclick = async () => {
       const type = await showDialog({title:"Add a view", fields:[{label:"View type", type:"select", options:missing.map(m=>({value:m.type,label:m.label}))}], confirmLabel:"Add view"});

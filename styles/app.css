@@ -280,15 +280,11 @@
   #boardFilterBar input[type="checkbox"]{accent-color:var(--accent);}
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:14px;padding:18px 24px 20px;align-items:flex-start;}
 
-  .viewTabs{display:flex;align-items:center;gap:5px;flex:none;flex-wrap:wrap;}
-  .viewTabs .tab{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg);
-    border-radius:8px;padding:6px 8px 6px 12px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;}
-  .viewTabs .tab:hover{border-color:var(--border-strong);}
-  .viewTabs .tab.active{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent);}
-  .viewTabs .tab .tabClose{color:var(--faint);border-radius:4px;padding:0 3px;line-height:1.4;}
-  .viewTabs .tab .tabClose:hover{color:var(--danger);background:var(--danger-soft);}
-  .viewTabs .addViewBtn{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;
-    border-radius:8px;font-size:15px;}
+  .viewTabs{display:flex;align-items:center;gap:4px;flex:none;}
+  .viewSelector{width:auto;min-width:118px;max-width:190px;min-height:32px;padding:5px 28px 5px 10px;border-radius:7px;font-size:12.5px;font-weight:500;}
+  .viewTabs .removeViewBtn,.viewTabs .addViewBtn{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;padding:0;border-radius:7px;font-size:15px;}
+  .viewTabs .removeViewBtn{color:var(--muted);}
+  .viewTabs .removeViewBtn:hover{background:var(--danger-soft);color:var(--danger);}
   .completionTabs{display:flex;align-items:stretch;min-height:40px;margin-bottom:8px;}
   .completionTabs.completionTabsInList{flex:1 1 240px;min-width:0;min-height:40px;margin:0;}
   .completionTabList{display:flex;align-items:stretch;gap:14px;width:100%;border-bottom:1px solid var(--border);}
