@@ -57,6 +57,8 @@ test("loads dialog templates on demand through the shared cache",async()=>{
   assert.equal(requests.filter(url=>url==="pages/table-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/board-view.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/calendar.html").length,1);
+  assert.equal(requests.filter(url=>url==="pages/folder.html").length,1);
+  assert.match(fs.readFileSync(path.join(__dirname,"../pages/folder.html"),"utf8"),/class="folderPageProjects"/);
   assert.equal(requests.filter(url=>url==="pages/item-modal.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/item-modal-parts.html").length,1);
   assert.equal(requests.filter(url=>url==="pages/item-fields.html").length,1);

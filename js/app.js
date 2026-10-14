@@ -21,6 +21,7 @@
   const INTEGRATIONS = "__integrations__";
   const SETTINGS = "__settings__";
   const SUPPORT = "__support__";
+  const FOLDER_PAGE_PREFIX = "__folder__:";
   const DEFAULT_PROJECT_ICON = "mdi:clipboard-text-outline";
   const escapeHtml=window.BeforeworkHtml.escapeHtml;
   const PROJECT_DEFAULT_ICONS = [
@@ -73,7 +74,8 @@
     'import("./views/list-view.js")',
     'import("./views/table-view.js")',
     'import("./views/board-view.js")',
-    'import("./views/calendar-view.js")'
+    'import("./views/calendar-view.js")',
+    'import("./views/folder-view.js")'
   ];
 
   let state = null;                 // { projects:[] }
@@ -139,6 +141,7 @@
   let tableView = null;
   let boardView = null;
   let calendarView = null;
+  let folderView = null;
   let activeProjectId = OVERVIEW;
   const filterFeature=window.BeforeworkFilters.create({
     storageKey:"personal_dashboard_filters_v1",
@@ -1678,7 +1681,13 @@
       chevron.setAttribute("icon","mdi:chevron-right");
       chevron.setAttribute("aria-hidden","true");
       chevron.hidden=projectCount===0;
-      toggle.append(chevron,icon,name,count);
+      const folderLink=document.createElement("button");
+      folderLink.type="button";
+      folderLink.className="folderPageLink";
+      folderLink.setAttribute("aria-label",`Open folder ${folder.name}`);
+      if (activeProjectId===folderPageLocation(folder.id)) folderLink.setAttribute("aria-current","page");
+      folderLink.append(icon,name,count);
+      folderLink.onclick=()=>selectFolderPage(folder.id);
       toggle.onclick=()=>{
         if (!projectCount) return;
         const collapsed=!collapsedFolderIds.has(folder.id);
@@ -1729,12 +1738,12 @@
             const trimmed = updated.trim();
             if (trimmed === folder.name) return;
             folder.name = trimmed;
-            scheduleSave(); renderProjectList();
+            scheduleSave(); renderAll();
           } else if (action === "delete") {
             const projectsInFolder = projectRecords().filter(project => project.folderId === folder.id);
             if (!projectsInFolder.length) {
               state.folders = state.folders.filter(f => f.id !== folder.id);
-              scheduleSave(); renderProjectList();
+              scheduleSave(); renderAll();
               return;
             }
             if (await showConfirm(`Delete folder ${folder.name}`, "This moves all projects in it out of the folder, but does not delete the projects themselves.", true)) {
@@ -1746,13 +1755,14 @@
                 }
               });
               state.folders = state.folders.filter(f => f.id !== folder.id);
-              scheduleSave(); renderProjectList();
+              scheduleSave(); renderAll();
             }
           }
         };
       });
       wrap.append(menuBtn, menu);
-      heading.append(toggle, wrap);
+      toggle.append(chevron);
+      heading.append(toggle,folderLink,wrap);
       ul.appendChild(heading);
       activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).forEach(project=>{
         const projectRow=appendProject(project, true, folder.id);
@@ -1769,6 +1779,7 @@
         divider.setAttribute("aria-hidden","true");
         heading.appendChild(divider);
       }
+
       const icon=document.createElement("iconify-icon");
       icon.setAttribute("icon","mdi:archive-outline");
       icon.setAttribute("aria-hidden","true");
@@ -1782,6 +1793,27 @@
       ul.appendChild(heading);
       archivedProjects.forEach(project=>appendProject(project));
     }
+  }
+
+  function folderPageLocation(folderId){ return `${FOLDER_PAGE_PREFIX}${folderId}`; }
+  function isFolderPageLocation(location){ return typeof location==="string"&&location.startsWith(FOLDER_PAGE_PREFIX); }
+  function folderIdFromLocation(location){
+    return isFolderPageLocation(location)?location.slice(FOLDER_PAGE_PREFIX.length):null;
+  }
+  async function selectFolderPage(folderId){
+    if (!state?.folders.some(folder=>folder.id===folderId)) return;
+    if (state.folderLazy&&state.projects.length){
+      if (!await flushSave()){
+        await showNotice("Folder navigation paused","Resolve the pending save before unloading the open project.");
+        return;
+      }
+      state.projects=[];
+    }
+    activeProjectId=folderPageLocation(folderId);
+    persistActiveLocation();
+    selectedItemIds.clear();
+    renderAll();
+    closeSidebarOnMobile();
   }
 
   async function selectProject(pid){
@@ -1850,9 +1882,11 @@
   function restoreActiveLocation(){
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
-    if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)) activeProjectId = saved;
+    const folderId=folderIdFromLocation(saved);
+    if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)
+      || (folderId!==null&&state?.folders.some(folder=>folder.id===folderId))) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
-    if (activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
+    if (!isFolderPageLocation(activeProjectId) && activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
   }
 
   /* Integrations view moved to js/services/google-calendar/google-calendar.js */
@@ -1922,6 +1956,32 @@
       filterBar.insertBefore(completionTabs,filterBar.querySelector(".filterMainRow"));
     }
     board.innerHTML = "";
+
+    if (isFolderPageLocation(activeProjectId)){
+      const folderId=folderIdFromLocation(activeProjectId);
+      const folder=state.folders.find(candidate=>candidate.id===folderId);
+      if (!folder){
+        activeProjectId=OVERVIEW;
+        persistActiveLocation();
+        renderProjectList();
+        render();
+        return;
+      }
+      topLabel.textContent=folder.name;
+      const count=projectRecords().filter(project=>project.folderId===folder.id&&!project.archived).length;
+      descriptionLabel.textContent=`${count} ${count===1?"project":"projects"}`;
+      descriptionLabel.hidden=false;
+      filterBar.style.display="none";
+      projectMenuWrap.style.display="none";
+      projectActionsMenu.close();
+      viewTabs.style.display="none";
+      completionTabs.style.display="none";
+      folderView.render(board,folder,projectRecords(),{
+        onOpenProject:selectProject,
+        onAddProject:()=>createProjectFromMenu(folder.id)
+      });
+      return;
+    }
 
     if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === ROADMAP || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
       topLabel.textContent = "Overview";
@@ -3155,7 +3215,10 @@
     reminderService.start();
     await authService.init();
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,documentsViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule] = await loadViewModules();
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,documentsViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule,folderViewModule] = await loadViewModules();
+      folderView=new folderViewModule.FolderView({
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("folder")
+      });
       settingsView = createSettingsView(settingsModule.SettingsView);
       const overviewDetailsModel=new overviewDetailsModelModule.OverviewDetailsModel();
       overviewDetailsView = new overviewDetailsViewModule.OverviewDetailsView({
@@ -3378,7 +3441,7 @@
     catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + window.BeforeworkErrorUtils.getMessage(err)); }
     if (reconnected){
       restoreActiveLocation();
-      if (state.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
+      if (state.folderLazy && !isFolderPageLocation(activeProjectId) && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
         try{ await ensureProjectLoaded(activeProjectId); }
         catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + window.BeforeworkErrorUtils.getMessage(err)); }
       }

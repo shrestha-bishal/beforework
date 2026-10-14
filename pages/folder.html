@@ -1,0 +1,28 @@
+<section class="folderPage">
+  <div class="folderPageToolbar">
+    <input class="form-control folderPageSearch" type="search" placeholder="Search projects" aria-label="Search projects in this folder">
+    <label class="folderPageSortLabel" for="folderPageSort">Sort</label>
+    <select class="form-control folderPageSort" id="folderPageSort" aria-label="Sort folder projects">
+      <option value="name-asc">Name (A-Z)</option>
+      <option value="name-desc">Name (Z-A)</option>
+      <option value="updated-desc">Recently updated</option>
+    </select>
+    <div class="calendarViewModes folderPageViewControls" role="group" aria-label="Project display">
+      <button class="btn btn-sm" type="button" data-folder-view="grid" aria-pressed="true">Grid</button>
+      <button class="btn btn-sm" type="button" data-folder-view="list" aria-pressed="false">List</button>
+    </div>
+    <button class="btn btn-primary folderPageAdd" type="button">Add project</button>
+  </div>
+  <div class="folderPageProjects"></div>
+  <div class="folderPageEmpty" hidden></div>
+</section>
+
+<template id="folderProjectCardTemplate">
+  <button class="folderProjectCard" type="button">
+    <iconify-icon class="folderProjectIcon" aria-hidden="true"></iconify-icon>
+    <strong class="folderProjectName"></strong>
+    <span class="folderProjectPinned" aria-label="Pinned project" hidden>Pinned</span>
+    <span class="folderProjectDescription"></span>
+    <span class="folderProjectStats"></span>
+  </button>
+</template>

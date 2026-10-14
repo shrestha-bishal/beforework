@@ -12,7 +12,8 @@
     "./views/list-view.js",
     "./views/table-view.js",
     "./views/board-view.js",
-    "./views/calendar-view.js"
+    "./views/calendar-view.js",
+    "./views/folder-view.js"
   ];
 
   let viewModulesPromise = null;
