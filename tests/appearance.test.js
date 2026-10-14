@@ -115,6 +115,8 @@ test("sidebar folders can be collapsed, expanded, and remembered",()=>{
   assert.match(app,/localStorage\.setItem\(COLLAPSED_FOLDERS_KEY,JSON\.stringify\(\[\.\.\.collapsedFolderIds\]\)\)/);
   assert.match(app,/chevron\.setAttribute\("icon","mdi:chevron-right"\)/);
   assert.match(app,/toggle\.append\(chevron,icon,name,count\)/);
+  assert.match(app,/toggle\.disabled=projectCount===0/);
+  assert.match(app,/chevron\.hidden=projectCount===0/);
   assert.match(styles,/#projectList \.folderToggle\[aria-expanded="true"\] \.folderChevron\{transform:rotate\(90deg\);\}/);
   assert.match(styles,/#projectList \.SideNav-item\.folderProjectRow\{max-height:48px;overflow:visible;transition:max-height \.2s ease,opacity \.16s ease,padding \.2s ease,transform \.16s ease,visibility 0s linear 0s;\}/);
   assert.match(styles,/#projectList \.SideNav-item\.folderProjectRow--collapsed\{max-height:0;padding-top:0!important;padding-bottom:0!important;opacity:0;overflow:hidden;/);

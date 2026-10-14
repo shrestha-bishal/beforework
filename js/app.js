@@ -1661,9 +1661,12 @@
       const toggle=document.createElement("button");
       toggle.type="button";
       toggle.className="folderToggle";
-      toggle.setAttribute("aria-expanded",String(!folderCollapsed));
-      toggle.setAttribute("aria-label",`${folderCollapsed?"Expand":"Collapse"} folder ${folder.name}`);
-      toggle.title=`${folderCollapsed?"Expand":"Collapse"} folder`;
+      toggle.disabled=projectCount===0;
+      if (projectCount){
+        toggle.setAttribute("aria-expanded",String(!folderCollapsed));
+        toggle.setAttribute("aria-label",`${folderCollapsed?"Expand":"Collapse"} folder ${folder.name}`);
+        toggle.title=`${folderCollapsed?"Expand":"Collapse"} folder`;
+      }
       const name = document.createElement("span");
       name.className = "folderName";
       name.textContent = folder.name;
@@ -1674,8 +1677,10 @@
       chevron.className="folderChevron";
       chevron.setAttribute("icon","mdi:chevron-right");
       chevron.setAttribute("aria-hidden","true");
+      chevron.hidden=projectCount===0;
       toggle.append(chevron,icon,name,count);
       toggle.onclick=()=>{
+        if (!projectCount) return;
         const collapsed=!collapsedFolderIds.has(folder.id);
         if (collapsed) collapsedFolderIds.add(folder.id);
         else collapsedFolderIds.delete(folder.id);
