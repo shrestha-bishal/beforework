@@ -31,6 +31,7 @@
     "mdi:school-outline","mdi:bank-outline"
   ];
   const LOCATION_KEY = "personal_dashboard_location_v1";
+  const COLLAPSED_FOLDERS_KEY = "personal_dashboard_collapsed_folders_v1";
   const FEEDBACK_URL = "https://github.com/shrestha-bishal/beforework/issues";
   const GITHUB_SPONSORS_URL = "https://github.com/sponsors/shrestha-bishal";
   const BUY_ME_A_COFFEE_URL = "https://www.buymeacoffee.com/shresthabishal";
@@ -76,6 +77,7 @@
   ];
 
   let state = null;                 // { projects:[] }
+  let collapsedFolderIds = null;
   let connectGate = null;
   let navigation = null;
   let projectActionsMenu = null;
@@ -1582,11 +1584,15 @@
     document.getElementById("supportNav").classList.toggle("active",activeProjectId===SUPPORT);
     const ul = document.getElementById("projectList");
     ul.innerHTML = "";
-    const appendProject = (p, inFolder=false) => {
+    const appendProject = (p, inFolder=false, folderId=null) => {
       const count = Number.isFinite(p.itemCount) ? p.itemCount
         : (p.groups||[]).reduce((n,g)=>n+(g.items||[]).length,0)+(p.items||[]).length;
       const li = document.createElement("li");
       li.className = "SideNav-item" + (p.id===activeProjectId ? " active" : "") + (inFolder ? " inFolder" : "");
+      if (folderId){
+        li.classList.add("folderProjectRow");
+        li.dataset.folderId=folderId;
+      }
       li.title = p.name;
       const icon = document.createElement("iconify-icon");
       icon.className = "projectIcon";
@@ -1620,6 +1626,7 @@
       li.append(cnt, wrap);
       li.onclick = () => { selectProject(p.id); };
       ul.appendChild(li);
+      return li;
     };
     const projects=projectRecords();
     const activeProjects=projects.filter(project=>!project.archived);
@@ -1629,6 +1636,15 @@
     const unfiled = activeProjects.filter(project=>!project.pinned&&(!project.folderId || !state.folders.some(folder=>folder.id===project.folderId)));
     unfiled.forEach(project=>appendProject(project));
     state.folders.forEach(folder=>{
+      if (collapsedFolderIds===null){
+        try{
+          const saved=JSON.parse(localStorage.getItem(COLLAPSED_FOLDERS_KEY)||"[]");
+          collapsedFolderIds=new Set(Array.isArray(saved)?saved.filter(id=>typeof id==="string"):[]);
+        }catch(err){
+          collapsedFolderIds=new Set();
+        }
+      }
+      const folderCollapsed=collapsedFolderIds.has(folder.id);
       const heading = document.createElement("li");
       heading.className = "folderHeading";
       if (ul.children.length){
@@ -1642,12 +1658,37 @@
       icon.className = "folderIcon";
       icon.setAttribute("icon", "mdi:folder-outline");
       icon.setAttribute("aria-hidden", "true");
+      const toggle=document.createElement("button");
+      toggle.type="button";
+      toggle.className="folderToggle";
+      toggle.setAttribute("aria-expanded",String(!folderCollapsed));
+      toggle.setAttribute("aria-label",`${folderCollapsed?"Expand":"Collapse"} folder ${folder.name}`);
+      toggle.title=`${folderCollapsed?"Expand":"Collapse"} folder`;
       const name = document.createElement("span");
       name.className = "folderName";
       name.textContent = folder.name;
       const count = document.createElement("span");
       count.className = "folderCount";
       count.textContent = String(projectCount);
+      const chevron=document.createElement("iconify-icon");
+      chevron.className="folderChevron";
+      chevron.setAttribute("icon","mdi:chevron-right");
+      chevron.setAttribute("aria-hidden","true");
+      toggle.append(chevron,icon,name,count);
+      toggle.onclick=()=>{
+        const collapsed=!collapsedFolderIds.has(folder.id);
+        if (collapsed) collapsedFolderIds.add(folder.id);
+        else collapsedFolderIds.delete(folder.id);
+        toggle.setAttribute("aria-expanded",String(!collapsed));
+        toggle.setAttribute("aria-label",`${collapsed?"Expand":"Collapse"} folder ${folder.name}`);
+        toggle.title=`${collapsed?"Expand":"Collapse"} folder`;
+        ul.querySelectorAll(".folderProjectRow").forEach(projectRow=>{
+          if (projectRow.dataset.folderId!==folder.id) return;
+          projectRow.classList.toggle("folderProjectRow--collapsed",collapsed);
+          projectRow.inert=collapsed;
+        });
+        try{ localStorage.setItem(COLLAPSED_FOLDERS_KEY,JSON.stringify([...collapsedFolderIds])); }catch(err){/* ignore */}
+      };
       const wrap = document.createElement("div");
       wrap.className = "folderQuickMenuWrap";
       const menuBtn = document.createElement("button");
@@ -1706,9 +1747,13 @@
         };
       });
       wrap.append(menuBtn, menu);
-      heading.append(icon, name, count, wrap);
+      heading.append(toggle, wrap);
       ul.appendChild(heading);
-      activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).forEach(project=>appendProject(project, true));
+      activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).forEach(project=>{
+        const projectRow=appendProject(project, true, folder.id);
+        projectRow.classList.toggle("folderProjectRow--collapsed",folderCollapsed);
+        projectRow.inert=folderCollapsed;
+      });
     });
     if (archivedProjects.length){
       const heading=document.createElement("li");

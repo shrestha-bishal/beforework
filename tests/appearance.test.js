@@ -107,12 +107,28 @@ test("collapsed desktop sidebar keeps navigation and project icons visible",()=>
   assert.doesNotMatch(styles,/#sidebar\.collapsed\{width:0/);
 });
 
+test("sidebar folders can be collapsed, expanded, and remembered",()=>{
+  assert.match(app,/const COLLAPSED_FOLDERS_KEY = "personal_dashboard_collapsed_folders_v1"/);
+  assert.match(app,/toggle\.setAttribute\("aria-expanded",String\(!folderCollapsed\)\)/);
+  assert.match(app,/projectRow\.classList\.toggle\("folderProjectRow--collapsed",folderCollapsed\)/);
+  assert.match(app,/projectRow\.inert=folderCollapsed/);
+  assert.match(app,/localStorage\.setItem\(COLLAPSED_FOLDERS_KEY,JSON\.stringify\(\[\.\.\.collapsedFolderIds\]\)\)/);
+  assert.match(app,/chevron\.setAttribute\("icon","mdi:chevron-right"\)/);
+  assert.match(app,/toggle\.append\(chevron,icon,name,count\)/);
+  assert.match(styles,/#projectList \.folderToggle\[aria-expanded="true"\] \.folderChevron\{transform:rotate\(90deg\);\}/);
+  assert.match(styles,/#projectList \.SideNav-item\.folderProjectRow\{max-height:48px;overflow:visible;transition:max-height \.2s ease,opacity \.16s ease,padding \.2s ease,transform \.16s ease,visibility 0s linear 0s;\}/);
+  assert.match(styles,/#projectList \.SideNav-item\.folderProjectRow--collapsed\{max-height:0;padding-top:0!important;padding-bottom:0!important;opacity:0;overflow:hidden;/);
+  assert.match(styles,/@media \(prefers-reduced-motion:reduce\)/);
+});
+
 test("sidebar project action trigger keeps shared menu behavior with compact custom styling",()=>{
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar\{[^}]*width:24px;[^}]*height:20px;[^}]*flex:0 0 auto;[^}]*padding:2px 4px;[^}]*border-radius:5px;[^}]*font-size:16px;/);
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar:hover,[\s\S]*?\.action-menu__trigger--sidebar\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
   assert.match(projectActionsMenu,/"projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar"/);
   assert.match(app,/menuBtn\.className = "folderMenuBtn action-menu__trigger action-menu__trigger--sidebar"/);
   assert.match(styles,/#projectList \.folderHeading:hover \.folderMenuBtn,[\s\S]*?#projectList \.SideNav-item:has\(\.projectQuickMenu\.open\) \.projectMenuBtnSmall\{opacity:1;visibility:visible;transform:translateX\(0\) scale\(1\);\}/);
+  assert.match(styles,/#projectList \.folderHeading:has\(\.folderMenuBtn:focus-visible\) \.folderMenuBtn/);
+  assert.doesNotMatch(styles,/#projectList \.folderHeading:focus-within \.folderMenuBtn/);
 });
 
 test("keeps appearance controls usable when local storage is unavailable",()=>{

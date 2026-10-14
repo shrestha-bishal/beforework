@@ -86,10 +86,12 @@
     #sidebar.collapsed #projectList .projectQuickMenuWrap,
     #sidebar.collapsed #projectList .folderName,
     #sidebar.collapsed #projectList .folderCount,
+    #sidebar.collapsed #projectList .folderChevron,
     #sidebar.collapsed #projectList .folderQuickMenuWrap,
     #sidebar.collapsed #projectList .folderHeadingDivider{display:none;}
     #sidebar.collapsed #projectList .SideNav-item{justify-content:center;padding:9px 10px;}
     #sidebar.collapsed #projectList .folderHeading{justify-content:center;padding:9px 10px;}
+    #sidebar.collapsed #projectList .folderToggle{justify-content:center;}
   }
   #app{position:relative;}
   #sidebarCollapseHandle{position:absolute;top:20px;left:252px;z-index:65;width:22px;height:22px;
@@ -169,6 +171,11 @@
   #projectList .folderHeading:first-child{margin-top:0;padding-top:5px;}
   #projectList .folderHeadingDivider{position:absolute;top:0;left:10px;width:calc(100% - 20px);}
   #projectList .folderHeading iconify-icon{flex:none;color:var(--accent-strong);font-size:14px;}
+  #projectList .folderToggle{display:flex;align-items:center;gap:7px;flex:1;min-width:0;padding:0;border:0;
+    background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;}
+  #projectList .folderToggle:focus-visible{border-radius:4px;outline:2px solid var(--accent);outline-offset:2px;}
+  #projectList .folderHeading .folderChevron{color:var(--muted);font-size:14px;transform:rotate(0);transition:transform .18s ease;}
+  #projectList .folderToggle[aria-expanded="true"] .folderChevron{transform:rotate(90deg);}
   #projectList .folderHeading .folderName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectList .folderHeading .folderCount{flex:none;width:24px;text-align:center;color:var(--faint);font-size:10.5px;font-weight:500;transition:opacity .12s ease, transform .12s ease;margin-left:auto;}
   #projectList .folderHeading:hover .folderCount{opacity:0;transform:scale(.8);}
@@ -177,7 +184,7 @@
   #projectList .folderHeading .folderMenuBtn,
   #projectList .SideNav-item .projectMenuBtnSmall{opacity:0;visibility:hidden;transform:translateX(8px) scale(.9);}
   #projectList .folderHeading:hover .folderMenuBtn,
-  #projectList .folderHeading:focus-within .folderMenuBtn,
+  #projectList .folderHeading:has(.folderMenuBtn:focus-visible) .folderMenuBtn,
   #projectList .folderHeading:has(.folderQuickMenu.open) .folderMenuBtn,
   #projectList .SideNav-item:hover .projectMenuBtnSmall,
   #projectList .SideNav-item:focus-within .projectMenuBtnSmall,
@@ -185,6 +192,9 @@
   #projectList .folderHeading:has(.folderQuickMenu.open),
   #projectList .SideNav-item:has(.projectQuickMenu.open){z-index:5;}
   #projectList .SideNav-item.inFolder{padding-left:28px;}
+  #projectList .SideNav-item.folderProjectRow{max-height:48px;overflow:visible;transition:max-height .2s ease,opacity .16s ease,padding .2s ease,transform .16s ease,visibility 0s linear 0s;}
+  #projectList .SideNav-item.folderProjectRow--collapsed{max-height:0;padding-top:0!important;padding-bottom:0!important;opacity:0;overflow:hidden;
+    pointer-events:none;transform:translateY(-3px);visibility:hidden;transition:max-height .2s ease,opacity .16s ease,padding .2s ease,transform .16s ease,visibility 0s linear .2s;}
   #projectList .SideNav-item{display:flex;align-items:center;gap:6px;position:relative;
     padding:7px 10px;border:0;border-radius:6px;cursor:pointer;font-size:13.5px;color:var(--muted);
     background:transparent;width:100%;text-align:left;box-shadow:none;}
@@ -199,6 +209,9 @@
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectList .SideNav-item .projectPinIcon{flex:none;color:var(--accent-strong);font-size:12px;}
   #projectList .SideNav-item .projectQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}
+  @media (prefers-reduced-motion:reduce){
+    #projectList .folderHeading .folderChevron,#projectList .SideNav-item.folderProjectRow{transition:none;}
+  }
 
   .sideSection{padding-top:0;}
   .sideSection>.uiDivider{margin-bottom:16px;}
