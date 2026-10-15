@@ -1,5 +1,6 @@
 window.BeforeworkViewTemplates = (()=>{
   const startupPaths = {
+    navigation:"pages/navigation.html",
     overview:"pages/overview.html",
     folder:"pages/folder.html",
     calendar:"pages/calendar.html",

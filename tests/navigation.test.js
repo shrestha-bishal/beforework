@@ -8,6 +8,8 @@ const vm=require("node:vm");
 const appScripts=require("./helpers/app-script-order");
 
 const source=fs.readFileSync(path.join(__dirname,"../js/ui/navigation.js"),"utf8");
+const navigationTemplate=fs.readFileSync(path.join(__dirname,"../pages/navigation.html"),"utf8");
+const navigationViewSource=fs.readFileSync(path.join(__dirname,"../js/views/navigation-view.js"),"utf8");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
 const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
@@ -45,7 +47,7 @@ function makeElement(id){
 function createHarness(storage=new Map()){
   const ids=[
     "overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","projectsNav","documentsNav","secondarySidebar",
-    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","projectCreateBtn","sidebarProjects","integrationsNav","settingsNav","supportNav",
+    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","projectCreateBtn","sidebarProjects","integrationsNav","settingsNav","supportNav","feedbackNav",
     "workspaceSwitcherBtn","workspaceSwitcherLabel","workspaceSidebarActions","workspaceSidebarName","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
   ];
@@ -54,19 +56,39 @@ function createHarness(storage=new Map()){
   elements.workspaceSwitcherBtn.setAttribute("aria-expanded","false");
   elements.projectsNav.setAttribute("aria-expanded","false");
   const calls=[];
-  const documentListeners={};
-  const documentRef={
-    getElementById:id=>elements[id],
-    addEventListener(name,callback){ documentListeners[name]=callback; }
-  };
   const window={localStorage:{
     getItem(key){ return storage.get(key)||null; },
     setItem(key,value){ storage.set(key,value); },
     removeItem(key){ storage.delete(key); }
   }};
+  const secondaryItems=[
+    {kind:"secondary",id:"projectsNav",section:"projects",title:"Projects",content:"projects"},
+    {kind:"secondary",id:"documentsNav",section:"documents",title:"Documents"},
+    {kind:"secondary",id:"workspaceSwitcherBtn",section:"workspace",title:"Workspace",content:"workspace"}
+  ];
+  const navigationView={
+    items:[
+      {kind:"primary",id:"brandHomeBtn",action:"overview"},
+      {kind:"primary",id:"overviewNav",action:"overview"},
+      ...secondaryItems,
+      {kind:"primary",id:"calendarNav",action:"calendar"},
+      {kind:"primary",id:"roadmapNav",action:"roadmap"},
+      {kind:"primary",id:"focusTimerNav",action:"timer"},
+      {kind:"primary",id:"integrationsNav",action:"integrations"},
+      {kind:"primary",id:"settingsNav",action:"settings"},
+      {kind:"primary",id:"supportNav",action:"support"},
+      {kind:"primary",id:"feedbackNav",action:"feedback"}
+    ],
+    getElement:id=>elements[id],
+    getSecondarySection:section=>{
+      const item=secondaryItems.find(candidate=>candidate.section===section);
+      if (!item) throw new Error(`Missing section ${section}`);
+      return {...item,trigger:elements[item.id]};
+    }
+  };
   vm.runInNewContext(source,{window},{filename:"navigation.js"});
   const navigation=window.BeforeworkNavigation.create({
-    documentRef,
+    navigationView,
     onOverview:()=>calls.push("overview"),
     onCalendar:()=>calls.push("calendar"),
     onRoadmap:()=>calls.push("roadmap"),
@@ -74,15 +96,16 @@ function createHarness(storage=new Map()){
     onIntegrations:()=>calls.push("integrations"),
     onSettings:()=>calls.push("settings"),
     onSupport:()=>calls.push("support"),
+    onFeedback:()=>calls.push("feedback"),
     switchWorkspace:async()=>calls.push("switch"),
     createWorkspace:async()=>calls.push("create")
   });
 
   navigation.wire();
-  return {elements,calls,documentListeners,navigation,storage};
+  return {elements,calls,navigation,storage};
 }
 
-test("secondary sections preserve the project list in the document while rendering independent content",()=>{
+test("secondary sections render only their own content",()=>{
   const harness=createHarness();
   const {secondarySidebarContent,sidebarProjects,documentsNav}=harness.elements;
   const documentsList=makeElement("documentsList");
@@ -94,10 +117,10 @@ test("secondary sections preserve the project list in the document while renderi
   });
 
   documentsNav.onclick();
-  assert.deepEqual(secondarySidebarContent.children,[documentsList,sidebarProjects]);
+  assert.deepEqual(secondarySidebarContent.children,[documentsList]);
 
   harness.navigation.refreshSecondarySection();
-  assert.deepEqual(secondarySidebarContent.children,[documentsList,sidebarProjects]);
+  assert.deepEqual(secondarySidebarContent.children,[documentsList]);
 });
 
 test("registered secondary-section create action repurposes and restores the header plus",()=>{
@@ -134,21 +157,25 @@ test("sidebar does not include the removed Tags section",()=>{
 });
 
 test("Projects list and create controls live in the secondary sidebar",()=>{
-  assert.match(index,/<button id="projectsNav"[^>]*aria-controls="secondarySidebar"><iconify-icon icon="mdi:layers-outline"/);
-  assert.match(index,/<aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>[\s\S]*?<div id="secondarySidebarContent">[\s\S]*?<ul class="SideNav" id="projectList"><\/ul>/);
-  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="secondarySidebar"'));
-  assert.ok(index.indexOf('class="sidebarProjects"')>index.indexOf('id="secondarySidebarContent"'));
-  assert.match(index,/<div class="sidebarProjects" id="sidebarProjects">/);
-  assert.match(index,/<button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">/);
-  assert.ok(index.indexOf('id="overviewNav"')<index.indexOf('id="projectsNav"'));
-  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="workspaceDocumentsNav"'));
-  assert.ok(index.indexOf('id="workspaceDocumentsNav"')<index.indexOf('id="calendarNav"'));
-  assert.ok(index.indexOf('id="calendarNav"')<index.indexOf('id="roadmapNav"'));
-  assert.match(index,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
-  assert.match(index,/<div class="workspaceSidebarActions" id="workspaceSidebarActions">[\s\S]*?id="workspaceSwitchBtn"[\s\S]*?Open different workspace[\s\S]*?id="workspaceNewBtn"[\s\S]*?Create new workspace/);
-  assert.doesNotMatch(index,/id="workspaceSwitcherMenu"/);
-  assert.match(index,/<div class="secondarySidebarActions">[\s\S]*?<button id="secondarySidebarClose"[\s\S]*?<button class="btn btn-sm btn-invisible projectCreateBtn"[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
-  assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
+  assert.match(index,/<div id="navigationMount"><\/div>/);
+  assert.match(navigationTemplate,/<button id="projectsNav"[^>]*aria-controls="secondarySidebar"><iconify-icon icon="mdi:layers-outline"/);
+  assert.match(navigationTemplate,/<aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>[\s\S]*?<div id="secondarySidebarContent">[\s\S]*?<ul class="SideNav" id="projectList"><\/ul>/);
+  assert.ok(navigationTemplate.indexOf('id="projectsNav"')<navigationTemplate.indexOf('id="secondarySidebar"'));
+  assert.ok(navigationTemplate.indexOf('class="sidebarProjects"')>navigationTemplate.indexOf('id="secondarySidebarContent"'));
+  assert.match(navigationTemplate,/<div class="sidebarProjects" id="sidebarProjects">/);
+  assert.match(navigationTemplate,/<button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">/);
+  assert.ok(navigationTemplate.indexOf('id="overviewNav"')<navigationTemplate.indexOf('id="projectsNav"'));
+  assert.ok(navigationTemplate.indexOf('id="projectsNav"')<navigationTemplate.indexOf('id="workspaceDocumentsNav"'));
+  assert.ok(navigationTemplate.indexOf('id="workspaceDocumentsNav"')<navigationTemplate.indexOf('id="calendarNav"'));
+  assert.ok(navigationTemplate.indexOf('id="calendarNav"')<navigationTemplate.indexOf('id="roadmapNav"'));
+  assert.match(navigationTemplate,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
+  assert.match(navigationTemplate,/<div class="workspaceSidebarActions" id="workspaceSidebarActions">[\s\S]*?id="workspaceSwitchBtn"[\s\S]*?Open different workspace[\s\S]*?id="workspaceNewBtn"[\s\S]*?Create new workspace/);
+  assert.doesNotMatch(navigationTemplate,/id="workspaceSwitcherMenu"/);
+  assert.match(navigationTemplate,/<div class="secondarySidebarActions">[\s\S]*?<button id="secondarySidebarClose"[\s\S]*?<button class="btn btn-sm btn-invisible projectCreateBtn"[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
+  assert.doesNotMatch(navigationTemplate,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
+  assert.match(navigationViewSource,/kind:"primary"/);
+  assert.match(navigationViewSource,/kind:"secondary"/);
+  assert.match(navigationViewSource,/getSecondarySection\(section\)/);
   assert.match(styles,/#sidebar #projectsNav span,\s*#sidebar #integrationsNav span/);
   assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
   assert.match(styles,/#secondarySidebar\.open\{margin:6px 0;border:1px solid var\(--border\);border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
@@ -164,10 +191,10 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
 
 test("navigation controls delegate each destination to its app callback",()=>{
   const harness=createHarness();
-  for (const id of ["overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","integrationsNav","settingsNav","supportNav"]){
+  for (const id of ["overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","integrationsNav","settingsNav","supportNav","feedbackNav"]){
     harness.elements[id].onclick();
   }
-  assert.deepEqual(harness.calls,["overview","overview","calendar","roadmap","timer","integrations","settings","support"]);
+  assert.deepEqual(harness.calls,["overview","overview","calendar","roadmap","timer","integrations","settings","support","feedback"]);
 });
 
 test("workspace and project sections are mutually exclusive in the secondary sidebar",()=>{
@@ -334,8 +361,31 @@ test("secondary sidebar restores any section registered by an extension",()=>{
   });
   refreshed.navigation.restoreSecondarySection();
   assert.equal(refreshed.elements.secondarySidebarTitle.textContent,"Reports");
-  assert.deepEqual(refreshed.elements.secondarySidebarContent.children,[reportsContent,refreshed.elements.sidebarProjects]);
+  assert.deepEqual(refreshed.elements.secondarySidebarContent.children,[reportsContent]);
   assert.equal(refreshedTrigger.attributes["aria-expanded"],"true");
+});
+
+test("navigation view mounts template markup and classifies menu items",()=>{
+  const context={};
+  vm.runInNewContext(
+    `${navigationViewSource.replace("export class NavigationView","class NavigationView")}\nglobalThis.NavigationView=NavigationView;`,
+    context,
+    {filename:"navigation-view.js"}
+  );
+  const requiredIds=new Set([...navigationTemplate.matchAll(/\bid="([^"]+)"/g)].map(([,id])=>id));
+  const elements=new Map([...requiredIds].map(id=>[id,makeElement(id)]));
+  const view=new context.NavigationView({
+    documentRef:{getElementById:id=>elements.get(id)||null},
+    cloneTemplate:()=>({querySelector:selector=>requiredIds.has(selector.slice(1))?{}:null})
+  });
+  const mount={replaceChildren(fragment){ this.fragment=fragment; }};
+
+  view.mount(mount);
+  assert.ok(mount.fragment);
+  assert.ok(view.items.filter(item=>item.kind==="primary").length>0);
+  assert.ok(view.items.filter(item=>item.kind==="secondary").length>0);
+  assert.equal(view.getSecondarySection("documents").trigger.id,"workspaceDocumentsNav");
+  assert.equal(view.getSecondarySection("documents").content,undefined);
 });
 
 test("demo startup restores the last active page before rendering",()=>{

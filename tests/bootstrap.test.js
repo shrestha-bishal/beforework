@@ -22,12 +22,18 @@ test("bootstrap is the single application startup entry point",()=>{
 
   assert.equal(calls.length,1);
   assert.equal(typeof calls[0].loadViewModules,"function");
+  assert.equal(typeof calls[0].loadNavigationView,"function");
+  assert.equal(typeof calls[0].loadNavigationView,"function");
   assert.equal(window.BeforeworkBootstrap.start(),startPromise);
   assert.equal(calls.length,1);
   assert.match(app,/window\.BeforeworkApp\s*=\s*\{/);
   assert.doesNotMatch(app,/\bboot\(\);/);
   assert.doesNotMatch(app,/BeforeworkBootstrap/);
   assert.match(app,/await loadViewModules\(\)/);
+  assert.match(bootstrap,/import\("\.\/views\/navigation-view\.js"\)/);
+  assert.match(app,/navigationView\.mount\(document\.getElementById\("navigationMount"\)\)/);
+  assert.match(bootstrap,/import\("\.\/views\/navigation-view\.js"\)/);
+  assert.match(app,/navigationView\.mount\(document\.getElementById\("navigationMount"\)\)/);
   assert.ok(app.indexOf('await window.BeforeworkViewTemplates.load("dateTimePickers")')<app.indexOf("dateTimePickers.enhanceDateInputs()"));
   const errorUtils=appScripts.indexOf("core/error-utils.js");
   assert.ok(errorUtils>=0);

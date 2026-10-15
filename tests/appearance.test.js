@@ -12,6 +12,7 @@ const projectActionsMenu = fs.readFileSync(path.join(__dirname, "../js/ui/projec
 const styles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
 const actionMenuStyles = fs.readFileSync(path.join(__dirname, "../styles/action-menu.css"), "utf8");
 const index = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+const navigationTemplate = fs.readFileSync(path.join(__dirname, "../pages/navigation.html"), "utf8");
 
 function createHarness({preferences={},prefersDark=false,storageThrows=false}={}){
   const values = new Map(Object.entries(preferences));
@@ -63,7 +64,8 @@ test("uses system theme when no saved preference and persists theme toggles",()=
 });
 
 test("primary sidebar is compact by default without an expand state",()=>{
-  assert.match(index,/<div id="sidebar">/);
+  assert.match(index,/<div id="navigationMount"><\/div>/);
+  assert.match(navigationTemplate,/<div id="sidebar">/);
   assert.doesNotMatch(index,/sidebarCollapseHandle|settingsSidebarToggle/);
   assert.doesNotMatch(app,/toggleSidebarCollapsed|applySidebarCollapsed|initSidebarCollapse/);
   assert.doesNotMatch(styles,/sidebarCollapseHandle/);
@@ -84,14 +86,14 @@ test("desktop sidebar keeps primary navigation icons visible by default",()=>{
   assert.doesNotMatch(styles,/#tagsSection/);
   assert.match(styles,/#sidebar #globalSearch\{position:absolute;inset:0;width:56px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
   assert.match(styles,/#sidebar #projectsNav iconify-icon,[\s\S]*?#sidebar #feedbackNav iconify-icon\{font-size:21px;\}/);
-  assert.match(index,/<img class="markCompact" src="images\/icon\.png" alt="">/);
-  assert.match(index,/<input class="form-control" id="globalSearch"[^>]*title="Search or run a command"/);
-  assert.match(index,/<div id="sidebar">/);
+  assert.match(navigationTemplate,/<img class="markCompact" src="images\/icon\.png" alt="">/);
+  assert.match(navigationTemplate,/<input class="form-control" id="globalSearch"[^>]*title="Search or run a command"/);
+  assert.match(navigationTemplate,/<div id="sidebar">/);
   assert.doesNotMatch(styles,/#sidebar\.collapsed/);
-  assert.match(index,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
-  assert.match(index,/<span>Support<\/span><\/button>[\s\S]*?<span>Requests<\/span><\/button>/);
+  assert.match(navigationTemplate,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
+  assert.match(navigationTemplate,/<span>Support<\/span><\/button>[\s\S]*?<span>Requests<\/span><\/button>/);
   assert.match(styles,/#sidebar #overviewNav\.active,[\s\S]*?#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
-  assert.match(styles,/#sidebar #overviewNav:hover iconify-icon,[\s\S]*?#sidebar #feedbackNav:hover iconify-icon\{color:var\(--accent\);\}/);
+  assert.match(styles,/#sidebar #workspaceSwitcherBtn:hover>iconify-icon:first-child,\s*#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]>iconify-icon:first-child\{color:var\(--accent\);\}/);
   assert.doesNotMatch(styles,/#(?:overview|calendar|roadmap|projects|integrations|settings|support|feedback)Nav(?:\[aria-expanded="true"\])? iconify-icon\{color:#[0-9a-f]{3,6};\}/i);
   assert.doesNotMatch(styles,/#sidebar #projectsNav\[aria-expanded="true"\]::before/);
   assert.match(styles,/#sidebar \.sidebarNavDivider,\s*#sidebar \.supportNavDivider\{width:calc\(100% - 20px\);align-self:center;\}/);

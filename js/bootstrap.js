@@ -18,6 +18,7 @@
   ];
 
   let viewModulesPromise = null;
+  let navigationViewPromise = null;
   let startPromise = null;
 
   function loadViewModules(){
@@ -27,12 +28,19 @@
     return viewModulesPromise;
   }
 
+  function loadNavigationView(){
+    if (!navigationViewPromise){
+      navigationViewPromise=import("./views/navigation-view.js");
+    }
+    return navigationViewPromise;
+  }
+
   function start(){
     if (!window.BeforeworkApp || typeof window.BeforeworkApp.start !== "function"){
       throw new Error("The application must be loaded before bootstrap starts.");
     }
     if (!startPromise){
-      startPromise = window.BeforeworkApp.start({loadViewModules});
+      startPromise = window.BeforeworkApp.start({loadViewModules,loadNavigationView});
     }
     return startPromise;
   }

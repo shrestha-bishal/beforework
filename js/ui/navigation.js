@@ -2,7 +2,7 @@
   "use strict";
 
   function createNavigation({
-    documentRef=global.document,
+    navigationView,
     storage=global.localStorage,
     onOverview,
     onCalendar,
@@ -11,13 +11,17 @@
     onIntegrations,
     onSettings,
     onSupport,
+    onFeedback,
     switchWorkspace,
     createWorkspace
   }){
+    if (!navigationView || !Array.isArray(navigationView.items)
+      || typeof navigationView.getElement!=="function"
+      || typeof navigationView.getSecondarySection!=="function"){
+      throw new TypeError("Navigation requires a mounted navigation view.");
+    }
     const SECONDARY_SECTION_KEY="beforework_secondary_sidebar_section_v1";
-    const element=id=>documentRef.getElementById(id);
-    const workspaceSwitcherBtn=element("workspaceSwitcherBtn");
-    const projectsNav=element("projectsNav");
+    const element=id=>navigationView.getElement(id);
     const secondarySidebar=element("secondarySidebar");
     const secondarySidebarTitle=element("secondarySidebarTitle");
     const secondarySidebarContent=element("secondarySidebarContent");
@@ -71,10 +75,6 @@
     function renderSecondarySection(registration){
       secondarySidebarContent.replaceChildren();
       registration.renderContent(secondarySidebarContent);
-      if (registration.section&&registration.section!=="projects"&&registration.section!=="workspace"
-        &&!secondarySidebarContent.contains(projectsSidebar)){
-        secondarySidebarContent.appendChild(projectsSidebar);
-      }
     }
 
     function closeSecondarySidebar(){
@@ -163,30 +163,27 @@
     }
 
     function wire(){
-      element("overviewNav").onclick=()=>navigate(onOverview);
-      element("brandHomeBtn").onclick=()=>navigate(onOverview);
-      element("calendarNav").onclick=()=>navigate(onCalendar);
-      element("roadmapNav").onclick=()=>navigate(onRoadmap);
-      element("focusTimerNav").onclick=()=>navigate(onTimer);
-      registerSecondarySection({
-        section:"projects",
-        title:"Projects",
-        trigger:projectsNav,
-        renderContent:content=>content.replaceChildren(projectsSidebar)
-      });
-      registerSecondarySection({
-        section:"workspace",
-        title:"Workspace",
-        trigger:workspaceSwitcherBtn,
-        renderContent:content=>{
+      const primaryActions={overview:onOverview,calendar:onCalendar,roadmap:onRoadmap,timer:onTimer,
+        integrations:onIntegrations,settings:onSettings,support:onSupport,feedback:onFeedback};
+      const secondaryRenderers={
+        projects:content=>content.replaceChildren(projectsSidebar),
+        workspace:content=>{
           workspaceSidebarName.textContent=workspaceSwitcherLabel.textContent||"Workspace";
           content.replaceChildren(workspaceSidebarActions);
         }
+      };
+      navigationView.items.filter(item=>item.kind==="primary").forEach(item=>{
+        const action=primaryActions[item.action];
+        if (typeof action!=="function") throw new Error(`No action is configured for primary navigation item "${item.id}".`);
+        element(item.id).onclick=()=>navigate(action);
+      });
+      navigationView.items.filter(item=>item.kind==="secondary"&&item.content).forEach(item=>{
+        const renderContent=secondaryRenderers[item.content];
+        if (!renderContent) throw new Error(`No renderer is configured for secondary navigation item "${item.id}".`);
+        const definition=navigationView.getSecondarySection(item.section);
+        registerSecondarySection({...definition,renderContent});
       });
       element("secondarySidebarClose").onclick=closeSecondarySidebar;
-      element("integrationsNav").onclick=()=>navigate(onIntegrations);
-      element("settingsNav").onclick=()=>navigate(onSettings);
-      element("supportNav").onclick=()=>navigate(onSupport);
 
       element("workspaceSwitchBtn").onclick=async()=>{
         await switchWorkspace();

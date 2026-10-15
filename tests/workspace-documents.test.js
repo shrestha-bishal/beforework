@@ -14,6 +14,7 @@ const viewSource=fs.readFileSync(path.join(root,"js/views/workspace-documents-vi
 const documentViewSource=fs.readFileSync(path.join(root,"js/views/documents-view.js"),"utf8");
 const appSource=fs.readFileSync(path.join(root,"js/app.js"),"utf8");
 const index=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const navigationTemplate=fs.readFileSync(path.join(root,"pages/navigation.html"),"utf8");
 const bootstrap=fs.readFileSync(path.join(root,"js/bootstrap.js"),"utf8");
 const manifest=fs.readFileSync(path.join(root,"js/manifest.js"),"utf8");
 
@@ -71,11 +72,12 @@ test("workspace document feature shares Markdown behavior without changing proje
 });
 
 test("workspace documents are a primary navigation destination with a reusable editor view",()=>{
-  assert.match(index,/id="workspaceDocumentsNav"[^>]*aria-controls="secondarySidebar"/);
+  assert.match(index,/<div id="navigationMount"><\/div>/);
+  assert.match(navigationTemplate,/id="workspaceDocumentsNav"[^>]*aria-controls="secondarySidebar"/);
   assert.match(bootstrap,/\.\/views\/workspace-documents-view\.js/);
   assert.match(manifest,/features\/markdown-documents\.js/);
   assert.match(manifest,/features\/workspace-documents\.js/);
-  assert.match(appSource,/navigation\.registerSecondarySection\(\{[\s\S]*?section:"documents"[\s\S]*?renderContent:content=>workspaceDocumentsView\.renderSidebar\(content\)/);
+  assert.match(appSource,/navigation\.registerSecondarySection\(\{[\s\S]*?navigationView\.getSecondarySection\("documents"\)[\s\S]*?renderContent:content=>workspaceDocumentsView\.renderSidebar\(content\)/);
   assert.match(appSource,/workspaceDocumentsView\.render\(board\)/);
   assert.match(appSource,/workspaceDocumentLocation\(documentId\)/);
   assert.match(documentViewSource,/listHeading="Project documents"/);

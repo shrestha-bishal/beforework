@@ -86,6 +86,7 @@
   let collapsedFolderIds = null;
   let connectGate = null;
   let navigation = null;
+  let navigationView = null;
   let projectActionsMenu = null;
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
   let focusTimerProjectId=null;
@@ -3195,7 +3196,6 @@
 
   /* ---------- Wiring ---------- */
   function wireStaticControls(){
-    document.getElementById("feedbackNav").onclick = () => window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
     const globalSearch = document.getElementById("globalSearch");
     globalSearch.addEventListener("focus",()=>{
       if (suppressGlobalSearchFocus){ suppressGlobalSearchFocus=false; return; }
@@ -3282,13 +3282,24 @@
      Regular mode silently resumes the last-connected file or shows the
      connect gate. Demo mode loads its isolated browser workspace instead.
      Auth (if a provider is available) is initialized independently. */
-  async function boot({loadViewModules}){
+  async function boot({loadViewModules,loadNavigationView}){
     const startupOperation=operationStatus.begin("Preparing your workspace…");
     window.BeforeworkAppearance.initTheme();
     try{
+      if (typeof loadNavigationView!=="function"){
+        throw new TypeError("Application startup requires a navigation-view loader.");
+      }
+      const [{NavigationView}]=await Promise.all([
+        loadNavigationView(),
+        window.BeforeworkViewTemplates.load("navigation")
+      ]);
+      navigationView=new NavigationView({
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("navigation")
+      });
+      navigationView.mount(document.getElementById("navigationMount"));
       await window.BeforeworkViewTemplates.load("dateTimePickers");
     }catch(error){
-      await showNotice("Couldn't load date and time pickers",window.BeforeworkErrorUtils.getMessage(error));
+      await showNotice("Couldn't load navigation or date and time pickers",window.BeforeworkErrorUtils.getMessage(error));
       startupOperation.finish();
       operationStatus.finishStartup();
       return;
@@ -3309,6 +3320,7 @@
       resetDemoButton.onclick=resetDemoWorkspace;
     }
     navigation=window.BeforeworkNavigation.create({
+      navigationView,
       onOverview:()=>{
         activeProjectId=OVERVIEW;
         persistActiveLocation();
@@ -3326,6 +3338,7 @@
       onIntegrations:navigateToIntegrations,
       onSettings:navigateToSettings,
       onSupport:navigateToSupport,
+      onFeedback:()=>window.open(FEEDBACK_URL,"_blank","noopener,noreferrer"),
       switchWorkspace:switchFile,
       createWorkspace:startNewFileFromMenu
     });
@@ -3427,9 +3440,7 @@
         cloneTemplate:()=>window.BeforeworkViewTemplates.clone("workspaceDocuments")
       });
       navigation.registerSecondarySection({
-        section:"documents",
-        title:"Documents",
-        trigger:document.getElementById("workspaceDocumentsNav"),
+        ...navigationView.getSecondarySection("documents"),
         renderContent:content=>workspaceDocumentsView.renderSidebar(content),
         onOpen:navigateToWorkspaceDocuments,
         createLabel:"New document",
@@ -3652,8 +3663,9 @@
   }
   window.BeforeworkApp = {
     start(dependencies){
-      if (!dependencies || typeof dependencies.loadViewModules !== "function"){
-        throw new TypeError("Application startup requires a view-module loader.");
+      if (!dependencies || typeof dependencies.loadViewModules !== "function"
+        || typeof dependencies.loadNavigationView!=="function"){
+        throw new TypeError("Application startup requires view-module and navigation-view loaders.");
       }
       return boot(dependencies);
     }
