@@ -1,2 +1,6 @@
 dist/
 node_modules/
+js/vendor/icon-data.js
+js/vendor/mdi-icons.json
+js/vendor/mdi-index.json
+licenses/iconify-icon.LICENSE

@@ -236,7 +236,7 @@
       {id:uid(), name:"Done", items:[]}
     ];
     const personalPlanning = {
-      id:uid(), name:"Personal planning", description:"Keep household tasks, learning goals, and recurring routines organized by status and target date.", icon:"mdi:home-heart-outline", folderId:personalFolder.id, createdAt:now,
+      id:uid(), name:"Personal planning", description:"Keep household tasks, learning goals, and recurring routines organized by status and target date.", icon:"mdi:home-heart", folderId:personalFolder.id, createdAt:now,
       tags:[homeTag, learningTag, wellbeingTag], fields:[makeField("Tags","tags"), personalStatus, personalPriority, personalDate],
       views:personalViews, activeViewId:personalViews[0].id, itemDefaultType:"task", groups:personalGroups
     };

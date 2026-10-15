@@ -85,8 +85,10 @@ test("desktop sidebar keeps primary navigation icons visible by default",()=>{
   assert.match(styles,/@font-face\{[^}]*font-family:"Inter"[^}]*font-weight:100 900[^}]*font-display:swap[^}]*src:url\("vendor\/fonts\/inter-latin-wght-normal\.woff2"\) format\("woff2"\)/);
   assert.match(index,/style-src 'self' 'unsafe-inline'; font-src 'self';/);
   assert.doesNotMatch(index,/fonts\.googleapis\.com|fonts\.gstatic\.com/);
+  assert.match(index,/<script src="node_modules\/iconify-icon\/dist\/iconify-icon\.min\.js"><\/script>\s*<script src="js\/vendor\/icon-data\.js"><\/script>/);
+  assert.doesNotMatch(index,/code\.iconify\.design|api\.iconify\.design|api\.simplesvg\.com|api\.unisvg\.com/);
   assert.ok(fs.existsSync(path.join(__dirname,"../styles/vendor/fonts/inter-latin-wght-normal.woff2")));
-  assert.ok(fs.existsSync(path.join(__dirname,"../styles/vendor/fonts/Inter-OFL.txt")));
+  assert.ok(fs.existsSync(path.join(__dirname,"../licenses/Inter-OFL.txt")));
   assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\{width:72px;/);
   assert.match(styles,/#sidebar\{width:72px;flex:0 0 72px;margin:6px 0 6px 6px;[\s\S]*?border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
   assert.match(styles,/--sidebar-card-bg:#fff;/);

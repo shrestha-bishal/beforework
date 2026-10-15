@@ -8,8 +8,9 @@ const root = path.resolve(__dirname, "..");
 const output = path.join(root, "dist");
 const mode = process.env.BEFOREWORK_MODE === "demo" ? "demo" : "clean";
 const googleClientId = process.env.BEFOREWORK_GOOGLE_CLIENT_ID || "";
-const publishPaths = ["index.html", "robots.txt", "sitemap.xml", "images", "js", "pages", "styles"];
+const publishPaths = ["index.html", "robots.txt", "sitemap.xml", "images", "js", "pages", "styles", "licenses"];
 const browserLibraries = [
+  {source:"node_modules/iconify-icon/dist/iconify-icon.min.js",target:"js/vendor/iconify-icon.min.js"},
   {source:"node_modules/markdown-it/dist/browser/markdown-it.umd.min.js",target:"vendor/markdown-it.min.js"},
   {source:"node_modules/dompurify/dist/purify.min.js",target:"vendor/purify.min.js"}
 ];
@@ -17,8 +18,10 @@ const primerStylesheet = {
   source:"node_modules/@primer/css/dist/primer.css",
   license:"node_modules/@primer/css/LICENSE",
   target:"styles/vendor/primer.css",
-  licenseTarget:"styles/vendor/primer.LICENSE"
+  licenseTarget:"licenses/primer.LICENSE"
 };
+
+require("./build-icon-data");
 
 fs.rmSync(output, {recursive:true, force:true});
 fs.mkdirSync(output, {recursive:true});

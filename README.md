@@ -53,25 +53,26 @@ Beforework uses the File System Access API to open and save a workspace root and
 
 Custom field types are registered from individual modules in `js/core/fields/types/`. Each module owns its catalog metadata and any type-specific filtering, value normalisation, sorting, and export behavior; add new modules to the field script list in `index.html`.
 
-For local source development, serve the repository root directly; the source loader runs the ordered application scripts without a build:
+For local source development, install the dependencies and start the development server:
 
-```sh
-python3 -m http.server 8000
+```bash
+npm ci
+npm run dev
 ```
 
-Then open <http://localhost:8000/> in Chrome or Edge and create a workspace folder, open an existing folder workspace, or connect an older single-file JSON workspace.
+The development server generates the local icon assets automatically and serves the source app at <http://localhost:8000/>. The generated icon files are ignored by Git.
 
 Local hosting starts with an empty workspace by default. The hosted [Beforework demo](https://beforework-demo.netlify.app/) opens directly into sample data without asking for folder access. Demo edits are saved only in that browser; use **Reset demo** to restore the sample workspace or **Use your own workspace** to open the regular folder-backed app.
 
-To test the generated production bundle with demo data, build and serve `dist`:
+To test the generated production bundle, build it and start the preview server:
 
 ```powershell
 $env:BEFOREWORK_MODE = "demo"
-node scripts/build-site.js
-python -m http.server 8000 --directory dist
+npm run build
+npm run preview
 ```
 
-The ordered imports in `js/manifest.js` are the application script manifest. `js/dev-loader.js` loads those files sequentially as classic scripts for local source development, preserving the shared declarations expected by the app. The production build combines the same ordered files into one minified `js/app.min.js`, and minifies CSS and HTML in `dist`; source files remain readable and unchanged. Lazy-loaded view modules remain separate. On macOS or Linux, run the build with `BEFOREWORK_MODE=demo node scripts/build-site.js`, then serve `dist` with a static file server.
+The production preview serves the built `dist` directory at <http://localhost:8000/>; it does not rebuild the site, so run `npm run build` first. To preview the default clean workspace locally, omit the `BEFOREWORK_MODE` environment variable before building. The ordered imports in `js/manifest.js` are the application script manifest. `js/dev-loader.js` loads those files sequentially as classic scripts for local source development, preserving the shared declarations expected by the app. The production build combines the same ordered files into one minified `js/app.min.js`, and minifies CSS and HTML in `dist`; source files remain readable and unchanged. Lazy-loaded view modules remain separate.
 
 ## Deploy
 
@@ -112,6 +113,8 @@ New schema changes should add a new migration step rather than changing an exist
 - `js/services/storage/` - local workspace persistence and attachments
 - `js/services/reminders/` - in-app reminder scheduling and notifications
 - `js/ui/` - shared UI components, appearance preferences, and HTML template loading
+- `js/vendor/` - locally bundled icon runtime and generated icon data
+- `licenses/` - third-party license texts and notices; the app's PolyForm license remains in the repository root
 - `js/features/` - cohesive application features, including recurrence rules
 - `js/helpers/` - shared date/time and HTML escaping utilities
 - `js/config/` - build-generated runtime configuration
@@ -124,6 +127,7 @@ New schema changes should add a new migration step rather than changing an exist
 - `styles/manifest.css` - stylesheet entry point, importing shared and feature-specific styles
 - `images/` - icons and image assets
 - `scripts/build-site.js` - static production build and minification
+- `scripts/build-icon-data.js` - regenerate pinned local icon data and search index
 - `tests/` - Node.js regression tests
 
 ## Funding & Sponsorship

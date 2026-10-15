@@ -3,6 +3,7 @@
 
   function create({tagColorOptions, defaultProjectIcon, projectDefaultIcons, openFloatingSelectMenu, closeFloatingSelectMenu, loadTemplate, clonePageTemplate}){
     let templatesPromise=null;
+    let iconNamesPromise=null;
     let finishActive=null;
     let requestSequence=0;
 
@@ -94,26 +95,43 @@
           if (query.length<2){
             matches=[];
             renderOptions();
-            status.textContent=query?"Type at least 2 characters to search.":"Search Material Design Icons to browse more.";
+            status.textContent=query?"Type at least 2 characters to search.":"Search the local Material Design Icons collection.";
             return;
           }
-          status.textContent="Searching icons...";
+          status.textContent="Searching local icons...";
           searchTimer=setTimeout(async()=>{
             try{
-              const response=await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&prefix=mdi&limit=48`);
-              if (!response.ok) throw new Error("Icon search unavailable");
-              const payload=await response.json();
+              if (!iconNamesPromise){
+                iconNamesPromise=fetch("js/vendor/mdi-index.json").then(response=>{
+                  if (!response.ok) throw new Error("Could not load local icon search data.");
+                  return response.json();
+                }).then(names=>{
+                  if (!Array.isArray(names)||names.some(name=>typeof name!=="string"||!/^mdi:[a-z0-9-]+$/i.test(name))){
+                    throw new Error("Local icon search data is invalid.");
+                  }
+                  return names;
+                }).catch(error=>{iconNamesPromise=null;throw error;});
+              }
+              const names=await iconNamesPromise;
               if (sequence!==searchSequence) return;
-              matches=(Array.isArray(payload.icons)?payload.icons:[]).filter(iconName=>typeof iconName==="string"&&/^mdi:[a-z0-9-]+$/i.test(iconName));
+              const normalizedQuery=query.toLowerCase();
+              matches=names
+                .filter(iconName=>iconName.slice(4).includes(normalizedQuery))
+                .sort((left,right)=>{
+                  const leftPrefix=left.slice(4).startsWith(normalizedQuery);
+                  const rightPrefix=right.slice(4).startsWith(normalizedQuery);
+                  return Number(rightPrefix)-Number(leftPrefix)||left.localeCompare(right);
+                })
+                .slice(0,48);
               renderOptions();
-              status.textContent=matches.length?`${matches.length} icons found.`:"No matching icons.";
+              status.textContent=matches.length?`${matches.length} local icons found.`:"No matching icons.";
             }catch(error){
               if (sequence!==searchSequence) return;
               matches=[];
               renderOptions();
-              status.textContent="Icon search unavailable. Your selected icon is unchanged.";
+              status.textContent="Local icon search unavailable. Your selected icon is unchanged.";
             }
-          },250);
+          },150);
         });
         return root;
       }

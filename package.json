@@ -2,11 +2,18 @@
   "name": "beforework",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-site.js"
+    "dev": "node scripts/serve-site.js dev",
+    "build": "node scripts/build-site.js",
+    "preview": "node scripts/serve-site.js preview",
+    "build:icon-data": "node scripts/build-icon-data.js"
   },
   "devDependencies": {
+    "@iconify-json/logos": "1.2.16",
+    "@iconify-json/mdi": "1.2.3",
+    "@iconify/utils": "3.1.7",
     "clean-css": "5.3.3",
     "html-minifier-terser": "7.2.0",
+    "iconify-icon": "3.0.3",
     "terser": "5.51.2"
   },
   "dependencies": {

@@ -5,7 +5,7 @@ Thanks for your interest in Beforework.
 ## Getting started
 
 1. Fork the repository and create a branch for your change.
-2. Run the site locally with `python3 -m http.server 8000`.
+2. Run `npm ci`, then start the local development server with `npm run dev`.
 3. Test the affected workflow in Chrome or Edge, including file creation and saving where relevant.
 4. Keep changes focused and use Australian English for user-facing copy.
 5. Open a pull request describing the behaviour changed and how it was tested.
