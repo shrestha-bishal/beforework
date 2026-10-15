@@ -177,7 +177,7 @@ test("workspace and project sections are mutually exclusive in the secondary sid
   assert.equal(secondarySidebarTitle.textContent,"Workspace");
   assert.equal(secondarySidebar.attributes["data-section"],"workspace");
   assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],"workspace");
-  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions,sidebarProjects]);
+  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions]);
   assert.equal(harness.elements.workspaceSidebarName.textContent,"Personal Workspace");
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
   assert.equal(projectsNav.attributes["aria-expanded"],"false");
@@ -193,7 +193,7 @@ test("workspace and project sections are mutually exclusive in the secondary sid
   workspaceSwitcherBtn.onclick();
   assert.equal(secondarySidebarTitle.textContent,"Workspace");
   assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],"workspace");
-  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions,sidebarProjects]);
+  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions]);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
   assert.equal(projectsNav.attributes["aria-expanded"],"false");
 
@@ -276,7 +276,7 @@ test("workspace controls use the extensible secondary sidebar",()=>{
   const harness=createHarness();
   const {workspaceSwitcherBtn,projectsNav,workspaceSidebarActions,sidebarProjects,secondarySidebar}=harness.elements;
   workspaceSwitcherBtn.onclick();
-  assert.deepEqual(harness.elements.secondarySidebarContent.children,[workspaceSidebarActions,sidebarProjects]);
+  assert.deepEqual(harness.elements.secondarySidebarContent.children,[workspaceSidebarActions]);
   assert.equal(secondarySidebar.attributes["data-section"],"workspace");
   projectsNav.onclick();
   assert.deepEqual(harness.elements.secondarySidebarContent.children,[sidebarProjects]);

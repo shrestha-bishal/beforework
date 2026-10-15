@@ -180,7 +180,7 @@
         trigger:workspaceSwitcherBtn,
         renderContent:content=>{
           workspaceSidebarName.textContent=workspaceSwitcherLabel.textContent||"Workspace";
-          content.replaceChildren(workspaceSidebarActions,projectsSidebar);
+          content.replaceChildren(workspaceSidebarActions);
         }
       });
       element("secondarySidebarClose").onclick=closeSecondarySidebar;
