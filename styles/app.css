@@ -16,10 +16,28 @@
     --shadow-modal:var(--color-shadow-large);
     --sidebar-card-bg:#fff;
     --shadow-side:2px 0 10px rgba(27,31,36,.08);
+    --nav-icon-overview:#6f5bd3;
+    --nav-icon-projects:#3979cf;
+    --nav-icon-calendar:#168c86;
+    --nav-icon-roadmap:#cf514b;
+    --nav-icon-integrations:#7953c5;
+    --nav-icon-settings:#687385;
+    --nav-icon-support:#d34f70;
+    --nav-icon-feedback:#1684a0;
+    --nav-icon-timer:#b77812;
   }
   :root[data-theme="dark"]{
     --sidebar-card-bg:var(--bg);
     --shadow-side:2px 0 10px rgba(1,4,9,.5);
+    --nav-icon-overview:#a995ff;
+    --nav-icon-projects:#79adff;
+    --nav-icon-calendar:#5bd0c4;
+    --nav-icon-roadmap:#ff8980;
+    --nav-icon-integrations:#c09aff;
+    --nav-icon-settings:#aab4c2;
+    --nav-icon-support:#ff91aa;
+    --nav-icon-feedback:#68c9e0;
+    --nav-icon-timer:#f1bb62;
   }
   *{box-sizing:border-box;}
   html{color-scheme:light;}
@@ -116,23 +134,16 @@
     #sidebar #supportNav.active,
     #sidebar #projectsNav[aria-expanded="true"],
     #sidebar #workspaceSwitcherBtn[aria-expanded="true"]{background:var(--bg-soft);}
-    #sidebar #overviewNav:hover iconify-icon,
-    #sidebar #overviewNav.active iconify-icon,
-    #sidebar #calendarNav:hover iconify-icon,
-    #sidebar #calendarNav.active iconify-icon,
-    #sidebar #roadmapNav:hover iconify-icon,
-    #sidebar #roadmapNav.active iconify-icon,
-    #sidebar #projectsNav:hover iconify-icon,
-    #sidebar #projectsNav[aria-expanded="true"] iconify-icon,
     #sidebar #workspaceSwitcherBtn:hover>iconify-icon:first-child,
-    #sidebar #workspaceSwitcherBtn[aria-expanded="true"]>iconify-icon:first-child,
-    #sidebar #integrationsNav:hover iconify-icon,
-    #sidebar #integrationsNav.active iconify-icon,
-    #sidebar #settingsNav:hover iconify-icon,
-    #sidebar #settingsNav.active iconify-icon,
-    #sidebar #supportNav:hover iconify-icon,
-    #sidebar #supportNav.active iconify-icon,
-    #sidebar #feedbackNav:hover iconify-icon{color:var(--accent);}
+    #sidebar #workspaceSwitcherBtn[aria-expanded="true"]>iconify-icon:first-child{color:var(--accent);}
+    #sidebar #overviewNav.active iconify-icon{color:var(--nav-icon-overview);}
+    #sidebar #calendarNav.active iconify-icon{color:var(--nav-icon-calendar);}
+    #sidebar #roadmapNav.active iconify-icon{color:var(--nav-icon-roadmap);}
+    #sidebar #projectsNav[aria-expanded="true"] iconify-icon{color:var(--nav-icon-projects);}
+    #sidebar #integrationsNav.active iconify-icon{color:var(--nav-icon-integrations);}
+    #sidebar #settingsNav.active iconify-icon{color:var(--nav-icon-settings);}
+    #sidebar #supportNav.active iconify-icon{color:var(--nav-icon-support);}
+    #sidebar #feedbackNav.active iconify-icon{color:var(--nav-icon-feedback);}
     #sidebar[data-secondary-section] #overviewNav.active,
     #sidebar[data-secondary-section] #calendarNav.active,
     #sidebar[data-secondary-section] #roadmapNav.active,
@@ -190,7 +201,15 @@
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
   #overviewNav:hover,#calendarNav:hover,#roadmapNav:hover,#projectsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #projectsNav{width:100%;border:0;background:transparent;font-family:inherit;text-align:left;}
-  #overviewNav iconify-icon,#calendarNav iconify-icon,#roadmapNav iconify-icon,#projectsNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;}
+  #overviewNav iconify-icon,#calendarNav iconify-icon,#roadmapNav iconify-icon,#projectsNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;color:var(--muted);}
+  #overviewNav.active iconify-icon{color:var(--nav-icon-overview);}
+  #projectsNav[aria-expanded="true"] iconify-icon{color:var(--nav-icon-projects);}
+  #calendarNav.active iconify-icon{color:var(--nav-icon-calendar);}
+  #roadmapNav.active iconify-icon{color:var(--nav-icon-roadmap);}
+  #integrationsNav.active iconify-icon{color:var(--nav-icon-integrations);}
+  #settingsNav.active iconify-icon{color:var(--nav-icon-settings);}
+  #supportNav.active iconify-icon{color:var(--nav-icon-support);}
+  #feedbackNav.active iconify-icon{color:var(--nav-icon-feedback);}
   #overviewNav.active,#calendarNav.active,#roadmapNav.active,#projectsNav[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #projectsNav:focus-visible,#secondarySidebarClose:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   #secondarySidebar{display:flex;flex:0 0 0;width:0;min-width:0;flex-direction:column;overflow:hidden;border-right:0 solid var(--border);background:var(--bg-soft);

@@ -19,7 +19,10 @@ test("Focus Timer styles are isolated and included after shared application styl
   assert.match(timerStyles,/#sidebar #focusTimerNav\{flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px/);
   assert.match(timerStyles,/#sidebar #focusTimerNav iconify-icon\{font-size:21px;\}/);
   assert.match(timerStyles,/#sidebar #focusTimerNav\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
-  assert.match(timerStyles,/#sidebar #focusTimerNav\.active iconify-icon\{color:var\(--accent\);\}/);
+  assert.match(timerStyles,/#focusTimerNav iconify-icon\{color:var\(--muted\);font-size:16px;\}/);
+  assert.match(timerStyles,/#focusTimerNav\.active iconify-icon\{color:var\(--nav-icon-timer,#b77812\);\}/);
+  assert.match(appStyles,/--nav-icon-roadmap:#cf514b;/);
+  assert.match(appStyles,/#roadmapNav\.active iconify-icon\{color:var\(--nav-icon-roadmap\);\}/);
   assert.match(timerStyles,/#board:has\(\.focusTimerPage\)\{display:block;overflow:auto/);
   assert.match(timerStyles,/\.focusTimerLayout\{display:grid;grid-template-columns:minmax\(0,1\.55fr\) minmax\(300px,\.85fr\)/);
   assert.match(timerStyles,/\.focusTimerDialProgress\{stroke:var\(--accent\);stroke-linecap:round/);
