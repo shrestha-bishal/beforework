@@ -18,6 +18,7 @@ function makeElement(id){
     id,
     onclick:null,
     hidden:false,
+    textContent:"",
     attributes:{},
     classList:{
       add(name){ classes.add(name); },
@@ -31,13 +32,16 @@ function makeElement(id){
       }
     },
     setAttribute(name,value){ this.attributes[name]=value; },
+    removeAttribute(name){ delete this.attributes[name]; },
+    replaceChildren(...children){ this.children=children; },
     addEventListener(){}
   };
 }
 
 function createHarness(){
   const ids=[
-    "overviewNav","brandHomeBtn","calendarNav","roadmapNav","integrationsNav","settingsNav","supportNav",
+    "overviewNav","brandHomeBtn","calendarNav","roadmapNav","projectsNav","secondarySidebar",
+    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","integrationsNav","settingsNav","supportNav",
     "workspaceSwitcherBtn","workspaceSwitcherMenu","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
   ];
@@ -85,12 +89,14 @@ test("sidebar does not include the removed Tags section",()=>{
   assert.doesNotMatch(app,/renderSidebarTags|tagDotHtml|manageTagsBtn|Manage tags in/);
 });
 
-test("Projects placeholder appears above existing sidebar navigation",()=>{
-  assert.match(index,/<div id="projectsNav" class="sidebarPlaceholderNav"[^>]*aria-disabled="true"><iconify-icon icon="mdi:layers-outline"/);
+test("Projects opens an initially empty secondary sidebar",()=>{
+  assert.match(index,/<button id="projectsNav"[^>]*aria-controls="secondarySidebar"><iconify-icon icon="mdi:layers-outline"/);
+  assert.match(index,/<aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>[\s\S]*?<div id="secondarySidebarContent"><\/div>/);
   assert.ok(index.indexOf('id="projectsNav"')>index.indexOf('id="roadmapNav"'));
   assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('class="sidebarProjects"'));
   assert.match(index,/<ul class="SideNav" id="projectList"><\/ul>/);
   assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
+  assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
 });
 
 test("navigation controls delegate each destination to its app callback",()=>{
@@ -133,6 +139,38 @@ test("navigation owns mobile sidebar open and close interactions",()=>{
   harness.navigation.closeSidebarOnMobile();
   assert.equal(sidebar.classList.contains("open"),false);
   assert.equal(sidebarScrim.classList.contains("show"),false);
+});
+
+test("secondary sidebar accepts reusable section content and closes accessibly",()=>{
+  const harness=createHarness();
+  const {projectsNav,secondarySidebar,secondarySidebarTitle,secondarySidebarContent,secondarySidebarClose}=harness.elements;
+  projectsNav.onclick();
+  assert.equal(secondarySidebarTitle.textContent,"Projects");
+  assert.equal(secondarySidebarContent.children.length,0);
+  assert.equal(secondarySidebar.classList.contains("open"),true);
+  assert.equal(secondarySidebar.attributes["aria-hidden"],"false");
+  assert.equal(secondarySidebar.attributes.inert,undefined);
+  assert.equal(projectsNav.attributes["aria-expanded"],"true");
+
+  const content={};
+  harness.navigation.openSecondarySidebar({title:"Another section",renderContent:container=>container.replaceChildren(content)});
+  assert.equal(secondarySidebarTitle.textContent,"Another section");
+  assert.deepEqual(secondarySidebarContent.children,[content]);
+
+  secondarySidebarClose.onclick();
+  assert.equal(secondarySidebar.classList.contains("open"),false);
+  assert.equal(secondarySidebar.attributes["aria-hidden"],"true");
+  assert.equal(secondarySidebar.attributes.inert,"");
+  assert.equal(projectsNav.attributes["aria-expanded"],"false");
+});
+
+test("selecting another navigation destination closes the secondary sidebar",()=>{
+  const harness=createHarness();
+  harness.elements.projectsNav.onclick();
+  harness.elements.calendarNav.onclick();
+  assert.equal(harness.elements.secondarySidebar.classList.contains("open"),false);
+  assert.equal(harness.elements.projectsNav.attributes["aria-expanded"],"false");
+  assert.deepEqual(harness.calls,["calendar"]);
 });
 
 test("workspace switcher uses the shared action menu component",()=>{

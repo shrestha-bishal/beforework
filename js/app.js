@@ -1810,6 +1810,7 @@
       state.projects=[];
     }
     activeProjectId=folderPageLocation(folderId);
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     selectedItemIds.clear();
     renderAll();
@@ -1835,6 +1836,7 @@
       state.projects=[];
     }
     activeProjectId = pid;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     filterFeature.restore(pid);
     selectedItemIds.clear();
@@ -1861,6 +1863,7 @@
 
   function navigateToIntegrations(){
     activeProjectId = INTEGRATIONS;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     renderAll();
     closeSidebarOnMobile();
@@ -1868,12 +1871,14 @@
 
   function navigateToSettings(){
     activeProjectId = SETTINGS;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     renderAll();
     closeSidebarOnMobile();
   }
   function navigateToSupport(){
     activeProjectId = SUPPORT;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     renderAll();
     closeSidebarOnMobile();
