@@ -2022,10 +2022,13 @@
     const filterBar = document.getElementById("boardFilterBar");
     const projectMenuWrap = document.getElementById("projectMenuWrap");
     const viewTabs = document.getElementById("viewTabs");
+    const projectViewsBar = document.getElementById("projectViewsBar");
+    const main = document.getElementById("main");
     const completionTabs = document.getElementById("completionTabs");
     const topLabel = document.getElementById("projectTitleLabel");
     const descriptionLabel = document.getElementById("projectDescriptionLabel");
     const board = document.getElementById("board");
+    main.classList.remove("hasProjectViewTabs");
     if (completionTabs && filterBar && board.contains(completionTabs)){
       filterBar.insertBefore(completionTabs,filterBar.querySelector(".filterMainRow"));
     }
@@ -2048,7 +2051,7 @@
       filterBar.style.display="none";
       projectMenuWrap.style.display="none";
       projectActionsMenu.close();
-      viewTabs.style.display="none";
+      projectViewsBar.style.display="none";
       completionTabs.style.display="none";
       folderView.render(board,folder,projectRecords(),{
         onOpenProject:selectProject,
@@ -2068,7 +2071,7 @@
       filterBar.style.display="none";
       projectMenuWrap.style.display="none";
       projectActionsMenu.close();
-      viewTabs.style.display="none";
+      projectViewsBar.style.display="none";
       completionTabs.style.display="none";
       workspaceDocumentsView.render(board);
       return;
@@ -2086,7 +2089,7 @@
       filterBar.style.display = "none";
       projectMenuWrap.style.display = "none";
       projectActionsMenu.close();
-      viewTabs.style.display = "none";
+      projectViewsBar.style.display = "none";
       completionTabs.style.display = "none";
       if (activeProjectId===CALENDAR) calendarView.render(board, null);
       else if (activeProjectId===ROADMAP) roadmapView.render(board,window.BeforeworkRoadmapModel.rowsForWorkspace(activeProjectRecords()),{
@@ -2130,7 +2133,8 @@
     if (!project.activeViewId || !project.views.some(v=>v.id===project.activeViewId)){
       project.activeViewId = project.views[0].id;
     }
-    viewTabs.style.display = "flex";
+    main.classList.add("hasProjectViewTabs");
+    projectViewsBar.style.display = "flex";
     renderViewTabs(project);
     completionTabs.style.display = "flex";
     renderCompletionTabs(project);
@@ -2192,33 +2196,97 @@
 
   function renderViewTabs(project){
     const wrap = document.getElementById("viewTabs");
-    const activeView=project.views.find(view=>view.id===project.activeViewId);
     const missing = VIEW_DEFS.filter(d=>!project.views.some(v=>v.type===d.type));
-    wrap.innerHTML = `
-      <label class="viewSelectorLabel" for="projectViewSelector">View</label>
-      <select class="form-control viewSelector" id="projectViewSelector" aria-label="Project view">
-        ${project.views.map(view=>`<option value="${escapeHtml(view.id)}"${view.id===project.activeViewId?" selected":""}>${escapeHtml(viewLabel(view.type))}</option>`).join("")}
-      </select>
-      ${project.views.length>1?`<button type="button" class="btn btn-invisible btn-sm removeViewBtn" id="removeViewBtn" aria-label="Remove ${escapeHtml(viewLabel(activeView.type))} view" title="Remove this view">×</button>`:""}
-      ${missing.length?`<button type="button" class="btn btn-invisible btn-sm addViewBtn" id="addViewBtn" title="Add a view" aria-label="Add a view">+</button>`:""}`;
-    const selector=wrap.querySelector("#projectViewSelector");
-    selector.addEventListener("change",()=>{
-      if (project.activeViewId===selector.value) return;
-      project.activeViewId=selector.value;
-      scheduleSave();
-      render();
+    const categories=["Popular","Other"];
+    const addViewMenu=missing.length?`
+      <div class="viewAddMenu" id="addViewMenu" role="group" aria-label="Add a project view" hidden>
+        ${categories.map(category=>{
+          const definitions=missing.filter(definition=>definition.category===category);
+          if (!definitions.length) return "";
+          return `<section class="viewAddGroup">
+            <h3>${category}</h3>
+            <div class="viewAddGrid">${definitions.map(definition=>`
+              <button type="button" class="viewAddOption" data-add-view="${escapeHtml(definition.type)}" data-view-category="${escapeHtml(category.toLowerCase())}">
+                <iconify-icon icon="${escapeHtml(definition.icon)}" aria-hidden="true"></iconify-icon>
+                <span><strong>${escapeHtml(definition.label)}</strong><small>${escapeHtml(definition.description)}</small></span>
+              </button>`).join("")}
+            </div>
+          </section>`;
+        }).join("")}
+      </div>`:"";
+    wrap.innerHTML=`
+      <div class="viewTabList" role="tablist" aria-label="Project views">
+        ${project.views.map(view=>{
+          const definition=VIEW_DEFS.find(item=>item.type===view.type);
+          const label=viewLabel(view.type);
+          return `<div class="viewTabItem" role="presentation">
+            <button type="button" class="viewTab${view.id===project.activeViewId?" active":""}" role="tab"
+              aria-selected="${view.id===project.activeViewId}" aria-label="${escapeHtml(label)}" data-view-id="${escapeHtml(view.id)}">
+              <iconify-icon icon="${escapeHtml(definition?.icon||"mdi:view-dashboard-outline")}" aria-hidden="true"></iconify-icon>
+              <span>${escapeHtml(label)}</span>
+            </button>
+            <button type="button" class="viewTabMenuTrigger" aria-label="${escapeHtml(label)} view actions">
+              <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
+            </button>
+            <div class="viewTabMenu" hidden>
+              <button type="button" class="danger" data-view-action="remove" ${project.views.length<=1?"disabled":""}>
+                <iconify-icon icon="mdi:trash-can-outline" aria-hidden="true"></iconify-icon>
+                <span>Remove view</span>
+              </button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      ${missing.length?`<div class="viewAddWrap"><button type="button" class="btn btn-invisible btn-sm addViewBtn" id="addViewBtn" title="Add a view" aria-label="Add a view" aria-haspopup="true" aria-expanded="false" aria-controls="addViewMenu"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>${addViewMenu}</div>`:""}`;
+    wrap.querySelectorAll("[data-view-id]").forEach(tab=>{
+      tab.onclick=()=>{
+        if (project.activeViewId===tab.dataset.viewId) return;
+        project.activeViewId=tab.dataset.viewId;
+        scheduleSave();
+        render();
+      };
     });
-    const removeViewBtn=wrap.querySelector("#removeViewBtn");
-    if (removeViewBtn) removeViewBtn.onclick=async()=>{
-      if (await showConfirm("Remove this view","This only removes the view - your items and their data are unaffected.")){
-        removeView(project,project.activeViewId);
-      }
-    };
+    wrap.querySelectorAll(".viewTabItem").forEach(tabItem=>{
+      const trigger=tabItem.querySelector(".viewTabMenuTrigger");
+      const menu=tabItem.querySelector(".viewTabMenu");
+      actionMenus.register(trigger,menu);
+      menu.querySelector('[data-view-action="remove"]').onclick=async()=>{
+        const viewId=tabItem.querySelector("[data-view-id]").dataset.viewId;
+        const view=project.views.find(item=>item.id===viewId);
+        if (!view||project.views.length<=1) return;
+        if (await showConfirm(`Remove ${viewLabel(view.type)} view`,"This only removes the view - your items and their data are unaffected.")){
+          removeView(project,viewId);
+        }
+      };
+    });
     const addViewBtn = document.getElementById("addViewBtn");
-    if (addViewBtn) addViewBtn.onclick = async () => {
-      const type = await showDialog({title:"Add a view", fields:[{label:"View type", type:"select", options:missing.map(m=>({value:m.type,label:m.label}))}], confirmLabel:"Add view"});
-      if (type) addView(project, type);
-    };
+    if (addViewBtn){
+      const menu=wrap.querySelector("#addViewMenu");
+      const closeAddViewMenu=({restoreFocus=false}={})=>{
+        menu.hidden=true;
+        addViewBtn.setAttribute("aria-expanded","false");
+        if (restoreFocus) addViewBtn.focus();
+      };
+      addViewBtn.onclick=()=>{
+        menu.hidden=!menu.hidden;
+        addViewBtn.setAttribute("aria-expanded",String(!menu.hidden));
+        if (!menu.hidden) menu.querySelector("[data-add-view]")?.focus();
+      };
+      menu.addEventListener("click",event=>{
+        const option=event.target.closest("[data-add-view]");
+        if (!option) return;
+        closeAddViewMenu();
+        addView(project,option.dataset.addView);
+      });
+      menu.addEventListener("keydown",event=>{
+        if (event.key!=="Escape") return;
+        closeAddViewMenu({restoreFocus:true});
+        event.preventDefault();
+      });
+      wrap.onclick=event=>{
+        if (!menu.hidden&&!menu.contains(event.target)&&!addViewBtn.contains(event.target)) closeAddViewMenu();
+      };
+    }
   }
 
   function renderCompletionTabs(project){

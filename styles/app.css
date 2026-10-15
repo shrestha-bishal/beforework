@@ -338,6 +338,8 @@
 
   /* Main */
   #topbar{display:flex;align-items:center;gap:8px;padding:16px 20px 14px; border-bottom:1px solid var(--border);position:relative;background:var(--bg);}
+  #main.hasProjectViewTabs #topbar{border-bottom:0;}
+  .projectViewsBar{position:relative;z-index:10;display:flex;min-height:48px;align-items:stretch;padding:0 20px;border-bottom:1px solid var(--border);background:var(--bg);}
   .projectHeading{flex:1;min-width:0;}
   #topbar h2{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectDescriptionLabel{overflow:hidden;margin:2px 0 0;color:var(--muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap;}
@@ -434,12 +436,57 @@
     .folderPageAdd{margin-left:auto;}
   }
 
-  .viewTabs{display:flex;align-items:center;gap:4px;flex:none;}
-  .viewSelectorLabel{color:var(--muted);font-size:11.5px;font-weight:500;white-space:nowrap;}
-  .viewSelector{width:auto;min-width:118px;max-width:190px;min-height:32px;padding:5px 28px 5px 10px;border-radius:7px;font-size:12.5px;font-weight:500;}
-  .viewTabs .removeViewBtn,.viewTabs .addViewBtn{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;padding:0;border-radius:7px;font-size:15px;}
-  .viewTabs .removeViewBtn{color:var(--muted);}
-  .viewTabs .removeViewBtn:hover{background:var(--danger-soft);color:var(--danger);}
+  .viewTabs{position:relative;display:flex;width:100%;align-items:stretch;gap:5px;min-width:0;}
+  .viewTabList{display:flex;flex-wrap:wrap;align-items:stretch;gap:2px;min-width:0;overflow:visible;}
+  .viewTabItem{position:relative;display:flex;flex:none;align-items:stretch;padding-right:12px;border-radius:8px;}
+  .viewTabs .viewTab{position:relative;display:inline-flex;align-items:center;gap:7px;flex:none;min-height:48px;padding:0 20px 0 10px;border:0;border-radius:0;background:transparent;color:var(--muted);font:inherit;font-size:12.5px;font-weight:500;white-space:nowrap;cursor:pointer;}
+  .viewTabs .viewTab::after{position:absolute;right:8px;bottom:-1px;left:8px;height:2px;border-radius:2px;background:transparent;content:"";}
+  .viewTabItem:hover,.viewTabItem:focus-within{background:var(--bg-soft);}
+  .viewTabs .viewTab:hover{background:transparent;color:var(--text);}
+  .viewTabs .viewTab.active{background:transparent;color:var(--text);font-weight:600;}
+  .viewTabs .viewTab.active::after{background:var(--accent);}
+  .viewTabs .viewTab:focus-visible,.viewTabs .addViewBtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .viewTabs .viewTab iconify-icon{color:var(--muted);font-size:16px;}
+  .viewTabs .viewTab.active iconify-icon{color:var(--accent-strong);}
+  .viewTabs .viewTabMenuTrigger{position:absolute;top:50%;right:0;z-index:1;width:24px;height:24px;transform:translateY(-50%);border-radius:6px;background:transparent;color:var(--text);opacity:0;transition:opacity .14s ease;}
+  .viewTabItem:hover .viewTabMenuTrigger,.viewTabItem:focus-within .viewTabMenuTrigger,.viewTabMenuTrigger[aria-expanded="true"]{opacity:1;}
+  .viewTabs .viewTabMenuTrigger:hover,.viewTabs .viewTabMenuTrigger:focus-visible,.viewTabs .viewTabMenuTrigger[aria-expanded="true"]{background:transparent;color:var(--text);}
+  .viewTabs .viewTabMenuTrigger:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .viewTabs .viewTabMenuTrigger iconify-icon{font-size:15px;}
+  .viewTabMenu{top:calc(100% + 3px);right:0;min-width:156px;}
+  .viewTabMenu button:disabled{color:var(--faint);cursor:not-allowed;}
+  .viewTabMenu button:disabled:hover{background:transparent;}
+  .viewAddWrap{position:relative;display:flex;flex:none;align-items:center;}
+  .viewTabs .addViewBtn{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;padding:0;border-radius:7px;font-size:15px;}
+  .viewTabs .addViewBtn{width:36px;height:36px;border-radius:7px;background:var(--bg-soft);}
+  .viewTabs .addViewBtn:hover,.viewTabs .addViewBtn[aria-expanded="true"]{background:var(--bg-soft2);color:var(--text);}
+  .viewTabs .addViewBtn iconify-icon{font-size:19px;}
+  .viewAddMenu{position:absolute;z-index:70;top:calc(100% + 7px);left:0;right:auto;display:grid;width:min(560px,calc(100vw - 32px));max-height:min(70vh,480px);overflow:auto;gap:0;padding:16px;border:1px solid var(--border-strong);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .viewAddMenu[hidden]{display:none!important;}
+  .viewAddGroup+.viewAddGroup{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+  .viewAddGroup h3{margin:0 0 6px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.01em;}
+  .viewAddGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 8px;}
+  .viewAddOption{display:flex;align-items:center;gap:10px;min-width:0;min-height:58px;padding:8px;border:0;border-radius:8px;background:transparent;color:var(--text);text-align:left;cursor:pointer;}
+  .viewAddOption:hover,.viewAddOption:focus-visible{outline:0;background:var(--bg-soft);}
+  .viewAddOption>iconify-icon{display:grid;width:32px;height:32px;flex:none;place-items:center;border-radius:8px;background:var(--accent-soft);color:var(--accent-strong);font-size:18px;}
+  .viewAddOption[data-add-view="calendar"]>iconify-icon{background:var(--color-attention-subtle);color:var(--color-attention-fg);}
+  .viewAddOption[data-add-view="kanban"]>iconify-icon{background:var(--color-done-subtle);color:var(--color-done-fg);}
+  .viewAddOption[data-add-view="table"]>iconify-icon{background:var(--color-success-subtle);color:var(--color-success-fg);}
+  .viewAddOption[data-view-category="other"]>iconify-icon{background:var(--bg-soft2);color:var(--muted);}
+  .viewAddOption>span{display:flex;min-width:0;flex-direction:column;gap:2px;}
+  .viewAddOption strong{font-size:13px;font-weight:600;}
+  .viewAddOption small{color:var(--muted);font-size:11px;line-height:1.35;}
+  @media(max-width:900px){
+    .projectViewsBar{padding:0 16px;}
+    .viewTabs .viewTab{gap:5px;padding:0 18px 0 9px;font-size:12px;}
+  }
+  @media(max-width:560px){
+    .projectViewsBar{min-height:44px;padding:0 10px;}
+    .viewTabs .viewTab{min-height:44px;padding:0 18px 0 8px;font-size:11.5px;}
+    .viewTabs .viewTab iconify-icon{font-size:14px;}
+    .viewAddMenu{left:auto;right:-40px;width:min(420px,calc(100vw - 20px));padding:12px;}
+    .viewAddGrid{grid-template-columns:1fr;}
+  }
   .completionTabs{display:flex;align-items:stretch;min-height:40px;margin-bottom:8px;}
   .completionTabs.completionTabsInList{flex:1 1 240px;min-width:0;min-height:40px;margin:0;}
   .completionTabList{display:flex;align-items:stretch;gap:14px;width:100%;border-bottom:1px solid var(--border);}
