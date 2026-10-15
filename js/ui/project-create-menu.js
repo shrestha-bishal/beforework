@@ -4,7 +4,7 @@
   function createProjectCreateMenu({documentRef=global.document,actions}){
     const menu=documentRef.getElementById("projectCreateMenu");
     const button=documentRef.getElementById("projectCreateBtn");
-    const actionMenu=global.BeforeworkActionMenu.create({documentRef}).register(button,menu);
+    const actionMenu=global.BeforeworkActionMenu.create({documentRef}).register(button,menu,{styleTrigger:false});
 
     function close(){
       actionMenu.close();

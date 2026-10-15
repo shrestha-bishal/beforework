@@ -136,11 +136,15 @@
   #secondarySidebar{display:flex;flex:0 0 0;width:0;min-width:0;flex-direction:column;overflow:hidden;border-right:0 solid var(--border);background:var(--bg-soft);
     transition:flex-basis .18s ease,width .18s ease,border-width .18s ease;}
   #secondarySidebar.open{flex-basis:264px;width:264px;border-right-width:1px;}
-  .secondarySidebarHeader{display:flex;flex:none;align-items:center;justify-content:space-between;gap:8px;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--border);}
+  .secondarySidebarHeader{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--border);}
   .secondarySidebarHeader h2{overflow:hidden;margin:0;font-size:14px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;}
+  .secondarySidebarActions{display:flex;flex:none;align-items:center;gap:4px;margin-left:auto;}
   #secondarySidebarClose{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
-  #secondarySidebarClose:hover{background:var(--bg-soft2);color:var(--text);}
-  #secondarySidebarClose iconify-icon{font-size:18px;}
+  #secondarySidebarClose:hover,.projectCreateBtn:hover,
+  #secondarySidebarClose:focus-visible,.projectCreateBtn:focus-visible,
+  .projectCreateBtn[aria-expanded="true"],.projectCreateBtn.active{background:var(--bg-soft2);color:var(--text);}
+  #secondarySidebarClose iconify-icon,.projectCreateBtn iconify-icon{font-size:18px;}
+  .projectCreateBtn{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
   #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:12px;}
   #secondarySidebarContent .sidebarProjects{min-width:0;}
   @media (prefers-reduced-motion:reduce){#secondarySidebar{transition:none;}}

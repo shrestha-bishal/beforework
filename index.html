@@ -119,15 +119,17 @@
       <aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>
         <div class="secondarySidebarHeader">
           <h2 id="secondarySidebarTitle"></h2>
-          <div class="projectCreateWrap">
-            <button class="btn btn-sm btn-invisible projectCreateBtn action-menu__trigger action-menu__trigger--compact" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false" aria-controls="projectCreateMenu"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
-            <div class="menu action-menu action-menu--create" id="projectCreateMenu" role="menu" hidden>
-              <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
-              <button class="btn btn-sm btn-invisible" id="importProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:table-arrow-up" aria-hidden="true"></iconify-icon><span>Import project</span></button>
-              <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
+          <div class="secondarySidebarActions">
+            <button id="secondarySidebarClose" type="button" title="Close sidebar" aria-label="Close sidebar"><iconify-icon icon="mdi:chevron-left" aria-hidden="true"></iconify-icon></button>
+            <div class="projectCreateWrap">
+              <button class="btn btn-sm btn-invisible projectCreateBtn" id="projectCreateBtn" type="button" title="Create project or folder" aria-label="Create project or folder" aria-haspopup="menu" aria-expanded="false" aria-controls="projectCreateMenu"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></button>
+              <div class="menu action-menu action-menu--create" id="projectCreateMenu" role="menu" hidden>
+                <button class="btn btn-sm btn-invisible" id="addProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:view-grid-plus-outline" aria-hidden="true"></iconify-icon><span>New project</span></button>
+                <button class="btn btn-sm btn-invisible" id="importProjectBtn" type="button" role="menuitem"><iconify-icon icon="mdi:table-arrow-up" aria-hidden="true"></iconify-icon><span>Import project</span></button>
+                <button class="btn btn-sm btn-invisible" id="addFolderBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>New folder</span></button>
+              </div>
             </div>
           </div>
-          <button id="secondarySidebarClose" type="button" title="Close sidebar" aria-label="Close sidebar"><iconify-icon icon="mdi:chevron-left" aria-hidden="true"></iconify-icon></button>
         </div>
         <div id="secondarySidebarContent">
           <div class="sidebarProjects" id="sidebarProjects">

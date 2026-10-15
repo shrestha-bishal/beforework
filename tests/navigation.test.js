@@ -96,10 +96,12 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="secondarySidebar"'));
   assert.ok(index.indexOf('class="sidebarProjects"')>index.indexOf('id="secondarySidebarContent"'));
   assert.match(index,/<div class="sidebarProjects" id="sidebarProjects">/);
-  assert.match(index,/<div class="secondarySidebarHeader">[\s\S]*?<button\b[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
+  assert.match(index,/<div class="secondarySidebarActions">[\s\S]*?<button id="secondarySidebarClose"[\s\S]*?<button class="btn btn-sm btn-invisible projectCreateBtn"[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
   assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
   assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
   assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
+  assert.match(styles,/\.secondarySidebarActions\{display:flex;flex:none;align-items:center;gap:4px;margin-left:auto;\}/);
+  assert.match(styles,/#secondarySidebarClose:hover,.projectCreateBtn:hover,[\s\S]*?\.projectCreateBtn\.active\{background:var\(--bg-soft2\);color:var\(--text\);\}/);
 });
 
 test("navigation controls delegate each destination to its app callback",()=>{
