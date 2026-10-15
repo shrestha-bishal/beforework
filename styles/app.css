@@ -70,6 +70,7 @@
     #sidebar.collapsed #overviewNav,
     #sidebar.collapsed #calendarNav,
     #sidebar.collapsed #roadmapNav,
+    #sidebar.collapsed #projectsNav,
     #sidebar.collapsed #integrationsNav,
     #sidebar.collapsed #settingsNav,
     #sidebar.collapsed #supportNav,
@@ -77,6 +78,7 @@
     #sidebar.collapsed #overviewNav span,
     #sidebar.collapsed #calendarNav span,
     #sidebar.collapsed #roadmapNav span,
+    #sidebar.collapsed #projectsNav span,
     #sidebar.collapsed #integrationsNav span,
     #sidebar.collapsed #settingsNav span,
     #sidebar.collapsed #supportNav span,
@@ -138,11 +140,12 @@
     .commandPaletteFooter{font-size:9px;}
   }
 
-  #overviewNav,#calendarNav,#roadmapNav{display:flex;align-items:center;justify-content:flex-start;gap:9px;padding:8px 10px;border-radius:8px;
+  #overviewNav,#calendarNav,#roadmapNav,#projectsNav{display:flex;align-items:center;justify-content:flex-start;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
   #overviewNav:hover,#calendarNav:hover,#roadmapNav:hover{background:var(--bg-soft2);color:var(--text);}
+  #projectsNav{cursor:default;}
+  #overviewNav iconify-icon,#calendarNav iconify-icon,#roadmapNav iconify-icon,#projectsNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;}
   #overviewNav.active,#calendarNav.active,#roadmapNav.active{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
-  #overviewNav iconify-icon,#calendarNav iconify-icon,#roadmapNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
   #integrationsNav:hover{background:var(--bg-soft2);color:var(--text);}

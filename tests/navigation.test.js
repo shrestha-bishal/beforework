@@ -10,6 +10,7 @@ const appScripts=require("./helpers/app-script-order");
 const source=fs.readFileSync(path.join(__dirname,"../js/ui/navigation.js"),"utf8");
 const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
 const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 
 function makeElement(id){
   const classes=new Set();
@@ -82,6 +83,14 @@ function createHarness(){
 test("sidebar does not include the removed Tags section",()=>{
   assert.doesNotMatch(index,/tagsSection|tagsSectionLabel|sideTagsList|manageTagsBtn/);
   assert.doesNotMatch(app,/renderSidebarTags|tagDotHtml|manageTagsBtn|Manage tags in/);
+});
+
+test("Projects placeholder appears above existing sidebar navigation",()=>{
+  assert.match(index,/<div id="projectsNav" class="sidebarPlaceholderNav"[^>]*aria-disabled="true"><iconify-icon icon="mdi:layers-outline"/);
+  assert.ok(index.indexOf('id="projectsNav"')>index.indexOf('id="roadmapNav"'));
+  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('class="sidebarProjects"'));
+  assert.match(index,/<ul class="SideNav" id="projectList"><\/ul>/);
+  assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
 });
 
 test("navigation controls delegate each destination to its app callback",()=>{
