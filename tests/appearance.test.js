@@ -91,13 +91,13 @@ test("initializes and toggles the persisted sidebar state",()=>{
   assert.equal(harness.values.get("personal_dashboard_sidebar_collapsed_v1"),"0");
 });
 
-test("collapsed desktop sidebar keeps navigation and project icons visible",()=>{
+test("collapsed desktop sidebar keeps primary navigation icons visible",()=>{
   assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\.collapsed\{width:60px;/);
   assert.match(styles,/#sidebar\.collapsed #overviewNav,\s*#sidebar\.collapsed #calendarNav,\s*#sidebar\.collapsed #roadmapNav/);
+  assert.match(styles,/#sidebar\.collapsed #feedbackNav span\{display:none;\}/);
   assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherBtn\{justify-content:center;width:42px;height:42px/);
   assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherMenu\{position:fixed;top:72px;left:68px/);
-  assert.match(styles,/#sidebar\.collapsed #projectList \.SideNav-item\{justify-content:center/);
-  assert.match(styles,/#sidebar\.collapsed \.sidebarProjects\{border-top:1px solid var\(--border\);padding-top:8px;\}/);
+  assert.doesNotMatch(styles,/#sidebar\.collapsed #projectList/);
   assert.match(styles,/#sidebar\.collapsed \.sidebarBottomNav \.uiDivider\{display:block;\}/);
   assert.doesNotMatch(styles,/#tagsSection/);
   assert.match(styles,/#sidebar\.collapsed #globalSearch\{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);

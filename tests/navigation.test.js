@@ -41,7 +41,7 @@ function makeElement(id){
 function createHarness(){
   const ids=[
     "overviewNav","brandHomeBtn","calendarNav","roadmapNav","projectsNav","secondarySidebar",
-    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","integrationsNav","settingsNav","supportNav",
+    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","sidebarProjects","integrationsNav","settingsNav","supportNav",
     "workspaceSwitcherBtn","workspaceSwitcherMenu","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
   ];
@@ -89,12 +89,15 @@ test("sidebar does not include the removed Tags section",()=>{
   assert.doesNotMatch(app,/renderSidebarTags|tagDotHtml|manageTagsBtn|Manage tags in/);
 });
 
-test("Projects opens an initially empty secondary sidebar",()=>{
+test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.match(index,/<button id="projectsNav"[^>]*aria-controls="secondarySidebar"><iconify-icon icon="mdi:layers-outline"/);
-  assert.match(index,/<aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>[\s\S]*?<div id="secondarySidebarContent"><\/div>/);
+  assert.match(index,/<aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>[\s\S]*?<div id="secondarySidebarContent">[\s\S]*?<ul class="SideNav" id="projectList"><\/ul>/);
   assert.ok(index.indexOf('id="projectsNav"')>index.indexOf('id="roadmapNav"'));
-  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('class="sidebarProjects"'));
-  assert.match(index,/<ul class="SideNav" id="projectList"><\/ul>/);
+  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="secondarySidebar"'));
+  assert.ok(index.indexOf('class="sidebarProjects"')>index.indexOf('id="secondarySidebarContent"'));
+  assert.match(index,/<div class="sidebarProjects" id="sidebarProjects">/);
+  assert.match(index,/<div class="secondarySidebarHeader">[\s\S]*?<button\b[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
+  assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
   assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
   assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
 });
@@ -141,12 +144,13 @@ test("navigation owns mobile sidebar open and close interactions",()=>{
   assert.equal(sidebarScrim.classList.contains("show"),false);
 });
 
-test("secondary sidebar accepts reusable section content and closes accessibly",()=>{
+test("secondary sidebar preserves the project list when reopening and accepts reusable section content",()=>{
   const harness=createHarness();
   const {projectsNav,secondarySidebar,secondarySidebarTitle,secondarySidebarContent,secondarySidebarClose}=harness.elements;
+  secondarySidebarContent.children=["project list"];
   projectsNav.onclick();
   assert.equal(secondarySidebarTitle.textContent,"Projects");
-  assert.equal(secondarySidebarContent.children.length,0);
+  assert.deepEqual(secondarySidebarContent.children,[harness.elements.sidebarProjects]);
   assert.equal(secondarySidebar.classList.contains("open"),true);
   assert.equal(secondarySidebar.attributes["aria-hidden"],"false");
   assert.equal(secondarySidebar.attributes.inert,undefined);
@@ -157,6 +161,9 @@ test("secondary sidebar accepts reusable section content and closes accessibly",
   assert.equal(secondarySidebarTitle.textContent,"Another section");
   assert.deepEqual(secondarySidebarContent.children,[content]);
 
+  harness.navigation.closeSecondarySidebar();
+  projectsNav.onclick();
+  assert.deepEqual(secondarySidebarContent.children,[harness.elements.sidebarProjects]);
   secondarySidebarClose.onclick();
   assert.equal(secondarySidebar.classList.contains("open"),false);
   assert.equal(secondarySidebar.attributes["aria-hidden"],"true");

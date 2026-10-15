@@ -19,6 +19,7 @@
     const secondarySidebar=element("secondarySidebar");
     const secondarySidebarTitle=element("secondarySidebarTitle");
     const secondarySidebarContent=element("secondarySidebarContent");
+    const projectsSidebar=element("sidebarProjects");
     const workspaceSwitcherActionMenu=global.BeforeworkActionMenu.create({documentRef})
       .register(workspaceSwitcherBtn,workspaceSwitcherMenu,{styleTrigger:false});
 
@@ -45,8 +46,10 @@
 
     function openSecondarySidebar({title,renderContent}){
       secondarySidebarTitle.textContent=title;
-      secondarySidebarContent.replaceChildren();
-      if (renderContent) renderContent(secondarySidebarContent);
+      if (renderContent){
+        secondarySidebarContent.replaceChildren();
+        renderContent(secondarySidebarContent);
+      }
       secondarySidebar.classList.add("open");
       secondarySidebar.setAttribute("aria-hidden","false");
       secondarySidebar.removeAttribute("inert");
@@ -58,7 +61,10 @@
       if (secondarySidebar.classList.contains("open")){
         closeSecondarySidebar();
       }else{
-        openSecondarySidebar({title:"Projects"});
+        openSecondarySidebar({
+          title:"Projects",
+          renderContent:content=>content.replaceChildren(projectsSidebar)
+        });
       }
     }
 

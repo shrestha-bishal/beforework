@@ -59,13 +59,11 @@
     #sidebar.collapsed #sidebarWrap .brandHomeBtn{display:flex;width:42px;height:42px;align-items:center;justify-content:center;margin:0 auto;}
     #sidebar.collapsed #sidebarWrap .mark{display:none;}
     #sidebar.collapsed #sidebarWrap .markCollapsed{display:block;width:32px;height:32px;object-fit:contain;}
-    #sidebar.collapsed .sidebarProjects{border-top:1px solid var(--border);padding-top:8px;}
     #sidebar.collapsed .searchWrap{width:42px;height:42px;margin:0 auto;}
     #sidebar.collapsed .searchWrap svg{left:14px;top:14px;transform:none;}
     #sidebar.collapsed #globalSearch{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;}
     #sidebar.collapsed .searchWrap:focus-within{outline:2px solid var(--accent);outline-offset:1px;border-radius:8px;}
     #sidebar.collapsed .searchShortcut{display:none;}
-    #sidebar.collapsed .projectSectionHeader{display:none!important;}
     #sidebar.collapsed .sidebarBottomNav .uiDivider{display:block;}
     #sidebar.collapsed #overviewNav,
     #sidebar.collapsed #calendarNav,
@@ -82,19 +80,7 @@
     #sidebar.collapsed #integrationsNav span,
     #sidebar.collapsed #settingsNav span,
     #sidebar.collapsed #supportNav span,
-    #sidebar.collapsed #feedbackNav span,
-    #sidebar.collapsed #projectList .projectName,
-    #sidebar.collapsed #projectList .cnt,
-    #sidebar.collapsed #projectList .projectQuickMenuWrap,
-    #sidebar.collapsed #projectList .folderName,
-    #sidebar.collapsed #projectList .folderCount,
-    #sidebar.collapsed #projectList .folderChevron,
-    #sidebar.collapsed #projectList .folderQuickMenuWrap,
-    #sidebar.collapsed #projectList .folderHeadingDivider{display:none;}
-    #sidebar.collapsed #projectList .SideNav-item{justify-content:center;padding:9px 10px;}
-    #sidebar.collapsed #projectList .folderHeading{justify-content:center;padding:9px 10px;}
-    #sidebar.collapsed #projectList .folderToggle{display:none;}
-    #sidebar.collapsed #projectList .folderPageLink{justify-content:center;}
+    #sidebar.collapsed #feedbackNav span{display:none;}
   }
   #app{position:relative;}
   #sidebarCollapseHandle{position:absolute;top:20px;left:252px;z-index:65;width:22px;height:22px;
@@ -156,6 +142,7 @@
   #secondarySidebarClose:hover{background:var(--bg-soft2);color:var(--text);}
   #secondarySidebarClose iconify-icon{font-size:18px;}
   #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:12px;}
+  #secondarySidebarContent .sidebarProjects{min-width:0;}
   @media (prefers-reduced-motion:reduce){#secondarySidebar{transition:none;}}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
