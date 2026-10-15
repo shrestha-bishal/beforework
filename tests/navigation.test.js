@@ -100,6 +100,13 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
   assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
   assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
+  assert.match(styles,/@media \(min-width:861px\)\{\s*#secondarySidebar\.open\{margin:12px;border:1px solid var\(--border\);border-radius:12px;background:var\(--bg\);box-shadow:var\(--shadow-modal\);\}/);
+  assert.match(styles,/\.secondarySidebarHeader\{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;\}/);
+  assert.match(styles,/#projectList\{[^}]*background:transparent;/);
+  assert.match(styles,/#projectList \.SideNav-item\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(styles,/#projectList \.SideNav-item\.active \.projectIcon\{color:var\(--muted\);\}/);
+  assert.match(styles,/#projectList \.folderHeading iconify-icon\{flex:none;color:var\(--muted\);font-size:14px;\}/);
+  assert.match(styles,/#projectList \.folderHeading:has\(\.folderPageLink\[aria-current="page"\]\)\{border-radius:6px;background:var\(--bg-soft\);\}/);
   assert.match(styles,/\.secondarySidebarActions\{display:flex;flex:none;align-items:center;gap:4px;margin-left:auto;\}/);
   assert.match(styles,/#secondarySidebarClose:hover,.projectCreateBtn:hover,[\s\S]*?\.projectCreateBtn\.active\{background:var\(--bg-soft2\);color:var\(--text\);\}/);
 });

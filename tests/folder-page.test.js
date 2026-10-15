@@ -13,7 +13,7 @@ const templates=fs.readFileSync(path.join(__dirname,"../js/ui/templates.js"),"ut
 const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 
 test("folder name and collapse arrow have separate navigation actions",()=>{
-  assert.match(app,/folderLink\.onclick=\(\)=>selectFolderPage\(folder\.id\)/);
+  assert.match(app,/folderLink\.onclick=\(\)=>selectFolderPage\(folder\.id,\{keepSecondarySidebarOpen:true\}\)/);
   assert.match(app,/toggle\.onclick=\(\)=>\{/);
   assert.match(app,/toggle\.append\(chevron\)/);
   assert.match(app,/folderLink\.append\(icon,name,count\)/);

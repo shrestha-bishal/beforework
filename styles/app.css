@@ -134,9 +134,12 @@
   #overviewNav.active,#calendarNav.active,#roadmapNav.active,#projectsNav[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #projectsNav:focus-visible,#secondarySidebarClose:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   #secondarySidebar{display:flex;flex:0 0 0;width:0;min-width:0;flex-direction:column;overflow:hidden;border-right:0 solid var(--border);background:var(--bg-soft);
-    transition:flex-basis .18s ease,width .18s ease,border-width .18s ease;}
+    transition:flex-basis .18s ease,width .18s ease,border-width .18s ease,margin .18s ease;}
   #secondarySidebar.open{flex-basis:264px;width:264px;border-right-width:1px;}
-  .secondarySidebarHeader{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--border);}
+  @media (min-width:861px){
+    #secondarySidebar.open{margin:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  }
+  .secondarySidebarHeader{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;}
   .secondarySidebarHeader h2{overflow:hidden;margin:0;font-size:14px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;}
   .secondarySidebarActions{display:flex;flex:none;align-items:center;gap:4px;margin-left:auto;}
   #secondarySidebarClose{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
@@ -145,7 +148,7 @@
   .projectCreateBtn[aria-expanded="true"],.projectCreateBtn.active{background:var(--bg-soft2);color:var(--text);}
   #secondarySidebarClose iconify-icon,.projectCreateBtn iconify-icon{font-size:18px;}
   .projectCreateBtn{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
-  #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:12px;}
+  #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:14px 12px;}
   #secondarySidebarContent .sidebarProjects{min-width:0;}
   @media (prefers-reduced-motion:reduce){#secondarySidebar{transition:none;}}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
@@ -170,13 +173,15 @@
   .projectCreateBtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;color:var(--muted);}
   .projectCreateBtn:hover,.projectCreateBtn.active{background:var(--bg-soft2);color:var(--text);}
   .projectCreateBtn iconify-icon{font-size:16px;}
-  #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;border:0;box-shadow:none;}
+  #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;border:0;background:transparent;box-shadow:none;}
+  #projectList .projectListSectionLabel{padding:4px 10px;color:var(--muted);font-size:10.5px;font-weight:600;letter-spacing:.02em;line-height:1.3;}
+  #projectList .projectListPinnedDivider{height:0;margin:8px 10px 6px;border-top:1px solid var(--border);}
   #projectList .folderHeading{display:flex;align-items:center;gap:7px;min-width:0;margin-top:5px;padding:9px 10px 5px;
     font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;letter-spacing:0;
     position:relative;}
   #projectList .folderHeading:first-child{margin-top:0;padding-top:5px;}
-  #projectList .folderHeadingDivider{position:absolute;top:0;left:10px;width:calc(100% - 20px);}
-  #projectList .folderHeading iconify-icon{flex:none;color:var(--accent-strong);font-size:14px;}
+  #projectList .folderHeading iconify-icon{flex:none;color:var(--muted);font-size:14px;}
+  #projectList .folderHeading:has(.folderPageLink[aria-current="page"]){border-radius:6px;background:var(--bg-soft);}
   #projectList .folderToggle{display:flex;align-items:center;justify-content:center;flex:0 0 14px;width:14px;height:22px;
     padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;}
   #projectList .folderToggle:disabled{cursor:default;}
@@ -187,7 +192,7 @@
   #projectList .folderPageLink{display:flex;align-items:center;gap:7px;flex:1;min-width:0;padding:0;border:0;
     background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;}
   #projectList .folderPageLink:hover .folderName,
-  #projectList .folderPageLink[aria-current="page"] .folderName{color:var(--accent-strong);}
+  #projectList .folderPageLink[aria-current="page"] .folderName{color:var(--text);}
   #projectList .folderPageLink:focus-visible{border-radius:4px;outline:2px solid var(--accent);outline-offset:2px;}
   #projectList .folderHeading .folderName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectList .folderHeading .folderCount{flex:none;width:24px;text-align:center;color:var(--faint);font-size:10.5px;font-weight:500;transition:opacity .12s ease, transform .12s ease;margin-left:auto;}
@@ -211,14 +216,14 @@
   #projectList .SideNav-item{display:flex;align-items:center;gap:6px;position:relative;
     padding:7px 10px;border:0;border-radius:6px;cursor:pointer;font-size:13.5px;color:var(--muted);
     background:transparent;width:100%;text-align:left;box-shadow:none;}
-  #projectList .SideNav-item:hover{background:var(--bg-soft2);color:var(--text);}
-  #projectList .SideNav-item.active{background:transparent;color:var(--accent-strong);font-weight:600;}
+  #projectList .SideNav-item:hover{background:var(--bg-soft);color:var(--text);}
+  #projectList .SideNav-item.active{background:var(--bg-soft);color:var(--text);font-weight:600;}
   #projectList .SideNav-item .cnt{width:24px;text-align:center;font-size:11.5px;color:var(--faint);font-weight:400;transition:opacity .12s ease, transform .12s ease;margin-left:auto;}
   #projectList .SideNav-item:hover .cnt{opacity:0;transform:scale(.8);}
   #projectList .SideNav-item:has(.projectQuickMenu.open) .cnt{opacity:0;transform:scale(.8);}
-  #projectList .SideNav-item.active .cnt{color:var(--accent);}
+  #projectList .SideNav-item.active .cnt{color:var(--muted);}
   #projectList .SideNav-item .projectIcon{font-size:15px;flex:none;color:var(--faint);}
-  #projectList .SideNav-item.active .projectIcon{color:var(--accent-strong);}
+  #projectList .SideNav-item.active .projectIcon{color:var(--muted);}
   #projectList .SideNav-item .projectName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #projectList .SideNav-item .projectPinIcon{flex:none;color:var(--accent-strong);font-size:12px;}
   #projectList .SideNav-item .projectQuickMenuWrap{position:absolute;right:10px;top:50%;display:flex;align-items:center;transform:translateY(-50%);}

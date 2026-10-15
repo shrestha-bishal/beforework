@@ -1627,17 +1627,31 @@
         actions:projectActionHandlers
       });
       li.append(cnt, wrap);
-      li.onclick = () => { selectProject(p.id); };
+      li.onclick = () => { selectProject(p.id,{keepSecondarySidebarOpen:true}); };
       ul.appendChild(li);
       return li;
+    };
+    const appendSectionLabel=label=>{
+      const heading=document.createElement("li");
+      heading.className="projectListSectionLabel";
+      heading.textContent=label;
+      ul.appendChild(heading);
     };
     const projects=projectRecords();
     const activeProjects=projects.filter(project=>!project.archived);
     const archivedProjects=projects.filter(project=>project.archived);
     const pinnedProjects=activeProjects.filter(project=>project.pinned);
+    if (pinnedProjects.length){
+      appendSectionLabel("Pinned");
+    }
     pinnedProjects.forEach(project=>appendProject(project));
     const unfiled = activeProjects.filter(project=>!project.pinned&&(!project.folderId || !state.folders.some(folder=>folder.id===project.folderId)));
-    unfiled.forEach(project=>appendProject(project));
+    if (pinnedProjects.length&&(state.folders.length||unfiled.length)){
+      const divider=document.createElement("li");
+      divider.className="projectListPinnedDivider";
+      divider.setAttribute("aria-hidden","true");
+      ul.appendChild(divider);
+    }
     state.folders.forEach(folder=>{
       if (collapsedFolderIds===null){
         try{
@@ -1650,12 +1664,6 @@
       const folderCollapsed=collapsedFolderIds.has(folder.id);
       const heading = document.createElement("li");
       heading.className = "folderHeading";
-      if (ul.children.length){
-        const divider = document.createElement("div");
-        divider.className = "uiDivider folderHeadingDivider";
-        divider.setAttribute("aria-hidden","true");
-        heading.appendChild(divider);
-      }
       const projectCount = activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).length;
       const icon = document.createElement("iconify-icon");
       icon.className = "folderIcon";
@@ -1687,7 +1695,7 @@
       folderLink.setAttribute("aria-label",`Open folder ${folder.name}`);
       if (activeProjectId===folderPageLocation(folder.id)) folderLink.setAttribute("aria-current","page");
       folderLink.append(icon,name,count);
-      folderLink.onclick=()=>selectFolderPage(folder.id);
+      folderLink.onclick=()=>selectFolderPage(folder.id,{keepSecondarySidebarOpen:true});
       toggle.onclick=()=>{
         if (!projectCount) return;
         const collapsed=!collapsedFolderIds.has(folder.id);
@@ -1770,16 +1778,10 @@
         projectRow.inert=folderCollapsed;
       });
     });
+    unfiled.forEach(project=>appendProject(project));
     if (archivedProjects.length){
       const heading=document.createElement("li");
       heading.className="folderHeading archivedProjectsHeading";
-      if (ul.children.length){
-        const divider=document.createElement("div");
-        divider.className="uiDivider folderHeadingDivider";
-        divider.setAttribute("aria-hidden","true");
-        heading.appendChild(divider);
-      }
-
       const icon=document.createElement("iconify-icon");
       icon.setAttribute("icon","mdi:archive-outline");
       icon.setAttribute("aria-hidden","true");
@@ -1800,7 +1802,7 @@
   function folderIdFromLocation(location){
     return isFolderPageLocation(location)?location.slice(FOLDER_PAGE_PREFIX.length):null;
   }
-  async function selectFolderPage(folderId){
+  async function selectFolderPage(folderId,{keepSecondarySidebarOpen=false}={}){
     if (!state?.folders.some(folder=>folder.id===folderId)) return;
     if (state.folderLazy&&state.projects.length){
       if (!await flushSave()){
@@ -1810,14 +1812,14 @@
       state.projects=[];
     }
     activeProjectId=folderPageLocation(folderId);
-    navigation?.closeSecondarySidebar();
+    if (!keepSecondarySidebarOpen) navigation?.closeSecondarySidebar();
     persistActiveLocation();
     selectedItemIds.clear();
     renderAll();
     closeSidebarOnMobile();
   }
 
-  async function selectProject(pid){
+  async function selectProject(pid,{keepSecondarySidebarOpen=false}={}){
     if (state?.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(pid)){
       if (activeProjectId!==pid && state.projects.length){
         if (!await flushSave()){
@@ -1836,7 +1838,7 @@
       state.projects=[];
     }
     activeProjectId = pid;
-    navigation?.closeSecondarySidebar();
+    if (!keepSecondarySidebarOpen) navigation?.closeSecondarySidebar();
     persistActiveLocation();
     filterFeature.restore(pid);
     selectedItemIds.clear();

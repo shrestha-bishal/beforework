@@ -124,6 +124,25 @@ test("sidebar folders can be collapsed, expanded, and remembered",()=>{
   assert.match(styles,/@media \(prefers-reduced-motion:reduce\)/);
 });
 
+test("selecting a project or folder in the secondary sidebar keeps it open",()=>{
+  assert.match(app,/li\.onclick = \(\) => \{ selectProject\(p\.id,\{keepSecondarySidebarOpen:true\}\); \};/);
+  assert.match(app,/folderLink\.onclick=\(\)=>selectFolderPage\(folder\.id,\{keepSecondarySidebarOpen:true\}\)/);
+  assert.match(app,/async function selectProject\(pid,\{keepSecondarySidebarOpen=false\}=\{\}\)/);
+  assert.match(app,/async function selectFolderPage\(folderId,\{keepSecondarySidebarOpen=false\}=\{\}\)/);
+  assert.equal((app.match(/if \(!keepSecondarySidebarOpen\) navigation\?\.closeSecondarySidebar\(\);/g)||[]).length,2);
+});
+
+test("pinned projects are labeled and folders precede loose projects",()=>{
+  assert.match(app,/const appendSectionLabel=label=>\{\s*const heading=document\.createElement\("li"\);\s*heading\.className="projectListSectionLabel";\s*heading\.textContent=label;\s*ul\.appendChild\(heading\);\s*\};[\s\S]*?if \(pinnedProjects\.length\)\{\s*appendSectionLabel\("Pinned"\);\s*\}\s*pinnedProjects\.forEach/);
+  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?if \(pinnedProjects\.length&&\(state\.folders\.length\|\|unfiled\.length\)\)\{\s*const divider=document\.createElement\("li"\);\s*divider\.className="projectListPinnedDivider";\s*divider\.setAttribute\("aria-hidden","true"\);\s*ul\.appendChild\(divider\);\s*\}/);
+  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?state\.folders\.forEach\(folder=>\{[\s\S]*?unfiled\.forEach\(project=>appendProject\(project\)\);/);
+  assert.doesNotMatch(app,/appendSectionLabel\("(?:Projects|Folders)"\)/);
+  assert.match(styles,/#projectList \.projectListSectionLabel\{padding:4px 10px;color:var\(--muted\);font-size:10\.5px;font-weight:600;letter-spacing:\.02em;line-height:1\.3;\}/);
+  assert.match(styles,/#projectList \.projectListPinnedDivider\{height:0;margin:8px 10px 6px;border-top:1px solid var\(--border\);\}/);
+  assert.doesNotMatch(app,/folderHeadingDivider/);
+  assert.doesNotMatch(styles,/folderHeadingDivider/);
+});
+
 test("sidebar project action trigger keeps shared menu behavior with compact custom styling",()=>{
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar\{[^}]*width:24px;[^}]*height:20px;[^}]*flex:0 0 auto;[^}]*padding:2px 4px;[^}]*border-radius:5px;[^}]*font-size:16px;/);
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar:hover,[\s\S]*?\.action-menu__trigger--sidebar\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
