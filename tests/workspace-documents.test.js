@@ -89,6 +89,50 @@ test("workspace documents are a primary navigation destination with a reusable e
   assert.match(documentViewSource,/active\?\.content\.trim\(\)\?"preview":"write"/);
 });
 
+test("workspace document sidebar search filters titles and reports empty results",()=>{
+  const {feature}=makeFeature();
+  const owner={id:"workspace",name:"Workspace"};
+  feature.create(owner,"Team handbook");
+  feature.create(owner,"Release plan");
+  const makeElement=tag=>({
+    tag,
+    children:[],
+    classList:{toggle(){}},
+    setAttribute(){},
+    appendChild(child){ this.children.push(child); },
+    append(...children){ this.children.push(...children); },
+    replaceChildren(...children){ this.children=children; }
+  });
+  const documentRef={createDocumentFragment:()=>makeElement("fragment"),createElement:makeElement};
+  const window={};
+  vm.runInNewContext(
+    `${viewSource.replace("export class WorkspaceDocumentsView","class WorkspaceDocumentsView")}\nwindow.WorkspaceDocumentsView=WorkspaceDocumentsView;`,
+    {window,globalThis:{document:documentRef}},
+    {filename:"workspace-documents-view.js"}
+  );
+  const view=new window.WorkspaceDocumentsView({
+    documentsFeature:feature,
+    documentsView:{},
+    cloneTemplate:()=>null
+  });
+  const container=makeElement("container");
+  const getList=()=>container.children[0].children[0].children[0];
+
+  view.renderSidebar(container);
+  let list=getList();
+  assert.equal(list.children.length,2);
+  view.setSearchQuery("release");
+  view.renderSidebar(container);
+  list=getList();
+  assert.equal(list.children.length,1);
+  assert.equal(list.children[0].children[1].children[0].textContent,"Release plan");
+  view.setSearchQuery("missing");
+  view.renderSidebar(container);
+  list=getList();
+  assert.equal(list.children.length,1);
+  assert.equal(list.children[0].textContent,"No matching documents.");
+});
+
 test("New document action creates and opens the editor immediately without a dialog",()=>{
   let openedId=null;
   let saved=0;

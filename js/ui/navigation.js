@@ -24,6 +24,8 @@
     const element=id=>navigationView.getElement(id);
     const secondarySidebar=element("secondarySidebar");
     const secondarySidebarTitle=element("secondarySidebarTitle");
+    const secondarySidebarSearch=element("secondarySidebarSearch");
+    const secondarySidebarSearchInput=element("secondarySidebarSearchInput");
     const secondarySidebarContent=element("secondarySidebarContent");
     const projectCreateButton=element("projectCreateBtn");
     const projectsSidebar=element("sidebarProjects");
@@ -33,6 +35,7 @@
     const secondarySections=new Map();
     let activeSecondarySection=null;
     let activeSecondaryTrigger=null;
+    let activeSecondaryRegistration=null;
 
     function updateCreateButton(section){
       const registration=secondarySections.get(section);
@@ -73,8 +76,17 @@
     }
 
     function renderSecondarySection(registration){
+      const sameSection=activeSecondarySection===registration.section;
+      if (!sameSection&&activeSecondaryRegistration?.onSearch) activeSecondaryRegistration.onSearch("");
+      secondarySidebarSearch.hidden=!registration.searchable;
+      if (!sameSection) secondarySidebarSearchInput.value="";
+      if (registration.searchable){
+        secondarySidebarSearchInput.placeholder=registration.searchPlaceholder||`Search ${registration.title.toLowerCase()}`;
+        secondarySidebarSearchInput.setAttribute("aria-label",`Search ${registration.title.toLowerCase()}`);
+      }
       secondarySidebarContent.replaceChildren();
       registration.renderContent(secondarySidebarContent);
+      if (!sameSection&&registration.searchable) registration.onSearch(secondarySidebarSearchInput.value.trim());
     }
 
     function closeSecondarySidebar(){
@@ -82,24 +94,34 @@
       secondarySidebar.setAttribute("aria-hidden","true");
       secondarySidebar.setAttribute("inert","");
       if (activeSecondaryTrigger) activeSecondaryTrigger.setAttribute("aria-expanded","false");
+      if (activeSecondaryRegistration?.onSearch) activeSecondaryRegistration.onSearch("");
       activeSecondarySection=null;
       activeSecondaryTrigger=null;
+      activeSecondaryRegistration=null;
+      secondarySidebarSearch.hidden=true;
+      secondarySidebarSearchInput.value="";
       persistSecondarySection(null);
       updateCreateButton(null);
       secondarySidebar.removeAttribute("data-section");
       element("sidebar").removeAttribute("data-secondary-section");
     }
 
-    function openSecondarySidebar({title,renderContent,section,trigger}){
+    function openSecondarySidebar({title,renderContent,section,trigger,searchable=false,onSearch,searchPlaceholder}){
+      if (typeof searchable!=="boolean"||(searchable&&typeof onSearch!=="function")){
+        throw new TypeError("A searchable secondary section requires an onSearch callback.");
+      }
       if (activeSecondaryTrigger&&activeSecondaryTrigger!==trigger){
         activeSecondaryTrigger.setAttribute("aria-expanded","false");
       }
       secondarySidebarTitle.textContent=title;
       if (renderContent){
-        renderSecondarySection({renderContent,section});
+        renderSecondarySection({title,renderContent,section,searchable,onSearch,searchPlaceholder});
       }
       activeSecondarySection=section||null;
       activeSecondaryTrigger=trigger||null;
+      activeSecondaryRegistration=searchable
+        ?secondarySections.get(section)||{section,title,searchable,onSearch}
+        :section?secondarySections.get(section)||null:null;
       updateCreateButton(activeSecondarySection);
       persistSecondarySection(activeSecondarySection);
       if (section){
@@ -126,11 +148,14 @@
     }
 
     function registerSecondarySection(definition){
-      const {section,title,trigger,renderContent,onOpen,onCreate,createLabel}=definition||{};
+      const {section,title,trigger,renderContent,onOpen,onCreate,createLabel,searchable=false,onSearch,searchPlaceholder}=definition||{};
       if (!section || !title || !trigger || typeof renderContent!=="function"){
         throw new TypeError("A secondary section requires a section key, title, trigger, and content renderer.");
       }
-      const registration={section,title,trigger,renderContent,onOpen,onCreate,createLabel};
+      if (typeof searchable!=="boolean"||(searchable&&typeof onSearch!=="function")){
+        throw new TypeError("A searchable secondary section requires an onSearch callback.");
+      }
+      const registration={section,title,trigger,renderContent,onOpen,onCreate,createLabel,searchable,onSearch,searchPlaceholder};
       secondarySections.set(section,registration);
       trigger.onclick=()=>toggleSecondarySection(registration);
       return ()=>{
@@ -149,8 +174,9 @@
       else if (section) persistSecondarySection(null);
     }
 
-    function refreshSecondarySection(){
+    function refreshSecondarySection(section){
       if (!secondarySidebar.classList.contains("open")||!activeSecondarySection) return;
+      if (section&&section!==activeSecondarySection) return;
       const registration=secondarySections.get(activeSecondarySection);
       if (registration?.renderContent){
         renderSecondarySection(registration);
@@ -181,9 +207,16 @@
         const renderContent=secondaryRenderers[item.content];
         if (!renderContent) throw new Error(`No renderer is configured for secondary navigation item "${item.id}".`);
         const definition=navigationView.getSecondarySection(item.section);
-        registerSecondarySection({...definition,renderContent});
+        registerSecondarySection({
+          ...definition,
+          renderContent,
+          onSearch:item.onSearch
+        });
       });
       element("secondarySidebarClose").onclick=closeSecondarySidebar;
+      secondarySidebarSearchInput.addEventListener("input",()=>{
+        if (activeSecondaryRegistration?.searchable) activeSecondaryRegistration.onSearch(secondarySidebarSearchInput.value.trim());
+      });
 
       element("workspaceSwitchBtn").onclick=async()=>{
         await switchWorkspace();

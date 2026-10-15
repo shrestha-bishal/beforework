@@ -4,23 +4,30 @@ export class WorkspaceDocumentsView {
     this.documentsView=documentsView;
     this.cloneTemplate=cloneTemplate;
     this.workspace={id:"workspace",name:"Workspace"};
+    this.searchQuery="";
+  }
+
+  setSearchQuery(query){
+    this.searchQuery=query;
   }
 
   renderSidebar(container){
     const documents=this.documentsFeature.list(this.workspace);
+    const query=this.searchQuery.toLocaleLowerCase();
+    const visibleDocuments=documents.filter(document=>!query||document.title.toLocaleLowerCase().includes(query));
     const fragment=documentRef().createDocumentFragment();
     const sidebar=documentRef().createElement("div");
     sidebar.className="workspaceDocumentsSidebar";
 
     const list=documentRef().createElement("div");
     list.className="workspaceDocumentSidebarList";
-    if (!documents.length){
+    if (!visibleDocuments.length){
       const empty=documentRef().createElement("p");
       empty.className="workspaceDocumentSidebarEmpty";
-      empty.textContent="No workspace documents yet.";
+      empty.textContent=query?"No matching documents.":"No workspace documents yet.";
       list.appendChild(empty);
     }
-    documents.forEach(document=>{
+    visibleDocuments.forEach(document=>{
       const row=documentRef().createElement("button");
       row.type="button";
       row.className="workspaceDocumentSidebarItem";

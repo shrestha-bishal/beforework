@@ -84,6 +84,7 @@
 
   let state = null;                 // { projects:[] }
   let collapsedFolderIds = null;
+  let projectListSearch="";
   let connectGate = null;
   let navigation = null;
   let navigationView = null;
@@ -1654,19 +1655,27 @@
     const projects=projectRecords();
     const activeProjects=projects.filter(project=>!project.archived);
     const archivedProjects=projects.filter(project=>project.archived);
-    const pinnedProjects=activeProjects.filter(project=>project.pinned);
+    const query=projectListSearch.toLocaleLowerCase();
+    const folderById=new Map(state.folders.map(folder=>[folder.id,folder]));
+    const matchesProject=project=>!query||project.name.toLocaleLowerCase().includes(query)
+      ||folderById.get(project.folderId)?.name.toLocaleLowerCase().includes(query);
+    const pinnedProjects=activeProjects.filter(project=>project.pinned&&matchesProject(project));
     if (pinnedProjects.length){
       appendSectionLabel("Pinned");
     }
     pinnedProjects.forEach(project=>appendProject(project));
-    const unfiled = activeProjects.filter(project=>!project.pinned&&(!project.folderId || !state.folders.some(folder=>folder.id===project.folderId)));
-    if (pinnedProjects.length&&(state.folders.length||unfiled.length)){
+    const unfiled = activeProjects.filter(project=>!project.pinned&&(!project.folderId || !folderById.has(project.folderId))&&matchesProject(project));
+    const visibleFolders=state.folders.map(folder=>{
+      const projectsInFolder=activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned&&matchesProject(project));
+      return {folder,projects:projectsInFolder};
+    }).filter(entry=>!query||entry.projects.length||entry.folder.name.toLocaleLowerCase().includes(query));
+    if (pinnedProjects.length&&(visibleFolders.length||unfiled.length)){
       const divider=document.createElement("li");
       divider.className="projectListPinnedDivider";
       divider.setAttribute("aria-hidden","true");
       ul.appendChild(divider);
     }
-    state.folders.forEach(folder=>{
+    visibleFolders.forEach(({folder,projects:folderProjects})=>{
       if (collapsedFolderIds===null){
         try{
           const saved=JSON.parse(localStorage.getItem(COLLAPSED_FOLDERS_KEY)||"[]");
@@ -1675,10 +1684,10 @@
           collapsedFolderIds=new Set();
         }
       }
-      const folderCollapsed=collapsedFolderIds.has(folder.id);
+      const folderCollapsed=!query&&collapsedFolderIds.has(folder.id);
       const heading = document.createElement("li");
       heading.className = "folderHeading";
-      const projectCount = activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).length;
+      const projectCount = folderProjects.length;
       const icon = document.createElement("iconify-icon");
       icon.className = "folderIcon";
       icon.setAttribute("icon", "mdi:folder-outline");
@@ -1786,14 +1795,15 @@
       toggle.append(chevron);
       heading.append(toggle,folderLink,wrap);
       ul.appendChild(heading);
-      activeProjects.filter(project=>project.folderId===folder.id&&!project.pinned).forEach(project=>{
+      folderProjects.forEach(project=>{
         const projectRow=appendProject(project, true, folder.id);
         projectRow.classList.toggle("folderProjectRow--collapsed",folderCollapsed);
         projectRow.inert=folderCollapsed;
       });
     });
     unfiled.forEach(project=>appendProject(project));
-    if (archivedProjects.length){
+    const visibleArchivedProjects=archivedProjects.filter(matchesProject);
+    if (visibleArchivedProjects.length){
       const heading=document.createElement("li");
       heading.className="folderHeading archivedProjectsHeading";
       const icon=document.createElement("iconify-icon");
@@ -1804,10 +1814,16 @@
       name.textContent="Archived";
       const count=document.createElement("span");
       count.className="folderCount";
-      count.textContent=String(archivedProjects.length);
+      count.textContent=String(visibleArchivedProjects.length);
       heading.append(icon,name,count);
       ul.appendChild(heading);
-      archivedProjects.forEach(project=>appendProject(project));
+      visibleArchivedProjects.forEach(project=>appendProject(project));
+    }
+    if (query&&!ul.querySelector(".SideNav-item")){
+      const empty=document.createElement("li");
+      empty.className="projectListEmpty";
+      empty.textContent="No matching projects or folders.";
+      ul.appendChild(empty);
     }
   }
 
@@ -3319,6 +3335,10 @@
     if (resetDemoButton){
       resetDemoButton.onclick=resetDemoWorkspace;
     }
+    const onWorkspaceDocumentsSearch=query=>{
+      workspaceDocumentsView.setSearchQuery(query);
+      navigation.refreshSecondarySection("documents");
+    };
     navigation=window.BeforeworkNavigation.create({
       navigationView,
       onOverview:()=>{
@@ -3343,6 +3363,15 @@
       createWorkspace:startNewFileFromMenu
     });
     navigation.wire();
+    const projectsSidebar=navigationView.getElement("sidebarProjects");
+    navigation.registerSecondarySection({
+      ...navigationView.getSecondarySection("projects"),
+      renderContent:content=>content.replaceChildren(projectsSidebar),
+      onSearch:query=>{
+        projectListSearch=query;
+        renderProjectList();
+      }
+    });
     wireProjectCreateMenu();
     wireProjectActionsMenu();
     filterFeature.wire();
@@ -3442,6 +3471,7 @@
       navigation.registerSecondarySection({
         ...navigationView.getSecondarySection("documents"),
         renderContent:content=>workspaceDocumentsView.renderSidebar(content),
+        onSearch:onWorkspaceDocumentsSearch,
         onOpen:navigateToWorkspaceDocuments,
         createLabel:"New document",
         onCreate:()=>workspaceDocumentsEditor.createDocumentImmediately(workspaceDocumentsView.workspace)

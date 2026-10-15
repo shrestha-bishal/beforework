@@ -157,8 +157,8 @@ test("selecting a project or folder in the secondary sidebar keeps it open",()=>
 
 test("pinned projects are labeled and folders precede loose projects",()=>{
   assert.match(app,/const appendSectionLabel=label=>\{\s*const heading=document\.createElement\("li"\);\s*heading\.className="projectListSectionLabel";\s*heading\.textContent=label;\s*ul\.appendChild\(heading\);\s*\};[\s\S]*?if \(pinnedProjects\.length\)\{\s*appendSectionLabel\("Pinned"\);\s*\}\s*pinnedProjects\.forEach/);
-  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?if \(pinnedProjects\.length&&\(state\.folders\.length\|\|unfiled\.length\)\)\{\s*const divider=document\.createElement\("li"\);\s*divider\.className="projectListPinnedDivider";\s*divider\.setAttribute\("aria-hidden","true"\);\s*ul\.appendChild\(divider\);\s*\}/);
-  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?state\.folders\.forEach\(folder=>\{[\s\S]*?unfiled\.forEach\(project=>appendProject\(project\)\);/);
+  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?if \(pinnedProjects\.length&&\(visibleFolders\.length\|\|unfiled\.length\)\)\{\s*const divider=document\.createElement\("li"\);\s*divider\.className="projectListPinnedDivider";\s*divider\.setAttribute\("aria-hidden","true"\);\s*ul\.appendChild\(divider\);\s*\}/);
+  assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?const visibleFolders=state\.folders\.map\(folder=>\{[\s\S]*?visibleFolders\.forEach\(\(\{folder,projects:folderProjects\}\)=>\{[\s\S]*?unfiled\.forEach\(project=>appendProject\(project\)\);/);
   assert.doesNotMatch(app,/appendSectionLabel\("(?:Projects|Folders)"\)/);
   assert.match(styles,/#projectList \.projectListSectionLabel\{padding:4px 10px;color:var\(--muted\);font-size:var\(--font-size-sm\);font-weight:var\(--font-weight-medium\);letter-spacing:\.02em;line-height:1\.3;\}/);
   assert.match(styles,/#projectList \.projectListPinnedDivider\{height:0;margin:8px 10px 6px;border-top:1px solid var\(--border\);\}/);

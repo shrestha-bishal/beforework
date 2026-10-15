@@ -16,13 +16,16 @@ const styles=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
 
 function makeElement(id){
   const classes=new Set();
+  const listeners={};
   return {
     id,
     onclick:null,
     dataset:{},
     hidden:false,
+    value:"",
     textContent:"",
     attributes:{},
+    listeners,
     classList:{
       add(name){ classes.add(name); },
       remove(name){ classes.delete(name); },
@@ -40,30 +43,34 @@ function makeElement(id){
     replaceChildren(...children){ this.children=children; },
     appendChild(child){ this.children.push(child); return child; },
     contains(child){ return this.children?.includes(child)||false; },
-    addEventListener(){}
+    addEventListener(name,listener){ listeners[name]=listener; },
+    dispatch(name){ listeners[name]?.({target:this}); }
   };
 }
 
 function createHarness(storage=new Map()){
   const ids=[
     "overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","projectsNav","documentsNav","secondarySidebar",
-    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","projectCreateBtn","sidebarProjects","integrationsNav","settingsNav","supportNav","feedbackNav",
+    "secondarySidebarTitle","secondarySidebarSearch","secondarySidebarSearchInput","secondarySidebarContent","secondarySidebarClose","projectCreateBtn","sidebarProjects","integrationsNav","settingsNav","supportNav","feedbackNav",
     "workspaceSwitcherBtn","workspaceSwitcherLabel","workspaceSidebarActions","workspaceSidebarName","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
   ];
   const elements=Object.fromEntries(ids.map(id=>[id,makeElement(id)]));
+  elements.secondarySidebarSearch.hidden=true;
   elements.workspaceSwitcherLabel.textContent="Personal Workspace";
   elements.workspaceSwitcherBtn.setAttribute("aria-expanded","false");
   elements.projectsNav.setAttribute("aria-expanded","false");
   const calls=[];
+  const searches=[];
+  const documentSearches=[];
   const window={localStorage:{
     getItem(key){ return storage.get(key)||null; },
     setItem(key,value){ storage.set(key,value); },
     removeItem(key){ storage.delete(key); }
   }};
   const secondaryItems=[
-    {kind:"secondary",id:"projectsNav",section:"projects",title:"Projects",content:"projects"},
-    {kind:"secondary",id:"documentsNav",section:"documents",title:"Documents"},
+    {kind:"secondary",id:"projectsNav",section:"projects",title:"Projects",searchable:true},
+    {kind:"secondary",id:"documentsNav",section:"documents",title:"Documents",searchable:true},
     {kind:"secondary",id:"workspaceSwitcherBtn",section:"workspace",title:"Workspace",content:"workspace"}
   ];
   const navigationView={
@@ -102,8 +109,71 @@ function createHarness(storage=new Map()){
   });
 
   navigation.wire();
-  return {elements,calls,navigation,storage};
+  navigation.registerSecondarySection({
+    ...navigationView.getSecondarySection("projects"),
+    renderContent:content=>content.replaceChildren(elements.sidebarProjects),
+    onSearch:query=>searches.push(query)
+  });
+  return {elements,calls,navigation,storage,searches,documentSearches};
 }
+
+test("Projects and Documents sections show search while Workspace keeps it hidden",()=>{
+  const harness=createHarness();
+  const {projectsNav,secondarySidebarSearch,secondarySidebarSearchInput,documentsNav}=harness.elements;
+  harness.navigation.registerSecondarySection({
+    section:"documents",
+    title:"Documents",
+    trigger:documentsNav,
+    searchable:true,
+    onSearch:query=>harness.documentSearches.push(query),
+    renderContent:content=>content.replaceChildren(makeElement("documentsList"))
+  });
+
+  assert.equal(secondarySidebarSearch.hidden,true);
+  projectsNav.onclick();
+  assert.equal(secondarySidebarSearch.hidden,false);
+  assert.equal(secondarySidebarSearchInput.placeholder,"Search projects");
+  assert.deepEqual(harness.searches,[""]);
+
+  secondarySidebarSearchInput.value="  planning  ";
+  secondarySidebarSearchInput.dispatch("input");
+  assert.deepEqual(harness.searches,["","planning"]);
+
+  documentsNav.onclick();
+  assert.equal(secondarySidebarSearch.hidden,false);
+  assert.equal(secondarySidebarSearchInput.placeholder,"Search documents");
+  assert.equal(secondarySidebarSearchInput.value,"");
+  assert.deepEqual(harness.searches,["","planning",""]);
+  assert.deepEqual(harness.documentSearches,[""]);
+  secondarySidebarSearchInput.value="  notes  ";
+  secondarySidebarSearchInput.dispatch("input");
+  assert.deepEqual(harness.documentSearches,["","notes"]);
+
+  harness.elements.workspaceSwitcherBtn.onclick();
+  assert.equal(secondarySidebarSearch.hidden,true);
+  assert.equal(secondarySidebarSearchInput.value,"");
+  assert.deepEqual(harness.documentSearches,["","notes",""]);
+
+  projectsNav.onclick();
+  assert.equal(secondarySidebarSearch.hidden,false);
+  harness.elements.secondarySidebarClose.onclick();
+  assert.equal(secondarySidebarSearch.hidden,true);
+  assert.equal(secondarySidebarSearchInput.value,"");
+  assert.deepEqual(harness.searches,["","planning","","",""]);
+});
+
+test("searchable secondary sections require a query handler",()=>{
+  const harness=createHarness();
+  const searchableSection={
+    section:"searchable-docs",
+    title:"Searchable documents",
+    trigger:makeElement("searchableDocsNav"),
+    renderContent:()=>{},
+    searchable:true
+  };
+  assert.throws(()=>harness.navigation.registerSecondarySection(searchableSection),/requires an onSearch callback/);
+  assert.throws(()=>harness.navigation.openSecondarySidebar(searchableSection),/requires an onSearch callback/);
+});
 
 test("secondary sections render only their own content",()=>{
   const harness=createHarness();
@@ -163,6 +233,16 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.ok(navigationTemplate.indexOf('id="projectsNav"')<navigationTemplate.indexOf('id="secondarySidebar"'));
   assert.ok(navigationTemplate.indexOf('class="sidebarProjects"')>navigationTemplate.indexOf('id="secondarySidebarContent"'));
   assert.match(navigationTemplate,/<div class="sidebarProjects" id="sidebarProjects">/);
+  assert.match(navigationTemplate,/<label class="secondarySidebarSearch" id="secondarySidebarSearch" hidden>/);
+  assert.match(navigationTemplate,/<input class="form-control" id="secondarySidebarSearchInput" type="search"/);
+  assert.match(styles,/\.secondarySidebarSearch input::placeholder\{font-weight:var\(--font-weight-regular\);\}/);
+  assert.match(navigationViewSource,/section:"projects",title:"Projects",searchable:true/);
+  assert.match(navigationViewSource,/section:"documents",title:"Documents",searchable:true/);
+  assert.doesNotMatch(navigationViewSource,/section:"workspace",title:"Workspace",content:"workspace",searchable:true/);
+  assert.match(app,/const projectsSidebar=navigationView\.getElement\("sidebarProjects"\);\s*navigation\.registerSecondarySection\(\{\s*\.\.\.navigationView\.getSecondarySection\("projects"\),\s*renderContent:content=>content\.replaceChildren\(projectsSidebar\),[\s\S]*?onSearch:query=>\{\s*projectListSearch=query;\s*renderProjectList\(\);\s*\}/);
+  assert.match(app,/onSearch:onWorkspaceDocumentsSearch/);
+  assert.match(app,/const matchesProject=project=>!query\|\|project\.name\.toLocaleLowerCase\(\)\.includes\(query\)[\s\S]*?folderById\.get\(project\.folderId\)\?\.name\.toLocaleLowerCase\(\)\.includes\(query\)/);
+  assert.match(styles,/\.secondarySidebarSearch\{display:flex;flex:none;align-items:center;gap:8px/);
   assert.match(navigationTemplate,/<button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">/);
   assert.ok(navigationTemplate.indexOf('id="overviewNav"')<navigationTemplate.indexOf('id="projectsNav"'));
   assert.ok(navigationTemplate.indexOf('id="projectsNav"')<navigationTemplate.indexOf('id="workspaceDocumentsNav"'));
@@ -308,7 +388,7 @@ test("workspace controls use the extensible secondary sidebar",()=>{
   projectsNav.onclick();
   assert.deepEqual(harness.elements.secondarySidebarContent.children,[sidebarProjects]);
   assert.equal(secondarySidebar.attributes["data-section"],"projects");
-  assert.match(source,/function openSecondarySidebar\(\{title,renderContent,section,trigger\}\)/);
+  assert.match(source,/function openSecondarySidebar\(\{title,renderContent,section,trigger,searchable=false,onSearch,searchPlaceholder\}\)/);
   assert.match(source,/activeSecondaryTrigger\.setAttribute\("aria-expanded","false"\)/);
   assert.match(styles,/#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:var\(--font-weight-semibold\);\}/);
   assert.match(styles,/#secondarySidebar\[data-section="workspace"\] \.projectCreateWrap\{display:none;\}/);

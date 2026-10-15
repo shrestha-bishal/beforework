@@ -1,8 +1,8 @@
 const NAVIGATION_ITEMS=Object.freeze([
   {kind:"primary",id:"brandHomeBtn",action:"overview"},
   {kind:"primary",id:"overviewNav",action:"overview"},
-  {kind:"secondary",id:"projectsNav",section:"projects",title:"Projects",content:"projects"},
-  {kind:"secondary",id:"workspaceDocumentsNav",section:"documents",title:"Documents"},
+  {kind:"secondary",id:"projectsNav",section:"projects",title:"Projects",searchable:true},
+  {kind:"secondary",id:"workspaceDocumentsNav",section:"documents",title:"Documents",searchable:true},
   {kind:"primary",id:"calendarNav",action:"calendar"},
   {kind:"primary",id:"roadmapNav",action:"roadmap"},
   {kind:"primary",id:"focusTimerNav",action:"timer"},
@@ -43,7 +43,7 @@ export class NavigationView {
       throw new TypeError("The navigation view requires a mount element.");
     }
     const fragment=this.cloneTemplate();
-    const requiredIds=[...NAVIGATION_ITEMS.map(item=>item.id),"sidebar","sidebarScrim","secondarySidebar","sidebarProjects","workspaceSidebarActions"];
+    const requiredIds=[...NAVIGATION_ITEMS.map(item=>item.id),"sidebar","sidebarScrim","secondarySidebar","secondarySidebarSearch","secondarySidebarSearchInput","sidebarProjects","workspaceSidebarActions"];
     const missing=requiredIds.filter(id=>!fragment.querySelector(`#${id}`));
     if (missing.length) throw new Error(`The navigation template is missing required elements: ${missing.join(", ")}.`);
     container.replaceChildren(fragment);

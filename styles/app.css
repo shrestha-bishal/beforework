@@ -265,6 +265,13 @@
   .projectCreateBtn[aria-expanded="true"],.projectCreateBtn.active{background:var(--bg-soft2);color:var(--text);}
   #secondarySidebarClose iconify-icon,.projectCreateBtn iconify-icon{font-size:18px;}
   .projectCreateBtn{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
+  .secondarySidebarSearch{display:flex;flex:none;align-items:center;gap:8px;margin:0 12px 8px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--muted);}
+  .secondarySidebarSearch[hidden]{display:none;}
+  .secondarySidebarSearch:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent);}
+  .secondarySidebarSearch iconify-icon{flex:none;font-size:16px;}
+  .secondarySidebarSearch input{min-width:0;height:30px;padding:0;border:0;background:transparent;box-shadow:none;color:var(--text);font:inherit;font-weight:var(--font-weight-regular);}
+  .secondarySidebarSearch input::placeholder{font-weight:var(--font-weight-regular);}
+  .secondarySidebarSearch input:focus{border:0;box-shadow:none;outline:0;}
   #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:14px 12px;}
   #secondarySidebarContent .sidebarProjects{min-width:0;}
   #secondarySidebar[data-section]:not([data-section="projects"]):not([data-section="workspace"]) #sidebarProjects{display:none;}
@@ -293,6 +300,7 @@
   .projectCreateBtn iconify-icon{font-size:16px;}
   #projectList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;border:0;background:transparent;box-shadow:none;}
   #projectList .projectListSectionLabel{padding:4px 10px;color:var(--muted);font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);letter-spacing:.02em;line-height:1.3;}
+  #projectList .projectListEmpty{padding:10px;color:var(--muted);font-size:var(--font-size-body-sm);}
   #projectList .projectListPinnedDivider{height:0;margin:8px 10px 6px;border-top:1px solid var(--border);}
   #projectList .folderHeading{display:flex;align-items:center;gap:7px;min-width:0;padding:9px 10px 5px;
     font-size:var(--font-size-body-sm);font-weight:var(--font-weight-semibold);color:var(--text);line-height:1.3;letter-spacing:0;
