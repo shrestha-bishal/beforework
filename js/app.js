@@ -1598,6 +1598,7 @@
     document.getElementById("supportNav").classList.toggle("active",activeProjectId===SUPPORT);
     document.getElementById("workspaceDocumentsNav").classList.toggle("active",isWorkspaceDocumentsLocation(activeProjectId));
     const ul = document.getElementById("projectList");
+    if (!ul) return;
     ul.innerHTML = "";
     const appendProject = (p, inFolder=false, folderId=null) => {
       const count = Number.isFinite(p.itemCount) ? p.itemCount

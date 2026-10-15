@@ -29,6 +29,27 @@ function makeFeature(){
   return {feature,state};
 }
 
+test("workspace document feature initializes missing workspace collections",()=>{
+  const window={};
+  vm.runInNewContext(sharedSource,{window},{filename:"markdown-documents.js"});
+  vm.runInNewContext(featureSource,{window},{filename:"workspace-documents.js"});
+  let id=0;
+  let timestamp=100;
+  const state={};
+  const feature=window.BeforeworkWorkspaceDocuments.create({
+    uid:()=>`workspace-document-${++id}`,
+    now:()=>++timestamp,
+    getState:()=>state
+  });
+  const scope={id:"workspace",name:"Workspace"};
+  const document=feature.create(scope,"Notes");
+
+  assert.equal(state.workspaceDocuments.length,1);
+  assert.equal(state.workspaceDocuments[0].id,document.id);
+  assert.equal(state.activeWorkspaceDocumentId,document.id);
+  assert.equal(feature.list(scope).length,1);
+});
+
 test("workspace document feature shares Markdown behavior without changing project ownership",()=>{
   const {feature,state}=makeFeature();
   const scope={id:"workspace",name:"Workspace"};
