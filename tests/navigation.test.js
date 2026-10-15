@@ -42,32 +42,20 @@ function createHarness(){
   const ids=[
     "overviewNav","brandHomeBtn","calendarNav","roadmapNav","projectsNav","secondarySidebar",
     "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","sidebarProjects","integrationsNav","settingsNav","supportNav",
-    "workspaceSwitcherBtn","workspaceSwitcherMenu","workspaceSwitchBtn","workspaceNewBtn","sidebar",
+    "workspaceSwitcherBtn","workspaceSwitcherLabel","workspaceSidebarActions","workspaceSidebarName","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
   ];
   const elements=Object.fromEntries(ids.map(id=>[id,makeElement(id)]));
+  elements.workspaceSwitcherLabel.textContent="Personal Workspace";
+  elements.workspaceSwitcherBtn.setAttribute("aria-expanded","false");
+  elements.projectsNav.setAttribute("aria-expanded","false");
   const calls=[];
   const documentListeners={};
   const documentRef={
     getElementById:id=>elements[id],
     addEventListener(name,callback){ documentListeners[name]=callback; }
   };
-  const window={
-    BeforeworkActionMenu:{
-      create:()=>({
-        register(button,menu){
-          return {
-            close(){
-              menu.classList.remove("open");
-              menu.hidden=true;
-              button.classList.remove("active");
-              button.setAttribute("aria-expanded","false");
-            }
-          };
-        }
-      })
-    }
-  };
+  const window={};
   vm.runInNewContext(source,{window},{filename:"navigation.js"});
   const navigation=window.BeforeworkNavigation.create({
     documentRef,
@@ -96,6 +84,9 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="secondarySidebar"'));
   assert.ok(index.indexOf('class="sidebarProjects"')>index.indexOf('id="secondarySidebarContent"'));
   assert.match(index,/<div class="sidebarProjects" id="sidebarProjects">/);
+  assert.match(index,/<button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">/);
+  assert.match(index,/<div class="workspaceSidebarActions" id="workspaceSidebarActions">[\s\S]*?id="workspaceSwitchBtn"[\s\S]*?Open different workspace[\s\S]*?id="workspaceNewBtn"[\s\S]*?Create new workspace/);
+  assert.doesNotMatch(index,/id="workspaceSwitcherMenu"/);
   assert.match(index,/<div class="secondarySidebarActions">[\s\S]*?<button id="secondarySidebarClose"[\s\S]*?<button class="btn btn-sm btn-invisible projectCreateBtn"[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
   assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
   assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
@@ -119,23 +110,47 @@ test("navigation controls delegate each destination to its app callback",()=>{
   assert.deepEqual(harness.calls,["overview","overview","calendar","roadmap","integrations","settings","support"]);
 });
 
-test("workspace switcher closes before invoking workspace actions",async()=>{
+test("workspace and project sections are mutually exclusive in the secondary sidebar",()=>{
   const harness=createHarness();
-  const {workspaceSwitcherBtn,workspaceSwitcherMenu,workspaceSwitchBtn,workspaceNewBtn}=harness.elements;
-  workspaceSwitcherMenu.classList.add("open");
-  workspaceSwitcherMenu.hidden=false;
-  workspaceSwitcherBtn.setAttribute("aria-expanded","true");
+  const {workspaceSwitcherBtn,workspaceSidebarActions,projectsNav,sidebarProjects,secondarySidebar,secondarySidebarTitle,secondarySidebarContent}=harness.elements;
+  workspaceSwitcherBtn.onclick();
+  assert.equal(secondarySidebarTitle.textContent,"Workspace");
+  assert.equal(secondarySidebar.attributes["data-section"],"workspace");
+  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions]);
+  assert.equal(harness.elements.workspaceSidebarName.textContent,"Personal Workspace");
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
+  assert.equal(projectsNav.attributes["aria-expanded"],"false");
 
-  await workspaceSwitchBtn.onclick();
-  assert.equal(workspaceSwitcherMenu.classList.contains("open"),false);
+  projectsNav.onclick();
+  assert.equal(secondarySidebarTitle.textContent,"Projects");
+  assert.equal(secondarySidebar.attributes["data-section"],"projects");
+  assert.deepEqual(secondarySidebarContent.children,[sidebarProjects]);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
-  workspaceSwitcherMenu.classList.add("open");
-  workspaceSwitcherMenu.hidden=false;
-  workspaceSwitcherBtn.setAttribute("aria-expanded","true");
+  assert.equal(projectsNav.attributes["aria-expanded"],"true");
+
+  workspaceSwitcherBtn.onclick();
+  assert.equal(secondarySidebarTitle.textContent,"Workspace");
+  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions]);
+  assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
+  assert.equal(projectsNav.attributes["aria-expanded"],"false");
+
+  workspaceSwitcherBtn.onclick();
+  assert.equal(secondarySidebar.classList.contains("open"),false);
+  assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
+  assert.equal(projectsNav.attributes["aria-expanded"],"false");
+});
+
+test("workspace actions keep their section open while invoking workspace callbacks",async()=>{
+  const harness=createHarness();
+  const {workspaceSwitcherBtn,workspaceSwitchBtn,workspaceNewBtn,secondarySidebar}=harness.elements;
+  workspaceSwitcherBtn.onclick();
+  await workspaceSwitchBtn.onclick();
+  assert.equal(secondarySidebar.classList.contains("open"),true);
+  assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
   await workspaceNewBtn.onclick();
   assert.deepEqual(harness.calls,["switch","create"]);
-  assert.equal(workspaceSwitcherMenu.classList.contains("open"),false);
+  assert.equal(secondarySidebar.classList.contains("open"),true);
+  assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
 });
 
 test("navigation owns mobile sidebar open and close interactions",()=>{
@@ -169,6 +184,8 @@ test("secondary sidebar preserves the project list when reopening and accepts re
   harness.navigation.openSecondarySidebar({title:"Another section",renderContent:container=>container.replaceChildren(content)});
   assert.equal(secondarySidebarTitle.textContent,"Another section");
   assert.deepEqual(secondarySidebarContent.children,[content]);
+  assert.equal(projectsNav.attributes["aria-expanded"],"false");
+  assert.equal(secondarySidebar.attributes["data-section"],undefined);
 
   harness.navigation.closeSecondarySidebar();
   projectsNav.onclick();
@@ -182,27 +199,29 @@ test("secondary sidebar preserves the project list when reopening and accepts re
 
 test("selecting another navigation destination closes the secondary sidebar",()=>{
   const harness=createHarness();
-  harness.elements.projectsNav.onclick();
+  harness.elements.workspaceSwitcherBtn.onclick();
   harness.elements.calendarNav.onclick();
   assert.equal(harness.elements.secondarySidebar.classList.contains("open"),false);
+  assert.equal(harness.elements.workspaceSwitcherBtn.attributes["aria-expanded"],"false");
   assert.equal(harness.elements.projectsNav.attributes["aria-expanded"],"false");
   assert.deepEqual(harness.calls,["calendar"]);
 });
 
-test("workspace switcher uses the shared action menu component",()=>{
+test("workspace controls use the extensible secondary sidebar",()=>{
   const harness=createHarness();
-  const {workspaceSwitcherBtn,workspaceSwitcherMenu}=harness.elements;
-  workspaceSwitcherMenu.classList.add("open");
-  workspaceSwitcherMenu.hidden=false;
-  workspaceSwitcherBtn.setAttribute("aria-expanded","true");
-  harness.navigation.closeSidebarOnMobile();
-  harness.elements.workspaceSwitchBtn.onclick();
-  assert.equal(workspaceSwitcherMenu.classList.contains("open"),false);
-  assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
-
-  assert.match(source,/BeforeworkActionMenu\.create\(\{documentRef\}\)[\s\S]*?\.register\(workspaceSwitcherBtn,workspaceSwitcherMenu,\{styleTrigger:false\}\)/);
-  assert.match(index,/class="menu action-menu action-menu--workspace workspaceSwitcherMenu"/);
-  assert.ok(appScripts.indexOf("ui/action-menu.js")<appScripts.indexOf("app.js"));
+  const {workspaceSwitcherBtn,projectsNav,workspaceSidebarActions,sidebarProjects,secondarySidebar}=harness.elements;
+  workspaceSwitcherBtn.onclick();
+  assert.deepEqual(harness.elements.secondarySidebarContent.children,[workspaceSidebarActions]);
+  assert.equal(secondarySidebar.attributes["data-section"],"workspace");
+  projectsNav.onclick();
+  assert.deepEqual(harness.elements.secondarySidebarContent.children,[sidebarProjects]);
+  assert.equal(secondarySidebar.attributes["data-section"],"projects");
+  assert.match(source,/function openSecondarySidebar\(\{title,renderContent,section,trigger\}\)/);
+  assert.match(source,/activeSecondaryTrigger\.setAttribute\("aria-expanded","false"\)/);
+  assert.match(styles,/\.workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--accent-soft\);color:var\(--accent-strong\);font-weight:600;\}/);
+  assert.match(styles,/#secondarySidebar\[data-section="workspace"\] \.projectCreateWrap\{display:none;\}/);
+  assert.match(styles,/\.workspaceSidebarIdentity strong\{overflow:hidden;color:var\(--text\);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;\}/);
+  assert.match(styles,/\.workspaceSidebarActions button\{display:flex;align-items:center;gap:9px;width:100%;min-height:36px;/);
   assert.match(app,/window\.BeforeworkNavigation\.create\(/);
   assert.doesNotMatch(app,/document\.getElementById\("workspaceSwitcherBtn"\)\.onclick/);
   assert.doesNotMatch(app,/document\.getElementById\("sidebarToggle"\)\.onclick/);

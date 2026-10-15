@@ -81,15 +81,11 @@
         <div id="sidebarWrap">
           <h1><button class="brandHomeBtn" id="brandHomeBtn" type="button" title="Go to overview" aria-label="Go to overview"><img class="mark" src="images/icon-wide.png" alt=""><img class="markCollapsed" src="images/icon.png" alt=""></button></h1>
           <div class="workspaceSwitcher">
-            <button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="workspaceSwitcherMenu">
+            <button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">
               <iconify-icon icon="mdi:briefcase-outline" aria-hidden="true"></iconify-icon>
               <span id="workspaceSwitcherLabel">Workspace</span>
               <iconify-icon class="workspaceSwitcherChevron" icon="mdi:chevron-down" aria-hidden="true"></iconify-icon>
             </button>
-            <div class="menu action-menu action-menu--workspace workspaceSwitcherMenu" id="workspaceSwitcherMenu" role="menu" hidden>
-              <button class="btn btn-sm btn-invisible" id="workspaceSwitchBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-swap-outline" aria-hidden="true"></iconify-icon><span>Open different workspace</span></button>
-              <button class="btn btn-sm btn-invisible" id="workspaceNewBtn" type="button" role="menuitem"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>Create new workspace</span></button>
-            </div>
           </div>
           <div class="searchWrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -132,6 +128,17 @@
           </div>
         </div>
         <div id="secondarySidebarContent">
+          <div class="workspaceSidebarActions" id="workspaceSidebarActions">
+            <div class="workspaceSidebarIdentity">
+              <iconify-icon icon="mdi:briefcase-outline" aria-hidden="true"></iconify-icon>
+              <div>
+                <span>Current workspace</span>
+                <strong id="workspaceSidebarName">Workspace</strong>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-invisible" id="workspaceSwitchBtn" type="button"><iconify-icon icon="mdi:folder-swap-outline" aria-hidden="true"></iconify-icon><span>Open different workspace</span></button>
+            <button class="btn btn-sm btn-invisible" id="workspaceNewBtn" type="button"><iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon><span>Create new workspace</span></button>
+          </div>
           <div class="sidebarProjects" id="sidebarProjects">
             <ul class="SideNav" id="projectList"></ul>
           </div>

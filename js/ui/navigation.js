@@ -14,18 +14,16 @@
   }){
     const element=id=>documentRef.getElementById(id);
     const workspaceSwitcherBtn=element("workspaceSwitcherBtn");
-    const workspaceSwitcherMenu=element("workspaceSwitcherMenu");
     const projectsNav=element("projectsNav");
     const secondarySidebar=element("secondarySidebar");
     const secondarySidebarTitle=element("secondarySidebarTitle");
     const secondarySidebarContent=element("secondarySidebarContent");
     const projectsSidebar=element("sidebarProjects");
-    const workspaceSwitcherActionMenu=global.BeforeworkActionMenu.create({documentRef})
-      .register(workspaceSwitcherBtn,workspaceSwitcherMenu,{styleTrigger:false});
-
-    function closeWorkspaceSwitcher(){
-      workspaceSwitcherActionMenu.close();
-    }
+    const workspaceSidebarActions=element("workspaceSidebarActions");
+    const workspaceSwitcherLabel=element("workspaceSwitcherLabel");
+    const workspaceSidebarName=element("workspaceSidebarName");
+    let activeSecondarySection=null;
+    let activeSecondaryTrigger=null;
 
     function toggleSidebar(){
       element("sidebar").classList.toggle("open");
@@ -41,30 +39,37 @@
       secondarySidebar.classList.remove("open");
       secondarySidebar.setAttribute("aria-hidden","true");
       secondarySidebar.setAttribute("inert","");
-      projectsNav.setAttribute("aria-expanded","false");
+      if (activeSecondaryTrigger) activeSecondaryTrigger.setAttribute("aria-expanded","false");
+      activeSecondarySection=null;
+      activeSecondaryTrigger=null;
+      secondarySidebar.removeAttribute("data-section");
     }
 
-    function openSecondarySidebar({title,renderContent}){
+    function openSecondarySidebar({title,renderContent,section,trigger}){
+      if (activeSecondaryTrigger&&activeSecondaryTrigger!==trigger){
+        activeSecondaryTrigger.setAttribute("aria-expanded","false");
+      }
       secondarySidebarTitle.textContent=title;
       if (renderContent){
         secondarySidebarContent.replaceChildren();
         renderContent(secondarySidebarContent);
       }
+      activeSecondarySection=section||null;
+      activeSecondaryTrigger=trigger||null;
+      if (section) secondarySidebar.setAttribute("data-section",section);
+      else secondarySidebar.removeAttribute("data-section");
       secondarySidebar.classList.add("open");
       secondarySidebar.setAttribute("aria-hidden","false");
       secondarySidebar.removeAttribute("inert");
-      projectsNav.setAttribute("aria-expanded","true");
+      if (activeSecondaryTrigger) activeSecondaryTrigger.setAttribute("aria-expanded","true");
       closeSidebarOnMobile();
     }
 
-    function toggleProjectsSidebar(){
-      if (secondarySidebar.classList.contains("open")){
+    function toggleSecondarySection({section,title,trigger,renderContent}){
+      if (secondarySidebar.classList.contains("open")&&activeSecondarySection===section){
         closeSecondarySidebar();
       }else{
-        openSecondarySidebar({
-          title:"Projects",
-          renderContent:content=>content.replaceChildren(projectsSidebar)
-        });
+        openSecondarySidebar({section,title,trigger,renderContent});
       }
     }
 
@@ -78,18 +83,30 @@
       element("brandHomeBtn").onclick=()=>navigate(onOverview);
       element("calendarNav").onclick=()=>navigate(onCalendar);
       element("roadmapNav").onclick=()=>navigate(onRoadmap);
-      projectsNav.onclick=toggleProjectsSidebar;
+      projectsNav.onclick=()=>toggleSecondarySection({
+        section:"projects",
+        title:"Projects",
+        trigger:projectsNav,
+        renderContent:content=>content.replaceChildren(projectsSidebar)
+      });
+      workspaceSwitcherBtn.onclick=()=>toggleSecondarySection({
+        section:"workspace",
+        title:"Workspace",
+        trigger:workspaceSwitcherBtn,
+        renderContent:content=>{
+          workspaceSidebarName.textContent=workspaceSwitcherLabel.textContent||"Workspace";
+          content.replaceChildren(workspaceSidebarActions);
+        }
+      });
       element("secondarySidebarClose").onclick=closeSecondarySidebar;
       element("integrationsNav").onclick=()=>navigate(onIntegrations);
       element("settingsNav").onclick=()=>navigate(onSettings);
       element("supportNav").onclick=()=>navigate(onSupport);
 
       element("workspaceSwitchBtn").onclick=async()=>{
-        closeWorkspaceSwitcher();
         await switchWorkspace();
       };
       element("workspaceNewBtn").onclick=async()=>{
-        closeWorkspaceSwitcher();
         await createWorkspace();
       };
 

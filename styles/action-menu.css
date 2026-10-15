@@ -85,7 +85,6 @@
 .action-menu--create{top:32px;right:0;z-index:40;min-width:176px;}
 .action-menu--sidebar{top:calc(100% + 6px);right:0;z-index:50;min-width:170px;}
 .action-menu--folder{top:calc(100% + 6px);right:0;z-index:50;min-width:150px;}
-.action-menu--workspace{top:calc(100% + 4px);right:0;left:0;z-index:45;min-width:0;}
 .action-menu--field{top:calc(100% + 3px);right:4px;min-width:112px;}
 .action-menu--view{top:calc(100% + 3px);right:0;min-width:160px;}
 .action-menu__trigger--compact{width:28px;height:28px;}

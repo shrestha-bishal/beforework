@@ -96,7 +96,6 @@ test("collapsed desktop sidebar keeps primary navigation icons visible",()=>{
   assert.match(styles,/#sidebar\.collapsed #overviewNav,\s*#sidebar\.collapsed #calendarNav,\s*#sidebar\.collapsed #roadmapNav/);
   assert.match(styles,/#sidebar\.collapsed #feedbackNav span\{display:none;\}/);
   assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherBtn\{justify-content:center;width:42px;height:42px/);
-  assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherMenu\{position:fixed;top:72px;left:68px/);
   assert.doesNotMatch(styles,/#sidebar\.collapsed #projectList/);
   assert.match(styles,/#sidebar\.collapsed \.sidebarBottomNav \.uiDivider\{display:block;\}/);
   assert.doesNotMatch(styles,/#tagsSection/);

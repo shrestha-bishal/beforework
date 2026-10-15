@@ -54,7 +54,6 @@
     #sidebar.collapsed .workspaceSwitcherBtn>iconify-icon:first-child{font-size:18px;}
     #sidebar.collapsed #workspaceSwitcherLabel,
     #sidebar.collapsed .workspaceSwitcherChevron{display:none;}
-    #sidebar.collapsed .workspaceSwitcherMenu{position:fixed;top:72px;left:68px;right:auto;width:max-content;min-width:190px;}
     #sidebar.collapsed #sidebarWrap h1{justify-content:center;margin:0;}
     #sidebar.collapsed #sidebarWrap .brandHomeBtn{display:flex;width:42px;height:42px;align-items:center;justify-content:center;margin:0 auto;}
     #sidebar.collapsed #sidebarWrap .mark{display:none;}
@@ -862,12 +861,23 @@
   .workspaceSwitcher{position:relative;margin:0 0 8px;}
   .workspaceSwitcherBtn{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:7px 8px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer;}
   .workspaceSwitcherBtn:hover,.workspaceSwitcherBtn[aria-expanded="true"]{background:var(--bg-soft2);}
+  .workspaceSwitcherBtn[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   .workspaceSwitcherBtn:disabled{cursor:default;}
   .workspaceSwitcherBtn:disabled:hover{background:transparent;}
   .workspaceSwitcherBtn>iconify-icon:first-child{flex:none;color:var(--muted);font-size:16px;}
   #workspaceSwitcherLabel{overflow:hidden;flex:1;min-width:0;text-overflow:ellipsis;white-space:nowrap;}
   .workspaceSwitcherChevron{flex:none;color:var(--muted);font-size:15px;}
-  .workspaceSwitcherMenu button iconify-icon{flex:none;color:var(--muted);font-size:15px;}
+  #secondarySidebar[data-section="workspace"] .projectCreateWrap{display:none;}
+  .workspaceSidebarActions{display:flex;flex-direction:column;gap:4px;}
+  .workspaceSidebarIdentity{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;padding:0 10px 12px;border-bottom:1px solid var(--border);}
+  .workspaceSidebarIdentity>iconify-icon{flex:none;margin-top:2px;color:var(--muted);font-size:17px;}
+  .workspaceSidebarIdentity>div{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .workspaceSidebarIdentity span{color:var(--muted);font-size:11px;}
+  .workspaceSidebarIdentity strong{overflow:hidden;color:var(--text);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;}
+  .workspaceSidebarActions button{display:flex;align-items:center;gap:9px;width:100%;min-height:36px;padding:8px 10px;border:0;border-radius:6px;
+    background:transparent;color:var(--muted);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
+  .workspaceSidebarActions button:hover,.workspaceSidebarActions button:focus-visible{outline:none;background:var(--bg-soft);color:var(--text);}
+  .workspaceSidebarActions button iconify-icon{flex:none;color:var(--muted);font-size:16px;}
 
   #fileImportInput{display:none;}
   #sidebarScrim{display:none;}
