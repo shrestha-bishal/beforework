@@ -341,6 +341,14 @@ test("seeds a full-featured demo workspace with validated examples", async ()=>{
   assert.equal(launch.documents.length,2);
   assert.equal(launch.activeDocumentId,launch.documents[0].id);
   assert.match(launch.documents[0].content,/^# Product launch/m);
+  assert.equal(workspace.workspaceDocuments.length,2);
+  assert.equal(workspace.activeWorkspaceDocumentId,null);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(workspace.workspaceDocuments.map(document=>document.title))),
+    ["Workspace guide","Team working agreements"]
+  );
+  assert.match(workspace.workspaceDocuments[0].content,/apply across projects/);
+  assert.match(workspace.workspaceDocuments[1].content,/belongs to the workspace/);
   const relatedItemsField=launch.fields.find(field=>field.type==="relation");
   const locationField=launch.fields.find(field=>field.type==="location");
   const scheduleField=launch.fields.find(field=>field.type==="schedule");

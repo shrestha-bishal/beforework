@@ -281,7 +281,62 @@
       {id:uid(),projectId:onboarding.id,startedAt:now-3*day-35*60000,completedAt:now-3*day-10*60000,durationSeconds:25*60},
       {id:uid(),projectId:personalPlanning.id,startedAt:now-5*day-40*60000,completedAt:now-5*day-10*60000,durationSeconds:30*60}
     ];
-    return {schemaVersion:SCHEMA_VERSION, projects:[launch, onboarding, teamCalendar, personalPlanning], folders:[productFolder, operationsFolder, personalFolder], calendarItems, focusSessions, googleDeletedEventIds:[], googleCalendarLinks:[], googleCalendarCatalog:[], googleCalendarSyncTokens:{}, googleLastSyncAt:0};
+    const workspaceDocuments=[
+      {
+        id:uid(),
+        title:"Workspace guide",
+        content:[
+          "# Workspace guide",
+          "",
+          "A quick orientation to this sample workspace and how its projects fit together.",
+          "",
+          "## Projects",
+          "- **Product launch** — coordinate the release across tasks, milestones, and project documents.",
+          "- **Customer onboarding** — track customer setup and follow-up.",
+          "- **Team calendar** — plan shared rituals and release events.",
+          "- **Personal planning** — organize routines and individual goals.",
+          "",
+          "## Shared workspace documents",
+          "Use workspace documents for guidance and notes that apply across projects. Keep project-specific briefs with their project."
+        ].join("\n"),
+        createdAt:now-5*day,
+        updatedAt:now-2*day
+      },
+      {
+        id:uid(),
+        title:"Team working agreements",
+        content:[
+          "# Team working agreements",
+          "",
+          "## Weekly rhythm",
+          "- Review priorities at the weekly product sync.",
+          "- Capture decisions in the relevant project or shared workspace document.",
+          "- Keep task owners, statuses, and dates current.",
+          "",
+          "## Planning",
+          "Use milestones for project checkpoints and the shared calendar for meetings that affect multiple projects.",
+          "",
+          "## Notes",
+          "This document belongs to the workspace, so it stays available across projects."
+        ].join("\n"),
+        createdAt:now-3*day,
+        updatedAt:now-1*day
+      }
+    ];
+    return {
+      schemaVersion:SCHEMA_VERSION,
+      projects:[launch, onboarding, teamCalendar, personalPlanning],
+      folders:[productFolder, operationsFolder, personalFolder],
+      workspaceDocuments,
+      activeWorkspaceDocumentId:null,
+      calendarItems,
+      focusSessions,
+      googleDeletedEventIds:[],
+      googleCalendarLinks:[],
+      googleCalendarCatalog:[],
+      googleCalendarSyncTokens:{},
+      googleLastSyncAt:0
+    };
   }
 
   async function writeAttachments(workspace,writeAttachment){

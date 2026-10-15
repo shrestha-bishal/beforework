@@ -270,9 +270,7 @@
       };
     }
     return {
-      ...window.BeforeworkDemoSeeder.create({schemaVersion:SCHEMA_VERSION, uid, viewLabel, tagColors:TAG_COLORS, todayStr}),
-      workspaceDocuments:[],
-      activeWorkspaceDocumentId:null
+      ...window.BeforeworkDemoSeeder.create({schemaVersion:SCHEMA_VERSION, uid, viewLabel, tagColors:TAG_COLORS, todayStr})
     };
   }
 
