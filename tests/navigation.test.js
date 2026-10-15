@@ -141,7 +141,8 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.match(index,/<div class="sidebarProjects" id="sidebarProjects">/);
   assert.match(index,/<button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">/);
   assert.ok(index.indexOf('id="overviewNav"')<index.indexOf('id="projectsNav"'));
-  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="calendarNav"'));
+  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="workspaceDocumentsNav"'));
+  assert.ok(index.indexOf('id="workspaceDocumentsNav"')<index.indexOf('id="calendarNav"'));
   assert.ok(index.indexOf('id="calendarNav"')<index.indexOf('id="roadmapNav"'));
   assert.match(index,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
   assert.match(index,/<div class="workspaceSidebarActions" id="workspaceSidebarActions">[\s\S]*?id="workspaceSwitchBtn"[\s\S]*?Open different workspace[\s\S]*?id="workspaceNewBtn"[\s\S]*?Create new workspace/);
