@@ -15,8 +15,14 @@ const stylesManifest = fs.readFileSync(path.join(__dirname, "../styles/manifest.
 test("Focus Timer styles are isolated and included after shared application styles",()=>{
   assert.doesNotMatch(appStyles,/focusTimer|#focusTimerNav/);
   assert.match(timerStyles,/#focusTimerNav/);
-  assert.match(timerStyles,/#sidebar #focusTimerNav span\{display:none;\}/);
-  assert.match(timerStyles,/#sidebar #focusTimerPanel\.open\{position:fixed/);
+  assert.match(timerStyles,/#sidebar #focusTimerNav span\{display:block/);
+  assert.match(timerStyles,/#sidebar #focusTimerNav\{flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px/);
+  assert.match(timerStyles,/#sidebar #focusTimerNav iconify-icon\{font-size:21px;\}/);
+  assert.match(timerStyles,/#sidebar #focusTimerNav\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(timerStyles,/#sidebar #focusTimerNav\.active iconify-icon\{color:var\(--accent\);\}/);
+  assert.match(timerStyles,/#sidebar\[data-secondary-section\] #focusTimerNav\.active\{background:transparent;color:var\(--muted\);font-weight:500;\}/);
+  assert.match(timerStyles,/#sidebar\[data-secondary-section\] #focusTimerNav\.active iconify-icon\{color:var\(--muted\);\}/);
+  assert.match(timerStyles,/#sidebar #focusTimerPanel\.open\{position:fixed;left:86px/);
   assert.match(timerStyles,/\.focusTimerPanel/);
   assert.match(timerStyles,/@media print\s*\{\s*\.focusTimerPanel/);
   assert.match(stylesManifest,/@import url\("app\.css"\);\s*@import url\("focus-timer\.css"\);/);

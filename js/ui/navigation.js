@@ -43,6 +43,7 @@
       activeSecondarySection=null;
       activeSecondaryTrigger=null;
       secondarySidebar.removeAttribute("data-section");
+      element("sidebar").removeAttribute("data-secondary-section");
     }
 
     function openSecondarySidebar({title,renderContent,section,trigger}){
@@ -56,8 +57,13 @@
       }
       activeSecondarySection=section||null;
       activeSecondaryTrigger=trigger||null;
-      if (section) secondarySidebar.setAttribute("data-section",section);
-      else secondarySidebar.removeAttribute("data-section");
+      if (section){
+        secondarySidebar.setAttribute("data-section",section);
+        element("sidebar").setAttribute("data-secondary-section",section);
+      }else{
+        secondarySidebar.removeAttribute("data-section");
+        element("sidebar").removeAttribute("data-secondary-section");
+      }
       secondarySidebar.classList.add("open");
       secondarySidebar.setAttribute("aria-hidden","false");
       secondarySidebar.removeAttribute("inert");
@@ -95,7 +101,7 @@
         trigger:workspaceSwitcherBtn,
         renderContent:content=>{
           workspaceSidebarName.textContent=workspaceSwitcherLabel.textContent||"Workspace";
-          content.replaceChildren(workspaceSidebarActions);
+          content.replaceChildren(workspaceSidebarActions,projectsSidebar);
         }
       });
       element("secondarySidebarClose").onclick=closeSecondarySidebar;

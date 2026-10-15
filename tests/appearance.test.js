@@ -71,18 +71,31 @@ test("primary sidebar is compact by default without an expand state",()=>{
 });
 
 test("desktop sidebar keeps primary navigation icons visible by default",()=>{
-  assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\{width:60px;/);
+  assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\{width:72px;/);
+  assert.match(styles,/#sidebar\{width:72px;flex:0 0 72px;margin:6px 0 6px 6px;[\s\S]*?border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
+  assert.match(styles,/--sidebar-card-bg:#fff;/);
+  assert.match(styles,/:root\[data-theme="dark"\]\{\s*--sidebar-card-bg:var\(--bg\);/);
   assert.match(styles,/#sidebar #overviewNav,\s*#sidebar #calendarNav,\s*#sidebar #roadmapNav/);
-  assert.match(styles,/#sidebar #feedbackNav span\{display:none;\}/);
-  assert.match(styles,/#sidebar \.workspaceSwitcherBtn\{justify-content:center;width:42px;height:42px/);
+  assert.match(styles,/#sidebar #feedbackNav span\{display:block/);
+  assert.match(styles,/#sidebar \.workspaceSwitcherBtn\{position:relative;flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px/);
+  assert.match(styles,/#sidebar #overviewNav,[\s\S]*?#sidebar #feedbackNav\{flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px/);
   assert.doesNotMatch(styles,/#sidebar #projectList/);
   assert.match(styles,/#sidebar \.sidebarBottomNav \.uiDivider\{display:block;\}/);
   assert.doesNotMatch(styles,/#tagsSection/);
-  assert.match(styles,/#sidebar #globalSearch\{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
-  assert.match(index,/<img class="markCollapsed" src="images\/icon\.png" alt="">/);
+  assert.match(styles,/#sidebar #globalSearch\{position:absolute;inset:0;width:56px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
+  assert.match(styles,/#sidebar #projectsNav iconify-icon,[\s\S]*?#sidebar #feedbackNav iconify-icon\{font-size:21px;\}/);
+  assert.match(index,/<img class="markCompact" src="images\/icon\.png" alt="">/);
   assert.match(index,/<input class="form-control" id="globalSearch"[^>]*title="Search or run a command"/);
   assert.match(index,/<div id="sidebar">/);
   assert.doesNotMatch(styles,/#sidebar\.collapsed/);
+  assert.match(index,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
+  assert.match(index,/<span>Support<\/span><\/button>[\s\S]*?<span>Requests<\/span><\/button>/);
+  assert.match(styles,/#sidebar #overviewNav\.active,[\s\S]*?#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(styles,/#sidebar #overviewNav:hover iconify-icon,[\s\S]*?#sidebar #feedbackNav:hover iconify-icon\{color:var\(--accent\);\}/);
+  assert.doesNotMatch(styles,/#(?:overview|calendar|roadmap|projects|integrations|settings|support|feedback)Nav(?:\[aria-expanded="true"\])? iconify-icon\{color:#[0-9a-f]{3,6};\}/i);
+  assert.doesNotMatch(styles,/#sidebar #projectsNav\[aria-expanded="true"\]::before/);
+  assert.match(styles,/#sidebar \.sidebarNavDivider,\s*#sidebar \.supportNavDivider\{width:calc\(100% - 20px\);align-self:center;\}/);
+  assert.match(styles,/#secondarySidebar\.open\{margin:6px 0;border:1px solid var\(--border\);border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
 });
 
 test("sidebar folders can be collapsed, expanded, and remembered",()=>{

@@ -14,9 +14,11 @@
     --radius:var(--borderRadius-medium, 6px); --radius-lg:var(--borderRadius-large, 12px);
     --shadow-lift:var(--color-shadow-small);
     --shadow-modal:var(--color-shadow-large);
+    --sidebar-card-bg:#fff;
     --shadow-side:2px 0 10px rgba(27,31,36,.08);
   }
   :root[data-theme="dark"]{
+    --sidebar-card-bg:var(--bg);
     --shadow-side:2px 0 10px rgba(1,4,9,.5);
   }
   *{box-sizing:border-box;}
@@ -36,7 +38,7 @@
     accent-color: var(--color-accent-emphasis);
   }
 
-  #app{display:flex;height:100vh;overflow:hidden;}
+  #app{display:flex;height:100vh;overflow:hidden;gap: 6px;}
   #main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;}
   #board{flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;display:flex;gap:16px;padding:18px 20px 20px;align-items:flex-start;}
 
@@ -47,20 +49,22 @@
     display:flex;flex-direction:column;padding:18px 14px 12px;gap:12px;overflow-y:auto;z-index:60;
     transition:border-color .18s ease;}
   @media (min-width:861px){
-    #sidebar{width:60px;padding:18px 8px 12px;overflow-x:hidden;}
+    #sidebar{width:72px;flex:0 0 72px;margin:6px 0 6px 6px;padding:8px 4px 12px;overflow-x:hidden;
+      border:1px solid var(--border);border-radius:12px;background:var(--sidebar-card-bg);box-shadow:var(--shadow-side);}
     #sidebar #sidebarWrap{display:flex;flex-direction:column;gap:12px;}
     #sidebar .workspaceSwitcher{position:relative;margin:0;}
-    #sidebar .workspaceSwitcherBtn{justify-content:center;width:42px;height:42px;margin:0 auto;padding:9px;}
-    #sidebar .workspaceSwitcherBtn>iconify-icon:first-child{font-size:18px;}
+    #sidebar .workspaceSwitcherBtn{position:relative;flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px;margin:0 auto;padding:5px 2px;border-radius:9px;font-size:10px;text-align:center;}
+    #sidebar .workspaceSwitcherBtn>iconify-icon:first-child{font-size:21px;}
     #sidebar #workspaceSwitcherLabel,
     #sidebar .workspaceSwitcherChevron{display:none;}
+    #sidebar .workspaceSwitcherCaption{display:block;overflow:hidden;max-width:100%;line-height:1.1;text-overflow:ellipsis;white-space:nowrap;}
     #sidebar #sidebarWrap h1{justify-content:center;margin:0;}
-    #sidebar #sidebarWrap .brandHomeBtn{display:flex;width:42px;height:42px;align-items:center;justify-content:center;margin:0 auto;}
+    #sidebar #sidebarWrap .brandHomeBtn{display:flex;width:56px;height:44px;align-items:center;justify-content:center;margin:0 auto;}
     #sidebar #sidebarWrap .mark{display:none;}
-    #sidebar #sidebarWrap .markCollapsed{display:block;width:32px;height:32px;object-fit:contain;}
-    #sidebar .searchWrap{width:42px;height:42px;margin:0 auto;}
-    #sidebar .searchWrap svg{left:14px;top:14px;transform:none;}
-    #sidebar #globalSearch{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;}
+    #sidebar #sidebarWrap .markCompact{display:block;width:36px;height:36px;object-fit:contain;}
+    #sidebar .searchWrap{width:56px;height:42px;margin:0 auto;}
+    #sidebar .searchWrap svg{left:19px;top:12px;transform:none;}
+    #sidebar #globalSearch{position:absolute;inset:0;width:56px;height:42px;padding:0;opacity:0;cursor:pointer;}
     #sidebar .searchWrap:focus-within{outline:2px solid var(--accent);outline-offset:1px;border-radius:8px;}
     #sidebar .searchShortcut{display:none;}
     #sidebar .sidebarBottomNav .uiDivider{display:block;}
@@ -71,7 +75,15 @@
     #sidebar #integrationsNav,
     #sidebar #settingsNav,
     #sidebar #supportNav,
-    #sidebar #feedbackNav{justify-content:center;width:42px;padding:9px;margin-left:auto;margin-right:auto;}
+    #sidebar #feedbackNav{flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px;margin:0 auto;padding:5px 2px;border-radius:9px;font-size:10px;line-height:1.1;text-align:center;}
+    #sidebar #overviewNav iconify-icon,
+    #sidebar #calendarNav iconify-icon,
+    #sidebar #roadmapNav iconify-icon,
+    #sidebar #projectsNav iconify-icon,
+    #sidebar #integrationsNav iconify-icon,
+    #sidebar #settingsNav iconify-icon,
+    #sidebar #supportNav iconify-icon,
+    #sidebar #feedbackNav iconify-icon{font-size:21px;}
     #sidebar #overviewNav span,
     #sidebar #calendarNav span,
     #sidebar #roadmapNav span,
@@ -79,13 +91,68 @@
     #sidebar #integrationsNav span,
     #sidebar #settingsNav span,
     #sidebar #supportNav span,
-    #sidebar #feedbackNav span{display:none;}
+    #sidebar #feedbackNav span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    #sidebar #overviewNav.active,
+    #sidebar #calendarNav.active,
+    #sidebar #roadmapNav.active,
+    #sidebar #integrationsNav.active,
+    #sidebar #settingsNav.active,
+    #sidebar #supportNav.active,
+    #sidebar #projectsNav[aria-expanded="true"],
+    #sidebar #workspaceSwitcherBtn[aria-expanded="true"]{background:var(--bg-soft);color:var(--text);font-weight:600;}
+    #sidebar #overviewNav:hover,
+    #sidebar #calendarNav:hover,
+    #sidebar #roadmapNav:hover,
+    #sidebar #projectsNav:hover,
+    #sidebar #integrationsNav:hover,
+    #sidebar #settingsNav:hover,
+    #sidebar #supportNav:hover,
+    #sidebar #feedbackNav:hover,
+    #sidebar #overviewNav.active,
+    #sidebar #calendarNav.active,
+    #sidebar #roadmapNav.active,
+    #sidebar #integrationsNav.active,
+    #sidebar #settingsNav.active,
+    #sidebar #supportNav.active,
+    #sidebar #projectsNav[aria-expanded="true"],
+    #sidebar #workspaceSwitcherBtn[aria-expanded="true"]{background:var(--bg-soft);}
+    #sidebar #overviewNav:hover iconify-icon,
+    #sidebar #overviewNav.active iconify-icon,
+    #sidebar #calendarNav:hover iconify-icon,
+    #sidebar #calendarNav.active iconify-icon,
+    #sidebar #roadmapNav:hover iconify-icon,
+    #sidebar #roadmapNav.active iconify-icon,
+    #sidebar #projectsNav:hover iconify-icon,
+    #sidebar #projectsNav[aria-expanded="true"] iconify-icon,
+    #sidebar #workspaceSwitcherBtn:hover>iconify-icon:first-child,
+    #sidebar #workspaceSwitcherBtn[aria-expanded="true"]>iconify-icon:first-child,
+    #sidebar #integrationsNav:hover iconify-icon,
+    #sidebar #integrationsNav.active iconify-icon,
+    #sidebar #settingsNav:hover iconify-icon,
+    #sidebar #settingsNav.active iconify-icon,
+    #sidebar #supportNav:hover iconify-icon,
+    #sidebar #supportNav.active iconify-icon,
+    #sidebar #feedbackNav:hover iconify-icon{color:var(--accent);}
+    #sidebar[data-secondary-section] #overviewNav.active,
+    #sidebar[data-secondary-section] #calendarNav.active,
+    #sidebar[data-secondary-section] #roadmapNav.active,
+    #sidebar[data-secondary-section] #integrationsNav.active,
+    #sidebar[data-secondary-section] #settingsNav.active,
+    #sidebar[data-secondary-section] #supportNav.active{background:transparent;color:var(--muted);font-weight:500;}
+    #sidebar[data-secondary-section] #overviewNav.active iconify-icon,
+    #sidebar[data-secondary-section] #calendarNav.active iconify-icon,
+    #sidebar[data-secondary-section] #roadmapNav.active iconify-icon,
+    #sidebar[data-secondary-section] #integrationsNav.active iconify-icon,
+    #sidebar[data-secondary-section] #settingsNav.active iconify-icon,
+    #sidebar[data-secondary-section] #supportNav.active iconify-icon{color:var(--muted);}
+    #sidebar .sidebarNavDivider,
+    #sidebar .supportNavDivider{width:calc(100% - 20px);align-self:center;}
   }
   #app{position:relative;}
   #sidebar h1{font-size:15px;font-weight:700;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;letter-spacing:-.01em;}
   #sidebar h1 .brandHomeBtn{display:block;padding:0;border:0;background:transparent;line-height:0;}
   #sidebar h1 .mark{display:block;width:190px;height:auto;flex:none;}
-  #sidebar h1 .markCollapsed{display:none;}
+  #sidebar h1 .markCompact{display:none;}
 
   .searchWrap{position:relative;}
   .searchWrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);}
@@ -130,7 +197,7 @@
     transition:flex-basis .18s ease,width .18s ease,border-width .18s ease,margin .18s ease;}
   #secondarySidebar.open{flex-basis:264px;width:264px;border-right-width:1px;}
   @media (min-width:861px){
-    #secondarySidebar.open{margin:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--shadow-modal);}
+    #secondarySidebar.open{margin:6px 0;border:1px solid var(--border);border-radius:12px;background:var(--sidebar-card-bg);box-shadow:var(--shadow-side);}
   }
   .secondarySidebarHeader{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;}
   .secondarySidebarHeader h2{overflow:hidden;margin:0;font-size:14px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;}
@@ -143,6 +210,7 @@
   .projectCreateBtn{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
   #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:14px 12px;}
   #secondarySidebarContent .sidebarProjects{min-width:0;}
+  #secondarySidebar[data-section="workspace"] #sidebarProjects{display:none;}
   @media (prefers-reduced-motion:reduce){#secondarySidebar{transition:none;}}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}
@@ -860,6 +928,7 @@
   .workspaceSwitcherBtn:disabled:hover{background:transparent;}
   .workspaceSwitcherBtn>iconify-icon:first-child{flex:none;color:var(--muted);font-size:16px;}
   #workspaceSwitcherLabel{overflow:hidden;flex:1;min-width:0;text-overflow:ellipsis;white-space:nowrap;}
+  .workspaceSwitcherCaption{display:none;}
   .workspaceSwitcherChevron{flex:none;color:var(--muted);font-size:15px;}
   #secondarySidebar[data-section="workspace"] .projectCreateWrap{display:none;}
   .workspaceSidebarActions{display:flex;flex-direction:column;gap:4px;}

@@ -80,18 +80,21 @@ test("sidebar does not include the removed Tags section",()=>{
 test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.match(index,/<button id="projectsNav"[^>]*aria-controls="secondarySidebar"><iconify-icon icon="mdi:layers-outline"/);
   assert.match(index,/<aside id="secondarySidebar" aria-labelledby="secondarySidebarTitle" aria-hidden="true" inert>[\s\S]*?<div id="secondarySidebarContent">[\s\S]*?<ul class="SideNav" id="projectList"><\/ul>/);
-  assert.ok(index.indexOf('id="projectsNav"')>index.indexOf('id="roadmapNav"'));
   assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="secondarySidebar"'));
   assert.ok(index.indexOf('class="sidebarProjects"')>index.indexOf('id="secondarySidebarContent"'));
   assert.match(index,/<div class="sidebarProjects" id="sidebarProjects">/);
   assert.match(index,/<button class="workspaceSwitcherBtn" id="workspaceSwitcherBtn" type="button" aria-expanded="false" aria-controls="secondarySidebar">/);
+  assert.ok(index.indexOf('id="overviewNav"')<index.indexOf('id="projectsNav"'));
+  assert.ok(index.indexOf('id="projectsNav"')<index.indexOf('id="calendarNav"'));
+  assert.ok(index.indexOf('id="calendarNav"')<index.indexOf('id="roadmapNav"'));
+  assert.match(index,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
   assert.match(index,/<div class="workspaceSidebarActions" id="workspaceSidebarActions">[\s\S]*?id="workspaceSwitchBtn"[\s\S]*?Open different workspace[\s\S]*?id="workspaceNewBtn"[\s\S]*?Create new workspace/);
   assert.doesNotMatch(index,/id="workspaceSwitcherMenu"/);
   assert.match(index,/<div class="secondarySidebarActions">[\s\S]*?<button id="secondarySidebarClose"[\s\S]*?<button class="btn btn-sm btn-invisible projectCreateBtn"[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
   assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
   assert.match(styles,/#sidebar #projectsNav span,\s*#sidebar #integrationsNav span/);
   assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
-  assert.match(styles,/@media \(min-width:861px\)\{\s*#secondarySidebar\.open\{margin:12px;border:1px solid var\(--border\);border-radius:12px;background:var\(--bg\);box-shadow:var\(--shadow-modal\);\}/);
+  assert.match(styles,/#secondarySidebar\.open\{margin:6px 0;border:1px solid var\(--border\);border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
   assert.match(styles,/\.secondarySidebarHeader\{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;\}/);
   assert.match(styles,/#projectList\{[^}]*background:transparent;/);
   assert.match(styles,/#projectList \.SideNav-item\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
@@ -116,7 +119,8 @@ test("workspace and project sections are mutually exclusive in the secondary sid
   workspaceSwitcherBtn.onclick();
   assert.equal(secondarySidebarTitle.textContent,"Workspace");
   assert.equal(secondarySidebar.attributes["data-section"],"workspace");
-  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions]);
+  assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],"workspace");
+  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions,sidebarProjects]);
   assert.equal(harness.elements.workspaceSidebarName.textContent,"Personal Workspace");
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
   assert.equal(projectsNav.attributes["aria-expanded"],"false");
@@ -124,18 +128,21 @@ test("workspace and project sections are mutually exclusive in the secondary sid
   projectsNav.onclick();
   assert.equal(secondarySidebarTitle.textContent,"Projects");
   assert.equal(secondarySidebar.attributes["data-section"],"projects");
+  assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],"projects");
   assert.deepEqual(secondarySidebarContent.children,[sidebarProjects]);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
   assert.equal(projectsNav.attributes["aria-expanded"],"true");
 
   workspaceSwitcherBtn.onclick();
   assert.equal(secondarySidebarTitle.textContent,"Workspace");
-  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions]);
+  assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],"workspace");
+  assert.deepEqual(secondarySidebarContent.children,[workspaceSidebarActions,sidebarProjects]);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"true");
   assert.equal(projectsNav.attributes["aria-expanded"],"false");
 
   workspaceSwitcherBtn.onclick();
   assert.equal(secondarySidebar.classList.contains("open"),false);
+  assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],undefined);
   assert.equal(workspaceSwitcherBtn.attributes["aria-expanded"],"false");
   assert.equal(projectsNav.attributes["aria-expanded"],"false");
 });
@@ -188,6 +195,7 @@ test("secondary sidebar preserves the project list when reopening and accepts re
   assert.equal(secondarySidebar.attributes["data-section"],undefined);
 
   harness.navigation.closeSecondarySidebar();
+  assert.equal(harness.elements.sidebar.attributes["data-secondary-section"],undefined);
   projectsNav.onclick();
   assert.deepEqual(secondarySidebarContent.children,[harness.elements.sidebarProjects]);
   secondarySidebarClose.onclick();
@@ -211,15 +219,17 @@ test("workspace controls use the extensible secondary sidebar",()=>{
   const harness=createHarness();
   const {workspaceSwitcherBtn,projectsNav,workspaceSidebarActions,sidebarProjects,secondarySidebar}=harness.elements;
   workspaceSwitcherBtn.onclick();
-  assert.deepEqual(harness.elements.secondarySidebarContent.children,[workspaceSidebarActions]);
+  assert.deepEqual(harness.elements.secondarySidebarContent.children,[workspaceSidebarActions,sidebarProjects]);
   assert.equal(secondarySidebar.attributes["data-section"],"workspace");
   projectsNav.onclick();
   assert.deepEqual(harness.elements.secondarySidebarContent.children,[sidebarProjects]);
   assert.equal(secondarySidebar.attributes["data-section"],"projects");
   assert.match(source,/function openSecondarySidebar\(\{title,renderContent,section,trigger\}\)/);
   assert.match(source,/activeSecondaryTrigger\.setAttribute\("aria-expanded","false"\)/);
-  assert.match(styles,/\.workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--accent-soft\);color:var\(--accent-strong\);font-weight:600;\}/);
+  assert.match(styles,/#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
   assert.match(styles,/#secondarySidebar\[data-section="workspace"\] \.projectCreateWrap\{display:none;\}/);
+  assert.match(styles,/#secondarySidebar\[data-section="workspace"\] #sidebarProjects\{display:none;\}/);
+  assert.match(styles,/#sidebar\[data-secondary-section\] #overviewNav\.active,[\s\S]*?#sidebar\[data-secondary-section\] #supportNav\.active\{background:transparent;color:var\(--muted\);font-weight:500;\}/);
   assert.match(styles,/\.workspaceSidebarIdentity strong\{overflow:hidden;color:var\(--text\);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;\}/);
   assert.match(styles,/\.workspaceSidebarActions button\{display:flex;align-items:center;gap:9px;width:100%;min-height:36px;/);
   assert.match(app,/window\.BeforeworkNavigation\.create\(/);
