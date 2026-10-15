@@ -3,6 +3,7 @@
 
   function createNavigation({
     documentRef=global.document,
+    storage=global.localStorage,
     onOverview,
     onCalendar,
     onRoadmap,
@@ -13,6 +14,7 @@
     switchWorkspace,
     createWorkspace
   }){
+    const SECONDARY_SECTION_KEY="beforework_secondary_sidebar_section_v1";
     const element=id=>documentRef.getElementById(id);
     const workspaceSwitcherBtn=element("workspaceSwitcherBtn");
     const projectsNav=element("projectsNav");
@@ -23,8 +25,16 @@
     const workspaceSidebarActions=element("workspaceSidebarActions");
     const workspaceSwitcherLabel=element("workspaceSwitcherLabel");
     const workspaceSidebarName=element("workspaceSidebarName");
+    const secondarySections=new Map();
     let activeSecondarySection=null;
     let activeSecondaryTrigger=null;
+
+    function persistSecondarySection(section){
+      try{
+        if (section) storage?.setItem(SECONDARY_SECTION_KEY,section);
+        else storage?.removeItem(SECONDARY_SECTION_KEY);
+      }catch(err){}
+    }
 
     function toggleSidebar(){
       element("sidebar").classList.toggle("open");
@@ -43,6 +53,7 @@
       if (activeSecondaryTrigger) activeSecondaryTrigger.setAttribute("aria-expanded","false");
       activeSecondarySection=null;
       activeSecondaryTrigger=null;
+      persistSecondarySection(null);
       secondarySidebar.removeAttribute("data-section");
       element("sidebar").removeAttribute("data-secondary-section");
     }
@@ -58,6 +69,7 @@
       }
       activeSecondarySection=section||null;
       activeSecondaryTrigger=trigger||null;
+      persistSecondarySection(activeSecondarySection);
       if (section){
         secondarySidebar.setAttribute("data-section",section);
         element("sidebar").setAttribute("data-secondary-section",section);
@@ -72,12 +84,36 @@
       closeSidebarOnMobile();
     }
 
-    function toggleSecondarySection({section,title,trigger,renderContent}){
-      if (secondarySidebar.classList.contains("open")&&activeSecondarySection===section){
+    function toggleSecondarySection(definition){
+      if (secondarySidebar.classList.contains("open")&&activeSecondarySection===definition.section){
         closeSecondarySidebar();
       }else{
-        openSecondarySidebar({section,title,trigger,renderContent});
+        openSecondarySidebar(definition);
       }
+    }
+
+    function registerSecondarySection(definition){
+      const {section,title,trigger,renderContent}=definition||{};
+      if (!section || !title || !trigger || typeof renderContent!=="function"){
+        throw new TypeError("A secondary section requires a section key, title, trigger, and content renderer.");
+      }
+      const registration={section,title,trigger,renderContent};
+      secondarySections.set(section,registration);
+      trigger.onclick=()=>toggleSecondarySection(registration);
+      return ()=>{
+        if (secondarySections.get(section)!==registration) return;
+        if (activeSecondarySection===section) closeSecondarySidebar();
+        secondarySections.delete(section);
+        trigger.onclick=null;
+      };
+    }
+
+    function restoreSecondarySection(){
+      let section=null;
+      try{ section=storage?.getItem(SECONDARY_SECTION_KEY); }catch(err){/* Sidebar state is optional. */}
+      const registration=secondarySections.get(section);
+      if (registration) openSecondarySidebar(registration);
+      else if (section) persistSecondarySection(null);
     }
 
     function navigate(callback){
@@ -91,13 +127,13 @@
       element("calendarNav").onclick=()=>navigate(onCalendar);
       element("roadmapNav").onclick=()=>navigate(onRoadmap);
       element("focusTimerNav").onclick=()=>navigate(onTimer);
-      projectsNav.onclick=()=>toggleSecondarySection({
+      registerSecondarySection({
         section:"projects",
         title:"Projects",
         trigger:projectsNav,
         renderContent:content=>content.replaceChildren(projectsSidebar)
       });
-      workspaceSwitcherBtn.onclick=()=>toggleSecondarySection({
+      registerSecondarySection({
         section:"workspace",
         title:"Workspace",
         trigger:workspaceSwitcherBtn,
@@ -123,7 +159,7 @@
 
     }
 
-    return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile,openSecondarySidebar,closeSecondarySidebar});
+    return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile,openSecondarySidebar,closeSecondarySidebar,registerSecondarySection,restoreSecondarySection});
   }
 
   global.BeforeworkNavigation=Object.freeze({create:createNavigation});

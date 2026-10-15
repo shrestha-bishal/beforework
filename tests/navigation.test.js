@@ -38,7 +38,7 @@ function makeElement(id){
   };
 }
 
-function createHarness(){
+function createHarness(storage=new Map()){
   const ids=[
     "overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","projectsNav","secondarySidebar",
     "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","sidebarProjects","integrationsNav","settingsNav","supportNav",
@@ -55,7 +55,11 @@ function createHarness(){
     getElementById:id=>elements[id],
     addEventListener(name,callback){ documentListeners[name]=callback; }
   };
-  const window={};
+  const window={localStorage:{
+    getItem(key){ return storage.get(key)||null; },
+    setItem(key,value){ storage.set(key,value); },
+    removeItem(key){ storage.delete(key); }
+  }};
   vm.runInNewContext(source,{window},{filename:"navigation.js"});
   const navigation=window.BeforeworkNavigation.create({
     documentRef,
@@ -70,7 +74,7 @@ function createHarness(){
     createWorkspace:async()=>calls.push("create")
   });
   navigation.wire();
-  return {elements,calls,documentListeners,navigation};
+  return {elements,calls,documentListeners,navigation,storage};
 }
 
 test("sidebar does not include the removed Tags section",()=>{
@@ -237,4 +241,53 @@ test("workspace controls use the extensible secondary sidebar",()=>{
   assert.doesNotMatch(app,/document\.getElementById\("workspaceSwitcherBtn"\)\.onclick/);
   assert.doesNotMatch(app,/document\.getElementById\("sidebarToggle"\)\.onclick/);
   assert.ok(appScripts.indexOf("ui/navigation.js")<appScripts.indexOf("app.js"));
+});
+
+test("secondary sidebar section restores after refresh and clears when closed",()=>{
+  const first=createHarness();
+  first.elements.projectsNav.onclick();
+  assert.equal(first.storage.get("beforework_secondary_sidebar_section_v1"),"projects");
+
+  const refreshed=createHarness(first.storage);
+  refreshed.navigation.restoreSecondarySection();
+  assert.equal(refreshed.elements.secondarySidebar.classList.contains("open"),true);
+  assert.equal(refreshed.elements.secondarySidebar.attributes["data-section"],"projects");
+  assert.equal(refreshed.elements.projectsNav.attributes["aria-expanded"],"true");
+  assert.deepEqual(refreshed.elements.secondarySidebarContent.children,[refreshed.elements.sidebarProjects]);
+
+  refreshed.elements.secondarySidebarClose.onclick();
+  assert.equal(first.storage.has("beforework_secondary_sidebar_section_v1"),false);
+});
+
+test("secondary sidebar restores any section registered by an extension",()=>{
+  const first=createHarness();
+  const reportsTrigger=makeElement("reportsNav");
+  const reportsContent={};
+  first.navigation.registerSecondarySection({
+    section:"reports",
+    title:"Reports",
+    trigger:reportsTrigger,
+    renderContent:content=>content.replaceChildren(reportsContent)
+  });
+  reportsTrigger.onclick();
+  assert.equal(first.storage.get("beforework_secondary_sidebar_section_v1"),"reports");
+
+  const refreshed=createHarness(first.storage);
+  const refreshedTrigger=makeElement("reportsNav");
+  refreshed.navigation.registerSecondarySection({
+    section:"reports",
+    title:"Reports",
+    trigger:refreshedTrigger,
+    renderContent:content=>content.replaceChildren(reportsContent)
+  });
+  refreshed.navigation.restoreSecondarySection();
+  assert.equal(refreshed.elements.secondarySidebarTitle.textContent,"Reports");
+  assert.deepEqual(refreshed.elements.secondarySidebarContent.children,[reportsContent]);
+  assert.equal(refreshedTrigger.attributes["aria-expanded"],"true");
+});
+
+test("demo startup restores the last active page before rendering",()=>{
+  const demoBranch=app.slice(app.indexOf("if (demoMode){",app.indexOf("async function boot")));
+  assert.match(demoBranch,/restoreActiveLocation\(\);\s*renderAll\(\);\s*navigation\?\.restoreSecondarySection\(\);/);
+  assert.match(app,/renderAll\(\);\s*navigation\?\.restoreSecondarySection\(\);\s*resumeGoogleCalendarSync\(\);/);
 });

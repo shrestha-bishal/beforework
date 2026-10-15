@@ -3443,7 +3443,9 @@
       }else{
         setSyncStatus("Demo changes are saved in this browser only.");
       }
+      restoreActiveLocation();
       renderAll();
+      navigation?.restoreSecondarySection();
       startupOperation.finish();
       operationStatus.finishStartup();
       if (loadError){
@@ -3461,6 +3463,7 @@
         catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + window.BeforeworkErrorUtils.getMessage(err)); }
       }
       renderAll();
+      navigation?.restoreSecondarySection();
       resumeGoogleCalendarSync();
       startupOperation.finish();
       operationStatus.finishStartup();
