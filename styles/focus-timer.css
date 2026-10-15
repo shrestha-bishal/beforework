@@ -16,14 +16,13 @@
 }
 
 #board:has(.focusTimerPage){display:block;overflow:auto;padding:clamp(16px,2.5vw,36px);}
-.focusTimerPage{width:100%;min-height:100%;box-sizing:border-box;}
+.focusTimerPage{width:100%;min-height:100%;box-sizing:border-box;font:inherit;line-height:1.5;}
 .focusTimerWorkspace{display:flex;flex-direction:column;gap:22px;width:100%;max-width:1440px;margin:0 auto;}
 .focusTimerPageHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;}
 .focusTimerPageHeader>div:first-child{min-width:0;}
-.focusTimerEyebrow{color:var(--accent-strong);font-size:11px;font-weight:700;letter-spacing:.12em;}
-.focusTimerPageHeader p{margin:5px 0 0;color:var(--muted);font-size:14px;}
-.focusTimerState{display:inline-flex;flex:none;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);
-  border-radius:999px;background:var(--bg);color:var(--muted);font-size:12px;font-weight:600;}
+.focusTimerPageTitle{margin:0;font-size:24px;line-height:1.2;font-weight:700;letter-spacing:-.02em;color:var(--text);}
+.focusTimerPageHeader p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.5;}
+.focusTimerState{display:inline-flex;flex:none;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--muted);font-size:12px;font-weight:600;line-height:1.2;}
 .focusTimerStateDot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
 .focusTimerState[data-state="running"]{color:var(--accent-strong);}
 .focusTimerState[data-state="running"] .focusTimerStateDot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
@@ -32,9 +31,8 @@
 .focusTimerLayout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:20px;align-items:stretch;}
 .focusTimerCard{min-width:0;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:var(--shadow-lift);}
 .focusTimerStage{display:flex;min-height:520px;flex-direction:column;align-items:center;justify-content:center;padding:clamp(24px,4vw,48px);}
-.focusTimerModeRow{display:grid;width:min(100%,340px);grid-template-columns:1fr 1fr;gap:4px;margin-bottom:22px;padding:4px;
-  border:1px solid var(--border);border-radius:10px;background:var(--bg-soft);}
-.focusTimerModeRow button{min-width:0;min-height:38px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-weight:600;}
+.focusTimerModeRow{display:grid;width:min(100%,340px);grid-template-columns:1fr 1fr;gap:4px;margin-bottom:22px;padding:4px;border:1px solid var(--border);border-radius:10px;background:var(--bg-soft);}
+.focusTimerModeRow button{min-width:0;min-height:38px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;line-height:1.2;}
 .focusTimerModeRow button.selected{background:var(--bg);color:var(--text);box-shadow:var(--shadow-lift);}
 .focusTimerModeRow button:hover{color:var(--text);}
 .focusTimerDial{position:relative;display:grid;width:clamp(250px,31vw,340px);max-width:100%;aspect-ratio:1;place-items:center;}
@@ -43,9 +41,9 @@
 .focusTimerDialTrack{stroke:var(--bg-soft2);}
 .focusTimerDialProgress{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .35s linear,stroke .2s ease;}
 .focusTimerDialContent{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;}
-.focusTimerModeLabel{color:var(--muted);font-size:13px;font-weight:600;}
-.focusTimerDisplay{color:var(--text);font-size:clamp(52px,7vw,72px);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.055em;line-height:1;}
-.focusTimerRemainingLabel{color:var(--muted);font-size:12px;}
+.focusTimerModeLabel{color:var(--muted);font-size:12px;font-weight:600;line-height:1.3;}
+.focusTimerDisplay{color:var(--text);font-size:clamp(52px,6vw,68px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.055em;line-height:1;}
+.focusTimerRemainingLabel{color:var(--muted);font-size:12px;line-height:1.4;}
 .focusTimerBtnRow{display:flex;width:min(100%,340px);gap:10px;margin-top:22px;}
 .focusTimerBtnRow button{min-height:46px;}
 .focusTimerBtnRow button:first-child{flex:1;}
@@ -53,18 +51,18 @@
 .focusTimerSettings{display:flex;flex-direction:column;gap:16px;}
 .focusTimerDurationCard{padding:clamp(20px,2.5vw,30px);}
 .focusTimerCardHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:24px;}
-.focusTimerCardHeading h3,.focusTimerTip h3{margin:0;color:var(--text);font-size:16px;font-weight:650;}
+.focusTimerCardHeading h3,.focusTimerTip h3{margin:0;color:var(--text);font-size:14px;font-weight:650;line-height:1.3;}
 .focusTimerCardHeading p,.focusTimerTip p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.55;}
 .focusTimerCardHeading iconify-icon{flex:none;color:var(--accent);font-size:22px;}
 .focusTimerQuickRow{display:flex;flex-direction:column;gap:9px;margin-bottom:24px;}
-.focusTimerQuickRow>span,.focusTimerDurationRow label{color:var(--text);font-size:12px;font-weight:600;}
+.focusTimerQuickRow>span,.focusTimerDurationRow label{color:var(--text);font-size:12px;font-weight:600;line-height:1.4;}
 #focusTimerQuickOptions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
-#focusTimerQuickOptions button{min-width:0;min-height:38px;padding:6px 4px;font-size:13px;font-variant-numeric:tabular-nums;}
+#focusTimerQuickOptions button{min-width:0;min-height:38px;padding:6px 4px;font-size:13px;font-variant-numeric:tabular-nums;line-height:1.3;}
 #focusTimerQuickOptions button.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);}
 .focusTimerDurationRow{display:flex;flex-direction:column;gap:8px;}
 .focusTimerDurationRow label span{color:var(--muted);font-weight:400;}
 .focusTimerDurationControl{display:flex;align-items:center;gap:8px;}
-#focusDurationInput{width:100%;min-width:0;height:38px;padding:6px 10px;font-variant-numeric:tabular-nums;}
+#focusDurationInput{width:100%;min-width:0;height:38px;padding:6px 10px;font-size:14px;font-variant-numeric:tabular-nums;line-height:1.4;}
 #focusDurationApplyBtn{min-height:38px;padding-right:16px;padding-left:16px;}
 .focusTimerTip{display:flex;align-items:flex-start;gap:12px;padding:20px;}
 .focusTimerTip>iconify-icon{flex:none;margin-top:1px;color:var(--accent);font-size:20px;}
