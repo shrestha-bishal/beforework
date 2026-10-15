@@ -11,6 +11,9 @@ const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
 const projectActionsMenu = fs.readFileSync(path.join(__dirname, "../js/ui/project-actions-menu.js"), "utf8");
 const styles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
 const actionMenuStyles = fs.readFileSync(path.join(__dirname, "../styles/action-menu.css"), "utf8");
+const overviewStyles = fs.readFileSync(path.join(__dirname, "../styles/overview.css"), "utf8");
+const focusTimerStyles = fs.readFileSync(path.join(__dirname, "../styles/focus-timer.css"), "utf8");
+const calendarStyles = fs.readFileSync(path.join(__dirname, "../styles/calendar.css"), "utf8");
 const index = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 const navigationTemplate = fs.readFileSync(path.join(__dirname, "../pages/navigation.html"), "utf8");
 
@@ -73,6 +76,13 @@ test("primary sidebar is compact by default without an expand state",()=>{
 });
 
 test("desktop sidebar keeps primary navigation icons visible by default",()=>{
+  assert.match(styles,/--font-family-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif/);
+  assert.match(styles,/--font-size-body:14px/);
+  assert.match(styles,/--font-weight-semibold:600/);
+  assert.match(styles,/body\{[^}]*font-family:var\(--font-family-sans\)[^}]*font-size:var\(--font-size-body\)/);
+  assert.match(styles,/button,input,select,textarea\{font-family:inherit;\}/);
+  assert.doesNotMatch(styles,/font-weight:\s*650/);
+  assert.match(index,/family=Inter:wght@400;500;600;700/);
   assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\{width:72px;/);
   assert.match(styles,/#sidebar\{width:72px;flex:0 0 72px;margin:6px 0 6px 6px;[\s\S]*?border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
   assert.match(styles,/--sidebar-card-bg:#fff;/);
@@ -92,12 +102,26 @@ test("desktop sidebar keeps primary navigation icons visible by default",()=>{
   assert.doesNotMatch(styles,/#sidebar\.collapsed/);
   assert.match(navigationTemplate,/<span class="workspaceSwitcherCaption">Workspace<\/span>/);
   assert.match(navigationTemplate,/<span>Support<\/span><\/button>[\s\S]*?<span>Requests<\/span><\/button>/);
-  assert.match(styles,/#sidebar #overviewNav\.active,[\s\S]*?#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(styles,/#sidebar #overviewNav\.active,[\s\S]*?#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:var\(--font-weight-semibold\);\}/);
   assert.match(styles,/#sidebar #workspaceSwitcherBtn:hover>iconify-icon:first-child,\s*#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]>iconify-icon:first-child\{color:var\(--accent\);\}/);
   assert.doesNotMatch(styles,/#(?:overview|calendar|roadmap|projects|integrations|settings|support|feedback)Nav(?:\[aria-expanded="true"\])? iconify-icon\{color:#[0-9a-f]{3,6};\}/i);
   assert.doesNotMatch(styles,/#sidebar #projectsNav\[aria-expanded="true"\]::before/);
   assert.match(styles,/#sidebar \.sidebarNavDivider,\s*#sidebar \.supportNavDivider\{width:calc\(100% - 20px\);align-self:center;\}/);
   assert.match(styles,/#secondarySidebar\.open\{margin:6px 0;border:1px solid var\(--border\);border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
+});
+
+test("typography reserves bold for strong emphasis and uses medium weights for secondary labels",()=>{
+  assert.match(styles,/#topbar h2\{font-size:var\(--font-size-xl\);font-weight:var\(--font-weight-semibold\);/);
+  assert.match(overviewStyles,/\.overviewDashHeader h2\{[^}]*font-weight:var\(--font-weight-semibold\)/);
+  assert.match(focusTimerStyles,/\.focusTimerPageTitle\{[^}]*font-weight:var\(--font-weight-semibold\)/);
+  assert.match(focusTimerStyles,/\.focusTimerDisplay\{[^}]*font-weight:var\(--font-weight-bold\)/);
+  assert.match(focusTimerStyles,/\.focusTimerModeRow button\{[^}]*font-weight:var\(--font-weight-medium\)/);
+  assert.match(focusTimerStyles,/\.focusTimerModeRow button\.selected\{[^}]*font-weight:var\(--font-weight-semibold\)/);
+  assert.match(focusTimerStyles,/\.focusTimerQuickRow>span,\.focusTimerDurationRow label\{[^}]*font-weight:var\(--font-weight-medium\)/);
+  assert.match(overviewStyles,/\.overviewStatLabel\{[^}]*font-weight:var\(--font-weight-medium\)/);
+  assert.match(calendarStyles,/\.calendarWeekday\{[^}]*font-weight:var\(--font-weight-medium\)/);
+  assert.match(styles,/#projectList \.projectListSectionLabel\{[^}]*font-weight:var\(--font-weight-medium\)/);
+  assert.match(styles,/\.sidebarSectionLabel\{[^}]*font-weight:var\(--font-weight-medium\)/);
 });
 
 test("sidebar folders can be collapsed, expanded, and remembered",()=>{
@@ -130,14 +154,14 @@ test("pinned projects are labeled and folders precede loose projects",()=>{
   assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?if \(pinnedProjects\.length&&\(state\.folders\.length\|\|unfiled\.length\)\)\{\s*const divider=document\.createElement\("li"\);\s*divider\.className="projectListPinnedDivider";\s*divider\.setAttribute\("aria-hidden","true"\);\s*ul\.appendChild\(divider\);\s*\}/);
   assert.match(app,/pinnedProjects\.forEach\(project=>appendProject\(project\)\);[\s\S]*?state\.folders\.forEach\(folder=>\{[\s\S]*?unfiled\.forEach\(project=>appendProject\(project\)\);/);
   assert.doesNotMatch(app,/appendSectionLabel\("(?:Projects|Folders)"\)/);
-  assert.match(styles,/#projectList \.projectListSectionLabel\{padding:4px 10px;color:var\(--muted\);font-size:10\.5px;font-weight:600;letter-spacing:\.02em;line-height:1\.3;\}/);
+  assert.match(styles,/#projectList \.projectListSectionLabel\{padding:4px 10px;color:var\(--muted\);font-size:var\(--font-size-sm\);font-weight:var\(--font-weight-medium\);letter-spacing:\.02em;line-height:1\.3;\}/);
   assert.match(styles,/#projectList \.projectListPinnedDivider\{height:0;margin:8px 10px 6px;border-top:1px solid var\(--border\);\}/);
   assert.doesNotMatch(app,/folderHeadingDivider/);
   assert.doesNotMatch(styles,/folderHeadingDivider/);
 });
 
 test("sidebar project action trigger keeps shared menu behavior with compact custom styling",()=>{
-  assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar\{[^}]*width:24px;[^}]*height:20px;[^}]*flex:0 0 auto;[^}]*padding:2px 4px;[^}]*border-radius:5px;[^}]*font-size:16px;/);
+  assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar\{[^}]*width:24px;[^}]*height:20px;[^}]*flex:0 0 auto;[^}]*padding:2px 4px;[^}]*border-radius:5px;[^}]*font-size:var\(--font-size-lg\);/);
   assert.match(actionMenuStyles,/\.action-menu__trigger--sidebar:hover,[\s\S]*?\.action-menu__trigger--sidebar\.active\{background:var\(--bg-soft\);color:var\(--text\);\}/);
   assert.match(projectActionsMenu,/"projectMenuBtnSmall action-menu__trigger action-menu__trigger--sidebar"/);
   assert.match(app,/menuBtn\.className = "folderMenuBtn action-menu__trigger action-menu__trigger--sidebar"/);

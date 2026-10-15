@@ -76,8 +76,8 @@ test("time wheel follows 24-hour preference and only saves on confirmation",()=>
 
 test("placeholder styling is scoped to the date picker's time control",()=>{
   const css=fs.readFileSync(path.join(__dirname,"../styles/app.css"),"utf8");
-  assert.match(css,/\.datePickerPopover \.timePickerWrap \.timePickerButton\.is-placeholder>span\{font-size:11px;\}/);
-  assert.doesNotMatch(css,/^\s*\.timePickerButton\.is-placeholder>span\{font-size:11px;\}/m);
+  assert.match(css,/\.datePickerPopover \.timePickerWrap \.timePickerButton\.is-placeholder>span\{font-size:var\(--font-size-sm\);\}/);
+  assert.doesNotMatch(css,/^\s*\.timePickerButton\.is-placeholder>span\{font-size:var\(--font-size-sm\);\}/m);
 });
 
 test("picker markup is supplied by the shared HTML template",()=>{

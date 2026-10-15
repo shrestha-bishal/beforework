@@ -129,7 +129,7 @@ test("Table and List expose column rearranging through their context menus",()=>
   assert.match(styles,/\.listViewToolbarActions\{position:relative;display:flex;align-items:center;gap:8px;margin-left:auto;\}/);
   assert.match(styles,/\.listViewMenuWrap\{position:relative;display:flex;align-items:center;\}/);
   assert.match(actionMenuStyles,/\.action-menu--view\{[^}]*min-width:160px;/);
-  assert.match(actionMenuStyles,/\.action-menu button\{[^}]*padding:8px 9px;[^}]*font-size:12\.5px;[^}]*font-weight:400;/);
+  assert.match(actionMenuStyles,/\.action-menu button\{[^}]*padding:8px 9px;[^}]*font-size:var\(--font-size-md\);[^}]*font-weight:var\(--font-weight-regular\);/);
   assert.doesNotMatch(actionMenuStyles,/\.action-menu--(?:field|view) \.menu-item\{[^}]*font-size/);
   assert.match(styles,/\.listTable\.rearrangingColumns th\.fieldColumnHeader\[data-column-id\]\{padding-right:58px!important;\}/);
 });

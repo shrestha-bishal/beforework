@@ -2,23 +2,23 @@
 .settingsWrap{container-type:inline-size;padding:clamp(24px,4vw,40px);overflow:auto;flex:1;width:100%;max-width:1480px;}
 #board:has(.settingsWrap){overflow-x:hidden;overflow-y:auto;}
 .settingsIntro{margin-bottom:24px;}
-.settingsIntro p{margin:4px 0 0;font-size:13px;}
+.settingsIntro p{margin:4px 0 0;font-size:var(--font-size-body-sm);}
 .settingsGrid{display:grid;grid-template-columns:1fr;gap:18px;}
 .settingsSection{min-width:0;overflow:hidden;}
 .settingsStorageSection{margin-top:18px;}
 .settingsSectionHead{padding:16px 18px 13px;}
-.settingsSectionHead h4{margin:0 0 3px;font-size:13.5px;}
-.settingsSectionHead span{font-size:11.5px;color:var(--muted);}
+.settingsSectionHead h4{margin:0 0 3px;font-size:var(--font-size-body-sm);}
+.settingsSectionHead span{font-size:var(--font-size-sm);color:var(--muted);}
 .settingsRow{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 18px;}
-.settingsRow strong{font-size:13px;font-weight:600;}
-.settingsRow p{margin:3px 0 0;color:var(--muted);font-size:11.5px;line-height:1.45;}
+.settingsRow strong{font-size:var(--font-size-body-sm);font-weight:var(--font-weight-semibold);}
+.settingsRow p{margin:3px 0 0;color:var(--muted);font-size:var(--font-size-sm);line-height:1.45;}
 .settingsRow .btn{flex:none;}
 .settingsRowActions{display:flex;align-items:center;gap:6px;flex:none;}
 .settingsRowStacked{align-items:flex-start;flex-direction:column;gap:10px;}
 .settingsRecoveryRow>div{width:100%;min-width:0;}
 #settingsRecoveryList{display:flex;flex-direction:column;margin-top:8px;}
 .settingsRecoveryEntry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--border);}
-.settingsRecoveryEntry>span:first-child{overflow:hidden;color:var(--muted);font-size:11px;text-overflow:ellipsis;white-space:nowrap;}
+.settingsRecoveryEntry>span:first-child{overflow:hidden;color:var(--muted);font-size:var(--font-size-sm);text-overflow:ellipsis;white-space:nowrap;}
 .settingsRecoveryEntry .settingsRowActions{gap:4px;}
 .settingsSelect{width:auto;min-width:112px;}
 @container (min-width:700px){

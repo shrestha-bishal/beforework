@@ -4,20 +4,20 @@
 .documentsListView[hidden],.documentDetailView[hidden],.documentsEmpty[hidden],.documentMarkdownInput[hidden],.documentMarkdownPreview[hidden]{display:none!important;}
 .documentsSectionHead{min-height:28px;}
 .documentsSectionHead>div{min-width:0;}
-.documentsSectionHint{margin:3px 0 0;color:var(--faint);font-size:11px;font-weight:400;letter-spacing:0;}
+.documentsSectionHint{margin:3px 0 0;color:var(--faint);font-size:var(--font-size-sm);font-weight:var(--font-weight-regular);letter-spacing:0;}
 .documentsSectionHead>[data-create-document]{display:inline-flex;align-items:center;gap:5px;}
 .documentsSectionHead>[data-create-document] iconify-icon{font-size:15px;}
 .documentsList{display:flex;flex-direction:column;min-width:0;margin-top:2px;}
 .documentRow{display:flex;align-items:center;gap:10px;min-width:0;min-height:54px;padding:5px 8px;border:1px solid transparent;border-radius:7px;transition:background .14s ease,border-color .14s ease;}
 .documentRow:hover{border-color:var(--border);background:var(--bg-soft);}
-.documentRowIcon{flex:none;color:var(--muted);font-size:16px;}
+.documentRowIcon{flex:none;color:var(--muted);font-size:var(--font-size-lg);}
 .documentRowOpen{display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-start;gap:2px;padding:3px 0;border:0;background:transparent;color:var(--text);text-align:left;cursor:pointer;}
-.documentRowOpen strong{max-width:100%;overflow:hidden;font-size:12.5px;font-weight:500;text-overflow:ellipsis;white-space:nowrap;}
-.documentRowOpen>span:not(.documentRowExcerpt){color:var(--faint);font-size:10.5px;}
+.documentRowOpen strong{max-width:100%;overflow:hidden;font-size:var(--font-size-md);font-weight:var(--font-weight-medium);text-overflow:ellipsis;white-space:nowrap;}
+.documentRowOpen>span:not(.documentRowExcerpt){color:var(--faint);font-size:var(--font-size-sm);}
 .documentRowExcerpt{display:none;}
 .documentRowActions{display:flex;flex:none;align-items:center;gap:2px;opacity:0;transition:opacity .14s ease;}
 .documentRow:hover .documentRowActions,.documentRow:focus-within .documentRowActions{opacity:1;}
-.documentRowActions .btn{font-size:11px;}
+.documentRowActions .btn{font-size:var(--font-size-sm);}
 .documentMenuWrap{position:relative;display:flex;flex:none;align-items:center;}
 .documentMenuWrap>.action-menu__trigger{width:28px;height:28px;}
 .documentActionsMenu{top:calc(100% + 4px);right:0;min-width:174px;}
@@ -25,16 +25,16 @@
 .documentActionsMenu button{display:flex;align-items:center;gap:9px;}
 .documentActionsMenu button iconify-icon{width:16px;flex:none;color:var(--muted);font-size:15px;}
 .documentActionsMenu button.danger iconify-icon{color:var(--danger);}
-.documentsEmpty{display:flex;align-items:center;gap:4px;margin-top:4px;color:var(--faint);font-size:12px;}
+.documentsEmpty{display:flex;align-items:center;gap:4px;margin-top:4px;color:var(--faint);font-size:var(--font-size-md);}
 .documentsEmpty .subitemAddButton{margin:0;}
 .documentDetailView{display:flex;width:100%;min-width:0;min-height:0;flex:1;flex-direction:column;}
 .documentDetailHeader{position:relative;padding:0 10px 12px;}
-.documentBreadcrumb{display:flex;align-items:center;gap:5px;min-width:0;margin:0 0 10px;color:var(--muted);font-size:11px;}
+.documentBreadcrumb{display:flex;align-items:center;gap:5px;min-width:0;margin:0 0 10px;color:var(--muted);font-size:var(--font-size-sm);}
 .documentBreadcrumb button{max-width:45%;overflow:hidden;padding:2px 5px;color:var(--muted);text-overflow:ellipsis;white-space:nowrap;}
 .documentBreadcrumb>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .documentBreadcrumb>span[aria-hidden]{color:var(--border);}
 .documentTitleRow{display:flex;align-items:center;gap:8px;min-width:0;}
-.documentTitleInput{flex:1;width:auto;min-width:0;min-height:0;padding:7px 10px;border:1px solid transparent;border-radius:10px;font-size:17px;font-weight:600;}
+.documentTitleInput{flex:1;width:auto;min-width:0;min-height:0;padding:7px 10px;border:1px solid transparent;border-radius:10px;font-size:var(--font-size-xl);font-weight:var(--font-weight-semibold);}
 .documentTitleInput:hover,.documentTitleInput:focus{background:var(--bg-soft);}
 .documentTitleInput:focus{border-color:var(--border);box-shadow:none;}
 .documentDetailActions{display:flex;flex:none;align-items:center;gap:2px;}
@@ -57,15 +57,15 @@
 .workspaceDocumentSidebarItem.active>iconify-icon{color:var(--accent-strong);}
 .workspaceDocumentSidebarCopy{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px;}
 .workspaceDocumentSidebarCopy strong,.workspaceDocumentSidebarCopy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.workspaceDocumentSidebarCopy strong{font-size:12px;font-weight:500;}
-.workspaceDocumentSidebarCopy small{color:var(--faint);font-size:10px;}
-.workspaceDocumentSidebarEmpty{margin:8px 4px;color:var(--muted);font-size:12px;line-height:1.5;}
+.workspaceDocumentSidebarCopy strong{font-size:var(--font-size-md);font-weight:var(--font-weight-medium);}
+.workspaceDocumentSidebarCopy small{color:var(--faint);font-size:var(--font-size-xs);}
+.workspaceDocumentSidebarEmpty{margin:8px 4px;color:var(--muted);font-size:var(--font-size-md);line-height:1.5;}
 .workspaceDocumentsWelcome{display:flex;max-width:520px;flex:1;flex-direction:column;align-items:center;justify-content:center;align-self:center;padding:40px;text-align:center;}
 .workspaceDocumentsWelcomeIcon{display:grid;width:48px;height:48px;place-items:center;margin-bottom:16px;border-radius:12px;background:var(--accent-soft);color:var(--accent-strong);}
 .workspaceDocumentsWelcomeIcon iconify-icon{font-size:24px;}
-.workspaceDocumentsWelcome h2{margin:0;color:var(--text);font-size:20px;font-weight:650;line-height:1.25;}
-.workspaceDocumentsWelcome p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.55;}
-.workspaceDocumentsWelcome .workspaceDocumentsWelcomeHint{color:var(--faint);font-size:12px;}
+.workspaceDocumentsWelcome h2{margin:0;color:var(--text);font-size:var(--font-size-2xl);font-weight:var(--font-weight-semibold);line-height:1.25;}
+.workspaceDocumentsWelcome p{margin:8px 0 0;color:var(--muted);font-size:var(--font-size-body-sm);line-height:1.55;}
+.workspaceDocumentsWelcome .workspaceDocumentsWelcomeHint{color:var(--faint);font-size:var(--font-size-md);}
 @media(max-width:560px){
   .documentsSectionHead{align-items:flex-start;}
   .documentsSectionHead>[data-create-document]{flex:none;}

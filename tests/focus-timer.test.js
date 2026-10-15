@@ -10,6 +10,7 @@ const source = fs.readFileSync(path.join(__dirname, "../js/features/focus-timer.
 const appStyles = fs.readFileSync(path.join(__dirname, "../styles/app.css"), "utf8");
 const timerStyles = fs.readFileSync(path.join(__dirname, "../styles/focus-timer.css"), "utf8");
 const indexHtml = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+const navigationTemplate = fs.readFileSync(path.join(__dirname, "../pages/navigation.html"), "utf8");
 const stylesManifest = fs.readFileSync(path.join(__dirname, "../styles/manifest.css"), "utf8");
 
 test("Focus Timer styles are isolated and included after shared application styles",()=>{
@@ -18,7 +19,7 @@ test("Focus Timer styles are isolated and included after shared application styl
   assert.match(timerStyles,/#sidebar #focusTimerNav span\{display:block/);
   assert.match(timerStyles,/#sidebar #focusTimerNav\{flex-direction:column;justify-content:center;gap:4px;width:100%;height:56px/);
   assert.match(timerStyles,/#sidebar #focusTimerNav iconify-icon\{font-size:21px;\}/);
-  assert.match(timerStyles,/#sidebar #focusTimerNav\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(timerStyles,/#sidebar #focusTimerNav\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:var\(--font-weight-semibold\);\}/);
   assert.match(timerStyles,/#focusTimerNav iconify-icon\{color:var\(--muted\);font-size:16px;\}/);
   assert.match(timerStyles,/#focusTimerNav\.active iconify-icon\{color:var\(--nav-icon-timer,#b77812\);\}/);
   assert.match(appStyles,/--nav-icon-roadmap:#cf514b;/);
@@ -26,7 +27,7 @@ test("Focus Timer styles are isolated and included after shared application styl
   assert.match(timerStyles,/#board:has\(\.focusTimerPage\)\{display:block;overflow:auto/);
   assert.match(timerStyles,/\.focusTimerLayout\{display:grid;grid-template-columns:minmax\(0,1\.55fr\) minmax\(300px,\.85fr\)/);
   assert.match(timerStyles,/\.focusTimerDialProgress\{stroke:var\(--accent\);stroke-linecap:round/);
-  assert.match(indexHtml,/<button id="focusTimerNav" type="button" title="Focus timer"/);
+  assert.match(navigationTemplate,/<button id="focusTimerNav" type="button" title="Focus timer"/);
   assert.doesNotMatch(indexHtml,/focusTimerMount/);
   const timerPage=fs.readFileSync(path.join(__dirname,"../pages/focus-timer.html"),"utf8");
   assert.match(timerPage,/<section class="focusTimerPage" id="focusTimerPage"/);

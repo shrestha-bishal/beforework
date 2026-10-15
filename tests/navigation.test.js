@@ -181,7 +181,7 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.match(styles,/#secondarySidebar\.open\{margin:6px 0;border:1px solid var\(--border\);border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
   assert.match(styles,/\.secondarySidebarHeader\{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;\}/);
   assert.match(styles,/#projectList\{[^}]*background:transparent;/);
-  assert.match(styles,/#projectList \.SideNav-item\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(styles,/#projectList \.SideNav-item\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:var\(--font-weight-semibold\);\}/);
   assert.match(styles,/#projectList \.SideNav-item\.active \.projectIcon\{color:var\(--muted\);\}/);
   assert.match(styles,/#projectList \.folderHeading iconify-icon\{flex:none;color:var\(--muted\);font-size:14px;\}/);
   assert.match(styles,/#projectList \.folderHeading:has\(\.folderPageLink\[aria-current="page"\]\)\{border-radius:6px;background:var\(--bg-soft\);\}/);
@@ -310,11 +310,11 @@ test("workspace controls use the extensible secondary sidebar",()=>{
   assert.equal(secondarySidebar.attributes["data-section"],"projects");
   assert.match(source,/function openSecondarySidebar\(\{title,renderContent,section,trigger\}\)/);
   assert.match(source,/activeSecondaryTrigger\.setAttribute\("aria-expanded","false"\)/);
-  assert.match(styles,/#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
+  assert.match(styles,/#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:var\(--font-weight-semibold\);\}/);
   assert.match(styles,/#secondarySidebar\[data-section="workspace"\] \.projectCreateWrap\{display:none;\}/);
   assert.match(styles,/#secondarySidebar\[data-section\]:not\(\[data-section="projects"\]\):not\(\[data-section="workspace"\]\) #sidebarProjects\{display:none;\}/);
-  assert.match(styles,/#sidebar\[data-secondary-section\] #overviewNav\.active,[\s\S]*?#sidebar\[data-secondary-section\] #supportNav\.active\{background:transparent;color:var\(--muted\);font-weight:500;\}/);
-  assert.match(styles,/\.workspaceSidebarIdentity strong\{overflow:hidden;color:var\(--text\);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;\}/);
+  assert.match(styles,/#sidebar\[data-secondary-section\] #overviewNav\.active,[\s\S]*?#sidebar\[data-secondary-section\] #supportNav\.active\{background:transparent;color:var\(--muted\);font-weight:var\(--font-weight-medium\);\}/);
+  assert.match(styles,/\.workspaceSidebarIdentity strong\{overflow:hidden;color:var\(--text\);font-size:var\(--font-size-body-sm\);font-weight:var\(--font-weight-semibold\);text-overflow:ellipsis;white-space:nowrap;\}/);
   assert.match(styles,/\.workspaceSidebarActions button\{display:flex;align-items:center;gap:9px;width:100%;min-height:36px;/);
   assert.match(app,/window\.BeforeworkNavigation\.create\(/);
   assert.doesNotMatch(app,/document\.getElementById\("workspaceSwitcherBtn"\)\.onclick/);
