@@ -4,6 +4,13 @@
      Primer CSS custom property, so Primer's own [data-color-mode] rules
      (toggled in JS - see applyTheme) are what actually drives light/dark,
      not a second copy of the palette maintained here. */
+  @font-face{
+    font-family:"Inter";
+    font-style:normal;
+    font-weight:100 900;
+    font-display:swap;
+    src:url("vendor/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  }
   :root{
     --font-family-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --font-size-xs:10px;

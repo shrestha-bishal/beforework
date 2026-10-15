@@ -82,7 +82,11 @@ test("desktop sidebar keeps primary navigation icons visible by default",()=>{
   assert.match(styles,/body\{[^}]*font-family:var\(--font-family-sans\)[^}]*font-size:var\(--font-size-body\)/);
   assert.match(styles,/button,input,select,textarea\{font-family:inherit;\}/);
   assert.doesNotMatch(styles,/font-weight:\s*650/);
-  assert.match(index,/family=Inter:wght@400;500;600;700/);
+  assert.match(styles,/@font-face\{[^}]*font-family:"Inter"[^}]*font-weight:100 900[^}]*font-display:swap[^}]*src:url\("vendor\/fonts\/inter-latin-wght-normal\.woff2"\) format\("woff2"\)/);
+  assert.match(index,/style-src 'self' 'unsafe-inline'; font-src 'self';/);
+  assert.doesNotMatch(index,/fonts\.googleapis\.com|fonts\.gstatic\.com/);
+  assert.ok(fs.existsSync(path.join(__dirname,"../styles/vendor/fonts/inter-latin-wght-normal.woff2")));
+  assert.ok(fs.existsSync(path.join(__dirname,"../styles/vendor/fonts/Inter-OFL.txt")));
   assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\{width:72px;/);
   assert.match(styles,/#sidebar\{width:72px;flex:0 0 72px;margin:6px 0 6px 6px;[\s\S]*?border-radius:12px;background:var\(--sidebar-card-bg\);box-shadow:var\(--shadow-side\);\}/);
   assert.match(styles,/--sidebar-card-bg:#fff;/);
