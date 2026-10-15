@@ -8,7 +8,6 @@ export class SettingsView {
     const view = this.cloneTemplate();
     view.querySelector("#settingsThemeToggle").textContent = `${settings.theme} mode`;
     view.querySelector("#settingsTimeFormat").value = settings.timeFormat;
-    view.querySelector("#settingsSidebarToggle").textContent = `${settings.sidebarCollapsed ? "Expand" : "Collapse"} sidebar`;
     view.querySelector("#settingsStorageStatus").textContent = settings.storageStatus;
     view.querySelector("#settingsBackupRow").hidden = !settings.hasBackup;
     view.querySelector("#settingsMigrateLegacyRow").hidden = !settings.isLegacyFile;
@@ -48,7 +47,6 @@ export class SettingsView {
     board.replaceChildren(view);
     board.querySelector("#settingsThemeToggle").onclick = () => this.actions.toggleTheme(board);
     board.querySelector("#settingsTimeFormat").onchange = event=>this.actions.setTimeFormat(event.target.value);
-    board.querySelector("#settingsSidebarToggle").onclick = () => this.actions.toggleSidebar(board);
     board.querySelector("#settingsReminderToggle").onclick = () => this.actions.toggleReminders(board);
     board.querySelector("#settingsShortcuts").onclick = this.actions.showShortcuts;
     board.querySelector("#settingsContactForm").onclick = this.actions.openIssues;

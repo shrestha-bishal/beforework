@@ -89,7 +89,7 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
   assert.doesNotMatch(index,/id="workspaceSwitcherMenu"/);
   assert.match(index,/<div class="secondarySidebarActions">[\s\S]*?<button id="secondarySidebarClose"[\s\S]*?<button class="btn btn-sm btn-invisible projectCreateBtn"[^>]*id="projectCreateBtn"[^>]*aria-controls="projectCreateMenu"/);
   assert.doesNotMatch(index,/<div class="sidebarProjects" id="sidebarProjects">[\s\S]*?projectSectionHeader/);
-  assert.match(styles,/#sidebar\.collapsed #projectsNav span,\s*#sidebar\.collapsed #integrationsNav span/);
+  assert.match(styles,/#sidebar #projectsNav span,\s*#sidebar #integrationsNav span/);
   assert.match(styles,/#secondarySidebar\.open\{flex-basis:264px;width:264px/);
   assert.match(styles,/@media \(min-width:861px\)\{\s*#secondarySidebar\.open\{margin:12px;border:1px solid var\(--border\);border-radius:12px;background:var\(--bg\);box-shadow:var\(--shadow-modal\);\}/);
   assert.match(styles,/\.secondarySidebarHeader\{display:flex;flex:none;align-items:center;gap:8px;min-height:56px;padding:10px 14px;\}/);

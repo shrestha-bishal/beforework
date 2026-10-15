@@ -2,7 +2,6 @@
   "use strict";
 
   const THEME_KEY = "personal_dashboard_theme_v1";
-  const SIDEBAR_KEY = "personal_dashboard_sidebar_collapsed_v1";
 
   function applyTheme(theme){
     global.document.documentElement.setAttribute("data-theme", theme);
@@ -24,32 +23,8 @@
     applyTheme(saved || (prefersDark ? "dark" : "light"));
   }
 
-  function applySidebarCollapsed(collapsed){
-    const sidebar = global.document.getElementById("sidebar");
-    const handle = global.document.getElementById("sidebarCollapseHandle");
-    sidebar.classList.toggle("collapsed", collapsed);
-    handle.textContent = collapsed ? "›" : "‹";
-    handle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
-    handle.setAttribute("aria-label", handle.title);
-    try{ global.localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0"); }catch(err){/* ignore */}
-  }
-
-  function toggleSidebarCollapsed(){
-    const sidebar = global.document.getElementById("sidebar");
-    applySidebarCollapsed(!sidebar.classList.contains("collapsed"));
-  }
-
-  function initSidebarCollapse(){
-    let saved = null;
-    try{ saved = global.localStorage.getItem(SIDEBAR_KEY); }catch(err){/* ignore */}
-    applySidebarCollapsed(saved === "1");
-  }
-
   global.BeforeworkAppearance = Object.freeze({
-    applySidebarCollapsed,
-    initSidebarCollapse,
     initTheme,
-    toggleSidebarCollapsed,
     toggleTheme
   });
 })(window);

@@ -176,7 +176,6 @@
       );
     },
     onOpen(){
-      window.BeforeworkAppearance.applySidebarCollapsed(false);
       if (window.innerWidth<=860){
         document.getElementById("sidebar").classList.add("open");
         document.getElementById("sidebarScrim").classList.add("show");
@@ -1906,7 +1905,6 @@
     settingsView.render(board, {
       theme:document.documentElement.getAttribute("data-theme")==="dark" ? "Dark" : "Light",
       timeFormat:getTimeFormat(),
-      sidebarCollapsed:document.getElementById("sidebar").classList.contains("collapsed"),
       storageStatus:getSyncStatusText(),
       hasBackup:workspaceRecovery.hasMigrationBackup(),
       isLegacyFile:window.BeforeworkStorage.isLegacyFile(),
@@ -1926,7 +1924,6 @@
         dateTimePickers.refreshTimePickerLabels();
         renderAll();
       },
-      toggleSidebar(board){ window.BeforeworkAppearance.toggleSidebarCollapsed(); renderSettings(board); },
       async toggleReminders(board){
         if (reminderService.getStatus().enabled) reminderService.disable();
         else await reminderService.enable();
@@ -3055,7 +3052,6 @@
         commandPalette.open(globalSearch.value);
       }
     });
-    document.getElementById("sidebarCollapseHandle").onclick = window.BeforeworkAppearance.toggleSidebarCollapsed;
     document.getElementById("fileImportInput").addEventListener("change", e=>{
       if (e.target.files[0]) workspaceRecovery.importJSON(e.target.files[0]);
       e.target.value = "";
@@ -3087,7 +3083,6 @@
       if (editable) return;
       if (e.key==="n"){ e.preventDefault(); quickAddViaShortcut(); return; }
       if (e.key==="d"){ e.preventDefault(); window.BeforeworkAppearance.toggleTheme(); return; }
-      if (e.key==="["){ e.preventDefault(); window.BeforeworkAppearance.toggleSidebarCollapsed(); return; }
       if (e.key==="t"){ e.preventDefault(); toggleFocusTimer(); return; }
       if (e.key==="?"){ e.preventDefault(); showShortcutsModal(); return; }
     });
@@ -3134,7 +3129,6 @@
   async function boot({loadViewModules}){
     const startupOperation=operationStatus.begin("Preparing your workspace…");
     window.BeforeworkAppearance.initTheme();
-    window.BeforeworkAppearance.initSidebarCollapse();
     try{
       await window.BeforeworkViewTemplates.load("dateTimePickers");
     }catch(error){

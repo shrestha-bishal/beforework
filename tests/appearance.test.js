@@ -16,22 +16,7 @@ const index = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 function createHarness({preferences={},prefersDark=false,storageThrows=false}={}){
   const values = new Map(Object.entries(preferences));
   const attributes = new Map();
-  const elements = {
-    themeToggle:{textContent:""},
-    sidebar:{
-      collapsed:false,
-      classList:{
-        contains(name){ return name==="collapsed" && elements.sidebar.collapsed; },
-        toggle(name,enabled){ if (name==="collapsed") elements.sidebar.collapsed=enabled; }
-      }
-    },
-    sidebarCollapseHandle:{
-      textContent:"",
-      title:"",
-      attributes:{},
-      setAttribute(name,value){ this.attributes[name]=value; }
-    }
-  };
+  const elements = {themeToggle:{textContent:""}};
   const window = {
     document:{
       documentElement:{
@@ -77,33 +62,27 @@ test("uses system theme when no saved preference and persists theme toggles",()=
   assert.equal(harness.elements.themeToggle.textContent,"🌙");
 });
 
-test("initializes and toggles the persisted sidebar state",()=>{
-  const harness=createHarness({preferences:{"personal_dashboard_sidebar_collapsed_v1":"1"}});
-  harness.appearance.initSidebarCollapse();
-  assert.equal(harness.elements.sidebar.collapsed,true);
-  assert.equal(harness.elements.sidebarCollapseHandle.textContent,"›");
-  assert.equal(harness.elements.sidebarCollapseHandle.attributes["aria-label"],"Expand sidebar");
-
-  harness.appearance.toggleSidebarCollapsed();
-
-  assert.equal(harness.elements.sidebar.collapsed,false);
-  assert.equal(harness.elements.sidebarCollapseHandle.textContent,"‹");
-  assert.equal(harness.values.get("personal_dashboard_sidebar_collapsed_v1"),"0");
+test("primary sidebar is compact by default without an expand state",()=>{
+  assert.match(index,/<div id="sidebar">/);
+  assert.doesNotMatch(index,/sidebarCollapseHandle|settingsSidebarToggle/);
+  assert.doesNotMatch(app,/toggleSidebarCollapsed|applySidebarCollapsed|initSidebarCollapse/);
+  assert.doesNotMatch(styles,/sidebarCollapseHandle/);
+  assert.doesNotMatch(index,/class="collapsed"/);
 });
 
-test("collapsed desktop sidebar keeps primary navigation icons visible",()=>{
-  assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\.collapsed\{width:60px;/);
-  assert.match(styles,/#sidebar\.collapsed #overviewNav,\s*#sidebar\.collapsed #calendarNav,\s*#sidebar\.collapsed #roadmapNav/);
-  assert.match(styles,/#sidebar\.collapsed #feedbackNav span\{display:none;\}/);
-  assert.match(styles,/#sidebar\.collapsed \.workspaceSwitcherBtn\{justify-content:center;width:42px;height:42px/);
-  assert.doesNotMatch(styles,/#sidebar\.collapsed #projectList/);
-  assert.match(styles,/#sidebar\.collapsed \.sidebarBottomNav \.uiDivider\{display:block;\}/);
+test("desktop sidebar keeps primary navigation icons visible by default",()=>{
+  assert.match(styles,/@media \(min-width:861px\)\{\s*#sidebar\{width:60px;/);
+  assert.match(styles,/#sidebar #overviewNav,\s*#sidebar #calendarNav,\s*#sidebar #roadmapNav/);
+  assert.match(styles,/#sidebar #feedbackNav span\{display:none;\}/);
+  assert.match(styles,/#sidebar \.workspaceSwitcherBtn\{justify-content:center;width:42px;height:42px/);
+  assert.doesNotMatch(styles,/#sidebar #projectList/);
+  assert.match(styles,/#sidebar \.sidebarBottomNav \.uiDivider\{display:block;\}/);
   assert.doesNotMatch(styles,/#tagsSection/);
-  assert.match(styles,/#sidebar\.collapsed #globalSearch\{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
+  assert.match(styles,/#sidebar #globalSearch\{position:absolute;inset:0;width:42px;height:42px;padding:0;opacity:0;cursor:pointer;\}/);
   assert.match(index,/<img class="markCollapsed" src="images\/icon\.png" alt="">/);
   assert.match(index,/<input class="form-control" id="globalSearch"[^>]*title="Search or run a command"/);
-  assert.match(styles,/@media \(min-width:861px\)\{#sidebar\.collapsed \+ #sidebarCollapseHandle\{left:42px;\}\}/);
-  assert.doesNotMatch(styles,/#sidebar\.collapsed\{width:0/);
+  assert.match(index,/<div id="sidebar">/);
+  assert.doesNotMatch(styles,/#sidebar\.collapsed/);
 });
 
 test("sidebar folders can be collapsed, expanded, and remembered",()=>{
@@ -156,8 +135,5 @@ test("keeps appearance controls usable when local storage is unavailable",()=>{
   const harness=createHarness({prefersDark:true,storageThrows:true});
 
   harness.appearance.initTheme();
-  harness.appearance.toggleSidebarCollapsed();
-
   assert.equal(harness.attributes.get("data-theme"),"dark");
-  assert.equal(harness.elements.sidebar.collapsed,true);
 });
