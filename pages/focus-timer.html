@@ -1,27 +1,62 @@
-<button id="focusTimerNav" type="button" title="Focus timer" aria-label="Focus timer" aria-expanded="false"><iconify-icon icon="mdi:timer-outline" aria-hidden="true"></iconify-icon><span>Timer</span></button>
-<div class="focusTimerPanel Box" id="focusTimerPanel">
-  <div class="focusTimerHeader">
-    <h4>Timer</h4>
-    <button class="btn btn-sm btn-invisible focusTimerClose" id="focusTimerCloseBtn" type="button" aria-label="Close focus timer">✕</button>
-  </div>
-  <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
-    <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
-    <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
-  </div>
-  <div class="focusTimerDisplay" id="focusTimerDisplay">25:00</div>
-  <div class="focusTimerDurationRow">
-    <label for="focusDurationInput">Duration (minutes)</label>
-    <div class="focusTimerDurationControl">
-      <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
-      <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Set</button>
+<section class="focusTimerPage" id="focusTimerPage" aria-label="Focus timer">
+  <div class="focusTimerWorkspace">
+    <div class="focusTimerPageHeader">
+      <div>
+        <span class="focusTimerEyebrow">Focus Session</span>
+        <p>Make a little room for your best work.</p>
+      </div>
+    </div>
+    <div class="focusTimerLayout">
+      <section class="focusTimerCard focusTimerStage" aria-label="Timer controls">
+        <div class="focusTimerModeRow" role="group" aria-label="Timer mode">
+          <button class="btn btn-sm selected" type="button" data-focus-mode="focus" aria-pressed="true">Focus</button>
+          <button class="btn btn-sm" type="button" data-focus-mode="break" aria-pressed="false">Break</button>
+        </div>
+        <div class="focusTimerDial">
+          <svg class="focusTimerDialSvg" viewBox="0 0 240 240" aria-hidden="true">
+            <circle class="focusTimerDialTrack" cx="120" cy="120" r="104"></circle>
+            <circle class="focusTimerDialProgress" id="focusTimerProgress" cx="120" cy="120" r="104"></circle>
+          </svg>
+          <div class="focusTimerDialContent">
+            <span class="focusTimerModeLabel" id="focusTimerModeLabel">Focus session</span>
+            <span class="focusTimerDisplay" id="focusTimerDisplay" role="timer" aria-live="off">25:00</span>
+            <span class="focusTimerRemainingLabel">remaining</span>
+          </div>
+        </div>
+        <div class="focusTimerBtnRow">
+          <button class="btn btn-primary" id="focusStartBtn" type="button">Start focus</button>
+          <button class="btn btn-invisible focusTimerResetBtn" id="focusResetBtn" type="button">Reset</button>
+        </div>
+      </section>
+      <aside class="focusTimerSettings">
+        <section class="focusTimerCard focusTimerDurationCard" aria-labelledby="focusTimerDurationTitle">
+          <div class="focusTimerCardHeading">
+            <div>
+              <h3 id="focusTimerDurationTitle">Session length</h3>
+              <p>Choose a duration that works for you.</p>
+            </div>
+            <iconify-icon icon="mdi:timer-cog-outline" aria-hidden="true"></iconify-icon>
+          </div>
+          <div class="focusTimerQuickRow">
+            <span>Quick select</span>
+            <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
+          </div>
+          <div class="focusTimerDurationRow">
+            <label for="focusDurationInput">Custom duration <span>(1–180 min)</span></label>
+            <div class="focusTimerDurationControl">
+              <input class="form-control" id="focusDurationInput" type="number" min="1" max="180" step="1" placeholder="25" aria-label="Custom session duration in minutes">
+              <button class="btn btn-sm" id="focusDurationApplyBtn" type="button">Apply</button>
+            </div>
+          </div>
+        </section>
+        <section class="focusTimerCard focusTimerTip" aria-label="Focus tip">
+          <iconify-icon icon="mdi:lightbulb-on-outline" aria-hidden="true"></iconify-icon>
+          <div>
+            <h3>Keep your rhythm</h3>
+            <p>Work in a focused block, then take a short break before your next session.</p>
+          </div>
+        </section>
+      </aside>
     </div>
   </div>
-  <div class="focusTimerQuickRow">
-    <span>Quick durations</span>
-    <div id="focusTimerQuickOptions" role="group" aria-label="Quick timer durations"></div>
-  </div>
-  <div class="focusTimerBtnRow">
-    <button class="btn btn-sm btn-primary" id="focusStartBtn">Start</button>
-    <button class="btn btn-sm btn-invisible" id="focusResetBtn">Reset</button>
-  </div>
-</div>
+</section>

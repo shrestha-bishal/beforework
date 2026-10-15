@@ -18,6 +18,7 @@
   const OVERVIEW = "__overview__";
   const CALENDAR = "__calendar__";
   const ROADMAP = "__roadmap__";
+  const TIMER = "__timer__";
   const INTEGRATIONS = "__integrations__";
   const SETTINGS = "__settings__";
   const SUPPORT = "__support__";
@@ -84,12 +85,14 @@
   let navigation = null;
   let projectActionsMenu = null;
   const reminderService = window.BeforeworkReminders.create({getItems:getReminderEntries, onOpenItem:openReminderItem});
+  let focusTimerProjectId=null;
   const workspaceCommands = window.BeforeworkWorkspaceCommands.create({
     getState:()=>state,
     actions:{
       navigate(destination){
         if (destination==="settings") navigateToSettings();
         else if (destination==="integrations") navigateToIntegrations();
+        else if (destination==="timer") navigateToTimer();
         else selectProject(destination==="calendar" ? CALENDAR : destination==="roadmap" ? ROADMAP : OVERVIEW);
       },
       addTask:quickAddViaShortcut,
@@ -97,7 +100,6 @@
       createFolder(){ document.getElementById("addFolderBtn").click(); },
       createEvent(){ openNewCalendarItemModal(null,todayStr(0)); },
       toggleTheme:()=>window.BeforeworkAppearance.toggleTheme(),
-      toggleTimer:toggleFocusTimer,
       showShortcuts:showShortcutsModal,
       openProject:selectProject,
       async openGroup(project,group){
@@ -158,7 +160,7 @@
     enhanceSelectControl:selectControls.enhanceSelectControl
   });
   const focusTimer = window.BeforeworkFocusTimer.create({
-    getProjectId:()=>getProject(activeProjectId)?.id || null,
+    getProjectId:()=>activeProjectId===TIMER ? focusTimerProjectId : getProject(activeProjectId)?.id || null,
     loadTemplate:name=>window.BeforeworkViewTemplates.load(name),
     cloneTemplate:name=>window.BeforeworkViewTemplates.clone(name),
     onSessionComplete(session){
@@ -182,7 +184,6 @@
       }
     }
   });
-  function toggleFocusTimer(){ focusTimer.togglePanel(); }
   // View type is per-project now (project.views + project.activeViewId), not global.
   const VIEW_DEFS=window.BeforeworkViewRegistry.list();
   function viewLabel(type){ return window.BeforeworkViewRegistry.label(type); }
@@ -1581,6 +1582,7 @@
     document.getElementById("overviewNav").className = activeProjectId===OVERVIEW ? "active" : "";
     document.getElementById("calendarNav").className = activeProjectId===CALENDAR ? "active" : "";
     document.getElementById("roadmapNav").className = activeProjectId===ROADMAP ? "active" : "";
+    document.getElementById("focusTimerNav").className = activeProjectId===TIMER ? "active" : "";
     document.getElementById("integrationsNav").className = activeProjectId===INTEGRATIONS ? "active" : "";
     document.getElementById("settingsNav").className = activeProjectId===SETTINGS ? "active" : "";
     document.getElementById("supportNav").classList.toggle("active",activeProjectId===SUPPORT);
@@ -1819,7 +1821,7 @@
   }
 
   async function selectProject(pid,{keepSecondarySidebarOpen=false}={}){
-    if (state?.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(pid)){
+    if (state?.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT].includes(pid)){
       if (activeProjectId!==pid && state.projects.length){
         if (!await flushSave()){
           await showNotice("Project switch paused","Resolve the current save or conflict before unloading the open project.");
@@ -1870,6 +1872,15 @@
     closeSidebarOnMobile();
   }
 
+  function navigateToTimer(){
+    if (activeProjectId!==TIMER) focusTimerProjectId=getProject(activeProjectId)?.id || null;
+    activeProjectId = TIMER;
+    navigation?.closeSecondarySidebar();
+    persistActiveLocation();
+    renderAll();
+    closeSidebarOnMobile();
+  }
+
   function navigateToSettings(){
     activeProjectId = SETTINGS;
     navigation?.closeSecondarySidebar();
@@ -1889,10 +1900,10 @@
     let saved = null;
     try{ saved = localStorage.getItem(LOCATION_KEY); }catch(err){/* ignore */}
     const folderId=folderIdFromLocation(saved);
-    if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)
+    if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===TIMER || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || getProject(saved)
       || (folderId!==null&&state?.folders.some(folder=>folder.id===folderId))) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
-    if (!isFolderPageLocation(activeProjectId) && activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
+    if (!isFolderPageLocation(activeProjectId) && activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== TIMER && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
   }
 
   /* Integrations view moved to js/services/google-calendar/google-calendar.js */
@@ -1987,11 +1998,12 @@
       return;
     }
 
-    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === ROADMAP || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
+    if (activeProjectId === OVERVIEW || activeProjectId === CALENDAR || activeProjectId === ROADMAP || activeProjectId === TIMER || activeProjectId === INTEGRATIONS || activeProjectId === SETTINGS || activeProjectId === SUPPORT){
       topLabel.textContent = "Overview";
       descriptionLabel.hidden = true;
       if (activeProjectId===CALENDAR) topLabel.textContent = "Calendar";
       if (activeProjectId===ROADMAP) topLabel.textContent = "Roadmap";
+      if (activeProjectId===TIMER) topLabel.textContent = "Timer";
       if (activeProjectId===INTEGRATIONS) topLabel.textContent = "Integrations";
       if (activeProjectId===SETTINGS) topLabel.textContent = "Settings";
       if (activeProjectId===SUPPORT) topLabel.textContent = "Support Beforework";
@@ -2008,6 +2020,7 @@
         onOpenItem:openRoadmapItem,
         onOpenMilestone:openRoadmapMilestone
       });
+      else if (activeProjectId===TIMER) focusTimer.render(board);
       else if (activeProjectId===INTEGRATIONS) renderIntegrations(board);
       else if (activeProjectId===SETTINGS) renderSettings(board);
       else if (activeProjectId===SUPPORT) renderSupport(board);
@@ -3083,7 +3096,7 @@
       if (editable) return;
       if (e.key==="n"){ e.preventDefault(); quickAddViaShortcut(); return; }
       if (e.key==="d"){ e.preventDefault(); window.BeforeworkAppearance.toggleTheme(); return; }
-      if (e.key==="t"){ e.preventDefault(); toggleFocusTimer(); return; }
+      if (e.key==="t"){ e.preventDefault(); navigateToTimer(); return; }
       if (e.key==="?"){ e.preventDefault(); showShortcutsModal(); return; }
     });
   }
@@ -3166,6 +3179,7 @@
         closeSidebarOnMobile();
       },
       onRoadmap:()=>selectProject(ROADMAP),
+      onTimer:navigateToTimer,
       onIntegrations:navigateToIntegrations,
       onSettings:navigateToSettings,
       onSupport:navigateToSupport,
@@ -3442,7 +3456,7 @@
     catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + window.BeforeworkErrorUtils.getMessage(err)); }
     if (reconnected){
       restoreActiveLocation();
-      if (state.folderLazy && !isFolderPageLocation(activeProjectId) && ![OVERVIEW,CALENDAR,ROADMAP,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
+      if (state.folderLazy && !isFolderPageLocation(activeProjectId) && ![OVERVIEW,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
         try{ await ensureProjectLoaded(activeProjectId); }
         catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + window.BeforeworkErrorUtils.getMessage(err)); }
       }

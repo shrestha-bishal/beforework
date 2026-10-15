@@ -1,7 +1,7 @@
 (function(global){
   "use strict";
 
-  function create({getProjectId, onSessionComplete, onFinished, onOpen, loadTemplate, cloneTemplate, documentRef=global.document, now=Date.now, setIntervalFn=global.setInterval, clearIntervalFn=global.clearInterval}){
+  function create({getProjectId, onSessionComplete, onFinished, loadTemplate, cloneTemplate, documentRef=global.document, now=Date.now, setIntervalFn=global.setInterval, clearIntervalFn=global.clearInterval}){
     let intervalId = null;
     let mode = "focus";
     let seconds = 25*60;
@@ -12,12 +12,46 @@
     let sessionProjectId = null;
     let sessionElapsedSeconds = 0;
 
-    function render(){
+    function renderDisplay(){
       const display = documentRef.getElementById("focusTimerDisplay");
-      if (!display) return;
       const minutes = Math.floor(seconds/60), remainder = seconds%60;
-      display.textContent = `${String(minutes).padStart(2,"0")}:${String(remainder).padStart(2,"0")}`;
-      documentRef.title = intervalId ? `${display.textContent} · Beforework` : "Beforework";
+      const timeText = `${String(minutes).padStart(2,"0")}:${String(remainder).padStart(2,"0")}`;
+      if (display) display.textContent = timeText;
+      const startButton = documentRef.getElementById("focusStartBtn");
+      if (startButton){
+        startButton.textContent = intervalId!==null ? "Pause session" : seconds<=0 ? "Session complete" : `Start ${mode}`;
+        startButton.disabled=seconds<=0;
+      }
+      const input = documentRef.getElementById("focusDurationInput");
+      if (input) input.placeholder=String(total/60);
+      documentRef.querySelectorAll("[data-focus-mode]").forEach(button=>{
+        const selected = button.dataset.focusMode===mode;
+        button.classList.toggle("selected",selected);
+        button.setAttribute("aria-pressed",String(selected));
+      });
+      const modeLabel = documentRef.getElementById("focusTimerModeLabel");
+      if (modeLabel) modeLabel.textContent=mode==="focus" ? "Focus session" : "Break session";
+      const progress = documentRef.getElementById("focusTimerProgress");
+      if (progress){
+        const circumference=2*Math.PI*104;
+        const elapsedRatio=total>0 ? (total-seconds)/total : 0;
+        progress.style.strokeDasharray=String(circumference);
+        progress.style.strokeDashoffset=String(circumference*(1-elapsedRatio));
+        progress.setAttribute("aria-valuenow",String(Math.round(elapsedRatio*100)));
+      }
+      const state = documentRef.getElementById("focusTimerState");
+      const stateLabel = documentRef.getElementById("focusTimerStateLabel");
+      if (state){
+        const stateName=intervalId!==null ? "running" : seconds<=0 ? "complete" : seconds<total ? "paused" : "ready";
+        state.dataset.state=stateName;
+        if (stateLabel){
+          stateLabel.textContent=stateName==="running" ? "In progress"
+            : stateName==="complete" ? "Session complete"
+            : stateName==="paused" ? "Paused"
+            : "Ready when you are";
+        }
+      }
+      documentRef.title = intervalId ? `${timeText} · Beforework` : "Beforework";
     }
 
     function clearSession(){
@@ -43,7 +77,7 @@
       if (intervalId!==null){ clearIntervalFn(intervalId); intervalId=null; }
       const startButton = documentRef.getElementById("focusStartBtn");
       if (startButton) startButton.textContent = "Start";
-      render();
+      renderDisplay();
     }
 
     function start(){
@@ -62,22 +96,22 @@
           if (mode==="focus") completeSession();
           const startButton = documentRef.getElementById("focusStartBtn");
           if (startButton) startButton.textContent = "Start";
-          render();
+          renderDisplay();
           onFinished(mode);
           return;
         }
-        render();
+        renderDisplay();
       },1000);
       const startButton = documentRef.getElementById("focusStartBtn");
       if (startButton) startButton.textContent = "Pause";
-      render();
+      renderDisplay();
     }
 
     function reset(){
       pause();
       clearSession();
       seconds=total;
-      render();
+      renderDisplay();
     }
 
     function renderQuickOptions(){
@@ -104,7 +138,7 @@
       input.setCustomValidity("");
       input.value="";
       input.placeholder=String(minutes);
-      render();
+      renderDisplay();
       renderQuickOptions();
     }
 
@@ -125,7 +159,7 @@
         button.classList.toggle("selected",selected);
         button.setAttribute("aria-pressed",String(selected));
       });
-      render();
+      renderDisplay();
       renderQuickOptions();
     }
 
@@ -141,27 +175,7 @@
       setDuration(minutes);
     }
 
-    function setPanelOpen(open){
-      const panel = documentRef.getElementById("focusTimerPanel");
-      const nav = documentRef.getElementById("focusTimerNav");
-      if (!panel || !nav) return;
-      panel.classList.toggle("open",open);
-      nav.classList.toggle("active",open);
-      nav.setAttribute("aria-expanded",String(open));
-      if (open) onOpen();
-    }
-
-    function togglePanel(){
-      const panel = documentRef.getElementById("focusTimerPanel");
-      if (panel) setPanelOpen(!panel.classList.contains("open"));
-    }
-
-    async function init(){
-      await loadTemplate("focusTimer");
-      const mount = documentRef.getElementById("focusTimerMount");
-      mount.replaceWith(cloneTemplate("focusTimer"));
-      documentRef.getElementById("focusTimerNav").onclick=togglePanel;
-      documentRef.getElementById("focusTimerCloseBtn").onclick=()=>setPanelOpen(false);
+    function wireControls(){
       documentRef.getElementById("focusStartBtn").onclick=()=>{
         if (intervalId!==null) pause();
         else start();
@@ -175,11 +189,20 @@
       documentRef.querySelectorAll("[data-focus-mode]").forEach(button=>{
         button.onclick=()=>setMode(button.dataset.focusMode);
       });
-      renderQuickOptions();
-      render();
     }
 
-    return Object.freeze({init,togglePanel});
+    async function init(){
+      await loadTemplate("focusTimer");
+    }
+
+    function render(board){
+      board.replaceChildren(cloneTemplate("focusTimer"));
+      wireControls();
+      renderQuickOptions();
+      renderDisplay();
+    }
+
+    return Object.freeze({init,render});
   }
 
   global.BeforeworkFocusTimer=Object.freeze({create});

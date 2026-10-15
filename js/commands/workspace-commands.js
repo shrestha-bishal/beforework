@@ -7,6 +7,7 @@
         {id:"navigate:overview",title:"Go to overview",category:"Navigate",subtitle:"Workspace summary",keywords:"home dashboard",icon:"mdi:view-dashboard-outline",pinned:true,run:()=>actions.navigate("overview")},
         {id:"navigate:calendar",title:"Open calendar",category:"Navigate",subtitle:"All projects and events",keywords:"schedule dates",icon:"mdi:calendar-month-outline",pinned:true,run:()=>actions.navigate("calendar")},
         {id:"navigate:roadmap",title:"Open roadmap",category:"Navigate",subtitle:"Project milestones and dated tasks",keywords:"timeline projects milestones",icon:"mdi:chart-gantt",run:()=>actions.navigate("roadmap")},
+        {id:"navigate:timer",title:"Open focus timer",category:"Navigate",subtitle:"Focus and break timer",keywords:"pomodoro focus break",icon:"mdi:timer-outline",shortcut:"T",run:()=>actions.navigate("timer")},
         {id:"navigate:settings",title:"Open settings",category:"Navigate",subtitle:"Preferences and workspace data",keywords:"configuration preferences",icon:"mdi:cog-outline",pinned:true,run:()=>actions.navigate("settings")},
         {id:"navigate:integrations",title:"Open integrations",category:"Navigate",subtitle:"Connected services",keywords:"Google Calendar sync",icon:"mdi:connection",run:()=>actions.navigate("integrations")},
         {id:"action:new-task",title:"Add task to current project",category:"Create",subtitle:"Quick-add to the open project",keywords:"new task item",icon:"mdi:plus-circle-outline",shortcut:"N",pinned:true,run:actions.addTask},
@@ -14,7 +15,6 @@
         {id:"action:new-folder",title:"Create folder",category:"Create",subtitle:"Organise projects",keywords:"new folder group",icon:"mdi:folder-plus-outline",run:actions.createFolder},
         {id:"action:new-event",title:"Create calendar event",category:"Create",subtitle:"Add an event for today",keywords:"new meeting appointment",icon:"mdi:calendar-plus-outline",run:actions.createEvent},
         {id:"action:theme",title:"Toggle colour mode",category:"Actions",subtitle:"Switch between light and dark",keywords:"theme appearance dark light",icon:"mdi:theme-light-dark",run:actions.toggleTheme},
-        {id:"action:timer",title:"Toggle focus timer",category:"Actions",subtitle:"Start or open the focus timer",keywords:"pomodoro focus break",icon:"mdi:timer-outline",shortcut:"T",run:actions.toggleTimer},
         {id:"action:shortcuts",title:"Show keyboard shortcuts",category:"Help",subtitle:"View available shortcuts",keywords:"help commands keys",icon:"mdi:keyboard-outline",shortcut:"?",run:actions.showShortcuts}
       ];
       const state = getState?.();

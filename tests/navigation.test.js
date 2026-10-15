@@ -40,7 +40,7 @@ function makeElement(id){
 
 function createHarness(){
   const ids=[
-    "overviewNav","brandHomeBtn","calendarNav","roadmapNav","projectsNav","secondarySidebar",
+    "overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","projectsNav","secondarySidebar",
     "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","sidebarProjects","integrationsNav","settingsNav","supportNav",
     "workspaceSwitcherBtn","workspaceSwitcherLabel","workspaceSidebarActions","workspaceSidebarName","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
@@ -62,6 +62,7 @@ function createHarness(){
     onOverview:()=>calls.push("overview"),
     onCalendar:()=>calls.push("calendar"),
     onRoadmap:()=>calls.push("roadmap"),
+    onTimer:()=>calls.push("timer"),
     onIntegrations:()=>calls.push("integrations"),
     onSettings:()=>calls.push("settings"),
     onSupport:()=>calls.push("support"),
@@ -107,10 +108,10 @@ test("Projects list and create controls live in the secondary sidebar",()=>{
 
 test("navigation controls delegate each destination to its app callback",()=>{
   const harness=createHarness();
-  for (const id of ["overviewNav","brandHomeBtn","calendarNav","roadmapNav","integrationsNav","settingsNav","supportNav"]){
+  for (const id of ["overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","integrationsNav","settingsNav","supportNav"]){
     harness.elements[id].onclick();
   }
-  assert.deepEqual(harness.calls,["overview","overview","calendar","roadmap","integrations","settings","support"]);
+  assert.deepEqual(harness.calls,["overview","overview","calendar","roadmap","timer","integrations","settings","support"]);
 });
 
 test("workspace and project sections are mutually exclusive in the secondary sidebar",()=>{

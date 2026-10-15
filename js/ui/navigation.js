@@ -6,6 +6,7 @@
     onOverview,
     onCalendar,
     onRoadmap,
+    onTimer,
     onIntegrations,
     onSettings,
     onSupport,
@@ -89,6 +90,7 @@
       element("brandHomeBtn").onclick=()=>navigate(onOverview);
       element("calendarNav").onclick=()=>navigate(onCalendar);
       element("roadmapNav").onclick=()=>navigate(onRoadmap);
+      element("focusTimerNav").onclick=()=>navigate(onTimer);
       projectsNav.onclick=()=>toggleSecondarySection({
         section:"projects",
         title:"Projects",

@@ -20,11 +20,16 @@ test("Focus Timer styles are isolated and included after shared application styl
   assert.match(timerStyles,/#sidebar #focusTimerNav iconify-icon\{font-size:21px;\}/);
   assert.match(timerStyles,/#sidebar #focusTimerNav\.active\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
   assert.match(timerStyles,/#sidebar #focusTimerNav\.active iconify-icon\{color:var\(--accent\);\}/);
-  assert.match(timerStyles,/#sidebar\[data-secondary-section\] #focusTimerNav\.active\{background:transparent;color:var\(--muted\);font-weight:500;\}/);
-  assert.match(timerStyles,/#sidebar\[data-secondary-section\] #focusTimerNav\.active iconify-icon\{color:var\(--muted\);\}/);
-  assert.match(timerStyles,/#sidebar #focusTimerPanel\.open\{position:fixed;left:86px/);
-  assert.match(timerStyles,/\.focusTimerPanel/);
-  assert.match(timerStyles,/@media print\s*\{\s*\.focusTimerPanel/);
+  assert.match(timerStyles,/#board:has\(\.focusTimerPage\)\{display:block;overflow:auto/);
+  assert.match(timerStyles,/\.focusTimerLayout\{display:grid;grid-template-columns:minmax\(0,1\.55fr\) minmax\(300px,\.85fr\)/);
+  assert.match(timerStyles,/\.focusTimerDialProgress\{stroke:var\(--accent\);stroke-linecap:round/);
+  assert.match(indexHtml,/<button id="focusTimerNav" type="button" title="Focus timer"/);
+  assert.doesNotMatch(indexHtml,/focusTimerMount/);
+  const timerPage=fs.readFileSync(path.join(__dirname,"../pages/focus-timer.html"),"utf8");
+  assert.match(timerPage,/<section class="focusTimerPage" id="focusTimerPage"/);
+  assert.match(timerPage,/id="focusTimerProgress"/);
+  assert.doesNotMatch(timerPage,/id="focusTimerNav"|focusTimerCloseBtn/);
+  assert.match(fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8"),/else if \(activeProjectId===TIMER\) focusTimer\.render\(board\)/);
   assert.match(stylesManifest,/@import url\("app\.css"\);\s*@import url\("focus-timer\.css"\);/);
   assert.match(indexHtml,/<link rel="stylesheet" href="styles\/manifest\.css">/);
   assert.doesNotMatch(indexHtml,/href="styles\/(?:app|focus-timer|support)\.css"/);
@@ -61,12 +66,13 @@ function makeElement(){
 
 function createHarness(){
   const elements=Object.fromEntries([
-    "focusTimerNav","focusTimerPanel","focusTimerCloseBtn","focusTimerDisplay","focusStartBtn","focusResetBtn",
-    "focusDurationInput","focusDurationApplyBtn","focusTimerQuickOptions","focusTimerMount"
+    "focusTimerDisplay","focusStartBtn","focusResetBtn","focusDurationInput","focusDurationApplyBtn","focusTimerQuickOptions",
+    "focusTimerProgress","focusTimerModeLabel","focusTimerState","focusTimerStateLabel"
   ].map(id=>[id,makeElement()]));
+  Object.values(elements).forEach(element=>element.style={});
   const templateCalls=[];
   const insertedTemplates=[];
-  elements.focusTimerMount.replaceWith=template=>insertedTemplates.push(template);
+  const board={replaceChildren(...children){ this.children=children; insertedTemplates.push(...children); }};
   elements.focusTimerQuickOptions.buttons=[];
   Object.defineProperty(elements.focusTimerQuickOptions,"innerHTML",{
     set(html){
@@ -95,7 +101,6 @@ function createHarness(){
   let clock=1000;
   const sessions=[];
   const finished=[];
-  let opened=0;
   const window={document:documentRef,setInterval,clearInterval};
   vm.runInNewContext(source,{window},{filename:"focus-timer.js"});
   const timer=window.BeforeworkFocusTimer.create({
@@ -104,15 +109,13 @@ function createHarness(){
     cloneTemplate(name){ templateCalls.push(["clone",name]); return {name}; },
     onSessionComplete:session=>sessions.push(session),
     onFinished:mode=>finished.push(mode),
-    onOpen:()=>opened++,
     documentRef,
-    windowRef:window,
     now:()=>clock,
     setIntervalFn(callback){ const id=++nextIntervalId; intervals.set(id,callback); return id; },
     clearIntervalFn(id){ intervals.delete(id); }
   });
   return {
-    elements,modeButtons,intervals,sessions,finished,timer,templateCalls,insertedTemplates,get opened(){return opened;},
+    board,elements,modeButtons,intervals,sessions,finished,timer,templateCalls,insertedTemplates,
     get title(){return documentRef.title;},
     tick(){
       const callback=intervals.values().next().value;
@@ -126,6 +129,8 @@ function createHarness(){
 test("starts, pauses, resumes, and records a completed focus session",async()=>{
   const harness=createHarness();
   await harness.timer.init();
+  assert.deepEqual(harness.templateCalls,[["load","focusTimer"]]);
+  harness.timer.render(harness.board);
   assert.deepEqual(harness.templateCalls,[["load","focusTimer"],["clone","focusTimer"]]);
   assert.deepEqual(harness.insertedTemplates,[{name:"focusTimer"}]);
   assert.equal(harness.elements.focusTimerDisplay.textContent,"25:00");
@@ -143,7 +148,7 @@ test("starts, pauses, resumes, and records a completed focus session",async()=>{
   for (let second=0;second<50;second++) harness.tick();
 
   assert.equal(harness.elements.focusTimerDisplay.textContent,"00:00");
-  assert.equal(harness.elements.focusStartBtn.textContent,"Start");
+  assert.equal(harness.elements.focusStartBtn.textContent,"Session complete");
   assert.equal(harness.sessions.length,1);
   assert.deepEqual({...harness.sessions[0]},{
     projectId:"project-1",
@@ -156,9 +161,10 @@ test("starts, pauses, resumes, and records a completed focus session",async()=>{
   assert.equal(harness.intervals.size,0);
 });
 
-test("keeps separate focus and break durations and toggles the panel",async()=>{
+test("keeps separate focus and break durations",async()=>{
   const harness=createHarness();
   await harness.timer.init();
+  harness.timer.render(harness.board);
 
   harness.modeButtons[1].onclick();
   assert.equal(harness.elements.focusTimerDisplay.textContent,"05:00");
@@ -172,24 +178,34 @@ test("keeps separate focus and break durations and toggles the panel",async()=>{
   assert.equal(harness.elements.focusTimerDisplay.textContent,"25:00");
   harness.modeButtons[1].onclick();
   assert.equal(harness.elements.focusTimerDisplay.textContent,"02:00");
-
-  harness.elements.focusTimerNav.onclick();
-  assert.equal(harness.elements.focusTimerPanel.classList.contains("open"),true);
-  assert.equal(harness.elements.focusTimerNav.attributes["aria-expanded"],"true");
-  assert.equal(harness.opened,1);
-  harness.elements.focusTimerCloseBtn.onclick();
-  assert.equal(harness.elements.focusTimerPanel.classList.contains("open"),false);
-  assert.equal(harness.elements.focusTimerNav.classList.contains("active"),false);
-  assert.equal(harness.elements.focusTimerNav.attributes["aria-expanded"],"false");
 });
 
 test("rejects custom durations outside one to 180 minutes",async()=>{
   const harness=createHarness();
   await harness.timer.init();
+  harness.timer.render(harness.board);
   harness.elements.focusDurationInput.valueAsNumber=181;
   harness.elements.focusDurationApplyBtn.onclick();
 
   assert.equal(harness.elements.focusDurationInput.validationMessage,"Enter a whole number from 1 to 180.");
   assert.equal(harness.elements.focusDurationInput.reported,true);
   assert.equal(harness.elements.focusTimerDisplay.textContent,"25:00");
+});
+
+test("renders the timer page again with the current running state",async()=>{
+  const harness=createHarness();
+  await harness.timer.init();
+  harness.timer.render(harness.board);
+  harness.elements.focusDurationInput.valueAsNumber=1;
+  harness.elements.focusDurationApplyBtn.onclick();
+  harness.elements.focusStartBtn.onclick();
+  for (let second=0;second<10;second++) harness.tick();
+
+  harness.timer.render(harness.board);
+
+  assert.equal(harness.elements.focusTimerDisplay.textContent,"00:50");
+  assert.equal(harness.elements.focusStartBtn.textContent,"Pause session");
+  assert.equal(harness.elements.focusDurationInput.placeholder,"1");
+  assert.equal(harness.elements.focusTimerState.dataset.state,"running");
+  assert.equal(Number(harness.elements.focusTimerProgress.style.strokeDashoffset)>0,true);
 });
