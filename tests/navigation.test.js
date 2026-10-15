@@ -17,6 +17,7 @@ function makeElement(id){
   return {
     id,
     onclick:null,
+    dataset:{},
     hidden:false,
     textContent:"",
     attributes:{},
@@ -33,15 +34,18 @@ function makeElement(id){
     },
     setAttribute(name,value){ this.attributes[name]=value; },
     removeAttribute(name){ delete this.attributes[name]; },
+    click(){ this.onclick?.(); },
     replaceChildren(...children){ this.children=children; },
+    appendChild(child){ this.children.push(child); return child; },
+    contains(child){ return this.children?.includes(child)||false; },
     addEventListener(){}
   };
 }
 
 function createHarness(storage=new Map()){
   const ids=[
-    "overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","projectsNav","secondarySidebar",
-    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","sidebarProjects","integrationsNav","settingsNav","supportNav",
+    "overviewNav","brandHomeBtn","calendarNav","roadmapNav","focusTimerNav","projectsNav","documentsNav","secondarySidebar",
+    "secondarySidebarTitle","secondarySidebarContent","secondarySidebarClose","projectCreateBtn","sidebarProjects","integrationsNav","settingsNav","supportNav",
     "workspaceSwitcherBtn","workspaceSwitcherLabel","workspaceSidebarActions","workspaceSidebarName","workspaceSwitchBtn","workspaceNewBtn","sidebar",
     "sidebarScrim","sidebarToggle"
   ];
@@ -73,9 +77,56 @@ function createHarness(storage=new Map()){
     switchWorkspace:async()=>calls.push("switch"),
     createWorkspace:async()=>calls.push("create")
   });
+
   navigation.wire();
   return {elements,calls,documentListeners,navigation,storage};
 }
+
+test("secondary sections preserve the project list in the document while rendering independent content",()=>{
+  const harness=createHarness();
+  const {secondarySidebarContent,sidebarProjects,documentsNav}=harness.elements;
+  const documentsList=makeElement("documentsList");
+  harness.navigation.registerSecondarySection({
+    section:"documents",
+    title:"Documents",
+    trigger:documentsNav,
+    renderContent:content=>content.replaceChildren(documentsList)
+  });
+
+  documentsNav.onclick();
+  assert.deepEqual(secondarySidebarContent.children,[documentsList,sidebarProjects]);
+
+  harness.navigation.refreshSecondarySection();
+  assert.deepEqual(secondarySidebarContent.children,[documentsList,sidebarProjects]);
+});
+
+test("registered secondary-section create action repurposes and restores the header plus",()=>{
+  const harness=createHarness();
+  const {documentsNav,projectCreateBtn}=harness.elements;
+  let created=0;
+  harness.navigation.registerSecondarySection({
+    section:"documents",
+    title:"Documents",
+    trigger:documentsNav,
+    renderContent:()=>{},
+    createLabel:"New document",
+    onCreate:()=>{ created++; }
+  });
+
+  documentsNav.onclick();
+  assert.equal(projectCreateBtn.title,"New document");
+  assert.equal(projectCreateBtn.attributes["aria-label"],"New document");
+  assert.equal(projectCreateBtn.attributes["aria-haspopup"],undefined);
+  assert.equal(projectCreateBtn.dataset.actionMenuTrigger,undefined);
+  projectCreateBtn.click();
+  assert.equal(created,1);
+
+  harness.navigation.closeSecondarySidebar();
+  assert.equal(projectCreateBtn.title,"Create project or folder");
+  assert.equal(projectCreateBtn.attributes["aria-haspopup"],"menu");
+  assert.equal(projectCreateBtn.dataset.actionMenuTrigger,"true");
+  assert.equal(projectCreateBtn.onclick,null);
+});
 
 test("sidebar does not include the removed Tags section",()=>{
   assert.doesNotMatch(index,/tagsSection|tagsSectionLabel|sideTagsList|manageTagsBtn/);
@@ -233,7 +284,7 @@ test("workspace controls use the extensible secondary sidebar",()=>{
   assert.match(source,/activeSecondaryTrigger\.setAttribute\("aria-expanded","false"\)/);
   assert.match(styles,/#sidebar #workspaceSwitcherBtn\[aria-expanded="true"\]\{background:var\(--bg-soft\);color:var\(--text\);font-weight:600;\}/);
   assert.match(styles,/#secondarySidebar\[data-section="workspace"\] \.projectCreateWrap\{display:none;\}/);
-  assert.match(styles,/#secondarySidebar\[data-section="workspace"\] #sidebarProjects\{display:none;\}/);
+  assert.match(styles,/#secondarySidebar\[data-section\]:not\(\[data-section="projects"\]\):not\(\[data-section="workspace"\]\) #sidebarProjects\{display:none;\}/);
   assert.match(styles,/#sidebar\[data-secondary-section\] #overviewNav\.active,[\s\S]*?#sidebar\[data-secondary-section\] #supportNav\.active\{background:transparent;color:var\(--muted\);font-weight:500;\}/);
   assert.match(styles,/\.workspaceSidebarIdentity strong\{overflow:hidden;color:var\(--text\);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap;\}/);
   assert.match(styles,/\.workspaceSidebarActions button\{display:flex;align-items:center;gap:9px;width:100%;min-height:36px;/);
@@ -282,7 +333,7 @@ test("secondary sidebar restores any section registered by an extension",()=>{
   });
   refreshed.navigation.restoreSecondarySection();
   assert.equal(refreshed.elements.secondarySidebarTitle.textContent,"Reports");
-  assert.deepEqual(refreshed.elements.secondarySidebarContent.children,[reportsContent]);
+  assert.deepEqual(refreshed.elements.secondarySidebarContent.children,[reportsContent,refreshed.elements.sidebarProjects]);
   assert.equal(refreshedTrigger.attributes["aria-expanded"],"true");
 });
 

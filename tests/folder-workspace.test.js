@@ -75,6 +75,8 @@ function stateWithTwoProjects(){
   return {
     schemaVersion:7,
     folders:[],
+    workspaceDocuments:[{id:"workspace-brief",title:"Workspace brief",content:"# Shared",createdAt:5,updatedAt:6}],
+    activeWorkspaceDocumentId:"workspace-brief",
     calendarItems:[],
     focusSessions:[],
     googleCalendarLinks:[],

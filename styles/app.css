@@ -25,6 +25,7 @@
     --nav-icon-support:#d34f70;
     --nav-icon-feedback:#1684a0;
     --nav-icon-timer:#b77812;
+    --nav-icon-documents:#3b7f70;
   }
   :root[data-theme="dark"]{
     --sidebar-card-bg:var(--bg);
@@ -38,6 +39,7 @@
     --nav-icon-support:#ff91aa;
     --nav-icon-feedback:#68c9e0;
     --nav-icon-timer:#f1bb62;
+    --nav-icon-documents:#70cbb0;
   }
   *{box-sizing:border-box;}
   html{color-scheme:light;}
@@ -89,6 +91,7 @@
     #sidebar #overviewNav,
     #sidebar #calendarNav,
     #sidebar #roadmapNav,
+    #sidebar #workspaceDocumentsNav,
     #sidebar #projectsNav,
     #sidebar #integrationsNav,
     #sidebar #settingsNav,
@@ -97,6 +100,7 @@
     #sidebar #overviewNav iconify-icon,
     #sidebar #calendarNav iconify-icon,
     #sidebar #roadmapNav iconify-icon,
+    #sidebar #workspaceDocumentsNav iconify-icon,
     #sidebar #projectsNav iconify-icon,
     #sidebar #integrationsNav iconify-icon,
     #sidebar #settingsNav iconify-icon,
@@ -105,6 +109,7 @@
     #sidebar #overviewNav span,
     #sidebar #calendarNav span,
     #sidebar #roadmapNav span,
+    #sidebar #workspaceDocumentsNav span,
     #sidebar #projectsNav span,
     #sidebar #integrationsNav span,
     #sidebar #settingsNav span,
@@ -113,6 +118,8 @@
     #sidebar #overviewNav.active,
     #sidebar #calendarNav.active,
     #sidebar #roadmapNav.active,
+    #sidebar #workspaceDocumentsNav[aria-expanded="true"],
+    #sidebar #workspaceDocumentsNav.active,
     #sidebar #integrationsNav.active,
     #sidebar #settingsNav.active,
     #sidebar #supportNav.active,
@@ -121,6 +128,7 @@
     #sidebar #overviewNav:hover,
     #sidebar #calendarNav:hover,
     #sidebar #roadmapNav:hover,
+    #sidebar #workspaceDocumentsNav:hover,
     #sidebar #projectsNav:hover,
     #sidebar #integrationsNav:hover,
     #sidebar #settingsNav:hover,
@@ -129,6 +137,8 @@
     #sidebar #overviewNav.active,
     #sidebar #calendarNav.active,
     #sidebar #roadmapNav.active,
+    #sidebar #workspaceDocumentsNav[aria-expanded="true"],
+    #sidebar #workspaceDocumentsNav.active,
     #sidebar #integrationsNav.active,
     #sidebar #settingsNav.active,
     #sidebar #supportNav.active,
@@ -200,8 +210,12 @@
   #overviewNav,#calendarNav,#roadmapNav,#projectsNav{display:flex;align-items:center;justify-content:flex-start;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:2px;font-weight:500;}
   #overviewNav:hover,#calendarNav:hover,#roadmapNav:hover,#projectsNav:hover{background:var(--bg-soft2);color:var(--text);}
+  #workspaceDocumentsNav{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:transparent;
+    color:var(--muted);font-size:13.5px;font-weight:500;text-align:left;}
+  #workspaceDocumentsNav:hover{background:var(--bg-soft2);color:var(--text);}
   #projectsNav{width:100%;border:0;background:transparent;font-family:inherit;text-align:left;}
-  #overviewNav iconify-icon,#calendarNav iconify-icon,#roadmapNav iconify-icon,#projectsNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;color:var(--muted);}
+  #overviewNav iconify-icon,#calendarNav iconify-icon,#roadmapNav iconify-icon,#workspaceDocumentsNav iconify-icon,#projectsNav iconify-icon,#integrationsNav iconify-icon,#settingsNav iconify-icon,#supportNav iconify-icon,#feedbackNav iconify-icon{font-size:16px;flex:none;color:var(--muted);}
+  #workspaceDocumentsNav[aria-expanded="true"] iconify-icon,#workspaceDocumentsNav.active iconify-icon{color:var(--nav-icon-documents);}
   #overviewNav.active iconify-icon{color:var(--nav-icon-overview);}
   #projectsNav[aria-expanded="true"] iconify-icon{color:var(--nav-icon-projects);}
   #calendarNav.active iconify-icon{color:var(--nav-icon-calendar);}
@@ -210,7 +224,7 @@
   #settingsNav.active iconify-icon{color:var(--nav-icon-settings);}
   #supportNav.active iconify-icon{color:var(--nav-icon-support);}
   #feedbackNav.active iconify-icon{color:var(--nav-icon-feedback);}
-  #overviewNav.active,#calendarNav.active,#roadmapNav.active,#projectsNav[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
+  #overviewNav.active,#calendarNav.active,#roadmapNav.active,#workspaceDocumentsNav.active,#projectsNav[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;}
   #projectsNav:focus-visible,#secondarySidebarClose:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   #secondarySidebar{display:flex;flex:0 0 0;width:0;min-width:0;flex-direction:column;overflow:hidden;border-right:0 solid var(--border);background:var(--bg-soft);
     transition:flex-basis .18s ease,width .18s ease,border-width .18s ease,margin .18s ease;}
@@ -229,7 +243,7 @@
   .projectCreateBtn{display:flex;flex:none;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;}
   #secondarySidebarContent{flex:1;min-height:0;overflow:auto;padding:14px 12px;}
   #secondarySidebarContent .sidebarProjects{min-width:0;}
-  #secondarySidebar[data-section="workspace"] #sidebarProjects{display:none;}
+  #secondarySidebar[data-section]:not([data-section="projects"]):not([data-section="workspace"]) #sidebarProjects{display:none;}
   @media (prefers-reduced-motion:reduce){#secondarySidebar{transition:none;}}
   #integrationsNav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
     cursor:pointer;font-size:13.5px;color:var(--muted);margin-bottom:0;font-weight:500;}

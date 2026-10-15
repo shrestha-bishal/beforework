@@ -165,6 +165,13 @@
           }
         });
         return state;
+      },
+      12: state=>{
+        if (!Array.isArray(state.workspaceDocuments)) state.workspaceDocuments=[];
+        if (!state.workspaceDocuments.some(document=>document.id===state.activeWorkspaceDocumentId)){
+          state.activeWorkspaceDocumentId=null;
+        }
+        return state;
       }
     };
     const schemaVersion = Math.max(...Object.keys(migrations).map(Number));
@@ -197,6 +204,8 @@
       if (!Array.isArray(state.googleDeletedEventIds)) state.googleDeletedEventIds = [];
       if (!Array.isArray(state.googleCalendarLinks)) state.googleCalendarLinks = [];
       if (!Array.isArray(state.googleCalendarCatalog)) state.googleCalendarCatalog = [];
+      if (!Array.isArray(state.workspaceDocuments)) state.workspaceDocuments = [];
+      if (state.activeWorkspaceDocumentId===undefined) state.activeWorkspaceDocumentId = null;
       if (!state.googleCalendarSyncTokens || typeof state.googleCalendarSyncTokens!=="object" || Array.isArray(state.googleCalendarSyncTokens)) state.googleCalendarSyncTokens = {};
       if (!Number.isFinite(state.googleLastSyncAt)) state.googleLastSyncAt = 0;
       state.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{

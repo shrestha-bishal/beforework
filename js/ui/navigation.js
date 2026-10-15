@@ -21,6 +21,7 @@
     const secondarySidebar=element("secondarySidebar");
     const secondarySidebarTitle=element("secondarySidebarTitle");
     const secondarySidebarContent=element("secondarySidebarContent");
+    const projectCreateButton=element("projectCreateBtn");
     const projectsSidebar=element("sidebarProjects");
     const workspaceSidebarActions=element("workspaceSidebarActions");
     const workspaceSwitcherLabel=element("workspaceSwitcherLabel");
@@ -28,6 +29,27 @@
     const secondarySections=new Map();
     let activeSecondarySection=null;
     let activeSecondaryTrigger=null;
+
+    function updateCreateButton(section){
+      const registration=secondarySections.get(section);
+      if (registration?.createLabel){
+        projectCreateButton.title=registration.createLabel;
+        projectCreateButton.setAttribute("aria-label",registration.createLabel);
+        delete projectCreateButton.dataset.actionMenuTrigger;
+        projectCreateButton.onclick=()=>registration.onCreate?.();
+        projectCreateButton.removeAttribute("aria-haspopup");
+        projectCreateButton.removeAttribute("aria-controls");
+        projectCreateButton.setAttribute("aria-expanded","false");
+        return;
+      }
+      projectCreateButton.onclick=null;
+      projectCreateButton.dataset.actionMenuTrigger="true";
+      projectCreateButton.title="Create project or folder";
+      projectCreateButton.setAttribute("aria-label","Create project or folder");
+      projectCreateButton.setAttribute("aria-haspopup","menu");
+      projectCreateButton.setAttribute("aria-controls","projectCreateMenu");
+      projectCreateButton.setAttribute("aria-expanded","false");
+    }
 
     function persistSecondarySection(section){
       try{
@@ -46,6 +68,15 @@
       element("sidebarScrim").classList.remove("show");
     }
 
+    function renderSecondarySection(registration){
+      secondarySidebarContent.replaceChildren();
+      registration.renderContent(secondarySidebarContent);
+      if (registration.section&&registration.section!=="projects"&&registration.section!=="workspace"
+        &&!secondarySidebarContent.contains(projectsSidebar)){
+        secondarySidebarContent.appendChild(projectsSidebar);
+      }
+    }
+
     function closeSecondarySidebar(){
       secondarySidebar.classList.remove("open");
       secondarySidebar.setAttribute("aria-hidden","true");
@@ -54,6 +85,7 @@
       activeSecondarySection=null;
       activeSecondaryTrigger=null;
       persistSecondarySection(null);
+      updateCreateButton(null);
       secondarySidebar.removeAttribute("data-section");
       element("sidebar").removeAttribute("data-secondary-section");
     }
@@ -64,11 +96,11 @@
       }
       secondarySidebarTitle.textContent=title;
       if (renderContent){
-        secondarySidebarContent.replaceChildren();
-        renderContent(secondarySidebarContent);
+        renderSecondarySection({renderContent,section});
       }
       activeSecondarySection=section||null;
       activeSecondaryTrigger=trigger||null;
+      updateCreateButton(activeSecondarySection);
       persistSecondarySection(activeSecondarySection);
       if (section){
         secondarySidebar.setAttribute("data-section",section);
@@ -89,15 +121,16 @@
         closeSecondarySidebar();
       }else{
         openSecondarySidebar(definition);
+        definition.onOpen?.();
       }
     }
 
     function registerSecondarySection(definition){
-      const {section,title,trigger,renderContent}=definition||{};
+      const {section,title,trigger,renderContent,onOpen,onCreate,createLabel}=definition||{};
       if (!section || !title || !trigger || typeof renderContent!=="function"){
         throw new TypeError("A secondary section requires a section key, title, trigger, and content renderer.");
       }
-      const registration={section,title,trigger,renderContent};
+      const registration={section,title,trigger,renderContent,onOpen,onCreate,createLabel};
       secondarySections.set(section,registration);
       trigger.onclick=()=>toggleSecondarySection(registration);
       return ()=>{
@@ -114,6 +147,14 @@
       const registration=secondarySections.get(section);
       if (registration) openSecondarySidebar(registration);
       else if (section) persistSecondarySection(null);
+    }
+
+    function refreshSecondarySection(){
+      if (!secondarySidebar.classList.contains("open")||!activeSecondarySection) return;
+      const registration=secondarySections.get(activeSecondarySection);
+      if (registration?.renderContent){
+        renderSecondarySection(registration);
+      }
     }
 
     function navigate(callback){
@@ -159,7 +200,7 @@
 
     }
 
-    return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile,openSecondarySidebar,closeSecondarySidebar,registerSecondarySection,restoreSecondarySection});
+    return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile,openSecondarySidebar,closeSecondarySidebar,registerSecondarySection,restoreSecondarySection,refreshSecondarySection});
   }
 
   global.BeforeworkNavigation=Object.freeze({create:createNavigation});

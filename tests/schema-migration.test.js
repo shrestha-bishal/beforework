@@ -29,7 +29,7 @@ function loadMigration(storage=createStorage()){
   };
 }
 
-test("upgrades a legacy workspace through schema version 11 and saves a backup", ()=>{
+test("upgrades a legacy workspace through schema version 12 and saves a backup", ()=>{
   const {migration} = loadMigration();
   const legacy = {
     tags:[{id:"legacy-tag", name:"Research", color:"blue"}],
@@ -51,7 +51,8 @@ test("upgrades a legacy workspace through schema version 11 and saves a backup",
   const dueDateField = project.fields.find(field=>field.type==="due-date");
   const startDateField = project.fields.find(field=>field.type==="start-date");
 
-  assert.equal(upgraded.schemaVersion, 11);
+  assert.equal(upgraded.schemaVersion, 12);
+  assert.deepEqual(JSON.parse(JSON.stringify(upgraded.workspaceDocuments)),[]);
   assert.deepEqual(JSON.parse(JSON.stringify(project.items)),[]);
   assert.equal(project.tags[0].name, "Research");
   assert.equal(project.fields.filter(field=>field.type==="tags").length,1);
@@ -68,13 +69,13 @@ test("upgrades a legacy workspace through schema version 11 and saves a backup",
   assert.deepEqual(JSON.parse(JSON.stringify(upgraded.focusSessions)), []);
   assert.ok(Array.isArray(upgraded.calendarItems[0].activity));
   assert.equal(migration.readBackup().fromVersion, 0);
-  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:0, toVersion:11});
+  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:0, toVersion:12});
   assert.equal(migration.takeMigrationInfo(), null);
 });
 
 test("does not create a backup or migration notice for current data", ()=>{
   const {migration} = loadMigration();
-  const current = {schemaVersion:11, projects:[], folders:[], calendarItems:[], focusSessions:[]};
+  const current = {schemaVersion:12, projects:[], folders:[], calendarItems:[], focusSessions:[],workspaceDocuments:[]};
 
   const migrated = migration.migrate(current, ()=>({projects:[]}));
 
@@ -86,7 +87,7 @@ test("does not create a backup or migration notice for current data", ()=>{
 
 test("leaves a current clean project without a Tags field",()=>{
   const {migration}=loadMigration();
-  const current={schemaVersion:11,projects:[{
+  const current={schemaVersion:12,projects:[{
     id:"project-1",name:"Blank project",fields:[],tags:[],groups:[],items:[]
   }]};
 
@@ -163,10 +164,10 @@ test("continues upgrading when browser backup storage is unavailable", ()=>{
 
   const upgraded = migration.migrate(currentBeforeLastStep, ()=>({projects:[]}));
 
-  assert.equal(upgraded.schemaVersion, 11);
+  assert.equal(upgraded.schemaVersion, 12);
   assert.equal(migration.hasBackup(), false);
   assert.equal(migration.readBackup(), null);
-  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:7, toVersion:11});
+  assert.deepEqual(JSON.parse(JSON.stringify(migration.takeMigrationInfo())), {fromVersion:7, toVersion:12});
 });
 
 test("preserves explicit project items and does not invent a starter group",()=>{
@@ -178,7 +179,7 @@ test("preserves explicit project items and does not invent a starter group",()=>
 
   const upgraded=migration.migrate(data,()=>({projects:[]}));
 
-  assert.equal(upgraded.schemaVersion,11);
+  assert.equal(upgraded.schemaVersion,12);
   assert.deepEqual(JSON.parse(JSON.stringify(upgraded.projects[0].groups)),[]);
   assert.equal(upgraded.projects[0].items[0].id,"task-1");
 });
@@ -198,7 +199,7 @@ test("migrates populated legacy Location and Schedule controls into optional pro
   const locationField=project.fields.find(field=>field.type==="location");
   const scheduleField=project.fields.find(field=>field.type==="schedule");
 
-  assert.equal(upgraded.schemaVersion,11);
+  assert.equal(upgraded.schemaVersion,12);
   assert.equal(locationField.label,"Location");
   assert.equal(scheduleField.label,"Schedule");
   assert.equal(project.groups[0].items[0].values[locationField.id],"Office");

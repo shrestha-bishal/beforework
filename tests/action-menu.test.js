@@ -140,4 +140,5 @@ test("action menu factory shares a single delegated controller per document",()=
   const harness=createHarness();
   assert.equal(harness.manager,harness.createManager({documentRef:harness.documentRef}));
 });
+
 function elementOutside(){ return {closest(){ return null; }}; }

@@ -49,6 +49,23 @@
 .documentMarkdownInput{height:auto;min-height:180px;max-height:none;flex:1;padding:12px 14px;border-color:transparent;border-radius:0;background:transparent;box-shadow:none;resize:vertical;}
 .documentMarkdownInput:focus{border-color:var(--accent);background:var(--bg);box-shadow:0 0 0 2px var(--accent-soft);}
 .documentMarkdownPreview{flex:1;overflow:auto;overflow-wrap:anywhere;}
+.workspaceDocumentsSidebar{display:flex;min-height:0;flex-direction:column;gap:8px;}
+.workspaceDocumentSidebarList{display:flex;min-height:0;flex-direction:column;gap:2px;overflow:auto;}
+.workspaceDocumentSidebarItem{display:flex;align-items:center;gap:9px;min-width:0;min-height:42px;padding:6px 9px;border:0;border-radius:6px;background:transparent;color:var(--text);text-align:left;}
+.workspaceDocumentSidebarItem:hover,.workspaceDocumentSidebarItem.active{background:var(--bg-soft2);}
+.workspaceDocumentSidebarItem>iconify-icon{flex:none;color:var(--muted);font-size:16px;}
+.workspaceDocumentSidebarItem.active>iconify-icon{color:var(--accent-strong);}
+.workspaceDocumentSidebarCopy{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px;}
+.workspaceDocumentSidebarCopy strong,.workspaceDocumentSidebarCopy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.workspaceDocumentSidebarCopy strong{font-size:12px;font-weight:500;}
+.workspaceDocumentSidebarCopy small{color:var(--faint);font-size:10px;}
+.workspaceDocumentSidebarEmpty{margin:8px 4px;color:var(--muted);font-size:12px;line-height:1.5;}
+.workspaceDocumentsWelcome{display:flex;max-width:520px;flex:1;flex-direction:column;align-items:center;justify-content:center;align-self:center;padding:40px;text-align:center;}
+.workspaceDocumentsWelcomeIcon{display:grid;width:48px;height:48px;place-items:center;margin-bottom:16px;border-radius:12px;background:var(--accent-soft);color:var(--accent-strong);}
+.workspaceDocumentsWelcomeIcon iconify-icon{font-size:24px;}
+.workspaceDocumentsWelcome h2{margin:0;color:var(--text);font-size:20px;font-weight:650;line-height:1.25;}
+.workspaceDocumentsWelcome p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.55;}
+.workspaceDocumentsWelcome .workspaceDocumentsWelcomeHint{color:var(--faint);font-size:12px;}
 @media(max-width:560px){
   .documentsSectionHead{align-items:flex-start;}
   .documentsSectionHead>[data-create-document]{flex:none;}

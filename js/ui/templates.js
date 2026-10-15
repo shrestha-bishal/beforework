@@ -6,6 +6,7 @@ window.BeforeworkViewTemplates = (()=>{
     integrations:"pages/integrations.html",
     milestones:"pages/milestones.html",
     documents:"pages/documents.html",
+    workspaceDocuments:"pages/workspace-documents.html",
     listView:"pages/list-view.html",
     tableView:"pages/table-view.html",
     boardView:"pages/board-view.html",

@@ -219,6 +219,15 @@ test("validates project document metadata and markdown content",()=>{
   assert.ok(invalidTitle.errors.some(error=>error==="projects[0].documents[0].title must be 160 characters or fewer."));
 });
 
+test("validates workspace-owned Markdown documents independently of project documents",()=>{
+  const document={id:"workspace-brief",title:"Workspace brief",content:"# Shared goals",createdAt:1,updatedAt:2};
+  assert.equal(validate({projects:[],workspaceDocuments:[document],activeWorkspaceDocumentId:document.id},12).valid,true);
+  const duplicate=validate({projects:[],workspaceDocuments:[document,{...document}]},12);
+  assert.ok(duplicate.errors.some(error=>error==="workspaceDocuments[1].id must be unique within the workspace."));
+  const invalidActive=validate({projects:[],workspaceDocuments:[document],activeWorkspaceDocumentId:"missing"},12);
+  assert.ok(invalidActive.errors.some(error=>error==="activeWorkspaceDocumentId must reference a workspace document."));
+});
+
 test("validates project-owned items and allows projects without groups",()=>{
   const project={id:"project-1",name:"Simple",groups:[],items:[{id:"task-1",title:"Plan"}]};
   assert.equal(validate({projects:[project]},9).valid,true);

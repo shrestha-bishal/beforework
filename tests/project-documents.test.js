@@ -10,6 +10,7 @@ const appScripts=require("./helpers/app-script-order");
 const root=path.join(__dirname,"..");
 const index=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const featureSource=fs.readFileSync(path.join(root,"js/features/project-documents.js"),"utf8");
+const sharedFeatureSource=fs.readFileSync(path.join(root,"js/features/markdown-documents.js"),"utf8");
 const viewSource=fs.readFileSync(path.join(root,"js/views/documents-view.js"),"utf8");
 const appSource=fs.readFileSync(path.join(root,"js/app.js"),"utf8");
 const bootstrapSource=fs.readFileSync(path.join(root,"js/bootstrap.js"),"utf8");
@@ -18,6 +19,7 @@ const documentsStyles=fs.readFileSync(path.join(root,"styles/documents.css"),"ut
 
 function createFeature(){
   const window={};
+  vm.runInNewContext(sharedFeatureSource,{window},{filename:"markdown-documents.js"});
   vm.runInNewContext(featureSource,{window},{filename:"project-documents.js"});
   let id=0;
   let timestamp=100;

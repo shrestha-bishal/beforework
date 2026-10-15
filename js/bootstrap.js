@@ -7,6 +7,7 @@
     "./models/overview-details-model.js",
     "./views/milestones-view.js",
     "./views/documents-view.js",
+    "./views/workspace-documents-view.js",
     "./views/roadmap-view.js",
     "./views/overview-view.js",
     "./views/list-view.js",
