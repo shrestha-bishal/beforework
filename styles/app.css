@@ -440,32 +440,96 @@
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:14px;padding:18px 24px 20px;align-items:flex-start;}
   #board:has(.collectionPage){overflow-y:auto;}
   .collectionPage{width:100%;min-width:0;margin:0;}
-  .collectionPageToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;}
+  .collectionPageToolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 22px;}
   .collectionPageSearch{flex:1;min-width:140px;}
   .collectionPageSortLabel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--font-size-md);}
   .collectionPageSort{width:auto;min-width:128px;}
   .collectionPageViewControls{flex:none;}
+  .collectionPageViewControls button{display:grid;place-items:center;min-width:34px;height:32px;padding:0;}
+  .collectionPageViewControls button iconify-icon{font-size:18px;}
   .collectionPageAdd{flex:none;}
-  .collectionPageItems{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:stretch;gap:10px;}
+  .collectionPageItems{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));align-items:stretch;gap:14px;}
   .collectionPageItems--list{grid-template-columns:minmax(0,1fr);}
-  .collectionPageCard{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:5px 10px;
-    width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:8px;background:var(--bg);
-    color:var(--text);text-align:left;box-shadow:var(--shadow-lift);cursor:pointer;}
-  .collectionPageCard:hover{border-color:var(--border-strong);background:var(--bg-soft);}
-  .collectionPageCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-  .collectionPageIcon{grid-column:1;grid-row:1 / span 3;color:var(--accent-strong);font-size:var(--font-size-2xl);}
-  .collectionPageName{grid-column:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-size-body);}
-  .collectionPageDescription{grid-column:2;overflow:hidden;color:var(--muted);font-size:var(--font-size-md);
-    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;}
-  .collectionPageMeta{grid-column:2;color:var(--faint);font-size:var(--font-size-sm);}
-  .collectionPageBadge{grid-column:3;grid-row:1 / span 3;align-self:center;padding:3px 8px;border-radius:12px;
+  .collectionPageCard{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px;padding:15px 15px 13px;
+    border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);
+    text-align:left;cursor:pointer;box-shadow:none;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;}
+  .collectionPageCard:hover{border-color:var(--border-strong);background:var(--bg-soft);box-shadow:var(--shadow-lift);}
+  .collectionPageCard:focus-visible,.collectionPageNewCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .collectionPageCardCopy{display:flex;min-width:0;flex-direction:column;gap:8px;}
+  .collectionPageCardHeader{display:flex;align-items:center;gap:8px;min-width:0;}
+  .collectionPageCardHeader--collection .collectionPageName{flex:1;font-size:var(--font-size-body);font-weight:var(--font-weight-semibold);}
+  .collectionPageIcon{display:none;color:var(--accent-strong);font-size:var(--font-size-2xl);}
+  .collectionPageName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-size-body);}
+  .collectionPageBadge{margin-left:auto;padding:4px 9px;border-radius:12px;
     background:var(--accent-soft);color:var(--accent-strong);font-size:var(--font-size-sm);font-weight:var(--font-weight-semibold);}
+  .collectionPageDescription{overflow:hidden;color:var(--muted);font-size:var(--font-size-body-sm);line-height:1.4;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;}
+  .collectionPageMeta{align-self:end;margin-top:auto;padding-top:0;color:var(--muted);font-size:var(--font-size-sm);}
+  .collectionPageItems--list{gap:6px;}
+  .collectionPageProjectDot{width:8px;height:8px;flex:none;border-radius:50%;background:#3979cf;}
+  .collectionPageCard:nth-child(6n + 1) .collectionPageProjectDot{background:#db4b9a;}
+  .collectionPageCard:nth-child(6n + 2) .collectionPageProjectDot{background:#2eae86;}
+  .collectionPageCard:nth-child(6n + 3) .collectionPageProjectDot{background:#3478e5;}
+  .collectionPageCard:nth-child(6n + 4) .collectionPageProjectDot{background:#9b54d5;}
+  .collectionPageCard:nth-child(6n + 5) .collectionPageProjectDot{background:#e5a126;}
+  .collectionPageCard:nth-child(6n) .collectionPageProjectDot{background:#1aa3a0;}
+  .collectionPageItems--list .collectionPageCard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.42fr);
+    align-items:center;gap:12px 24px;min-height:88px;padding:15px 18px;border-radius:10px;}
+  .collectionPageItems--list .collectionPageCardCopy{gap:6px;}
+  .collectionPageItems--list .collectionPageDescription{font-size:var(--font-size-md);line-height:1.5;}
+  .collectionPageItems--list .collectionPageMeta{margin:0;padding:0;}
+  .collectionPageItems--list .collectionPageBadge{margin-left:auto;}
+  .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCard{
+    grid-template-columns:minmax(0,1.8fr) minmax(0,.52fr) minmax(0,1fr) minmax(0,.7fr);}
+  .collectionPageItems--list .collectionPageProjectStatus{align-self:center;justify-self:start;}
+  .collectionPageItems--list .collectionPageProgress{min-width:0;gap:7px;margin:0;}
+  .collectionPageProjectDot[hidden],.collectionPageIcon[hidden],.collectionPageProjectStatus[hidden],.collectionPageProgress[hidden]{display:none!important;}
+  .collectionPage[data-collection-kind="projects"] .collectionPageDescription{min-height:32px;}
+  .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus{align-self:flex-start;padding:3px 8px;border-radius:999px;
+    background:var(--color-success-subtle);color:var(--color-success-fg);font-size:var(--font-size-sm);font-weight:var(--font-weight-semibold);line-height:1.35;}
+  .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus[data-status="completed"]{background:var(--color-accent-subtle);color:var(--color-accent-fg);}
+  .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus[data-status="planning"]{background:var(--color-attention-subtle);color:var(--color-attention-fg);}
+  .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus[data-status="archived"]{background:var(--bg-soft);color:var(--muted);}
+  .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProjectStatus{align-self:center;}
+  .collectionPageProgress{display:flex;flex-direction:column;gap:6px;margin-top:auto;color:var(--muted);font-size:var(--font-size-sm);}
+  .collectionPageProgressHeader{display:flex;justify-content:space-between;gap:12px;}
+  .collectionPageProgressHeader strong{color:var(--text);font-weight:var(--font-weight-semibold);font-variant-numeric:tabular-nums;}
+  .collectionPageProgressTrack{display:block;height:4px;overflow:hidden;border-radius:999px;background:var(--bg-soft2);}
+  .collectionPageProgressFill{display:block;height:100%;border-radius:inherit;background:#3478e5;transition:width .2s ease;}
+  .collectionPageNewCard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    width:100%;min-height:196px;padding:16px;border:1px dashed var(--border-strong);border-radius:11px;
+    background:transparent;color:var(--muted);text-align:center;transition:border-color .16s ease,background .16s ease,color .16s ease;}
+  .collectionPageNewCard:hover{border-color:var(--accent);background:var(--bg-soft);color:var(--accent-strong);}
+  .collectionPageNewCardIcon{display:grid;place-items:center;color:var(--muted);font-size:20px;line-height:1;}
+  .collectionPageNewCardIcon iconify-icon{font-size:inherit;}
+  .collectionPageNewCardLabel{color:var(--text);font-size:var(--font-size-body);font-weight:var(--font-weight-semibold);}
+  .collectionPageNewCardHint{font-size:var(--font-size-sm);}
+  .collectionPageItems--list .collectionPageNewCard{display:none;}
   .collectionPageEmpty{padding:48px 20px;border:1px dashed var(--border-strong);border-radius:8px;color:var(--muted);
     text-align:center;}
   .collectionPageEmpty[hidden]{display:none;}
   @media (max-width:560px){
     .collectionPageSearch{flex:1 1 100%;}
     .collectionPageAdd{margin-left:auto;}
+  }
+  @media (max-width:900px){
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;}
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCardCopy{grid-column:1;grid-row:1;}
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProjectStatus{grid-column:2;grid-row:1;}
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProgress{grid-column:1;grid-row:2;}
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageMeta{grid-column:2;grid-row:2;}
+    .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr) auto;}
+    .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageMeta{grid-column:2;}
+  }
+  @media (max-width:560px){
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr);gap:12px;}
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCardCopy,
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProjectStatus,
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProgress,
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageMeta{grid-column:1;grid-row:auto;}
+    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageMeta{justify-self:start;}
+    .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr);gap:8px;}
+    .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageMeta{grid-column:1;justify-self:start;}
   }
 
   .viewTabs{position:relative;display:flex;width:100%;align-items:stretch;gap:5px;min-width:0;}

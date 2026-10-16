@@ -10,8 +10,12 @@
       </select>
     </label>
     <div class="calendarViewModes collectionPageViewControls" role="group" aria-label="Collection display">
-      <button class="btn btn-sm" type="button" data-collection-view="grid" aria-pressed="true">Grid</button>
-      <button class="btn btn-sm" type="button" data-collection-view="list" aria-pressed="false">List</button>
+      <button class="btn btn-sm" type="button" data-collection-view="grid" aria-label="Grid view" title="Grid view" aria-pressed="true">
+        <iconify-icon icon="mdi:view-grid-outline" aria-hidden="true"></iconify-icon>
+      </button>
+      <button class="btn btn-sm" type="button" data-collection-view="list" aria-label="List view" title="List view" aria-pressed="false">
+        <iconify-icon icon="mdi:view-list-outline" aria-hidden="true"></iconify-icon>
+      </button>
     </div>
     <button class="btn btn-primary collectionPageAdd" type="button"></button>
   </div>
@@ -21,10 +25,30 @@
 
 <template id="collectionPageCardTemplate">
   <button class="collectionPageCard" type="button">
-    <iconify-icon class="collectionPageIcon" aria-hidden="true"></iconify-icon>
-    <strong class="collectionPageName"></strong>
-    <span class="collectionPageBadge" hidden></span>
-    <span class="collectionPageDescription" hidden></span>
+    <span class="collectionPageCardCopy">
+      <span class="collectionPageCardHeader">
+        <span class="collectionPageProjectDot" aria-hidden="true" hidden></span>
+        <iconify-icon class="collectionPageIcon" aria-hidden="true"></iconify-icon>
+        <strong class="collectionPageName"></strong>
+        <span class="collectionPageBadge" hidden></span>
+      </span>
+      <span class="collectionPageDescription" hidden></span>
+    </span>
+    <span class="collectionPageProjectStatus" hidden></span>
+    <span class="collectionPageProgress" hidden>
+      <span class="collectionPageProgressHeader"><span>Progress</span><strong></strong></span>
+      <span class="collectionPageProgressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <span class="collectionPageProgressFill"></span>
+      </span>
+    </span>
     <span class="collectionPageMeta" hidden></span>
+  </button>
+</template>
+
+<template id="collectionPageNewCardTemplate">
+  <button class="collectionPageNewCard" type="button">
+    <span class="collectionPageNewCardIcon"><iconify-icon icon="mdi:plus" aria-hidden="true"></iconify-icon></span>
+    <strong class="collectionPageNewCardLabel"></strong>
+    <span class="collectionPageNewCardHint">Create a new project</span>
   </button>
 </template>

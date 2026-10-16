@@ -174,6 +174,12 @@
       else if (section) persistSecondarySection(null);
     }
 
+    function openSecondarySection(section){
+      const registration=secondarySections.get(section);
+      if (!registration) throw new Error(`No secondary navigation section is registered for "${section}".`);
+      openSecondarySidebar(registration);
+    }
+
     function refreshSecondarySection(section){
       if (!secondarySidebar.classList.contains("open")||!activeSecondarySection) return;
       if (section&&section!==activeSecondarySection) return;
@@ -230,7 +236,7 @@
 
     }
 
-    return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile,openSecondarySidebar,closeSecondarySidebar,registerSecondarySection,restoreSecondarySection,refreshSecondarySection});
+    return Object.freeze({wire,toggleSidebar,closeSidebarOnMobile,openSecondarySidebar,openSecondarySection,closeSecondarySidebar,registerSecondarySection,restoreSecondarySection,refreshSecondarySection});
   }
 
   global.BeforeworkNavigation=Object.freeze({create:createNavigation});

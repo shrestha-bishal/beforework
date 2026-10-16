@@ -21,8 +21,10 @@ export class CollectionView {
     const itemList=page.querySelector(".collectionPageItems");
     const empty=page.querySelector(".collectionPageEmpty");
     const cardTemplate=templates.querySelector("#collectionPageCardTemplate");
+    const newCardTemplate=templates.querySelector("#collectionPageNewCardTemplate");
     const viewButtons=[...page.querySelectorAll("[data-collection-view]")];
-    if (!search||!sort||!addButton||!itemList||!empty||!cardTemplate?.content?.firstElementChild||viewButtons.length!==2){
+    if (!search||!sort||!addButton||!itemList||!empty||!cardTemplate?.content?.firstElementChild
+      ||!newCardTemplate?.content?.firstElementChild||viewButtons.length!==2){
       throw new Error("The Collection view template is missing required controls.");
     }
     page.dataset.collectionKind=kind;
@@ -37,6 +39,7 @@ export class CollectionView {
 
     function updateViewControls(){
       itemList.classList.toggle("collectionPageItems--list",saved.view==="list");
+      addButton.hidden=typeof onAdd!=="function"||saved.view==="grid";
       viewButtons.forEach(button=>{
         const selected=button.dataset.collectionView===saved.view;
         button.setAttribute("aria-pressed",String(selected));
@@ -57,8 +60,14 @@ export class CollectionView {
       matching.forEach(item=>{
         const card=cardTemplate.content.firstElementChild.cloneNode(true);
         card.title=`Open ${item.title}`;
-        card.querySelector(".collectionPageIcon").setAttribute("icon",item.icon);
+        const icon=card.querySelector(".collectionPageIcon");
+        icon.hidden=true;
+        icon.setAttribute("icon",item.icon);
         card.querySelector(".collectionPageName").textContent=item.title;
+        const projectDot=card.querySelector(".collectionPageProjectDot");
+        projectDot.hidden=false;
+        const cardHeader=card.querySelector(".collectionPageCardHeader");
+        cardHeader.classList.toggle("collectionPageCardHeader--collection",true);
         const badge=card.querySelector(".collectionPageBadge");
         badge.hidden=!item.badge;
         badge.textContent=item.badge||"";
@@ -68,10 +77,37 @@ export class CollectionView {
         const meta=card.querySelector(".collectionPageMeta");
         meta.hidden=!item.meta;
         meta.textContent=item.meta||"";
+        const projectStatus=card.querySelector(".collectionPageProjectStatus");
+        projectStatus.hidden=kind!=="projects";
+        projectStatus.textContent=item.projectStatus||"";
+        if (item.projectStatus) projectStatus.dataset.status=item.projectStatus.toLocaleLowerCase().replaceAll(" ","-");
+        const progress=card.querySelector(".collectionPageProgress");
+        progress.hidden=kind!=="projects";
+        if (kind==="projects"){
+          const percentage=Math.max(0,Math.min(100,Number(item.progress)||0));
+          const progressLabel=progress.querySelector(".collectionPageProgressHeader strong");
+          const progressBar=progress.querySelector(".collectionPageProgressTrack");
+          const progressFill=progress.querySelector(".collectionPageProgressFill");
+          progressLabel.textContent=`${percentage}%`;
+          progressBar.setAttribute("aria-valuenow",String(percentage));
+          progressBar.setAttribute("aria-label",`${item.title} completion`);
+          progressFill.style.width=`${percentage}%`;
+        }
         card.onclick=()=>onOpen(item.id);
         itemList.appendChild(card);
       });
-      empty.hidden=matching.length>0;
+      const showCreateCard=typeof onAdd==="function"&&saved.view==="grid"&&!query;
+      if (showCreateCard){
+        const createLabel=addLabel||"Create";
+        const entityName=createLabel.replace(/^(New|Add)\s+/i,"").toLocaleLowerCase();
+        const newCard=newCardTemplate.content.firstElementChild.cloneNode(true);
+        newCard.querySelector(".collectionPageNewCardLabel").textContent=createLabel;
+        newCard.querySelector(".collectionPageNewCardHint").textContent=`Create a ${entityName}`;
+        newCard.title=createLabel;
+        newCard.onclick=onAdd;
+        itemList.appendChild(newCard);
+      }
+      empty.hidden=matching.length>0||showCreateCard;
       empty.textContent=matching.length?"" : query?noResultsMessage:emptyMessage;
     }
 
@@ -86,6 +122,7 @@ export class CollectionView {
     viewButtons.forEach(button=>button.addEventListener("click",()=>{
       saved.view=button.dataset.collectionView;
       updateViewControls();
+      updateItemList();
     }));
     updateViewControls();
     updateItemList();

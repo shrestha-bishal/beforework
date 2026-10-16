@@ -1719,7 +1719,7 @@
       folderLink.setAttribute("aria-label",`Open folder ${folder.name}`);
       if (activeProjectId===folderPageLocation(folder.id)) folderLink.setAttribute("aria-current","page");
       folderLink.append(icon,name,count);
-      folderLink.onclick=()=>selectFolderPage(folder.id,{keepSecondarySidebarOpen:true});
+      folderLink.onclick=()=>selectFolderPage(folder.id);
       toggle.onclick=()=>{
         if (!projectCount) return;
         const collapsed=!collapsedFolderIds.has(folder.id);
@@ -1840,14 +1840,18 @@
         :[...(project.groups||[]).flatMap(group=>group.items||[]),...(project.items||[])];
       const tasks=items.filter(item=>!item.archived&&item.calendarType!=="event");
       const openCount=tasks.filter(item=>!item.completedAt).length;
+      const completedCount=tasks.length-openCount;
+      const progress=tasks.length?Math.round(completedCount/tasks.length*100):0;
       const updatedAt=items.reduce((latest,item)=>Math.max(latest,item.updatedAt||item.createdAt||0),project.updatedAt||project.createdAt||0);
       return {
         id:project.id,
         title:project.name,
         icon:project.icon||DEFAULT_PROJECT_ICON,
         description:project.description||"",
-        meta:`${openCount} of ${tasks.length} tasks open`,
-        badge:project.archived?"Archived":project.pinned?"Pinned":"",
+        meta:`${tasks.length} ${tasks.length===1?"task":"tasks"}, ${openCount} open`,
+        projectStatus:project.archived?"Archived":!tasks.length?"Planning":openCount?"In Progress":"Completed",
+        progress,
+        badge:project.pinned?"Pinned":"",
         updatedAt
       };
     });
@@ -1870,7 +1874,7 @@
       state.projects=[];
     }
     activeProjectId=folderPageLocation(folderId);
-    if (!keepSecondarySidebarOpen) navigation?.closeSecondarySidebar();
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     selectedItemIds.clear();
     renderAll();
@@ -1878,6 +1882,7 @@
   }
 
   async function selectProject(pid,{keepSecondarySidebarOpen=false}={}){
+    const openedFromCollection=activeProjectId===PROJECTS||isFolderPageLocation(activeProjectId);
     if (state?.folderLazy && ![OVERVIEW,PROJECTS,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT,WORKSPACE_DOCUMENTS].includes(pid)&&!isWorkspaceDocumentsLocation(pid)){
       if (activeProjectId!==pid && state.projects.length){
         if (!await flushSave()){
@@ -1901,6 +1906,7 @@
     filterFeature.restore(pid);
     selectedItemIds.clear();
     renderAll();
+    if (openedFromCollection&&!keepSecondarySidebarOpen) navigation?.openSecondarySection("projects");
     closeSidebarOnMobile();
   }
 
@@ -1934,9 +1940,20 @@
       scheduleSave();
     }
     activeProjectId=WORKSPACE_DOCUMENTS;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     renderAll();
     closeSidebarOnMobile();
+  }
+
+  function openProjectsSection(){
+    if (activeProjectId===PROJECTS||isFolderPageLocation(activeProjectId)||getProject(activeProjectId)) return;
+    return navigateToProjects();
+  }
+
+  function openWorkspaceDocumentsSection(){
+    if (isWorkspaceDocumentsLocation(activeProjectId)) return;
+    return navigateToWorkspaceDocuments();
   }
 
   async function navigateToProjects(){
@@ -1948,6 +1965,7 @@
       state.projects=[];
     }
     activeProjectId=PROJECTS;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     renderAll();
     closeSidebarOnMobile();
@@ -1961,13 +1979,22 @@
     persistActiveLocation();
     scheduleSave();
     renderAll();
+    navigation?.openSecondarySection("documents");
     closeSidebarOnMobile();
   }
 
   function returnToWorkspaceDocuments(){
     activeProjectId=WORKSPACE_DOCUMENTS;
+    navigation?.closeSecondarySidebar();
     persistActiveLocation();
     renderAll();
+  }
+
+  function restoreSecondaryNavigation(){
+    navigation?.restoreSecondarySection();
+    if (activeProjectId===PROJECTS||isFolderPageLocation(activeProjectId)||activeProjectId===WORKSPACE_DOCUMENTS){
+      navigation?.closeSecondarySidebar();
+    }
   }
 
   function navigateToIntegrations(){
@@ -2134,7 +2161,7 @@
         searchLabel:`Search projects in ${folder.name}`,
         emptyMessage:"This folder has no projects yet. Add a project to get started.",
         noResultsMessage:"No projects match your search.",
-        addLabel:"Add project",
+        addLabel:"New project",
         onAdd:()=>createProjectFromMenu(folder.id),
         onOpen:selectProject
       });
@@ -3432,7 +3459,7 @@
     navigation.registerSecondarySection({
       ...navigationView.getSecondarySection("projects"),
       renderContent:content=>content.replaceChildren(projectsSidebar),
-      onOpen:navigateToProjects,
+      onOpen:openProjectsSection,
       onSearch:query=>{
         projectListSearch=query;
         renderProjectList();
@@ -3537,7 +3564,7 @@
         ...navigationView.getSecondarySection("documents"),
         renderContent:content=>workspaceDocumentsView.renderSidebar(content),
         onSearch:onWorkspaceDocumentsSearch,
-        onOpen:navigateToWorkspaceDocuments,
+        onOpen:openWorkspaceDocumentsSection,
         createLabel:"New document",
         onCreate:()=>workspaceDocumentsEditor.createDocumentImmediately(workspaceDocumentsView.workspace)
       });
@@ -3727,7 +3754,7 @@
       }
       restoreActiveLocation();
       renderAll();
-      navigation?.restoreSecondarySection();
+      restoreSecondaryNavigation();
       startupOperation.finish();
       operationStatus.finishStartup();
       if (loadError){
@@ -3745,7 +3772,7 @@
         catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + window.BeforeworkErrorUtils.getMessage(err)); }
       }
       renderAll();
-      navigation?.restoreSecondarySection();
+      restoreSecondaryNavigation();
       resumeGoogleCalendarSync();
       startupOperation.finish();
       operationStatus.finishStartup();

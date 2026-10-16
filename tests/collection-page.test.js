@@ -22,6 +22,7 @@ function makeElement(){
     children:[],
     dataset:{},
     attributes:{},
+    style:{},
     classList:{
       toggle(name,enabled){ if (enabled) classes.add(name); else classes.delete(name); },
       contains(name){ return classes.has(name); }
@@ -62,13 +63,43 @@ function createCollectionView(){
       ".collectionPageName":makeElement(),
       ".collectionPageBadge":makeElement(),
       ".collectionPageDescription":makeElement(),
-      ".collectionPageMeta":makeElement()
+      ".collectionPageMeta":makeElement(),
+      ".collectionPageProjectDot":makeElement(),
+      ".collectionPageCardHeader":makeElement(),
+      ".collectionPageProjectStatus":makeElement(),
+      ".collectionPageProgress":makeElement()
     };
+    const progressLabel=makeElement();
+    const progressBar=makeElement();
+    const progressFill=makeElement();
+    fields[".collectionPageProgress"].querySelector=selector=>({
+      ".collectionPageProgressHeader strong":progressLabel,
+      ".collectionPageProgressTrack":progressBar,
+      ".collectionPageProgressFill":progressFill
+    })[selector];
     card.querySelector=selector=>fields[selector];
     card.fields=fields;
+    card.progressLabel=progressLabel;
+    card.progressBar=progressBar;
+    card.progressFill=progressFill;
     return card;
   }}}};
-  const fragment={querySelector:selector=>selector===".collectionPage"?page:cardTemplate};
+  const newCardTemplate={content:{firstElementChild:{cloneNode:()=>{
+    const card=makeElement();
+    const label=makeElement();
+    const hint=makeElement();
+    card.querySelector=selector=>({
+      ".collectionPageNewCardLabel":label,
+      ".collectionPageNewCardHint":hint
+    })[selector];
+    card.fields={label,hint};
+    return card;
+  }}}};
+  const fragment={querySelector:selector=>({
+    ".collectionPage":page,
+    "#collectionPageCardTemplate":cardTemplate,
+    "#collectionPageNewCardTemplate":newCardTemplate
+  })[selector]};
   const board=makeElement();
   const source=fs.readFileSync(path.join(root,"js/views/collection-view.js"),"utf8");
   const window={};
@@ -90,7 +121,12 @@ test("collection page template provides shared search, sort, display, and card c
   assert.match(template,/value="updated-desc"/);
   assert.match(template,/data-collection-view="grid"/);
   assert.match(template,/data-collection-view="list"/);
+  assert.match(template,/data-collection-view="grid" aria-label="Grid view" title="Grid view" aria-pressed="true">[\s\S]*?icon="mdi:view-grid-outline"/);
+  assert.match(template,/data-collection-view="list" aria-label="List view" title="List view" aria-pressed="false">[\s\S]*?icon="mdi:view-list-outline"/);
   assert.match(template,/<template id="collectionPageCardTemplate">/);
+  assert.match(template,/<template id="collectionPageNewCardTemplate">/);
+  assert.match(template,/class="collectionPageNewCard"/);
+  assert.match(template,/<iconify-icon icon="mdi:plus" aria-hidden="true"><\/iconify-icon>/);
   assert.match(view,/pageState=new Map\(\)/);
   assert.match(view,/saved\.query\.trim\(\)\.toLocaleLowerCase\(\)/);
   assert.match(view,/saved\.sort==="updated-desc"/);
@@ -106,15 +142,117 @@ test("collection page template provides shared search, sort, display, and card c
 test("collection page spans the available content width",()=>{
   assert.match(styles,/\.collectionPage\{width:100%;min-width:0;margin:0;\}/);
   assert.doesNotMatch(styles,/\.collectionPage\{width:min\(100%,\d+px\)/);
+  assert.match(styles,/\.collectionPageCard\{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px/);
+  assert.match(styles,/\.collectionPageCardHeader\{display:flex;align-items:center;gap:8px;min-width:0;\}/);
+  assert.match(styles,/\.collectionPageCardHeader--collection \.collectionPageName\{flex:1/);
+  assert.match(styles,/\.collectionPageItems--list \.collectionPageCard\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,\.42fr\)/);
+  assert.match(styles,/\.collectionPage\[data-collection-kind="projects"\] \.collectionPageItems--list \.collectionPageCard\{\s*grid-template-columns:minmax\(0,1\.8fr\) minmax\(0,\.52fr\) minmax\(0,1fr\) minmax\(0,\.7fr\);/);
+  assert.match(styles,/@media \(max-width:900px\)\{[\s\S]*?collectionPageProjectStatus\{grid-column:2;grid-row:1;\}/);
+  assert.match(styles,/@media \(max-width:560px\)\{[\s\S]*?collectionPageProgress\{grid-column:1;grid-row:auto;\}/);
+  assert.doesNotMatch(styles,/\.collectionPageItems--list \.collectionPageProjectStatus,\.collectionPageItems--list \.collectionPageProgress\{display:none!important;\}/);
+  assert.match(styles,/\.collectionPageNewCard\{[^}]*border:1px dashed/);
+});
+
+test("project grids provide a dashed create card while list view keeps its toolbar action",()=>{
+  const harness=createCollectionView();
+  let addCount=0;
+  harness.collection.render(harness.board,{
+    key:"projects",
+    kind:"projects",
+    items:[{id:"a",title:"Alpha",icon:"mdi:rocket"}],
+    addLabel:"New project",
+    onAdd:()=>addCount++,
+    onOpen:()=>{}
+  });
+  assert.equal(harness.items.children.length,2);
+  assert.equal(harness.items.children[1].fields.label.textContent,"New project");
+  assert.equal(harness.items.children[1].fields.hint.textContent,"Create a project");
+  assert.equal(harness.add.hidden,true);
+  harness.items.children[1].onclick();
+  assert.equal(addCount,1);
+
+  harness.viewButtons[1].dispatch("click");
+  assert.equal(harness.items.children.length,1);
+  assert.equal(harness.add.hidden,false);
+});
+
+test("empty project grids keep the create card as the empty-state fallback",()=>{
+  const harness=createCollectionView();
+  harness.collection.render(harness.board,{
+    key:"empty-projects",
+    kind:"projects",
+    items:[],
+    addLabel:"New project",
+    emptyMessage:"No projects yet.",
+    onAdd:()=>{},
+    onOpen:()=>{}
+  });
+  assert.equal(harness.items.children.length,1);
+  assert.equal(harness.items.children[0].fields.label.textContent,"New project");
+  assert.equal(harness.empty.hidden,true);
+});
+
+test("project cards avoid project glyphs and show status and accessible completion progress",()=>{
+  const harness=createCollectionView();
+  harness.collection.render(harness.board,{
+    key:"projects",
+    kind:"projects",
+    items:[{
+      id:"a",
+      title:"Alpha",
+      icon:"mdi:rocket",
+      meta:"4 tasks, 1 open",
+      projectStatus:"In Progress",
+      progress:75
+    }],
+    onOpen:()=>{}
+  });
+  const card=harness.items.children[0];
+  assert.equal(card.fields[".collectionPageIcon"].hidden,true);
+  assert.equal(card.fields[".collectionPageProjectDot"].hidden,false);
+  assert.equal(card.fields[".collectionPageProjectStatus"].textContent,"In Progress");
+  assert.equal(card.fields[".collectionPageProjectStatus"].dataset.status,"in-progress");
+  assert.equal(card.progressLabel.textContent,"75%");
+  assert.equal(card.progressBar.attributes["aria-valuenow"],"75");
+  assert.equal(card.progressBar.attributes["aria-label"],"Alpha completion");
+  assert.equal(card.progressFill.style.width,"75%");
+  assert.equal(card.fields[".collectionPageMeta"].textContent,"4 tasks, 1 open");
+});
+
+test("document cards use the shared grid treatment and show a matching create fallback",()=>{
+  const harness=createCollectionView();
+  let addCount=0;
+  harness.collection.render(harness.board,{
+    key:"documents",
+    kind:"documents",
+    items:[{id:"doc",title:"Notes",icon:"mdi:file-document-outline",description:"A short note",meta:"Updated today"}],
+    addLabel:"New document",
+    onAdd:()=>addCount++,
+    onOpen:()=>{}
+  });
+  const card=harness.items.children[0];
+  assert.equal(card.fields[".collectionPageIcon"].hidden,true);
+  assert.equal(card.fields[".collectionPageProjectDot"].hidden,false);
+  assert.equal(card.fields[".collectionPageCardHeader"].classList.contains("collectionPageCardHeader--collection"),true);
+  assert.equal(harness.items.children[1].fields.label.textContent,"New document");
+  assert.equal(harness.items.children[1].fields.hint.textContent,"Create a document");
+  harness.items.children[1].onclick();
+  assert.equal(addCount,1);
+
+  harness.viewButtons[1].dispatch("click");
+  assert.equal(card.fields[".collectionPageIcon"].hidden,true);
+  assert.equal(card.fields[".collectionPageProjectDot"].hidden,false);
+  assert.equal(harness.add.hidden,false);
+  assert.equal(harness.items.children.length,1);
 });
 
 test("folder, Projects, and Documents routes render through the shared collection view",()=>{
   assert.match(app,/activeProjectId===PROJECTS[\s\S]*?collectionView\.render\(board,\{\s*key:"projects"/);
-  assert.match(app,/collectionView\.render\(board,\{\s*key:`folder:\$\{folder\.id\}`/);
+  assert.match(app,/collectionView\.render\(board,\{\s*key:`folder:\$\{folder\.id\}`[\s\S]*?addLabel:"New project"/);
   assert.match(app,/workspaceDocumentsView\.render\(board,collectionView\)/);
   assert.match(workspaceDocumentsView,/collectionView\.render\(board,\{\s*key:"workspace-documents"/);
   assert.match(workspaceDocumentsView,/this\.documentsView\.openDocument\(this\.workspace,documentId\)/);
-  assert.match(app,/onOpen:navigateToProjects/);
+  assert.match(app,/onOpen:openProjectsSection/);
   assert.match(app,/function navigateToProjects\(\)/);
   assert.match(app,/saved===OVERVIEW \|\| saved===PROJECTS/);
 });

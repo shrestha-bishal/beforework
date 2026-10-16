@@ -206,6 +206,19 @@ test("registered secondary-section create action repurposes and restores the hea
     onCreate:()=>{ created++; }
   });
 
+  test("registered secondary sections can open for detail-page navigation without changing route",()=>{
+    const harness=createHarness();
+    const {projectsNav,secondarySidebar,secondarySidebarTitle,sidebarProjects,secondarySidebarContent}=harness.elements;
+    harness.navigation.openSecondarySection("projects");
+    assert.equal(secondarySidebar.classList.contains("open"),true);
+    assert.equal(secondarySidebar.attributes["aria-hidden"],"false");
+    assert.equal(secondarySidebarTitle.textContent,"Projects");
+    assert.deepEqual(secondarySidebarContent.children,[sidebarProjects]);
+    assert.deepEqual(harness.calls,[]);
+    assert.equal(projectsNav.attributes["aria-expanded"],"true");
+    assert.throws(()=>harness.navigation.openSecondarySection("unknown"),/No secondary navigation section is registered/);
+  });
+
   documentsNav.onclick();
   assert.equal(projectCreateBtn.title,"New document");
   assert.equal(projectCreateBtn.attributes["aria-label"],"New document");
@@ -470,6 +483,6 @@ test("navigation view mounts template markup and classifies menu items",()=>{
 
 test("demo startup restores the last active page before rendering",()=>{
   const demoBranch=app.slice(app.indexOf("if (demoMode){",app.indexOf("async function boot")));
-  assert.match(demoBranch,/restoreActiveLocation\(\);\s*renderAll\(\);\s*navigation\?\.restoreSecondarySection\(\);/);
-  assert.match(app,/renderAll\(\);\s*navigation\?\.restoreSecondarySection\(\);\s*resumeGoogleCalendarSync\(\);/);
+  assert.match(demoBranch,/restoreActiveLocation\(\);\s*renderAll\(\);\s*restoreSecondaryNavigation\(\);/);
+  assert.match(app,/renderAll\(\);\s*restoreSecondaryNavigation\(\);\s*resumeGoogleCalendarSync\(\);/);
 });
