@@ -1,0 +1,30 @@
+<section class="collectionPage">
+  <div class="collectionPageToolbar">
+    <input class="form-control collectionPageSearch" type="search" placeholder="Search" aria-label="Search collection">
+    <label class="collectionPageSortLabel">
+      <span>Sort</span>
+      <select class="form-control collectionPageSort" aria-label="Sort collection">
+        <option value="name-asc">Name (A-Z)</option>
+        <option value="name-desc">Name (Z-A)</option>
+        <option value="updated-desc">Recently updated</option>
+      </select>
+    </label>
+    <div class="calendarViewModes collectionPageViewControls" role="group" aria-label="Collection display">
+      <button class="btn btn-sm" type="button" data-collection-view="grid" aria-pressed="true">Grid</button>
+      <button class="btn btn-sm" type="button" data-collection-view="list" aria-pressed="false">List</button>
+    </div>
+    <button class="btn btn-primary collectionPageAdd" type="button"></button>
+  </div>
+  <div class="collectionPageItems"></div>
+  <div class="collectionPageEmpty" hidden></div>
+</section>
+
+<template id="collectionPageCardTemplate">
+  <button class="collectionPageCard" type="button">
+    <iconify-icon class="collectionPageIcon" aria-hidden="true"></iconify-icon>
+    <strong class="collectionPageName"></strong>
+    <span class="collectionPageBadge" hidden></span>
+    <span class="collectionPageDescription" hidden></span>
+    <span class="collectionPageMeta" hidden></span>
+  </button>
+</template>

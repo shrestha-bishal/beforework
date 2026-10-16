@@ -14,7 +14,7 @@
     "./views/table-view.js",
     "./views/board-view.js",
     "./views/calendar-view.js",
-    "./views/folder-view.js"
+    "./views/collection-view.js"
   ];
 
   let viewModulesPromise = null;

@@ -2,12 +2,11 @@ window.BeforeworkViewTemplates = (()=>{
   const startupPaths = {
     navigation:"pages/navigation.html",
     overview:"pages/overview.html",
-    folder:"pages/folder.html",
+    collection:"pages/collection.html",
     calendar:"pages/calendar.html",
     integrations:"pages/integrations.html",
     milestones:"pages/milestones.html",
     documents:"pages/documents.html",
-    workspaceDocuments:"pages/workspace-documents.html",
     listView:"pages/list-view.html",
     tableView:"pages/table-view.html",
     boardView:"pages/board-view.html",

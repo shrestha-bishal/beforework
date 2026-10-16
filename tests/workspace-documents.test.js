@@ -78,14 +78,14 @@ test("workspace documents are a primary navigation destination with a reusable e
   assert.match(manifest,/features\/markdown-documents\.js/);
   assert.match(manifest,/features\/workspace-documents\.js/);
   assert.match(appSource,/navigation\.registerSecondarySection\(\{[\s\S]*?navigationView\.getSecondarySection\("documents"\)[\s\S]*?renderContent:content=>workspaceDocumentsView\.renderSidebar\(content\)/);
-  assert.match(appSource,/workspaceDocumentsView\.render\(board\)/);
+  assert.match(appSource,/workspaceDocumentsView\.render\(board,collectionView\)/);
   assert.match(appSource,/workspaceDocumentLocation\(documentId\)/);
   assert.match(documentViewSource,/listHeading="Project documents"/);
   assert.match(documentViewSource,/onOpenDocument/);
   assert.match(documentViewSource,/createDocumentImmediately\(project,title="Untitled document"\)/);
-  assert.doesNotMatch(viewSource,/New document/);
+  assert.doesNotMatch(viewSource,/cloneTemplate/);
   assert.match(appSource,/createLabel:"New document"[\s\S]*?onCreate:\(\)=>workspaceDocumentsEditor\.createDocumentImmediately/);
-  assert.match(viewSource,/this\.documentsView\.openDocument\(this\.workspace,document\.id\)/);
+  assert.match(viewSource,/this\.documentsView\.openDocument\(this\.workspace,documentId\)/);
   assert.match(documentViewSource,/active\?\.content\.trim\(\)\?"preview":"write"/);
 });
 

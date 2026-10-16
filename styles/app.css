@@ -438,34 +438,34 @@
   .filterSummary:empty{display:none;}
   #boardFilterBar input[type="checkbox"]{accent-color:var(--accent);}
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:14px;padding:18px 24px 20px;align-items:flex-start;}
-  #board:has(.folderPage){overflow-y:auto;}
-  .folderPage{width:min(100%,900px);margin:0 auto;}
-  .folderPageToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;}
-  .folderPageSearch{flex:1;min-width:140px;}
-  .folderPageSortLabel{color:var(--muted);font-size:var(--font-size-md);}
-  .folderPageSort{width:auto;min-width:128px;}
-  .folderPageViewControls{flex:none;}
-  .folderPageAdd{flex:none;}
-  .folderPageProjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:stretch;gap:10px;}
-  .folderPageProjects--list{grid-template-columns:minmax(0,1fr);}
-  .folderProjectCard{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:5px 10px;
+  #board:has(.collectionPage){overflow-y:auto;}
+  .collectionPage{width:min(100%,900px);margin:0 auto;}
+  .collectionPageToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;}
+  .collectionPageSearch{flex:1;min-width:140px;}
+  .collectionPageSortLabel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--font-size-md);}
+  .collectionPageSort{width:auto;min-width:128px;}
+  .collectionPageViewControls{flex:none;}
+  .collectionPageAdd{flex:none;}
+  .collectionPageItems{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:stretch;gap:10px;}
+  .collectionPageItems--list{grid-template-columns:minmax(0,1fr);}
+  .collectionPageCard{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:5px 10px;
     width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:8px;background:var(--bg);
     color:var(--text);text-align:left;box-shadow:var(--shadow-lift);cursor:pointer;}
-  .folderProjectCard:hover{border-color:var(--border-strong);background:var(--bg-soft);}
-  .folderProjectCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-  .folderProjectIcon{grid-column:1;grid-row:1 / span 3;color:var(--accent-strong);font-size:var(--font-size-2xl);}
-  .folderProjectName{grid-column:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-size-body);}
-  .folderProjectDescription{grid-column:2;overflow:hidden;color:var(--muted);font-size:var(--font-size-md);
+  .collectionPageCard:hover{border-color:var(--border-strong);background:var(--bg-soft);}
+  .collectionPageCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .collectionPageIcon{grid-column:1;grid-row:1 / span 3;color:var(--accent-strong);font-size:var(--font-size-2xl);}
+  .collectionPageName{grid-column:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-size-body);}
+  .collectionPageDescription{grid-column:2;overflow:hidden;color:var(--muted);font-size:var(--font-size-md);
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;}
-  .folderProjectStats{grid-column:2;color:var(--faint);font-size:var(--font-size-sm);}
-  .folderProjectPinned{grid-column:3;grid-row:1 / span 3;align-self:center;padding:3px 8px;border-radius:12px;
+  .collectionPageMeta{grid-column:2;color:var(--faint);font-size:var(--font-size-sm);}
+  .collectionPageBadge{grid-column:3;grid-row:1 / span 3;align-self:center;padding:3px 8px;border-radius:12px;
     background:var(--accent-soft);color:var(--accent-strong);font-size:var(--font-size-sm);font-weight:var(--font-weight-semibold);}
-  .folderPageEmpty{padding:48px 20px;border:1px dashed var(--border-strong);border-radius:8px;color:var(--muted);
+  .collectionPageEmpty{padding:48px 20px;border:1px dashed var(--border-strong);border-radius:8px;color:var(--muted);
     text-align:center;}
-  .folderPageEmpty[hidden]{display:none;}
+  .collectionPageEmpty[hidden]{display:none;}
   @media (max-width:560px){
-    .folderPageSearch{flex:1 1 100%;}
-    .folderPageAdd{margin-left:auto;}
+    .collectionPageSearch{flex:1 1 100%;}
+    .collectionPageAdd{margin-left:auto;}
   }
 
   .viewTabs{position:relative;display:flex;width:100%;align-items:stretch;gap:5px;min-width:0;}

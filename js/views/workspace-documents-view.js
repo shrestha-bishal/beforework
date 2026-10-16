@@ -1,8 +1,7 @@
 export class WorkspaceDocumentsView {
-  constructor({documentsFeature,documentsView,cloneTemplate}){
+  constructor({documentsFeature,documentsView}){
     this.documentsFeature=documentsFeature;
     this.documentsView=documentsView;
-    this.cloneTemplate=cloneTemplate;
     this.workspace={id:"workspace",name:"Workspace"};
     this.searchQuery="";
   }
@@ -55,13 +54,32 @@ export class WorkspaceDocumentsView {
     container.replaceChildren(fragment);
   }
 
-  render(board){
+  render(board,collectionView){
     if (this.documentsFeature.active(this.workspace)){
       this.documentsView.render(this.workspace,board);
       return;
     }
-    const fragment=this.cloneTemplate();
-    board.replaceChildren(fragment);
+    const documents=this.documentsFeature.list(this.workspace);
+    collectionView.render(board,{
+      key:"workspace-documents",
+      kind:"documents",
+      items:documents.map(document=>({
+        id:document.id,
+        title:document.title,
+        icon:"mdi:file-document-outline",
+        description:String(document.content||"").replace(/[`*_>#~]/g," ").replace(/\s+/g," ").trim().slice(0,180),
+        meta:document.updatedAt
+          ?`Updated ${new Date(document.updatedAt).toLocaleDateString()}`
+          :"No update date",
+        updatedAt:document.updatedAt||document.createdAt||0
+      })),
+      searchLabel:"Search workspace documents",
+      emptyMessage:"No workspace documents yet. Create a document to get started.",
+      noResultsMessage:"No documents match your search.",
+      addLabel:"New document",
+      onAdd:()=>this.documentsView.createDocumentImmediately(this.workspace),
+      onOpen:documentId=>this.documentsView.openDocument(this.workspace,documentId)
+    });
   }
 }
 

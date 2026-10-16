@@ -16,6 +16,7 @@
     uid,tagColors:TAG_COLORS,selectColors:SELECT_COLORS
   });
   const OVERVIEW = "__overview__";
+  const PROJECTS = "__projects__";
   const CALENDAR = "__calendar__";
   const ROADMAP = "__roadmap__";
   const TIMER = "__timer__";
@@ -79,7 +80,7 @@
     'import("./views/table-view.js")',
     'import("./views/board-view.js")',
     'import("./views/calendar-view.js")',
-    'import("./views/folder-view.js")'
+    'import("./views/collection-view.js")'
   ];
 
   let state = null;                 // { projects:[] }
@@ -150,7 +151,7 @@
   let tableView = null;
   let boardView = null;
   let calendarView = null;
-  let folderView = null;
+  let collectionView = null;
   let activeProjectId = OVERVIEW;
   const filterFeature=window.BeforeworkFilters.create({
     storageKey:"personal_dashboard_filters_v1",
@@ -1832,6 +1833,25 @@
   function folderIdFromLocation(location){
     return isFolderPageLocation(location)?location.slice(FOLDER_PAGE_PREFIX.length):null;
   }
+  function projectCollectionItems(projects){
+    return projects.map(project=>{
+      const items=Array.isArray(project.itemIndex)
+        ?project.itemIndex
+        :[...(project.groups||[]).flatMap(group=>group.items||[]),...(project.items||[])];
+      const tasks=items.filter(item=>!item.archived&&item.calendarType!=="event");
+      const openCount=tasks.filter(item=>!item.completedAt).length;
+      const updatedAt=items.reduce((latest,item)=>Math.max(latest,item.updatedAt||item.createdAt||0),project.updatedAt||project.createdAt||0);
+      return {
+        id:project.id,
+        title:project.name,
+        icon:project.icon||DEFAULT_PROJECT_ICON,
+        description:project.description||"",
+        meta:`${openCount} of ${tasks.length} tasks open`,
+        badge:project.archived?"Archived":project.pinned?"Pinned":"",
+        updatedAt
+      };
+    });
+  }
   function workspaceDocumentLocation(documentId){ return `${WORKSPACE_DOCUMENT_PREFIX}${documentId}`; }
   function isWorkspaceDocumentsLocation(location){
     return location===WORKSPACE_DOCUMENTS||typeof location==="string"&&location.startsWith(WORKSPACE_DOCUMENT_PREFIX);
@@ -1858,7 +1878,7 @@
   }
 
   async function selectProject(pid,{keepSecondarySidebarOpen=false}={}){
-    if (state?.folderLazy && ![OVERVIEW,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT,WORKSPACE_DOCUMENTS].includes(pid)&&!isWorkspaceDocumentsLocation(pid)){
+    if (state?.folderLazy && ![OVERVIEW,PROJECTS,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT,WORKSPACE_DOCUMENTS].includes(pid)&&!isWorkspaceDocumentsLocation(pid)){
       if (activeProjectId!==pid && state.projects.length){
         if (!await flushSave()){
           await showNotice("Project switch paused","Resolve the current save or conflict before unloading the open project.");
@@ -1914,6 +1934,20 @@
       scheduleSave();
     }
     activeProjectId=WORKSPACE_DOCUMENTS;
+    persistActiveLocation();
+    renderAll();
+    closeSidebarOnMobile();
+  }
+
+  async function navigateToProjects(){
+    if (state?.folderLazy&&state.projects.length){
+      if (!await flushSave()){
+        await showNotice("Projects navigation paused","Resolve the pending save before unloading the open project.");
+        return;
+      }
+      state.projects=[];
+    }
+    activeProjectId=PROJECTS;
     persistActiveLocation();
     renderAll();
     closeSidebarOnMobile();
@@ -1975,10 +2009,10 @@
     const workspaceDocumentId=workspaceDocumentIdFromLocation(saved);
     const validWorkspaceDocumentLocation=saved===WORKSPACE_DOCUMENTS
       || (workspaceDocumentId!==null&&state?.workspaceDocuments?.some(document=>document.id===workspaceDocumentId));
-    if (saved===OVERVIEW || saved===CALENDAR || saved===ROADMAP || saved===TIMER || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || validWorkspaceDocumentLocation || getProject(saved)
+    if (saved===OVERVIEW || saved===PROJECTS || saved===CALENDAR || saved===ROADMAP || saved===TIMER || saved===INTEGRATIONS || saved===SETTINGS || saved===SUPPORT || validWorkspaceDocumentLocation || getProject(saved)
       || (folderId!==null&&state?.folders.some(folder=>folder.id===folderId))) activeProjectId = saved;
     else activeProjectId = OVERVIEW;
-    if (!isFolderPageLocation(activeProjectId) && !isWorkspaceDocumentsLocation(activeProjectId) && activeProjectId !== OVERVIEW && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== TIMER && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
+    if (!isFolderPageLocation(activeProjectId) && !isWorkspaceDocumentsLocation(activeProjectId) && activeProjectId !== OVERVIEW && activeProjectId !== PROJECTS && activeProjectId !== CALENDAR && activeProjectId !== ROADMAP && activeProjectId !== TIMER && activeProjectId !== SUPPORT) filterFeature.restore(activeProjectId);
   }
 
   /* Integrations view moved to js/services/google-calendar/google-calendar.js */
@@ -2050,6 +2084,29 @@
     }
     board.innerHTML = "";
 
+    if (activeProjectId===PROJECTS){
+      topLabel.textContent="Projects";
+      descriptionLabel.hidden=true;
+      filterBar.style.display="none";
+      projectMenuWrap.style.display="none";
+      projectActionsMenu.close();
+      projectViewsBar.style.display="none";
+      completionTabs.style.display="none";
+      const projects=projectRecords();
+      collectionView.render(board,{
+        key:"projects",
+        kind:"projects",
+        items:projectCollectionItems(projects),
+        searchLabel:"Search projects",
+        emptyMessage:"No projects yet. Create a project to get started.",
+        noResultsMessage:"No projects match your search.",
+        addLabel:"New project",
+        onAdd:()=>createProjectFromMenu(),
+        onOpen:selectProject
+      });
+      return;
+    }
+
     if (isFolderPageLocation(activeProjectId)){
       const folderId=folderIdFromLocation(activeProjectId);
       const folder=state.folders.find(candidate=>candidate.id===folderId);
@@ -2069,9 +2126,17 @@
       projectActionsMenu.close();
       projectViewsBar.style.display="none";
       completionTabs.style.display="none";
-      folderView.render(board,folder,projectRecords(),{
-        onOpenProject:selectProject,
-        onAddProject:()=>createProjectFromMenu(folder.id)
+      const folderProjects=projectRecords().filter(project=>project.folderId===folder.id&&!project.archived);
+      collectionView.render(board,{
+        key:`folder:${folder.id}`,
+        kind:"projects",
+        items:projectCollectionItems(folderProjects),
+        searchLabel:`Search projects in ${folder.name}`,
+        emptyMessage:"This folder has no projects yet. Add a project to get started.",
+        noResultsMessage:"No projects match your search.",
+        addLabel:"Add project",
+        onAdd:()=>createProjectFromMenu(folder.id),
+        onOpen:selectProject
       });
       return;
     }
@@ -2089,7 +2154,7 @@
       projectActionsMenu.close();
       projectViewsBar.style.display="none";
       completionTabs.style.display="none";
-      workspaceDocumentsView.render(board);
+      workspaceDocumentsView.render(board,collectionView);
       return;
     }
 
@@ -3367,6 +3432,7 @@
     navigation.registerSecondarySection({
       ...navigationView.getSecondarySection("projects"),
       renderContent:content=>content.replaceChildren(projectsSidebar),
+      onOpen:navigateToProjects,
       onSearch:query=>{
         projectListSearch=query;
         renderProjectList();
@@ -3415,9 +3481,9 @@
     reminderService.start();
     await authService.init();
     try{
-      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,documentsViewModule,workspaceDocumentsViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule,folderViewModule] = await loadViewModules();
-      folderView=new folderViewModule.FolderView({
-        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("folder")
+      const [settingsModule,overviewDetailsViewModule,overviewDetailsModelModule,milestonesViewModule,documentsViewModule,workspaceDocumentsViewModule,roadmapViewModule,overviewViewModule,listViewModule,tableViewModule,boardViewModule,calendarViewModule,collectionViewModule] = await loadViewModules();
+      collectionView=new collectionViewModule.CollectionView({
+        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("collection")
       });
       settingsView = createSettingsView(settingsModule.SettingsView);
       const overviewDetailsModel=new overviewDetailsModelModule.OverviewDetailsModel();
@@ -3465,8 +3531,7 @@
       });
       workspaceDocumentsView=new workspaceDocumentsViewModule.WorkspaceDocumentsView({
         documentsFeature:workspaceDocumentsFeature,
-        documentsView:workspaceDocumentsEditor,
-        cloneTemplate:()=>window.BeforeworkViewTemplates.clone("workspaceDocuments")
+        documentsView:workspaceDocumentsEditor
       });
       navigation.registerSecondarySection({
         ...navigationView.getSecondarySection("documents"),
@@ -3675,7 +3740,7 @@
     catch(err){ setSyncStatus("Recovery snapshots are unavailable in this browser: " + window.BeforeworkErrorUtils.getMessage(err)); }
     if (reconnected){
       restoreActiveLocation();
-      if (state.folderLazy && !isFolderPageLocation(activeProjectId) && !isWorkspaceDocumentsLocation(activeProjectId) && ![OVERVIEW,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
+      if (state.folderLazy && !isFolderPageLocation(activeProjectId) && !isWorkspaceDocumentsLocation(activeProjectId) && ![OVERVIEW,PROJECTS,CALENDAR,ROADMAP,TIMER,INTEGRATIONS,SETTINGS,SUPPORT].includes(activeProjectId)){
         try{ await ensureProjectLoaded(activeProjectId); }
         catch(err){ activeProjectId=OVERVIEW; setSyncStatus("Couldn't restore the last project: " + window.BeforeworkErrorUtils.getMessage(err)); }
       }
