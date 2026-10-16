@@ -439,7 +439,7 @@
   #boardFilterBar input[type="checkbox"]{accent-color:var(--accent);}
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:14px;padding:18px 24px 20px;align-items:flex-start;}
   #board:has(.collectionPage){overflow-y:auto;}
-  .collectionPage{width:min(100%,900px);margin:0 auto;}
+  .collectionPage{width:100%;min-width:0;margin:0;}
   .collectionPageToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;}
   .collectionPageSearch{flex:1;min-width:140px;}
   .collectionPageSortLabel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--font-size-md);}

@@ -103,6 +103,11 @@ test("collection page template provides shared search, sort, display, and card c
   assert.match(styles,/\.collectionPageItems--list\{grid-template-columns:minmax\(0,1fr\);\}/);
 });
 
+test("collection page spans the available content width",()=>{
+  assert.match(styles,/\.collectionPage\{width:100%;min-width:0;margin:0;\}/);
+  assert.doesNotMatch(styles,/\.collectionPage\{width:min\(100%,\d+px\)/);
+});
+
 test("folder, Projects, and Documents routes render through the shared collection view",()=>{
   assert.match(app,/activeProjectId===PROJECTS[\s\S]*?collectionView\.render\(board,\{\s*key:"projects"/);
   assert.match(app,/collectionView\.render\(board,\{\s*key:`folder:\$\{folder\.id\}`/);
