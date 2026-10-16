@@ -445,6 +445,7 @@
   .collectionPageSortLabel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--font-size-md);}
   .collectionPageSort{width:auto;min-width:128px;}
   .collectionPageViewControls{flex:none;}
+  .collectionPageViewControls[hidden]{display:none!important;}
   .collectionPageViewControls button{display:grid;place-items:center;min-width:34px;height:32px;padding:0;}
   .collectionPageViewControls button iconify-icon{font-size:18px;}
   .collectionPageAdd{flex:none;}
@@ -479,8 +480,6 @@
   .collectionPageItems--list .collectionPageDescription{font-size:var(--font-size-md);line-height:1.5;}
   .collectionPageItems--list .collectionPageMeta{margin:0;padding:0;}
   .collectionPageItems--list .collectionPageBadge{margin-left:auto;}
-  .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCard{
-    grid-template-columns:minmax(0,1.8fr) minmax(0,.52fr) minmax(0,1fr) minmax(0,.7fr);}
   .collectionPageItems--list .collectionPageProjectStatus{align-self:center;justify-self:start;}
   .collectionPageItems--list .collectionPageProgress{min-width:0;gap:7px;margin:0;}
   .collectionPageProjectDot[hidden],.collectionPageIcon[hidden],.collectionPageProjectStatus[hidden],.collectionPageProgress[hidden]{display:none!important;}
@@ -490,7 +489,6 @@
   .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus[data-status="completed"]{background:var(--color-accent-subtle);color:var(--color-accent-fg);}
   .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus[data-status="planning"]{background:var(--color-attention-subtle);color:var(--color-attention-fg);}
   .collectionPage[data-collection-kind="projects"] .collectionPageProjectStatus[data-status="archived"]{background:var(--bg-soft);color:var(--muted);}
-  .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProjectStatus{align-self:center;}
   .collectionPageProgress{display:flex;flex-direction:column;gap:6px;margin-top:auto;color:var(--muted);font-size:var(--font-size-sm);}
   .collectionPageProgressHeader{display:flex;justify-content:space-between;gap:12px;}
   .collectionPageProgressHeader strong{color:var(--text);font-weight:var(--font-weight-semibold);font-variant-numeric:tabular-nums;}
@@ -513,21 +511,10 @@
     .collectionPageAdd{margin-left:auto;}
   }
   @media (max-width:900px){
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;}
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCardCopy{grid-column:1;grid-row:1;}
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProjectStatus{grid-column:2;grid-row:1;}
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProgress{grid-column:1;grid-row:2;}
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageMeta{grid-column:2;grid-row:2;}
     .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr) auto;}
     .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageMeta{grid-column:2;}
   }
   @media (max-width:560px){
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr);gap:12px;}
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageCardCopy,
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProjectStatus,
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageProgress,
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageMeta{grid-column:1;grid-row:auto;}
-    .collectionPage[data-collection-kind="projects"] .collectionPageItems--list .collectionPageMeta{justify-self:start;}
     .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr);gap:8px;}
     .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageMeta{grid-column:1;justify-self:start;}
   }

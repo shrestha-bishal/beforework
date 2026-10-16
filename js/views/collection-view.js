@@ -18,16 +18,18 @@ export class CollectionView {
     const search=page.querySelector(".collectionPageSearch");
     const sort=page.querySelector(".collectionPageSort");
     const addButton=page.querySelector(".collectionPageAdd");
+    const viewControls=page.querySelector(".collectionPageViewControls");
     const itemList=page.querySelector(".collectionPageItems");
     const empty=page.querySelector(".collectionPageEmpty");
     const cardTemplate=templates.querySelector("#collectionPageCardTemplate");
     const newCardTemplate=templates.querySelector("#collectionPageNewCardTemplate");
     const viewButtons=[...page.querySelectorAll("[data-collection-view]")];
-    if (!search||!sort||!addButton||!itemList||!empty||!cardTemplate?.content?.firstElementChild
+    if (!search||!sort||!addButton||!viewControls||!itemList||!empty||!cardTemplate?.content?.firstElementChild
       ||!newCardTemplate?.content?.firstElementChild||viewButtons.length!==2){
       throw new Error("The Collection view template is missing required controls.");
     }
     page.dataset.collectionKind=kind;
+    if (kind==="projects") saved.view="grid";
     search.value=saved.query;
     search.placeholder=searchLabel;
     search.setAttribute("aria-label",searchLabel);
@@ -38,6 +40,7 @@ export class CollectionView {
     empty.hidden=true;
 
     function updateViewControls(){
+      viewControls.hidden=kind==="projects";
       itemList.classList.toggle("collectionPageItems--list",saved.view==="list");
       addButton.hidden=typeof onAdd!=="function"||saved.view==="grid";
       viewButtons.forEach(button=>{
@@ -119,11 +122,13 @@ export class CollectionView {
       saved.sort=sort.value;
       updateItemList();
     });
-    viewButtons.forEach(button=>button.addEventListener("click",()=>{
-      saved.view=button.dataset.collectionView;
-      updateViewControls();
-      updateItemList();
-    }));
+    if (kind!=="projects"){
+      viewButtons.forEach(button=>button.addEventListener("click",()=>{
+        saved.view=button.dataset.collectionView;
+        updateViewControls();
+        updateItemList();
+      }));
+    }
     updateViewControls();
     updateItemList();
     board.appendChild(page);

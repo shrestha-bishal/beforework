@@ -40,6 +40,7 @@ function createCollectionView(){
   const search=makeElement();
   const sort=makeElement();
   const add=makeElement();
+  const viewControls=makeElement();
   const items=makeElement();
   const empty=makeElement();
   const viewButtons=["grid","list"].map(view=>{
@@ -52,6 +53,7 @@ function createCollectionView(){
     ".collectionPageSearch":search,
     ".collectionPageSort":sort,
     ".collectionPageAdd":add,
+    ".collectionPageViewControls":viewControls,
     ".collectionPageItems":items,
     ".collectionPageEmpty":empty
   })[selector];
@@ -109,7 +111,7 @@ function createCollectionView(){
     {filename:"collection-view.js"}
   );
   const collection=new window.CollectionView({cloneTemplate:()=>fragment});
-  return {add,board,collection,empty,items,page,search,sort,viewButtons};
+  return {add,board,collection,empty,items,page,search,sort,viewButtons,viewControls};
 }
 
 test("collection page template provides shared search, sort, display, and card controls",()=>{
@@ -146,16 +148,17 @@ test("collection page spans the available content width",()=>{
   assert.match(styles,/\.collectionPageCardHeader\{display:flex;align-items:center;gap:8px;min-width:0;\}/);
   assert.match(styles,/\.collectionPageCardHeader--collection \.collectionPageName\{flex:1/);
   assert.match(styles,/\.collectionPageItems--list \.collectionPageCard\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,\.42fr\)/);
-  assert.match(styles,/\.collectionPage\[data-collection-kind="projects"\] \.collectionPageItems--list \.collectionPageCard\{\s*grid-template-columns:minmax\(0,1\.8fr\) minmax\(0,\.52fr\) minmax\(0,1fr\) minmax\(0,\.7fr\);/);
-  assert.match(styles,/@media \(max-width:900px\)\{[\s\S]*?collectionPageProjectStatus\{grid-column:2;grid-row:1;\}/);
-  assert.match(styles,/@media \(max-width:560px\)\{[\s\S]*?collectionPageProgress\{grid-column:1;grid-row:auto;\}/);
+  assert.match(view,/if \(kind==="projects"\) saved\.view="grid"/);
+  assert.match(view,/viewControls\.hidden=kind==="projects"/);
+  assert.doesNotMatch(styles,/\.collectionPage\[data-collection-kind="projects"\] \.collectionPageItems--list/);
   assert.doesNotMatch(styles,/\.collectionPageItems--list \.collectionPageProjectStatus,\.collectionPageItems--list \.collectionPageProgress\{display:none!important;\}/);
   assert.match(styles,/\.collectionPageNewCard\{[^}]*border:1px dashed/);
 });
 
-test("project grids provide a dashed create card while list view keeps its toolbar action",()=>{
+test("project pages use grid cards and hide the view toggle",()=>{
   const harness=createCollectionView();
   let addCount=0;
+  harness.collection.pageState.set("projects",{query:"",sort:"name-asc",view:"list"});
   harness.collection.render(harness.board,{
     key:"projects",
     kind:"projects",
@@ -164,16 +167,19 @@ test("project grids provide a dashed create card while list view keeps its toolb
     onAdd:()=>addCount++,
     onOpen:()=>{}
   });
+  assert.equal(harness.collection.pageState.get("projects").view,"grid");
   assert.equal(harness.items.children.length,2);
   assert.equal(harness.items.children[1].fields.label.textContent,"New project");
   assert.equal(harness.items.children[1].fields.hint.textContent,"Create a project");
   assert.equal(harness.add.hidden,true);
+  assert.equal(harness.viewControls.hidden,true);
   harness.items.children[1].onclick();
   assert.equal(addCount,1);
 
   harness.viewButtons[1].dispatch("click");
-  assert.equal(harness.items.children.length,1);
-  assert.equal(harness.add.hidden,false);
+  assert.equal(harness.items.classList.contains("collectionPageItems--list"),false);
+  assert.equal(harness.items.children.length,2);
+  assert.equal(harness.add.hidden,true);
 });
 
 test("empty project grids keep the create card as the empty-state fallback",()=>{
@@ -236,6 +242,7 @@ test("document cards use the shared grid treatment and show a matching create fa
   assert.equal(card.fields[".collectionPageCardHeader"].classList.contains("collectionPageCardHeader--collection"),true);
   assert.equal(harness.items.children[1].fields.label.textContent,"New document");
   assert.equal(harness.items.children[1].fields.hint.textContent,"Create a document");
+  assert.equal(harness.viewControls.hidden,false);
   harness.items.children[1].onclick();
   assert.equal(addCount,1);
 
@@ -267,15 +274,15 @@ test("collection view searches, sorts, toggles layout, and opens selected entrie
   const harness=createCollectionView();
   const opened=[];
   harness.collection.render(harness.board,{
-    key:"projects",
-    kind:"projects",
+    key:"documents",
+    kind:"documents",
     items:[
       {id:"a",title:"Alpha",icon:"mdi:rocket",updatedAt:10},
       {id:"b",title:"Beta",icon:"mdi:folder",updatedAt:20}
     ],
-    searchLabel:"Search projects",
-    emptyMessage:"No projects.",
-    noResultsMessage:"No matching projects.",
+    searchLabel:"Search documents",
+    emptyMessage:"No documents.",
+    noResultsMessage:"No matching documents.",
     onOpen:id=>opened.push(id)
   });
   assert.deepEqual(harness.items.children.map(card=>card.fields[".collectionPageName"].textContent),["Alpha","Beta"]);
@@ -296,5 +303,5 @@ test("collection view searches, sorts, toggles layout, and opens selected entrie
   harness.search.value="missing";
   harness.search.dispatch("input");
   assert.equal(harness.empty.hidden,false);
-  assert.equal(harness.empty.textContent,"No matching projects.");
+  assert.equal(harness.empty.textContent,"No matching documents.");
 });
