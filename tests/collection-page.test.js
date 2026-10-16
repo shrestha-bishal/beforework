@@ -43,6 +43,9 @@ function createCollectionView(){
   const viewControls=makeElement();
   const items=makeElement();
   const empty=makeElement();
+  const organization=makeElement();
+  const filters=makeElement();
+  const createFolder=makeElement();
   const viewButtons=["grid","list"].map(view=>{
     const button=makeElement();
     button.dataset.collectionView=view;
@@ -55,11 +58,21 @@ function createCollectionView(){
     ".collectionPageAdd":add,
     ".collectionPageViewControls":viewControls,
     ".collectionPageItems":items,
-    ".collectionPageEmpty":empty
+    ".collectionPageEmpty":empty,
+    ".collectionPageOrganization":organization,
+    ".collectionPageFilters":filters,
+    ".collectionPageCreateFolder":createFolder
   })[selector];
   page.querySelectorAll=()=>viewButtons;
   const cardTemplate={content:{firstElementChild:{cloneNode:()=>{
+    const entry=makeElement();
     const card=makeElement();
+    const actions=makeElement();
+    const toggle=makeElement();
+    const menu=makeElement();
+    const pinAction=makeElement();
+    const moveAction=makeElement();
+    menu.hidden=true;
     const fields={
       ".collectionPageIcon":makeElement(),
       ".collectionPageName":makeElement(),
@@ -84,7 +97,21 @@ function createCollectionView(){
     card.progressLabel=progressLabel;
     card.progressBar=progressBar;
     card.progressFill=progressFill;
-    return card;
+    entry.querySelector=selector=>({
+      ".collectionPageCard":card,
+      ".collectionPageActionToggle":toggle,
+      ".collectionPageActionMenu":menu,
+      ".collectionPageCardActions":actions,
+      '[data-collection-action="pin"]':pinAction,
+      '[data-collection-action="move"]':moveAction
+    })[selector];
+    entry.fields=fields;
+    entry.progressLabel=progressLabel;
+    entry.progressBar=progressBar;
+    entry.progressFill=progressFill;
+    entry.actions={actions,toggle,menu,pinAction,moveAction};
+    entry.onclick=()=>card.onclick?.();
+    return entry;
   }}}};
   const newCardTemplate={content:{firstElementChild:{cloneNode:()=>{
     const card=makeElement();
@@ -97,10 +124,14 @@ function createCollectionView(){
     card.fields={label,hint};
     return card;
   }}}};
+  const filterTemplate={content:{firstElementChild:{cloneNode:()=>makeElement()}}};
+  const groupTemplate={content:{firstElementChild:{cloneNode:()=>makeElement()}}};
   const fragment={querySelector:selector=>({
     ".collectionPage":page,
     "#collectionPageCardTemplate":cardTemplate,
-    "#collectionPageNewCardTemplate":newCardTemplate
+    "#collectionPageNewCardTemplate":newCardTemplate,
+    "#collectionPageFilterTemplate":filterTemplate,
+    "#collectionPageGroupTemplate":groupTemplate
   })[selector]};
   const board=makeElement();
   const source=fs.readFileSync(path.join(root,"js/views/collection-view.js"),"utf8");
@@ -111,7 +142,7 @@ function createCollectionView(){
     {filename:"collection-view.js"}
   );
   const collection=new window.CollectionView({cloneTemplate:()=>fragment});
-  return {add,board,collection,empty,items,page,search,sort,viewButtons,viewControls};
+  return {add,board,collection,createFolder,empty,filters,items,organization,page,search,sort,viewButtons,viewControls};
 }
 
 test("collection page template provides shared search, sort, display, and card controls",()=>{
@@ -127,6 +158,10 @@ test("collection page template provides shared search, sort, display, and card c
   assert.match(template,/data-collection-view="list" aria-label="List view" title="List view" aria-pressed="false">[\s\S]*?icon="mdi:view-list-outline"/);
   assert.match(template,/<template id="collectionPageCardTemplate">/);
   assert.match(template,/<template id="collectionPageNewCardTemplate">/);
+  assert.match(template,/<template id="collectionPageFilterTemplate">/);
+  assert.match(template,/<template id="collectionPageGroupTemplate">/);
+  assert.match(template,/class="collectionPageOrganization"/);
+  assert.match(template,/data-collection-action="move"/);
   assert.match(template,/class="collectionPageNewCard"/);
   assert.match(template,/<iconify-icon icon="mdi:plus" aria-hidden="true"><\/iconify-icon>/);
   assert.match(view,/pageState=new Map\(\)/);
@@ -253,11 +288,77 @@ test("document cards use the shared grid treatment and show a matching create fa
   assert.equal(harness.items.children.length,1);
 });
 
+test("collection organization filters and groups pinned, foldered, and unfiled entries",()=>{
+  const harness=createCollectionView();
+  const entries=[
+    {id:"pinned",title:"Pinned work",pinned:true},
+    {id:"foldered",title:"Filed work",folderId:"folder-a"},
+    {id:"unfiled",title:"Loose work"}
+  ];
+  harness.collection.render(harness.board,{
+    key:"organized-projects",
+    kind:"projects",
+    items:entries,
+    addLabel:"New project",
+    onAdd:()=>{},
+    onOpen:()=>{},
+    organization:{
+      collectionLabel:"projects",
+      folders:[{id:"folder-a",name:"Research"}],
+      onCreateFolder:()=>{},
+      onTogglePin:()=>{},
+      onMove:()=>{}
+    }
+  });
+
+  assert.deepEqual(harness.filters.children.map(filter=>filter.textContent),["All projects","Pinned","Research","Unfiled"]);
+  assert.deepEqual(harness.items.children.map(child=>child.textContent||child.fields?.[".collectionPageName"]?.textContent||""),[
+    "Pinned","Pinned work","Research","Filed work","Unfiled","Loose work",""
+  ]);
+  assert.equal(harness.organization.hidden,false);
+  assert.equal(harness.createFolder.hidden,false);
+
+  harness.filters.children[1].onclick();
+  assert.equal(harness.items.children.length,1);
+  assert.equal(harness.items.children[0].fields[".collectionPageName"].textContent,"Pinned work");
+  harness.filters.children[2].onclick();
+  assert.equal(harness.items.children.length,1);
+  assert.equal(harness.items.children[0].fields[".collectionPageName"].textContent,"Filed work");
+});
+
+test("collection card actions pin and move the selected item",()=>{
+  const harness=createCollectionView();
+  const actions=[];
+  harness.collection.render(harness.board,{
+    key:"organized-documents",
+    kind:"documents",
+    items:[{id:"doc",title:"Handbook",pinned:true}],
+    onOpen:()=>{},
+    organization:{
+      collectionLabel:"documents",
+      folders:[],
+      onTogglePin:id=>actions.push(["pin",id]),
+      onMove:id=>actions.push(["move",id])
+    }
+  });
+  const entry=harness.items.children[1];
+  entry.actions.toggle.onclick();
+  assert.equal(entry.actions.menu.hidden,false);
+  assert.equal(entry.actions.pinAction.textContent,"Unpin");
+  entry.actions.pinAction.onclick();
+  entry.actions.moveAction.onclick();
+  assert.deepEqual(actions,[["pin","doc"],["move","doc"]]);
+  assert.equal(entry.actions.menu.hidden,true);
+});
+
 test("folder, Projects, and Documents routes render through the shared collection view",()=>{
   assert.match(app,/activeProjectId===PROJECTS[\s\S]*?collectionView\.render\(board,\{\s*key:"projects"/);
+  assert.match(app,/organization:\{\s*collectionLabel:"projects"/);
   assert.match(app,/collectionView\.render\(board,\{\s*key:`folder:\$\{folder\.id\}`[\s\S]*?addLabel:"New project"/);
   assert.match(app,/workspaceDocumentsView\.render\(board,collectionView\)/);
   assert.match(workspaceDocumentsView,/collectionView\.render\(board,\{\s*key:"workspace-documents"/);
+  assert.match(workspaceDocumentsView,/collectionLabel:"documents"/);
+  assert.match(workspaceDocumentsView,/folders:this\.documentsFeature\.listFolders/);
   assert.match(workspaceDocumentsView,/this\.documentsView\.openDocument\(this\.workspace,documentId\)/);
   assert.match(app,/onOpen:openProjectsSection/);
   assert.match(app,/function navigateToProjects\(\)/);

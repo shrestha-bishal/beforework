@@ -1,7 +1,10 @@
 export class WorkspaceDocumentsView {
-  constructor({documentsFeature,documentsView}){
+  constructor({documentsFeature,documentsView,onTogglePin,onMove,onCreateFolder}){
     this.documentsFeature=documentsFeature;
     this.documentsView=documentsView;
+    this.onTogglePin=onTogglePin;
+    this.onMove=onMove;
+    this.onCreateFolder=onCreateFolder;
     this.workspace={id:"workspace",name:"Workspace"};
     this.searchQuery="";
   }
@@ -68,6 +71,9 @@ export class WorkspaceDocumentsView {
         title:document.title,
         icon:"mdi:file-document-outline",
         description:String(document.content||"").replace(/[`*_>#~]/g," ").replace(/\s+/g," ").trim().slice(0,180),
+        pinned:document.pinned===true,
+        folderId:document.folderId||null,
+        badge:document.pinned?"Pinned":"",
         meta:document.updatedAt
           ?`Updated ${new Date(document.updatedAt).toLocaleDateString()}`
           :"No update date",
@@ -78,7 +84,14 @@ export class WorkspaceDocumentsView {
       noResultsMessage:"No documents match your search.",
       addLabel:"New document",
       onAdd:()=>this.documentsView.createDocumentImmediately(this.workspace),
-      onOpen:documentId=>this.documentsView.openDocument(this.workspace,documentId)
+      onOpen:documentId=>this.documentsView.openDocument(this.workspace,documentId),
+      organization:{
+        collectionLabel:"documents",
+        folders:this.documentsFeature.listFolders?.(this.workspace)||[],
+        onTogglePin:this.onTogglePin,
+        onMove:this.onMove,
+        onCreateFolder:this.onCreateFolder
+      }
     });
   }
 }

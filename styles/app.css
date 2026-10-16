@@ -440,6 +440,17 @@
   #board{flex:1;overflow-x:auto;overflow-y:hidden;display:flex;gap:14px;padding:18px 24px 20px;align-items:flex-start;}
   #board:has(.collectionPage){overflow-y:auto;}
   .collectionPage{width:100%;min-width:0;margin:0;}
+  .collectionPageOrganization{display:flex;align-items:center;gap:10px;margin:0 0 18px;}
+  .collectionPageOrganization[hidden]{display:none!important;}
+  .collectionPageFilters{display:flex;flex:1;min-width:0;flex-wrap:wrap;gap:6px;}
+  .collectionPageFilter{min-height:32px;padding:6px 11px;border:1px solid transparent;border-radius:7px;background:transparent;
+    color:var(--muted);font:inherit;font-size:var(--font-size-md);cursor:pointer;}
+  .collectionPageFilter:hover{border-color:var(--border);background:var(--bg-soft);color:var(--text);}
+  .collectionPageFilter.selected,.collectionPageFilter[aria-pressed="true"]{border-color:var(--border);background:var(--bg);color:var(--text);font-weight:var(--font-weight-semibold);}
+  .collectionPageFilter:focus-visible,.collectionPageCreateFolder:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .collectionPageCreateFolder{display:flex;align-items:center;gap:6px;}
+  .collectionPageCreateFolder[hidden]{display:none!important;}
+  .collectionPageCreateFolder iconify-icon{font-size:16px;}
   .collectionPageToolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 22px;}
   .collectionPageSearch{flex:1;min-width:140px;}
   .collectionPageSortLabel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--font-size-md);}
@@ -451,11 +462,25 @@
   .collectionPageAdd{flex:none;}
   .collectionPageItems{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));align-items:stretch;gap:14px;}
   .collectionPageItems--list{grid-template-columns:minmax(0,1fr);}
-  .collectionPageCard{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px;padding:15px 15px 13px;
+  .collectionPageEntry{position:relative;min-width:0;}
+  .collectionPageCard{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px;padding:15px 48px 13px 15px;
     border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);
     text-align:left;cursor:pointer;box-shadow:none;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;}
   .collectionPageCard:hover{border-color:var(--border-strong);background:var(--bg-soft);box-shadow:var(--shadow-lift);}
   .collectionPageCard:focus-visible,.collectionPageNewCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .collectionPageCardActions{position:absolute;top:8px;right:8px;z-index:2;}
+  .collectionPageCardActions[hidden]{display:none!important;}
+  .collectionPageActionToggle{display:grid;place-items:center;width:30px;height:30px;border:1px solid transparent;border-radius:6px;
+    background:transparent;color:var(--muted);cursor:pointer;}
+  .collectionPageActionToggle:hover,.collectionPageActionToggle[aria-expanded="true"]{border-color:var(--border);background:var(--bg);color:var(--text);}
+  .collectionPageActionToggle:focus-visible,.collectionPageActionMenu button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .collectionPageActionToggle iconify-icon{font-size:18px;}
+  .collectionPageActionMenu{position:absolute;top:34px;right:0;display:flex;min-width:150px;flex-direction:column;gap:2px;padding:4px;
+    border:1px solid var(--border);border-radius:7px;background:var(--bg);box-shadow:var(--shadow-modal);}
+  .collectionPageActionMenu[hidden]{display:none!important;}
+  .collectionPageActionMenu button{padding:7px 9px;border:0;border-radius:4px;background:transparent;color:var(--text);
+    font:inherit;font-size:var(--font-size-md);text-align:left;cursor:pointer;}
+  .collectionPageActionMenu button:hover{background:var(--bg-soft);color:var(--text);}
   .collectionPageCardCopy{display:flex;min-width:0;flex-direction:column;gap:8px;}
   .collectionPageCardHeader{display:flex;align-items:center;gap:8px;min-width:0;}
   .collectionPageCardHeader--collection .collectionPageName{flex:1;font-size:var(--font-size-body);font-weight:var(--font-weight-semibold);}
@@ -466,6 +491,7 @@
   .collectionPageDescription{overflow:hidden;color:var(--muted);font-size:var(--font-size-body-sm);line-height:1.4;
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;}
   .collectionPageMeta{align-self:end;margin-top:auto;padding-top:0;color:var(--muted);font-size:var(--font-size-sm);}
+  .collectionPageGroupHeading{grid-column:1/-1;margin:9px 0 0;color:var(--text);font-size:var(--font-size-body);font-weight:var(--font-weight-semibold);}
   .collectionPageItems--list{gap:6px;}
   .collectionPageProjectDot{width:8px;height:8px;flex:none;border-radius:50%;background:#3979cf;}
   .collectionPageCard:nth-child(6n + 1) .collectionPageProjectDot{background:#db4b9a;}
@@ -475,7 +501,7 @@
   .collectionPageCard:nth-child(6n + 5) .collectionPageProjectDot{background:#e5a126;}
   .collectionPageCard:nth-child(6n) .collectionPageProjectDot{background:#1aa3a0;}
   .collectionPageItems--list .collectionPageCard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.42fr);
-    align-items:center;gap:12px 24px;min-height:88px;padding:15px 18px;border-radius:10px;}
+    align-items:center;gap:12px 24px;min-height:88px;padding:15px 48px 15px 18px;border-radius:10px;}
   .collectionPageItems--list .collectionPageCardCopy{gap:6px;}
   .collectionPageItems--list .collectionPageDescription{font-size:var(--font-size-md);line-height:1.5;}
   .collectionPageItems--list .collectionPageMeta{margin:0;padding:0;}
@@ -509,6 +535,9 @@
   @media (max-width:560px){
     .collectionPageSearch{flex:1 1 100%;}
     .collectionPageAdd{margin-left:auto;}
+    .collectionPageOrganization{align-items:flex-start;flex-direction:column;}
+    .collectionPageFilters{width:100%;}
+    .collectionPageCreateFolder{align-self:flex-end;}
   }
   @media (max-width:900px){
     .collectionPage[data-collection-kind="documents"] .collectionPageItems--list .collectionPageCard{grid-template-columns:minmax(0,1fr) auto;}

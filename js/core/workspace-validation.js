@@ -58,9 +58,13 @@
     } else if (Number.isInteger(maxSchemaVersion) && Number.isInteger(data.schemaVersion) && data.schemaVersion>maxSchemaVersion){
       addError(`This file uses schema version ${data.schemaVersion}, newer than the supported version ${maxSchemaVersion}.`);
     }
-    for (const key of ["folders","calendarItems","focusSessions","googleDeletedEventIds","googleCalendarLinks","googleCalendarCatalog","workspaceDocuments"]){
+    for (const key of ["folders","documentFolders","calendarItems","focusSessions","googleDeletedEventIds","googleCalendarLinks","googleCalendarCatalog","workspaceDocuments"]){
       if (data[key]!==undefined && !Array.isArray(data[key])) addError(`${key} must be an array.`);
     }
+    const documentFolderIds=new Set();
+    (Array.isArray(data.documentFolders)?data.documentFolders:[]).forEach((folder,index)=>{
+      if (validateNamedRecord(folder,`documentFolders[${index}]`)) documentFolderIds.add(folder.id);
+    });
     if (Array.isArray(data.workspaceDocuments)){
       const documentIds=new Set();
       data.workspaceDocuments.forEach((document,index)=>{
@@ -72,6 +76,13 @@
         if (document.title.trim().length>160) addError(`${path}.title must be 160 characters or fewer.`);
         if (documentIds.has(document.id)) addError(`${path}.id must be unique within the workspace.`);
         documentIds.add(document.id);
+        if (document.pinned!==undefined&&typeof document.pinned!=="boolean"){
+          addError(`${path}.pinned must be a boolean.`);
+        }
+        if (document.folderId!==undefined&&document.folderId!==null
+          &&(typeof document.folderId!=="string"||!documentFolderIds.has(document.folderId))){
+          addError(`${path}.folderId must reference a workspace document folder or be null.`);
+        }
         if (document.createdAt!==undefined&&(!Number.isFinite(document.createdAt)||document.createdAt<0)){
           addError(`${path}.createdAt must be a non-negative timestamp.`);
         }

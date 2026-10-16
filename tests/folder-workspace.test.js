@@ -75,7 +75,11 @@ function stateWithTwoProjects(){
   return {
     schemaVersion:7,
     folders:[],
-    workspaceDocuments:[{id:"workspace-brief",title:"Workspace brief",content:"# Shared",createdAt:5,updatedAt:6}],
+    documentFolders:[{id:"document-folder",name:"Reference"}],
+    workspaceDocuments:[{
+      id:"workspace-brief",title:"Workspace brief",content:"# Shared",createdAt:5,updatedAt:6,
+      pinned:true,folderId:"document-folder"
+    }],
     activeWorkspaceDocumentId:"workspace-brief",
     calendarItems:[],
     focusSessions:[],

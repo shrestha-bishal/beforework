@@ -221,11 +221,24 @@ test("validates project document metadata and markdown content",()=>{
 
 test("validates workspace-owned Markdown documents independently of project documents",()=>{
   const document={id:"workspace-brief",title:"Workspace brief",content:"# Shared goals",createdAt:1,updatedAt:2};
-  assert.equal(validate({projects:[],workspaceDocuments:[document],activeWorkspaceDocumentId:document.id},12).valid,true);
+  assert.equal(validate({projects:[],documentFolders:[],workspaceDocuments:[document],activeWorkspaceDocumentId:document.id},13).valid,true);
   const duplicate=validate({projects:[],workspaceDocuments:[document,{...document}]},12);
   assert.ok(duplicate.errors.some(error=>error==="workspaceDocuments[1].id must be unique within the workspace."));
   const invalidActive=validate({projects:[],workspaceDocuments:[document],activeWorkspaceDocumentId:"missing"},12);
   assert.ok(invalidActive.errors.some(error=>error==="activeWorkspaceDocumentId must reference a workspace document."));
+});
+
+test("validates independent workspace document pin and folder metadata",()=>{
+  const document={id:"doc-1",title:"Handbook",content:"",pinned:true,folderId:"doc-folder"};
+  const folder={id:"doc-folder",name:"Reference"};
+  assert.equal(validate({projects:[],documentFolders:[folder],workspaceDocuments:[document]},13).valid,true);
+
+  const invalidPin=validate({projects:[],documentFolders:[folder],workspaceDocuments:[{...document,pinned:"yes"}]},13);
+  assert.ok(invalidPin.errors.some(error=>error==="workspaceDocuments[0].pinned must be a boolean."));
+  const invalidFolder=validate({projects:[],documentFolders:[folder],workspaceDocuments:[{...document,folderId:"missing"}]},13);
+  assert.ok(invalidFolder.errors.some(error=>error==="workspaceDocuments[0].folderId must reference a workspace document folder or be null."));
+  const malformedFolders=validate({projects:[],documentFolders:{},workspaceDocuments:[]},13);
+  assert.ok(malformedFolders.errors.some(error=>error==="documentFolders must be an array."));
 });
 
 test("validates project-owned items and allows projects without groups",()=>{

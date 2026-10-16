@@ -1,4 +1,11 @@
 <section class="collectionPage">
+  <div class="collectionPageOrganization" hidden>
+    <div class="collectionPageFilters" role="group"></div>
+    <button class="btn btn-sm collectionPageCreateFolder" type="button">
+      <iconify-icon icon="mdi:folder-plus-outline" aria-hidden="true"></iconify-icon>
+      <span>New folder</span>
+    </button>
+  </div>
   <div class="collectionPageToolbar">
     <input class="form-control collectionPageSearch" type="search" placeholder="Search" aria-label="Search collection">
     <label class="collectionPageSortLabel">
@@ -24,25 +31,36 @@
 </section>
 
 <template id="collectionPageCardTemplate">
-  <button class="collectionPageCard" type="button">
-    <span class="collectionPageCardCopy">
-      <span class="collectionPageCardHeader">
-        <span class="collectionPageProjectDot" aria-hidden="true" hidden></span>
-        <iconify-icon class="collectionPageIcon" aria-hidden="true"></iconify-icon>
-        <strong class="collectionPageName"></strong>
-        <span class="collectionPageBadge" hidden></span>
+  <article class="collectionPageEntry">
+    <button class="collectionPageCard" type="button">
+      <span class="collectionPageCardCopy">
+        <span class="collectionPageCardHeader">
+          <span class="collectionPageProjectDot" aria-hidden="true" hidden></span>
+          <iconify-icon class="collectionPageIcon" aria-hidden="true"></iconify-icon>
+          <strong class="collectionPageName"></strong>
+          <span class="collectionPageBadge" hidden></span>
+        </span>
+        <span class="collectionPageDescription" hidden></span>
       </span>
-      <span class="collectionPageDescription" hidden></span>
-    </span>
-    <span class="collectionPageProjectStatus" hidden></span>
-    <span class="collectionPageProgress" hidden>
-      <span class="collectionPageProgressHeader"><span>Progress</span><strong></strong></span>
-      <span class="collectionPageProgressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <span class="collectionPageProgressFill"></span>
+      <span class="collectionPageProjectStatus" hidden></span>
+      <span class="collectionPageProgress" hidden>
+        <span class="collectionPageProgressHeader"><span>Progress</span><strong></strong></span>
+        <span class="collectionPageProgressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <span class="collectionPageProgressFill"></span>
+        </span>
       </span>
-    </span>
-    <span class="collectionPageMeta" hidden></span>
-  </button>
+      <span class="collectionPageMeta" hidden></span>
+    </button>
+    <div class="collectionPageCardActions">
+      <button class="collectionPageActionToggle" type="button" aria-label="More actions" aria-expanded="false" title="More actions">
+        <iconify-icon icon="mdi:dots-horizontal" aria-hidden="true"></iconify-icon>
+      </button>
+      <div class="collectionPageActionMenu" hidden>
+        <button type="button" data-collection-action="pin"></button>
+        <button type="button" data-collection-action="move">Move to folder</button>
+      </div>
+    </div>
+  </article>
 </template>
 
 <template id="collectionPageNewCardTemplate">
@@ -51,4 +69,12 @@
     <strong class="collectionPageNewCardLabel"></strong>
     <span class="collectionPageNewCardHint">Create a new project</span>
   </button>
+</template>
+
+<template id="collectionPageFilterTemplate">
+  <button class="collectionPageFilter" type="button"></button>
+</template>
+
+<template id="collectionPageGroupTemplate">
+  <h2 class="collectionPageGroupHeading"></h2>
 </template>

@@ -47,8 +47,55 @@ test("workspace document feature initializes missing workspace collections",()=>
 
   assert.equal(state.workspaceDocuments.length,1);
   assert.equal(state.workspaceDocuments[0].id,document.id);
+  assert.equal(document.pinned,false);
+  assert.equal(document.folderId,null);
+  assert.equal(state.documentFolders.length,0);
   assert.equal(state.activeWorkspaceDocumentId,document.id);
   assert.equal(feature.list(scope).length,1);
+});
+
+test("workspace documents keep folder collections independent from project folders",()=>{
+  const {feature,state}=makeFeature();
+  const workspace={id:"workspace",name:"Workspace"};
+  state.folders=[{id:"project-folder",name:"Projects"}];
+  state.documentFolders=[{id:"document-folder",name:"Reference"}];
+  const document=feature.create(workspace,"Handbook");
+  document.folderId="document-folder";
+
+  assert.deepEqual(feature.listFolders(workspace),[{id:"document-folder",name:"Reference"}]);
+  assert.equal(state.folders[0].id,"project-folder");
+  assert.equal(document.folderId,"document-folder");
+});
+
+test("workspace document collection exposes independent organization controls",()=>{
+  const {feature,state}=makeFeature();
+  state.documentFolders=[{id:"doc-folder",name:"Reference"}];
+  const workspace={id:"workspace",name:"Workspace"};
+  const document=feature.create(workspace,"Handbook");
+  document.folderId="doc-folder";
+  feature.clearActive(workspace);
+  const window={};
+  vm.runInNewContext(
+    `${viewSource.replace("export class WorkspaceDocumentsView","class WorkspaceDocumentsView")}\nwindow.WorkspaceDocumentsView=WorkspaceDocumentsView;`,
+    {window,globalThis:{}},
+    {filename:"workspace-documents-view.js"}
+  );
+  let options=null;
+  const view=new window.WorkspaceDocumentsView({
+    documentsFeature:feature,
+    documentsView:{},
+    onTogglePin:()=>{},
+    onMove:()=>{},
+    onCreateFolder:()=>{}
+  });
+
+  view.render({}, {render:(_board,collectionOptions)=>{ options=collectionOptions; }});
+
+  assert.equal(options.items[0].folderId,"doc-folder");
+  assert.equal(options.items[0].pinned,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(options.organization.folders)),[{id:"doc-folder",name:"Reference"}]);
+  assert.equal(options.organization.collectionLabel,"documents");
+  assert.equal(typeof options.organization.onTogglePin,"function");
 });
 
 test("workspace document feature shares Markdown behavior without changing project ownership",()=>{

@@ -261,6 +261,7 @@
         schemaVersion:SCHEMA_VERSION,
         projects:[],
         folders:[],
+        documentFolders:[],
         workspaceDocuments:[],
         activeWorkspaceDocumentId:null,
         calendarItems:[],
@@ -583,13 +584,53 @@
     const name = await showDialog({title:"New folder", fields:[{label:"Folder name", placeholder:"e.g. Personal"}], confirmLabel:"Create folder"});
     if (!name || !name.trim()) return;
     state.folders.push({id:uid(), name:name.trim()});
-    scheduleSave(); renderProjectList();
+    scheduleSave(); renderAll();
   }
   async function moveProjectToFolder(project){
     const folderId = await showDialog({title:"Move project to folder", fields:[{label:"Folder", type:"select", options:[{value:"",label:"No folder"}, ...state.folders.map(folder=>({value:folder.id,label:folder.name}))], value:project.folderId || ""}], confirmLabel:"Move project"});
     if (folderId === null) return;
     project.folderId = folderId || null;
-    scheduleSave(); renderProjectList();
+    if (state.folderLazy) registerProjectSummary(project);
+    scheduleSave(); renderAll();
+  }
+  async function createDocumentFolder(){
+    const name=await showDialog({title:"New document folder",fields:[{label:"Folder name",placeholder:"e.g. Reference"}],confirmLabel:"Create folder"});
+    if (!name||!name.trim()) return;
+    if (!Array.isArray(state.documentFolders)) state.documentFolders=[];
+    state.documentFolders.push({id:uid(),name:name.trim()});
+    scheduleSave();
+    renderAll();
+  }
+  async function toggleWorkspaceDocumentPinned(documentId){
+    try{
+      const workspaceDocument=state.workspaceDocuments.find(document=>document.id===documentId);
+      if (!workspaceDocument) throw new Error("The document could not be found.");
+      workspaceDocument.pinned=!workspaceDocument.pinned;
+      scheduleSave();
+      renderAll();
+    }catch(error){
+      await showNotice("Couldn't update document pin",window.BeforeworkErrorUtils.getMessage(error));
+    }
+  }
+  async function moveWorkspaceDocumentToFolder(documentId){
+    try{
+      const workspaceDocument=state.workspaceDocuments.find(document=>document.id===documentId);
+      if (!workspaceDocument) throw new Error("The document could not be found.");
+      const folderId=await showDialog({
+        title:"Move document to folder",
+        fields:[{label:"Folder",type:"select",options:[
+          {value:"",label:"No folder"},
+          ...(state.documentFolders||[]).map(folder=>({value:folder.id,label:folder.name}))
+        ],value:workspaceDocument.folderId||""}],
+        confirmLabel:"Move document"
+      });
+      if (folderId===null) return;
+      workspaceDocument.folderId=folderId||null;
+      scheduleSave();
+      renderAll();
+    }catch(error){
+      await showNotice("Couldn't move document",window.BeforeworkErrorUtils.getMessage(error));
+    }
   }
   function addView(project, type){
     const v = {id:uid(), type, name:viewLabel(type)};
@@ -1850,6 +1891,8 @@
         description:project.description||"",
         meta:`${tasks.length} ${tasks.length===1?"task":"tasks"}, ${openCount} open`,
         projectStatus:project.archived?"Archived":!tasks.length?"Planning":openCount?"In Progress":"Completed",
+        pinned:project.pinned===true,
+        folderId:project.folderId||null,
         progress,
         badge:project.pinned?"Pinned":"",
         updatedAt
@@ -2124,6 +2167,16 @@
         key:"projects",
         kind:"projects",
         items:projectCollectionItems(projects),
+        organization:{
+          collectionLabel:"projects",
+          folders:state.folders,
+          onCreateFolder:createFolder,
+          onTogglePin:toggleProjectPinned,
+          onMove:async projectId=>{
+            const project=await ensureProjectLoaded(projectId);
+            if (project) await moveProjectToFolder(project);
+          }
+        },
         searchLabel:"Search projects",
         emptyMessage:"No projects yet. Create a project to get started.",
         noResultsMessage:"No projects match your search.",
@@ -3558,7 +3611,10 @@
       });
       workspaceDocumentsView=new workspaceDocumentsViewModule.WorkspaceDocumentsView({
         documentsFeature:workspaceDocumentsFeature,
-        documentsView:workspaceDocumentsEditor
+        documentsView:workspaceDocumentsEditor,
+        onTogglePin:toggleWorkspaceDocumentPinned,
+        onMove:moveWorkspaceDocumentToFolder,
+        onCreateFolder:createDocumentFolder
       });
       navigation.registerSecondarySection({
         ...navigationView.getSecondarySection("documents"),

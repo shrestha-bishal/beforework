@@ -172,6 +172,20 @@
           state.activeWorkspaceDocumentId=null;
         }
         return state;
+      },
+      13: state=>{
+        if (!Array.isArray(state.documentFolders)) state.documentFolders=[];
+        const folderIds=new Set(state.documentFolders.filter(folder=>folder&&typeof folder.id==="string").map(folder=>folder.id));
+        if (!Array.isArray(state.workspaceDocuments)) state.workspaceDocuments=[];
+        state.workspaceDocuments.forEach(document=>{
+          if (!document||typeof document!=="object") return;
+          if (typeof document.pinned!=="boolean") document.pinned=false;
+          if (!Object.prototype.hasOwnProperty.call(document,"folderId")
+            ||document.folderId!==null&&!folderIds.has(document.folderId)){
+            document.folderId=null;
+          }
+        });
+        return state;
       }
     };
     const schemaVersion = Math.max(...Object.keys(migrations).map(Number));
@@ -205,6 +219,7 @@
       if (!Array.isArray(state.googleCalendarLinks)) state.googleCalendarLinks = [];
       if (!Array.isArray(state.googleCalendarCatalog)) state.googleCalendarCatalog = [];
       if (!Array.isArray(state.workspaceDocuments)) state.workspaceDocuments = [];
+      if (!Array.isArray(state.documentFolders)) state.documentFolders = [];
       if (state.activeWorkspaceDocumentId===undefined) state.activeWorkspaceDocumentId = null;
       if (!state.googleCalendarSyncTokens || typeof state.googleCalendarSyncTokens!=="object" || Array.isArray(state.googleCalendarSyncTokens)) state.googleCalendarSyncTokens = {};
       if (!Number.isFinite(state.googleLastSyncAt)) state.googleLastSyncAt = 0;
