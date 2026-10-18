@@ -78,6 +78,51 @@ test("saved demo projects with documents gain the Documents view without replaci
   assert.ok(JSON.parse(harness.values.get(demoKey)).projects[0].views.some(view=>view.type==="documents"));
 });
 
+test("saved demos gain the richer sample documents once without replacing existing documents",()=>{
+  const harness=createHarness();
+  const saved={
+    schemaVersion:8,
+    projects:[{
+      id:"launch",
+      name:"Product launch",
+      documents:[
+        {id:"custom-brief",title:"My brief",content:"# Keep this"},
+        {id:"existing-sample-brief",title:"Launch brief",content:"# User-edited sample"}
+      ],
+      views:[{id:"list",type:"list",name:"List"}]
+    }],
+    workspaceDocuments:[{id:"custom-guide",title:"My guide",content:"# Keep this"}]
+  };
+  const seededDocument={id:"sample-brief",title:"Launch brief",content:"# Sample brief"};
+  const seed={
+    schemaVersion:8,
+    projects:[{
+      id:"seed-launch",
+      name:"Product launch",
+      documents:[seededDocument,{id:"sample-decisions",title:"Decision log",content:"# Decisions"}],
+      activeDocumentId:seededDocument.id
+    }],
+    workspaceDocuments:[{id:"sample-guide",title:"Workspace guide",content:"# Guide"}]
+  };
+  harness.values.set(demoKey,JSON.stringify(saved));
+
+  const loaded=harness.storage.loadDemoWorkspace(seed);
+  const project=loaded.projects[0];
+  assert.equal(project.documents.length,3);
+  assert.equal(project.documents[0].content,"# Keep this");
+  assert.equal(project.documents[1].content,"# User-edited sample");
+  assert.equal(project.activeDocumentId,"existing-sample-brief");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(loaded.workspaceDocuments.map(document=>document.title))),
+    ["My guide","Workspace guide"]
+  );
+  assert.ok(project.views.some(view=>view.type==="documents"));
+
+  project.documents=project.documents.filter(document=>document.title!=="Decision log");
+  harness.values.set(demoKey,JSON.stringify(loaded));
+  assert.equal(harness.storage.loadDemoWorkspace(seed).projects[0].documents.length,2);
+});
+
 test("demo edits persist in browser storage without writing a workspace file",async()=>{
   const harness=createHarness();
   harness.context.fileHandle={kind:"demo",name:"Demo workspace"};

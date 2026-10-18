@@ -3,6 +3,8 @@
   // real file. Demo mode uses its own isolated browser-storage key.
   const LEGACY_LS_KEY = "personal_dashboard_state_v2";
   const DEMO_WORKSPACE_KEY = "beforework_demo_workspace_v1";
+  const DEMO_CONTENT_VERSION_KEY = "beforework_demo_content_version";
+  const DEMO_CONTENT_VERSION = "1";
   const FILTER_KEY = "personal_dashboard_filters_v1";
   const DB_NAME = "dashboard_meta", DB_STORE = "kv", BACKUP_STORE = "recovery";
   const MAX_RECOVERY_SNAPSHOTS = 8;
@@ -71,6 +73,7 @@
     const raw=localStorage.getItem(DEMO_WORKSPACE_KEY);
     if (raw===null){
       localStorage.setItem(DEMO_WORKSPACE_KEY,JSON.stringify(seedState));
+      localStorage.setItem(DEMO_CONTENT_VERSION_KEY,DEMO_CONTENT_VERSION);
       return seedState;
     }
     const parsed=JSON.parse(raw);
@@ -78,6 +81,30 @@
     if (!validation.valid) throw new Error(validation.errors.join(" "));
     const migrated=migrateState(parsed);
     const migratedSerialized=JSON.stringify(migrated);
+    const storedDemoContentVersion=Number(localStorage.getItem(DEMO_CONTENT_VERSION_KEY)||0);
+    const needsDemoContentUpgrade=!Number.isFinite(storedDemoContentVersion)
+      || storedDemoContentVersion<Number(DEMO_CONTENT_VERSION);
+    if (needsDemoContentUpgrade){
+      (migrated.projects||[]).forEach(project=>{
+        const sampleProject=(seedState.projects||[]).find(sample=>sample.name===project.name);
+        if (!sampleProject?.documents?.length) return;
+        if (!Array.isArray(project.documents)) project.documents=[];
+        const documentTitles=new Set(project.documents.map(document=>document.title));
+        sampleProject.documents.forEach(document=>{
+          if (!documentTitles.has(document.title)) project.documents.push({...document});
+        });
+        if (!project.activeDocumentId && sampleProject.activeDocumentId){
+          const activeSampleDocument=sampleProject.documents.find(document=>document.id===sampleProject.activeDocumentId);
+          const activeProjectDocument=project.documents.find(document=>document.title===activeSampleDocument?.title);
+          if (activeProjectDocument) project.activeDocumentId=activeProjectDocument.id;
+        }
+      });
+      if (!Array.isArray(migrated.workspaceDocuments)) migrated.workspaceDocuments=[];
+      const workspaceDocumentTitles=new Set(migrated.workspaceDocuments.map(document=>document.title));
+      (seedState.workspaceDocuments||[]).forEach(document=>{
+        if (!workspaceDocumentTitles.has(document.title)) migrated.workspaceDocuments.push({...document});
+      });
+    }
     (migrated.projects||[]).forEach(project=>{
       if (!Array.isArray(project.documents)||project.documents.length===0) return;
       if (!Array.isArray(project.views)) project.views=[];
@@ -85,7 +112,8 @@
       project.views.push({id:`demo-documents-${project.id}`,type:"documents",name:"Documents"});
     });
     const serialized=JSON.stringify(migrated);
-    if (serialized!==migratedSerialized) localStorage.setItem(DEMO_WORKSPACE_KEY,serialized);
+    if (serialized!==migratedSerialized || needsDemoContentUpgrade) localStorage.setItem(DEMO_WORKSPACE_KEY,serialized);
+    if (needsDemoContentUpgrade) localStorage.setItem(DEMO_CONTENT_VERSION_KEY,DEMO_CONTENT_VERSION);
     return migrated;
   }
 

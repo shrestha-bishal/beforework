@@ -351,14 +351,23 @@ test("seeds a full-featured demo workspace with validated examples", async ()=>{
   assert.ok(launch.views.some(view=>view.type==="table"));
   assert.ok(launch.views.some(view=>view.type==="roadmap"));
   assert.ok(launch.views.some(view=>view.type==="documents"));
-  assert.equal(launch.documents.length,2);
+  assert.equal(launch.documents.length,4);
   assert.equal(launch.activeDocumentId,launch.documents[0].id);
   assert.match(launch.documents[0].content,/^# Product launch/m);
-  assert.equal(workspace.workspaceDocuments.length,2);
+  assert.ok(launch.documents.some(document=>document.title==="Decision log"&&/\*\*Decision:\*\*/.test(document.content)));
+  const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
+  const teamCalendar=workspace.projects.find(project=>project.name==="Team calendar");
+  const personalPlanning=workspace.projects.find(project=>project.name==="Personal planning");
+  [onboarding,teamCalendar,personalPlanning].forEach(project=>{
+    assert.ok(project.documents.length>0);
+    assert.ok(project.views.some(view=>view.type==="documents"));
+    assert.equal(project.activeDocumentId,project.documents[0].id);
+  });
+  assert.equal(workspace.workspaceDocuments.length,3);
   assert.equal(workspace.activeWorkspaceDocumentId,null);
   assert.deepEqual(
     JSON.parse(JSON.stringify(workspace.workspaceDocuments.map(document=>document.title))),
-    ["Workspace guide","Team working agreements"]
+    ["Workspace guide","Team working agreements","Product glossary"]
   );
   assert.match(workspace.workspaceDocuments[0].content,/apply across projects/);
   assert.match(workspace.workspaceDocuments[1].content,/belongs to the workspace/);
@@ -387,7 +396,6 @@ test("seeds a full-featured demo workspace with validated examples", async ()=>{
   assert.ok(releaseOverview.comments.some(comment=>comment.text.includes("**Support**")));
   assert.equal(releaseOverview.subitems.filter(subitem=>subitem.done).length,1);
   assert.equal(releaseOverview.subitems.length,2);
-  const onboarding=workspace.projects.find(project=>project.name==="Customer onboarding");
   assert.ok(onboarding.description);
   const checkboxField=onboarding.fields.find(field=>field.type==="checkbox");
   const urlField=onboarding.fields.find(field=>field.type==="url");

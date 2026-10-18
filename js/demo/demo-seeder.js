@@ -30,6 +30,9 @@
     const personalFolder = {id:uid(), name:"Personal"};
     const makeField = (label, type, options=[]) => ({id:uid(), label, type, options});
     const makeTag = (name, colour) => ({id:uid(), name, color:colour});
+    const makeDocument = (title, content, createdDaysAgo, updatedHoursAgo) => ({
+      id:uid(), title, content, createdAt:now-createdDaysAgo*day, updatedAt:now-updatedHoursAgo*3600000
+    });
     const makeItem = (title, description, values={}, options={}) => ({
       id:uid(), title, description, attachments:options.attachments || [], calendarType:options.calendarType || "task",
       startTime:options.startTime || "", endTime:options.endTime || "", location:options.location || "", milestoneId:options.milestoneId || null,
@@ -184,6 +187,38 @@
       }
     ];
     launch.activeDocumentId=launch.documents[0].id;
+    launch.documents.push(
+      makeDocument("Release communications", [
+        "# Release communications",
+        "",
+        "## Core message",
+        "A calm, local-first place to plan projects, capture decisions, and keep useful notes close to the work.",
+        "",
+        "## Channels",
+        "- **Release notes:** explain what's new with short, practical examples.",
+        "- **Product update:** introduce the workflow and link to the getting-started guide.",
+        "- **Support handoff:** share known limitations and the escalation path.",
+        "",
+        "## Before sending",
+        "- [x] Confirm feature names and screenshots",
+        "- [ ] Check every link in the release notes",
+        "- [ ] Ask Support to review the final copy"
+      ].join("\n"), 4, 5),
+      makeDocument("Decision log", [
+        "# Decision log",
+        "",
+        "A short record of decisions that affect the launch. Keep the reasoning visible so future changes have context.",
+        "",
+        "## Keep workspace files local",
+        "**Decision:** project data stays in the user's workspace and browser-local demo storage.",
+        "**Reason:** the product should be useful without sending workspace content to a service.",
+        "**Follow-up:** make the storage boundary clear in onboarding and support guidance.",
+        "",
+        "## Ship a focused first release",
+        "**Decision:** prioritize dependable project, calendar, and document workflows over adding more setup steps.",
+        "**Review:** revisit after the first round of customer feedback."
+      ].join("\n"), 6, 20)
+    );
 
     const onboardingStatus = makeField("Stage", "select", [
       {id:uid(), label:"New", color:TAG_COLORS[7]},
@@ -218,6 +253,43 @@
       text:"The setup checklist is in the project brief. I’ll confirm the handoff after the first review.",
       createdAt:now-4*3600000
     });
+    onboarding.views.push(...views(["documents"]));
+    onboarding.documents=[
+      makeDocument("Onboarding playbook", [
+        "# Customer onboarding playbook",
+        "",
+        "## First session",
+        "1. Ask what the customer wants to organize first.",
+        "2. Create one project that mirrors a real piece of their work.",
+        "3. Add a few tasks, owners, dates, and a view that fits the workflow.",
+        "",
+        "## Follow-up",
+        "- Check whether the first project is still easy to navigate.",
+        "- Capture questions in the onboarding project before suggesting changes.",
+        "- Agree on one useful next step rather than introducing every feature at once.",
+        "",
+        "## Ready to hand off",
+        "- [x] Workspace and first project are set up",
+        "- [ ] Customer can find their next action",
+        "- [ ] Follow-up date and owner are recorded"
+      ].join("\n"), 7, 7),
+      makeDocument("Activation feedback", [
+        "# Activation feedback",
+        "",
+        "## What is working",
+        "- The list and board views make it easy to choose a planning style.",
+        "- Keeping notes with a project gives decisions useful context.",
+        "",
+        "## Questions to follow up",
+        "- Which project should be easiest to discover from the overview?",
+        "- Where do people expect to find shared guidance?",
+        "- What would make the first calendar entry feel more obvious?",
+        "",
+        "## Next step",
+        "Group repeated feedback by setup, navigation, and ongoing work before proposing product changes."
+      ].join("\n"), 3, 18)
+    ];
+    onboarding.activeDocumentId=onboarding.documents[0].id;
 
     const personalStatus = makeField("Status", "select", [
       {id:uid(), label:"Next up", color:TAG_COLORS[7]},
@@ -252,6 +324,44 @@
     personalGroups[2].items.push(
       makeItem("Complete the first-aid refresher", "Finish the annual refresher and save the updated completion record.", {[personalStatus.id]:personalStatus.options[2].id, [personalPriority.id]:"high", [personalDate.id]:todayStr(-2)}, {tagIds:[learningTag.id], completedAt:now - 86400000, ageDays:3})
     );
+    personalPlanning.views.push(...views(["documents"]));
+    personalPlanning.documents=[
+      makeDocument("Home maintenance reference", [
+        "# Home maintenance reference",
+        "",
+        "A simple checklist for recurring household upkeep. Add dates and service details to your own workspace as needed.",
+        "",
+        "## Seasonal checks",
+        "- [ ] Test smoke alarms and replace batteries if needed",
+        "- [ ] Check gutters and outdoor drains",
+        "- [ ] Review appliance filters and service intervals",
+        "",
+        "## Records to keep together",
+        "- Warranty and purchase details",
+        "- Service dates and follow-up recommendations",
+        "- Receipts for completed repairs",
+        "",
+        "## Next review",
+        "Choose a realistic date in the Personal planning project and keep the checklist up to date."
+      ].join("\n"), 8, 30),
+      makeDocument("Quarterly learning plan", [
+        "# Quarterly learning plan",
+        "",
+        "## Goal",
+        "Build one practical skill through small, regular sessions rather than an ambitious plan that is hard to maintain.",
+        "",
+        "## Rhythm",
+        "- Set aside two short sessions each week.",
+        "- Keep one note about what was learned after each session.",
+        "- Review progress at the end of the month.",
+        "",
+        "## Checkpoint",
+        "- [ ] Choose a course or learning resource",
+        "- [ ] Block the first sessions on the calendar",
+        "- [ ] Decide what a useful outcome looks like"
+      ].join("\n"), 2, 12)
+    ];
+    personalPlanning.activeDocumentId=personalPlanning.documents[0].id;
 
     const calendarDate = makeField("Date", "date");
     const calendarViews = views(["calendar", "list"]);
@@ -268,6 +378,29 @@
       makeItem("Release readiness", "Check release notes, support guidance, and outstanding quality checks.", {[calendarDate.id]:todayStr(5)}, {calendarType:"event", startTime:"10:00", endTime:"10:30", location:"Planning room", endDate:todayStr(5), tagIds:[teamCalendar.tags[1].id]}),
       makeItem("Customer feedback review", "Share onboarding observations and agree on follow-up actions.", {[calendarDate.id]:todayStr(8)}, {calendarType:"event", startTime:"13:00", endTime:"13:45", location:"Video call", endDate:todayStr(8), tagIds:[teamCalendar.tags[0].id]})
     );
+    teamCalendar.views.push(...views(["documents"]));
+    teamCalendar.documents=[
+      makeDocument("Meeting notes", [
+        "# Meeting notes",
+        "",
+        "## Weekly product sync",
+        "**Purpose:** review delivery progress, customer feedback, and current risks.",
+        "",
+        "### Agenda",
+        "1. Check milestone progress and items blocked on review.",
+        "2. Share the most useful customer observation from this week.",
+        "3. Confirm owners and dates for follow-up actions.",
+        "",
+        "### Notes",
+        "- Keep decisions in the relevant project document.",
+        "- Add cross-project events to the shared calendar.",
+        "",
+        "### Actions",
+        "- [ ] Confirm release readiness owner",
+        "- [ ] Bring onboarding themes to the next review"
+      ].join("\n"), 5, 3)
+    ];
+    teamCalendar.activeDocumentId=teamCalendar.documents[0].id;
 
     const calendarItems = [
       {...makeItem("Partner kickoff", "Align on goals, responsibilities, and the first delivery milestone.", {}, {calendarType:"event", startTime:"15:00", endTime:"15:45", location:"Video call", endDate:todayStr(3)}), standalone:true},
@@ -321,6 +454,23 @@
         ].join("\n"),
         createdAt:now-3*day,
         updatedAt:now-1*day
+      },
+      {
+        id:uid(),
+        title:"Product glossary",
+        content:[
+          "# Product glossary",
+          "",
+          "A few shared terms used throughout this sample workspace.",
+          "",
+          "- **Workspace:** the collection of projects, schedules, and shared documents.",
+          "- **Project document:** Markdown notes kept with one project, such as a brief or decision log.",
+          "- **Workspace document:** guidance or reference material that applies across projects.",
+          "- **Milestone:** a dated checkpoint used to group progress toward an outcome.",
+          "- **Local-first:** workspace files stay under the user's control; the hosted demo saves only in this browser."
+        ].join("\n"),
+        createdAt:now-2*day,
+        updatedAt:now-6*3600000
       }
     ];
     return {
