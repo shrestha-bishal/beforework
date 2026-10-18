@@ -1,4 +1,4 @@
-<img width="1903" height="957" alt="image" src="https://github.com/user-attachments/assets/48f4cdc8-6233-4262-8fe9-63b12aebb4b0" /># Beforework
+# Beforework
 
 ![Beforework logo](images/icon-wide.png)
 
@@ -12,17 +12,18 @@ Beforework is a serverless local-first project management workspace for projects
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/311f354a-5253-4170-8d6d-3d831775bd0f" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/fefa80a7-62f9-4d66-8a29-d9309ad4508e" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/2050d222-c15d-4eab-b481-236ec00923b9" />
+<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/5e25a81f-7f90-4978-80fe-5e3196156ae2" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/deb28c9e-3e18-4157-8ca2-5fe2caa32d65" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/091a2221-76fb-4e50-a506-908d02dbad3c" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/6deedb91-95bc-4d05-83b5-a302ac569850" />
-<img width="1903" height="993" alt="image" src="https://github.com/user-attachments/assets/bdb25648-aa3f-4098-af90-a3202cf581cc" />
+<img width="1906" height="956" alt="image" src="https://github.com/user-attachments/assets/cf2fe95b-7a07-4174-95d2-3c14f2ca4765" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/7277a77a-91dc-43eb-a0ac-b21013743a89" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/02e354ef-d1f5-4741-9940-e108506ce7a5" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/92be0e2f-1fbb-422b-abcb-8bdbaa4e4efe" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/94a3c656-8f80-411d-8584-56e3701005e8" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/427e3641-9aec-4584-b0a8-ebccd54e1364" />
 <img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/958a94e6-e1bc-497e-a856-55fd9f35e1a3" />
-<img width="1920" height="993" alt="image" src="https://github.com/user-attachments/assets/5e25a81f-7f90-4978-80fe-5e3196156ae2" />
+
 
 ## Hosted version
 
