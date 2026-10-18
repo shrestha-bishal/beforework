@@ -102,8 +102,13 @@ test("saved demos gain the richer sample documents once without replacing existi
       documents:[seededDocument,{id:"sample-decisions",title:"Decision log",content:"# Decisions"}],
       activeDocumentId:seededDocument.id
     }],
-    workspaceDocuments:[{id:"sample-guide",title:"Workspace guide",content:"# Guide"}]
+    workspaceDocuments:[
+      {id:"sample-guide",title:"Workspace guide",content:"# Guide"},
+      {id:"sample-decisions",title:"Decision-making guide",content:"# Decisions"},
+      {id:"sample-research",title:"Customer research notes",content:"# Research"}
+    ]
   };
+  harness.values.set("beforework_demo_content_version","1");
   harness.values.set(demoKey,JSON.stringify(saved));
 
   const loaded=harness.storage.loadDemoWorkspace(seed);
@@ -114,8 +119,9 @@ test("saved demos gain the richer sample documents once without replacing existi
   assert.equal(project.activeDocumentId,"existing-sample-brief");
   assert.deepEqual(
     JSON.parse(JSON.stringify(loaded.workspaceDocuments.map(document=>document.title))),
-    ["My guide","Workspace guide"]
+    ["My guide","Workspace guide","Decision-making guide","Customer research notes"]
   );
+  assert.equal(harness.values.get("beforework_demo_content_version"),"2");
   assert.ok(project.views.some(view=>view.type==="documents"));
 
   project.documents=project.documents.filter(document=>document.title!=="Decision log");

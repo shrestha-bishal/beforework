@@ -4,7 +4,7 @@
   const LEGACY_LS_KEY = "personal_dashboard_state_v2";
   const DEMO_WORKSPACE_KEY = "beforework_demo_workspace_v1";
   const DEMO_CONTENT_VERSION_KEY = "beforework_demo_content_version";
-  const DEMO_CONTENT_VERSION = "1";
+  const DEMO_CONTENT_VERSION = "2";
   const FILTER_KEY = "personal_dashboard_filters_v1";
   const DB_NAME = "dashboard_meta", DB_STORE = "kv", BACKUP_STORE = "recovery";
   const MAX_RECOVERY_SNAPSHOTS = 8;

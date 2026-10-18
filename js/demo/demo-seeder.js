@@ -424,10 +424,10 @@
           "A quick orientation to this sample workspace and how its projects fit together.",
           "",
           "## Projects",
-          "- **Product launch** — coordinate the release across tasks, milestones, and project documents.",
-          "- **Customer onboarding** — track customer setup and follow-up.",
-          "- **Team calendar** — plan shared rituals and release events.",
-          "- **Personal planning** — organize routines and individual goals.",
+          "- **Product launch** -coordinate the release across tasks, milestones, and project documents.",
+          "- **Customer onboarding** -track customer setup and follow-up.",
+          "- **Team calendar** -plan shared rituals and release events.",
+          "- **Personal planning** -organize routines and individual goals.",
           "",
           "## Shared workspace documents",
           "Use workspace documents for guidance and notes that apply across projects. Keep project-specific briefs with their project."
@@ -471,6 +471,52 @@
         ].join("\n"),
         createdAt:now-2*day,
         updatedAt:now-6*3600000
+      },
+      {
+        id:uid(),
+        title:"Decision-making guide",
+        content:[
+          "# Decision-making guide",
+          "",
+          "Use this lightweight guide when a choice affects more than one project or team.",
+          "",
+          "## Before deciding",
+          "- State the problem and who it affects.",
+          "- List the options, constraints, and any assumptions.",
+          "- Ask which choice is easiest to revisit if new information appears.",
+          "",
+          "## Record the outcome",
+          "Write down the decision, the reason behind it, who owns the next step, and when it should be reviewed.",
+          "",
+          "## Keep it discoverable",
+          "Put project-specific decisions in that project's documents. Use a shared workspace document when the guidance applies across projects."
+        ].join("\n"),
+        createdAt:now-day,
+        updatedAt:now-4*3600000
+      },
+      {
+        id:uid(),
+        title:"Customer research notes",
+        content:[
+          "# Customer research notes",
+          "",
+          "A shared place to collect themes from onboarding conversations and product feedback.",
+          "",
+          "## Questions to explore",
+          "- What work are people trying to organize first?",
+          "- Which information do they expect to find across projects?",
+          "- Where do they get stuck during setup or follow-up?",
+          "",
+          "## Capture a useful observation",
+          "Note the context, what the customer said or did, and the underlying need. Keep interpretation separate from direct feedback.",
+          "",
+          "## Turn themes into action",
+          "- Group repeated observations by setup, navigation, and ongoing work.",
+          "- Link each theme to a project task before proposing a change.",
+          "- Revisit the evidence after trying a solution."
+        ].join("\n"),
+        createdAt:now-day,
+        updatedAt:now-2*3600000
       }
     ];
     return {

@@ -363,11 +363,11 @@ test("seeds a full-featured demo workspace with validated examples", async ()=>{
     assert.ok(project.views.some(view=>view.type==="documents"));
     assert.equal(project.activeDocumentId,project.documents[0].id);
   });
-  assert.equal(workspace.workspaceDocuments.length,3);
+  assert.equal(workspace.workspaceDocuments.length,5);
   assert.equal(workspace.activeWorkspaceDocumentId,null);
   assert.deepEqual(
     JSON.parse(JSON.stringify(workspace.workspaceDocuments.map(document=>document.title))),
-    ["Workspace guide","Team working agreements","Product glossary"]
+    ["Workspace guide","Team working agreements","Product glossary","Decision-making guide","Customer research notes"]
   );
   assert.match(workspace.workspaceDocuments[0].content,/apply across projects/);
   assert.match(workspace.workspaceDocuments[1].content,/belongs to the workspace/);
