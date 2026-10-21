@@ -271,6 +271,8 @@ export class CalendarView {
     });
     view.querySelector("[data-calendar-scope]").textContent = scopeProject ? scopeProject.name : "All projects";
     view.querySelectorAll("[data-calendar-global]").forEach(element=>{ element.hidden = !!scopeProject; });
+    const linkCalendarsLabel=view.querySelector('[data-calendar-action="integrations"] span');
+    if (linkCalendarsLabel) linkCalendarsLabel.textContent=(getState().googleCalendarLinks||[]).length?"Link more calendars":"Link calendars";
     wrap.appendChild(view);
     updateGoogleCalendarButtons();
     const shiftCursor=amount=>{

@@ -55,7 +55,11 @@ test("Calendar toolbar puts secondary actions in a vertical overflow menu",()=>{
 test("Calendar Google action labels connect and sync states without idle helper copy",()=>{
   const googleCalendar=fs.readFileSync(path.join(__dirname,"../js/services/google-calendar/google-calendar.js"),"utf8");
   assert.match(template,/<span data-google-action-label>Sync now<\/span>/);
-  assert.match(googleCalendar,/googleAccessToken \? "Sync now" : "Connect Google Calendar"/);
+  assert.match(googleCalendar,/!hasLinkedCalendars\?"Connect Google Calendar"\s*:googleAccessToken\?"Sync now":"Reconnect Google Calendar"/);
+  assert.match(googleCalendar,/if \(!linkedGoogleCalendarIds\(\)\.length\)\{\s*manageGoogleCalendars\(\);/);
+  assert.match(template,/data-calendar-action="integrations" data-calendar-global hidden><iconify-icon[^>]*><\/iconify-icon><span>Link calendars<\/span>/);
+  assert.match(view,/linkCalendarsLabel\.textContent=\(getState\(\)\.googleCalendarLinks\|\|\[\]\)\.length\?"Link more calendars":"Link calendars"/);
+  assert.match(googleCalendar,/label\.textContent=hasLinkedCalendars\?"Link more calendars":"Link calendars"/);
   assert.doesNotMatch(template,/data-calendar-sync-status|data-google-sync-status|data-google-sync-progress/);
   assert.doesNotMatch(googleCalendar,/data-calendar-sync-status|data-google-sync-status|data-google-sync-progress/);
   assert.match(googleCalendar,/googleOperation\?\.update\(text,progress\)/);

@@ -49,15 +49,27 @@
     return true;
   }
   function updateGoogleCalendarButtons(){
+    const hasLinkedCalendars=linkedGoogleCalendarIds().length>0;
+    const calendarActionLabel=googleSyncInFlight?"Syncing..."
+      :!hasLinkedCalendars?"Connect Google Calendar"
+      :googleAccessToken?"Sync now":"Reconnect Google Calendar";
     document.querySelectorAll('[data-calendar-action="google"]').forEach(button=>{
       const label=button.querySelector("[data-google-action-label]");
-      if (label) label.textContent = googleSyncInFlight ? "Syncing..." : googleAccessToken ? "Sync now" : "Connect Google Calendar";
-      else button.textContent = googleSyncInFlight ? "Syncing..." : googleAccessToken ? "Sync now" : "Connect Google Calendar";
+      if (label) label.textContent = calendarActionLabel;
+      else button.textContent = calendarActionLabel;
       button.disabled = googleSyncInFlight;
     });
     document.querySelectorAll("[data-integration-sync]").forEach(button=>{
       button.textContent = googleSyncInFlight ? "Syncing..." : "Sync now";
       button.disabled = googleSyncInFlight;
+    });
+    document.querySelectorAll("[data-integration-connect]").forEach(button=>{
+      button.textContent=hasLinkedCalendars?"Reconnect Google":"Connect Google";
+    });
+    document.querySelectorAll("[data-integration-link]").forEach(button=>{
+      const label=button.querySelector("[data-integration-link-label]");
+      if (label) label.textContent=hasLinkedCalendars?"Link more calendars":"Link calendars";
+      else button.setAttribute("aria-label",hasLinkedCalendars?"Link more calendars":"Link calendars");
     });
     updateGoogleCalendarStatus();
   }
@@ -681,6 +693,10 @@
     }
   }
   function connectGoogleCalendar(scopeProject){
+    if (!linkedGoogleCalendarIds().length){
+      manageGoogleCalendars();
+      return;
+    }
     googleSyncScopeProject = scopeProject || null;
     if (!googleTokenClient && !initGoogleCalendarAuth()){
       showNotice("Google Calendar unavailable", "The Google authentication library has not loaded yet. Refresh the page and try again.");
@@ -752,7 +768,9 @@
       list.appendChild(row);
     });
     const connected = !!googleAccessToken;
-    view.querySelector("[data-integration-connection]").textContent = connected ? "Connected" : "Not connected";
+    view.querySelector("[data-integration-connection]").textContent = connected
+      ? "Connected"
+      : links.length ? "Reconnect required" : "Not connected";
     view.querySelector("[data-integration-last-sync]").textContent = lastSync;
     view.querySelector("[data-integration-sync]").hidden = !connected;
     view.querySelector("[data-integration-connect]").hidden = connected;
