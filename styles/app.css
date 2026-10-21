@@ -463,7 +463,7 @@
   .collectionPageItems{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));align-items:stretch;gap:14px;}
   .collectionPageItems--list{grid-template-columns:minmax(0,1fr);}
   .collectionPageEntry{position:relative;min-width:0;}
-  .collectionPageCard{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px;padding:15px 48px 13px 15px;
+  .collectionPageCard{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px;padding:15px 15px 13px;
     border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);
     text-align:left;cursor:pointer;box-shadow:none;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;}
   .collectionPageCard:hover{border-color:var(--border-strong);background:var(--bg-soft);box-shadow:var(--shadow-lift);}
@@ -482,7 +482,7 @@
     font:inherit;font-size:var(--font-size-md);text-align:left;cursor:pointer;}
   .collectionPageActionMenu button:hover{background:var(--bg-soft);color:var(--text);}
   .collectionPageCardCopy{display:flex;min-width:0;flex-direction:column;gap:8px;}
-  .collectionPageCardHeader{display:flex;align-items:center;gap:8px;min-width:0;}
+  .collectionPageCardHeader{display:flex;align-items:center;gap:8px;min-width:0;padding-right:33px;}
   .collectionPageCardHeader--collection .collectionPageName{flex:1;font-size:var(--font-size-body);font-weight:var(--font-weight-semibold);}
   .collectionPageIcon{display:none;color:var(--accent-strong);font-size:var(--font-size-2xl);}
   .collectionPageName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-size-body);}
@@ -501,7 +501,7 @@
   .collectionPageCard:nth-child(6n + 5) .collectionPageProjectDot{background:#e5a126;}
   .collectionPageCard:nth-child(6n) .collectionPageProjectDot{background:#1aa3a0;}
   .collectionPageItems--list .collectionPageCard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.42fr);
-    align-items:center;gap:12px 24px;min-height:88px;padding:15px 48px 15px 18px;border-radius:10px;}
+    align-items:center;gap:12px 24px;min-height:88px;padding:15px 15px 15px 18px;border-radius:10px;}
   .collectionPageItems--list .collectionPageCardCopy{gap:6px;}
   .collectionPageItems--list .collectionPageDescription{font-size:var(--font-size-md);line-height:1.5;}
   .collectionPageItems--list .collectionPageMeta{margin:0;padding:0;}

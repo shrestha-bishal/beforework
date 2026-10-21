@@ -179,10 +179,10 @@ test("collection page template provides shared search, sort, display, and card c
 test("collection page spans the available content width",()=>{
   assert.match(styles,/\.collectionPage\{width:100%;min-width:0;margin:0;\}/);
   assert.doesNotMatch(styles,/\.collectionPage\{width:min\(100%,\d+px\)/);
-  assert.match(styles,/\.collectionPageCard\{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px/);
-  assert.match(styles,/\.collectionPageCardHeader\{display:flex;align-items:center;gap:8px;min-width:0;\}/);
+  assert.match(styles,/\.collectionPageCard\{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-height:196px;padding:15px 15px 13px;/);
+  assert.match(styles,/\.collectionPageCardHeader\{display:flex;align-items:center;gap:8px;min-width:0;padding-right:33px;\}/);
   assert.match(styles,/\.collectionPageCardHeader--collection \.collectionPageName\{flex:1/);
-  assert.match(styles,/\.collectionPageItems--list \.collectionPageCard\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,\.42fr\)/);
+  assert.match(styles,/\.collectionPageItems--list \.collectionPageCard\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,\.42fr\)[\s\S]*?padding:15px 15px 15px 18px/);
   assert.match(view,/if \(kind==="projects"\) saved\.view="grid"/);
   assert.match(view,/viewControls\.hidden=kind==="projects"/);
   assert.doesNotMatch(styles,/\.collectionPage\[data-collection-kind="projects"\] \.collectionPageItems--list/);
