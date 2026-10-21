@@ -52,7 +52,7 @@
     const hasLinkedCalendars=linkedGoogleCalendarIds().length>0;
     const calendarActionLabel=googleSyncInFlight?"Syncing..."
       :!hasLinkedCalendars?"Connect Google Calendar"
-      :googleAccessToken?"Sync now":"Reconnect Google Calendar";
+      :googleAccessToken?"Sync now":"Continue with Google";
     document.querySelectorAll('[data-calendar-action="google"]').forEach(button=>{
       const label=button.querySelector("[data-google-action-label]");
       if (label) label.textContent = calendarActionLabel;
@@ -64,7 +64,7 @@
       button.disabled = googleSyncInFlight;
     });
     document.querySelectorAll("[data-integration-connect]").forEach(button=>{
-      button.textContent=hasLinkedCalendars?"Reconnect Google":"Connect Google";
+      button.textContent=hasLinkedCalendars?"Continue with Google":"Connect Google";
     });
     document.querySelectorAll("[data-integration-link]").forEach(button=>{
       const label=button.querySelector("[data-integration-link-label]");
@@ -705,7 +705,7 @@
     if (googleAccessToken){ syncGoogleCalendar(scopeProject); return; }
     updateGoogleCalendarStatus("Connecting to Google Calendar...", null);
     googleTokenPurpose = "sync";
-    googleTokenClient.requestAccessToken({prompt:"consent"});
+    googleTokenClient.requestAccessToken();
   }
   function manageGoogleCalendars(){
     if (!googleTokenClient && !initGoogleCalendarAuth()){
@@ -714,7 +714,7 @@
     }
     if (googleAccessToken){ openGoogleCalendarManager(); return; }
     googleTokenPurpose = "manage";
-    googleTokenClient.requestAccessToken({prompt:"consent"});
+    googleTokenClient.requestAccessToken();
   }
   function calendarDateKey(date){
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
