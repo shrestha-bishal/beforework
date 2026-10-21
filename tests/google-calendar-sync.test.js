@@ -163,6 +163,45 @@ test("Google Tasks imports every list read-only with due dates, completion and s
   assert.ok(requests.some(request=>request.url.includes("updatedMin=")),"subsequent polls use each list's saved update cursor");
 });
 
+test("Google Tasks import explains browser network failures separately from API configuration",async()=>{
+  const notices=[];
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleTasksImportInFlight:false,googleTasksLastPollAt:0,
+    googleTasksLastError:"",state:{googleTasksUpdatedAt:{},calendarItems:[]},
+    URLSearchParams,Date,document:{querySelectorAll:()=>[]},
+    fetch:async()=>{throw new Error("Failed to fetch");},
+    updateGoogleCalendarStatus(){},
+    showNotice:async(title,message)=>notices.push({title,message})
+  };
+  vm.runInNewContext(`${source}\nglobalThis.importTasks=importGoogleTasks;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("importTasks()",context);
+
+  assert.match(notices[0].message,/browser could not reach Google Tasks/);
+  assert.doesNotMatch(notices[0].message,/Confirm the Google Tasks API is enabled/);
+});
+
+test("Google Tasks 403 explains the API project and read-only permission requirements",async()=>{
+  const notices=[];
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleTasksImportInFlight:false,googleTasksLastPollAt:0,
+    googleTasksLastError:"",state:{googleTasksUpdatedAt:{},calendarItems:[]},
+    URLSearchParams,Date,document:{querySelectorAll:()=>[]},
+    fetch:async()=>({
+      ok:false,status:403,
+      text:async()=>JSON.stringify({error:{message:"Google Tasks API has not been used in project 123."}})
+    }),
+    updateGoogleCalendarStatus(){},
+    showNotice:async(title,message)=>notices.push({title,message})
+  };
+  vm.runInNewContext(`${source}\nglobalThis.importTasks=importGoogleTasks;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("importTasks()",context);
+
+  assert.match(notices[0].message,/same Google Cloud project as Beforework's OAuth client/);
+  assert.match(notices[0].message,/Google Tasks read-only permission/);
+});
+
 test("Google Tasks imports are not pushed back as Google Calendar events",async()=>{
   const item={
     id:"google-task-local",title:"Imported task",calendarType:"task",standalone:true,

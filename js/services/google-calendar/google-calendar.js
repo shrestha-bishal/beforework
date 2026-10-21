@@ -246,10 +246,18 @@
         const payload=JSON.parse(error.detail||"{}");
         detail=payload.error?.message||payload.error?.errors?.[0]?.reason||detail;
       }catch(parseError){}
+      let guidance="Check the Google Tasks API configuration and try syncing again.";
+      if (error.status===401){
+        guidance="Reconnect Google and approve the Google Tasks read-only permission.";
+      }else if (error.status===403){
+        guidance="Confirm the Tasks API is enabled in the same Google Cloud project as Beforework's OAuth client and approve the Google Tasks read-only permission.";
+      }else if (!error.status&&/failed to fetch|networkerror|load failed/i.test(detail)){
+        guidance="The browser could not reach Google Tasks, so Google did not return an API error. Check your internet connection, browser extensions, VPN or firewall; if it persists, inspect the failed request in the browser's Network panel.";
+      }
       const message=`Google Tasks import failed: ${detail}`;
       updateGoogleCalendarStatus(message,null);
       if (!silent||message!==googleTasksLastError){
-        await showNotice("Google Tasks import failed",`${detail} Confirm the Google Tasks API is enabled and approve Google Tasks read-only access.`);
+        await showNotice("Google Tasks import failed",`${detail} ${guidance}`);
       }
       googleTasksLastError=message;
       return {importedCount:0,error};
