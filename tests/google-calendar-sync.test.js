@@ -69,10 +69,10 @@ test("multi-day Google events keep their start and end dates when imported or al
     uid:()=>"new-item",
     fetch:async(url)=>{requests.push(url);return {ok:true,status:200,json:async()=>({items:events,nextSyncToken:"next-token"}),text:async()=>""};}
   };
-  vm.runInNewContext(`${source}\nglobalThis.importEvents=importGoogleCalendarEvents;globalThis.readStatus=()=>googleSyncFeedbackMessage;`,context,{filename:"google-calendar.js"});
+  vm.runInNewContext(`${source}\nglobalThis.importEvents=importGoogleCalendarEvents;`,context,{filename:"google-calendar.js"});
   const result=await vm.runInContext("importEvents()",context);
 
-  assert.equal(result.importedCount,2,`${context.readStatus()} ${JSON.stringify(requests)}`);
+  assert.equal(result.importedCount,2,JSON.stringify(requests));
   assert.equal(calendarItems.length,2,"the linked event is reconciled rather than imported as a duplicate");
   assert.equal(calendarItems.find(item=>item.id==="new-item").startDate,"2026-10-04");
   assert.equal(calendarItems.find(item=>item.id==="new-item").endDate,"2026-10-09","Google's exclusive end date is stored as the inclusive final day");
@@ -231,9 +231,15 @@ test("manual sync resolves remote changes before updating the existing Google ev
   };
   const requests=[];
   const notices=[];
+  const syncStatuses=[];
   const entries=()=>[{project:null,group:null,item,field:{id:"__standalone__",label:"Calendar",type:"date"},date:item.startDate,endDate:item.endDate}];
   const context={
-    window:{BeforeworkErrorUtils:errorUtils},
+    window:{
+      BeforeworkErrorUtils:errorUtils,
+      BeforeworkOperationStatusInstance:{
+        begin(){return {update(text){syncStatuses.push(text);},finish(){}};}
+      }
+    },
     googleAccessToken:"access-token",
     googleSyncInFlight:false,
     googleImportInFlight:false,
@@ -270,12 +276,12 @@ test("manual sync resolves remote changes before updating the existing Google ev
       return {ok:true,status:200,json:async()=>body,text:async()=>""};
     }
   };
-  vm.runInNewContext(`${source}\nglobalThis.runSync=syncGoogleCalendar;globalThis.readSyncStatus=()=>googleSyncFeedbackMessage;`,context,{filename:"google-calendar.js"});
+  vm.runInNewContext(`${source}\nglobalThis.runSync=syncGoogleCalendar;`,context,{filename:"google-calendar.js"});
   await vm.runInContext("runSync(null)",context);
 
   const pullIndex=requests.findIndex(request=>request.url.includes("/events?"));
   const patchIndex=requests.findIndex(request=>request.method==="PATCH");
-  assert.ok(pullIndex>=0&&patchIndex>pullIndex,`Google is pulled before the local edit is pushed: ${JSON.stringify({requests,status:context.readSyncStatus(),notices})}`);
+  assert.ok(pullIndex>=0&&patchIndex>pullIndex,`Google is pulled before the local edit is pushed: ${JSON.stringify({requests,notices})}`);
   assert.equal(requests.filter(request=>request.method==="POST").length,0,"reconciliation does not create a duplicate event");
   const patch=JSON.parse(requests[patchIndex].body);
   assert.equal(patch.summary,"Newer local title","the newer local edit wins the conflict");
@@ -283,5 +289,5 @@ test("manual sync resolves remote changes before updating the existing Google ev
   assert.equal(item.startDate,"2026-10-02","a linked item missing its start date is repaired using its existing Google event ID");
   assert.equal(patch.extendedProperties.private.beforeworkItemId,"item-1","Google keeps a stable Beforework event identity");
   assert.equal(item.calendarTimeZone,"America/New_York");
-  assert.match(context.readSyncStatus(),/resolved 1 conflict by keeping the newest update/);
+  assert.match(syncStatuses[syncStatuses.length-1],/resolved 1 conflict by keeping the newest update/);
 });

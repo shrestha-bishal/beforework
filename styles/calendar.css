@@ -81,8 +81,6 @@
 .calendarContextCompleteBtn.isCompleted{border-color:var(--color-success-fg);background:var(--color-success-subtle);color:var(--color-success-fg);}
 .calendarContextCompleteBtn iconify-icon{font-size:15px;}
 .calendarEmpty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);}
-.calendarSyncStatus{font-size:var(--font-size-sm);color:var(--muted);white-space:nowrap;}
-.calendarSyncProgress{width:110px;height:8px;accent-color:var(--accent);}
 .calendarDateTimeGroup{min-width:0;}
 .calendarLocationRow{grid-column:auto;}
 

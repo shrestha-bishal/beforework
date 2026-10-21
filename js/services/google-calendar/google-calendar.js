@@ -1,6 +1,4 @@
 /* Google Calendar integration */
-  let googleSyncFeedbackMessage = "";
-  let googleSyncProgress = null;
   let googleOperation=null;
   let googlePendingConflictCount = 0;
   let googleResumeRetryCount = 0;
@@ -64,23 +62,7 @@
     updateGoogleCalendarStatus();
   }
   function updateGoogleCalendarStatus(text, progress){
-    if (text!==undefined) googleSyncFeedbackMessage = text;
-    if (progress!==undefined) googleSyncProgress = progress;
-    const readyStatus = googleAccessToken ? (linkedGoogleCalendarIds().length ? "Ready to sync" : "No calendars linked") : "";
-    const status = googleSyncFeedbackMessage || readyStatus;
-    googleOperation?.update(status,googleSyncProgress);
-    document.querySelectorAll("[data-calendar-sync-status], [data-google-sync-status]").forEach(element=>{
-      element.textContent = status;
-      if (element.matches("[data-calendar-sync-status]")) element.hidden = !status;
-    });
-    document.querySelectorAll("[data-google-sync-feedback]").forEach(element=>{ element.hidden = !googleSyncFeedbackMessage; });
-    document.querySelectorAll("[data-google-sync-progress]").forEach(element=>{
-      element.hidden = !googleSyncProgress;
-      if (googleSyncProgress){
-        element.max = googleSyncProgress.total;
-        element.value = googleSyncProgress.completed;
-      }
-    });
+    if (text!==undefined) googleOperation?.update(text,progress);
   }
   function handleGoogleAuthFailure(){
     googleAccessToken = null;
@@ -435,6 +417,8 @@
         await flushSave();
       }
       if (importedCount){
+        const lastSync=`Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}`;
+        document.querySelectorAll("[data-integration-last-sync]").forEach(element=>{ element.textContent=lastSync; });
         renderAll();
         updateGoogleCalendarStatus(`Imported ${importedCount} change${importedCount===1?"":"s"} from ${calendarIds.length} linked calendar${calendarIds.length===1?"":"s"}`, null);
       } else {
@@ -455,6 +439,7 @@
         detail = payload.error?.message || payload.error?.errors?.[0]?.reason || detail;
       }catch(parseError){ }
       updateGoogleCalendarStatus(error.status===401 ? "Google connection expired - reconnect in Integrations" : `Google Calendar check failed: ${detail}`, null);
+      if (!duringSync) await showNotice(error.status===401?"Google Calendar connection expired":"Google Calendar check failed",detail);
       if (throwOnError) throw error;
     }finally{
       googleImportInFlight = false;

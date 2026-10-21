@@ -271,7 +271,6 @@ export class CalendarView {
     });
     view.querySelector("[data-calendar-scope]").textContent = scopeProject ? scopeProject.name : "All projects";
     view.querySelectorAll("[data-calendar-global]").forEach(element=>{ element.hidden = !!scopeProject; });
-    view.querySelector("[data-calendar-sync-status]").textContent = getState().googleLastSyncAt ? `Last synced ${new Date(getState().googleLastSyncAt).toLocaleString()}` : "Not synced yet";
     wrap.appendChild(view);
     updateGoogleCalendarButtons();
     const shiftCursor=amount=>{

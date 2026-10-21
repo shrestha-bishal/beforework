@@ -56,8 +56,9 @@ test("Calendar Google action labels connect and sync states without idle helper 
   const googleCalendar=fs.readFileSync(path.join(__dirname,"../js/services/google-calendar/google-calendar.js"),"utf8");
   assert.match(template,/<span data-google-action-label>Sync now<\/span>/);
   assert.match(googleCalendar,/googleAccessToken \? "Sync now" : "Connect Google Calendar"/);
-  assert.match(googleCalendar,/const readyStatus = googleAccessToken \?[\s\S]*: "";/);
-  assert.match(googleCalendar,/if \(element\.matches\("\[data-calendar-sync-status\]"\)\) element\.hidden = !status/);
+  assert.doesNotMatch(template,/data-calendar-sync-status|data-google-sync-status|data-google-sync-progress/);
+  assert.doesNotMatch(googleCalendar,/data-calendar-sync-status|data-google-sync-status|data-google-sync-progress/);
+  assert.match(googleCalendar,/googleOperation\?\.update\(text,progress\)/);
   assert.doesNotMatch(googleCalendar,/Connect Google Calendar in Integrations/);
 });
 
