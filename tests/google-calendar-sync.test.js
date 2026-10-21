@@ -35,6 +35,50 @@ test("Google item identity and timezone are preserved for conflict-safe reconcil
   assert.match(source,/resolved \$\{conflictCount\} conflict/);
 });
 
+test("multi-day Google events keep their start and end dates when imported or already linked",async()=>{
+  const legacyItem={
+    id:"legacy-item",title:"Legacy multi-day event",standalone:true,endDate:"2026-10-09",
+    updatedAt:Date.parse("2026-10-02T19:00:00.000Z"),
+    googleEventIds:{"calendar-1:__calendar__:__standalone__":"legacy-event"},
+    googleSyncMeta:{"calendar-1:__calendar__:__standalone__":{
+      googleUpdatedAt:"2026-10-02T20:00:00.000Z",localUpdatedAt:Date.parse("2026-10-02T19:00:00.000Z")
+    }}
+  };
+  const events=[
+    {id:"new-event",updated:"2026-10-02T20:00:00.000Z",summary:"New multi-day event",start:{date:"2026-10-04"},end:{date:"2026-10-10"}},
+    {
+      id:"legacy-event",updated:"2026-10-02T20:00:00.000Z",summary:"Legacy multi-day event",
+      start:{date:"2026-10-04"},end:{date:"2026-10-10"},
+      extendedProperties:{private:{beforeworkItemId:"legacy-item",beforeworkOwnerId:"__calendar__",beforeworkFieldId:"__standalone__"}}
+    }
+  ];
+  const calendarItems=[legacyItem];
+  const requests=[];
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleImportInFlight:false,googleSyncInFlight:false,googleSyncQueued:false,
+    googleSyncApplying:false,
+    state:{googleCalendarLinks:["calendar-1"],googleCalendarSyncTokens:{},googleDeletedEventIds:[],calendarItems},
+    projectRecords:()=>[],
+    scheduleSave(){},
+    flushSave:async()=>true,
+    renderAll(){},
+    updateGoogleCalendarButtons(){},
+    document:{querySelectorAll:()=>[]},
+    URLSearchParams,Date,
+    uid:()=>"new-item",
+    fetch:async(url)=>{requests.push(url);return {ok:true,status:200,json:async()=>({items:events,nextSyncToken:"next-token"}),text:async()=>""};}
+  };
+  vm.runInNewContext(`${source}\nglobalThis.importEvents=importGoogleCalendarEvents;globalThis.readStatus=()=>googleSyncFeedbackMessage;`,context,{filename:"google-calendar.js"});
+  const result=await vm.runInContext("importEvents()",context);
+
+  assert.equal(result.importedCount,2,`${context.readStatus()} ${JSON.stringify(requests)}`);
+  assert.equal(calendarItems.length,2,"the linked event is reconciled rather than imported as a duplicate");
+  assert.equal(calendarItems.find(item=>item.id==="new-item").startDate,"2026-10-04");
+  assert.equal(calendarItems.find(item=>item.id==="new-item").endDate,"2026-10-09","Google's exclusive end date is stored as the inclusive final day");
+  assert.equal(legacyItem.startDate,"2026-10-04","existing linked items missing a start date are repaired");
+});
+
 test("Google Calendar location imports update the optional Location field",()=>{
   const context={
     window:{BeforeworkErrorUtils:errorUtils},
@@ -172,9 +216,9 @@ test("polling syncs standalone events and tasks both ways without syncing projec
 test("manual sync resolves remote changes before updating the existing Google event",async()=>{
   const item={
     id:"item-1",title:"Newer local title",description:"",location:"",calendarType:"event",standalone:true,
-    startDate:"2026-10-02",endDate:"2026-10-02",startTime:"10:00",endTime:"11:00",
+    endDate:"2026-10-02",startTime:"10:00",endTime:"11:00",calendarTimeZone:"America/New_York",
     updatedAt:Date.parse("2026-10-02T21:00:00.000Z"),
-    googleEventIds:{},
+    googleEventIds:{"calendar-1:__calendar__:__standalone__":"event-1"},
     googleSyncMeta:{"calendar-1:__calendar__:__standalone__":{
       googleUpdatedAt:"2026-10-02T20:00:00.000Z",localUpdatedAt:Date.parse("2026-10-02T19:00:00.000Z")
     }}
@@ -217,7 +261,7 @@ test("manual sync resolves remote changes before updating the existing Google ev
       requests.push({url,method,body:options.body});
       let body={};
       if (url.includes("/events?")){
-        body={items:[remoteEvent],nextSyncToken:"new-token"};
+        body={items:[],nextSyncToken:"new-token"};
       } else if (method==="PATCH"){
         body={...remoteEvent,updated:"2026-10-02T21:01:00.000Z",summary:JSON.parse(options.body).summary};
       } else if (url.includes("/events/event-1")){
@@ -236,6 +280,7 @@ test("manual sync resolves remote changes before updating the existing Google ev
   const patch=JSON.parse(requests[patchIndex].body);
   assert.equal(patch.summary,"Newer local title","the newer local edit wins the conflict");
   assert.equal(patch.start.timeZone,"America/New_York","the imported event time zone is preserved");
+  assert.equal(item.startDate,"2026-10-02","a linked item missing its start date is repaired using its existing Google event ID");
   assert.equal(patch.extendedProperties.private.beforeworkItemId,"item-1","Google keeps a stable Beforework event identity");
   assert.equal(item.calendarTimeZone,"America/New_York");
   assert.match(context.readSyncStatus(),/resolved 1 conflict by keeping the newest update/);

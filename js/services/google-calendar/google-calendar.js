@@ -385,6 +385,9 @@
             if (remoteChanged&&!localWins){
               applyGoogleEventToItem(entry, event);
               importedCount++;
+            } else if (entry.field.id==="__standalone__"&&!entry.item.startDate){
+              entry.item.startDate=googleEventDate(event,"start");
+              importedCount++;
             }
             entry.item.calendarTimeZone=event.start?.timeZone||event.end?.timeZone||entry.item.calendarTimeZone||"";
             entry.item.googleEventIds=entry.item.googleEventIds||{};
@@ -414,7 +417,7 @@
             exclusiveEnd.setDate(exclusiveEnd.getDate()-1);
             endDate = calendarDateKey(exclusiveEnd);
           }
-          const item = {id:uid(), title:event.summary||"Google Calendar event", description:String(event.description||"").split("\n").filter(line=>!line.startsWith("Project: ")&&!line.startsWith("Group: ")).join("\n").trim(), calendarType:"event", startTime:googleEventTime(event,"start"), endTime:googleEventTime(event,"end"), calendarTimeZone:event.start?.timeZone||event.end?.timeZone||"", location:event.location||"", endDate, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now(), googleEventIds:{}, googleSyncMeta:{}};
+          const item = {id:uid(), title:event.summary||"Google Calendar event", description:String(event.description||"").split("\n").filter(line=>!line.startsWith("Project: ")&&!line.startsWith("Group: ")).join("\n").trim(), calendarType:"event", startDate, startTime:googleEventTime(event,"start"), endTime:googleEventTime(event,"end"), calendarTimeZone:event.start?.timeZone||event.end?.timeZone||"", location:event.location||"", endDate, tagIds:[], values:{}, subitems:[], comments:[], archived:false, standalone:true, createdAt:Date.now(), updatedAt:Date.now(), googleEventIds:{}, googleSyncMeta:{}};
           item.googleEventIds[`${calendarId}:__calendar__:__standalone__`] = event.id;
           item.googleSyncMeta[`${calendarId}:__calendar__:__standalone__`] = {googleUpdatedAt:event.updated||new Date().toISOString(), localUpdatedAt:item.updatedAt};
           state.calendarItems.push(item);
@@ -488,7 +491,7 @@
           ||(linkedKey?entry.item.googleEventIds?.[linkedKey]:"")
           ||(calendarId==="primary"?entry.item.googleEventIds?.[legacyKey]:"");
         const updatedAt=Number(entry.item.updatedAt||0);
-        if (!eventId||!previous||updatedAt>Number(previous.localUpdatedAt||0)) return true;
+        if (!eventId||!previous||updatedAt>Number(previous.localUpdatedAt||0)||!entry.item.startDate) return true;
       }
     }
     return false;
@@ -551,6 +554,7 @@
       updateGoogleCalendarStatus("Checking linked Google calendars...",{completed:0,total:1});
       pullResult=pullResult||await importGoogleCalendarEvents({duringSync:true,throwOnError:true});
       let conflictCount=pullResult.conflictCount+googlePendingConflictCount;
+      let repairedDateRange=false;
       googlePendingConflictCount=0;
       const standaloneEntries=new Map();
       calendarEntries(scopeProject).forEach(entry=>{
@@ -615,6 +619,13 @@
           let saved = remote;
           let pushLocal = !remote;
           if (remote){
+            if (entry.field.id==="__standalone__"&&!entry.item.startDate){
+              const remoteStartDate=googleEventDate(remote,"start");
+              if (remoteStartDate){
+                entry.item.startDate=remoteStartDate;
+                repairedDateRange=true;
+              }
+            }
             const remoteTime = Date.parse(remote.updated||"") || 0;
             const previousRemoteTime = Date.parse(previous?.googleUpdatedAt||"") || 0;
             const localChanged = !previous || Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
@@ -650,6 +661,7 @@
       state.googleLastSyncAt = Date.now();
       saveGoogleState();
       await flushSave();
+      if (repairedDateRange) renderAll();
       const summaryParts=[`Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`];
       if (pullResult.importedCount) summaryParts.push(`imported ${pullResult.importedCount} change${pullResult.importedCount===1?"":"s"}`);
       if (conflictCount) summaryParts.push(`resolved ${conflictCount} conflict${conflictCount===1?"":"s"} by keeping the newest update`);
