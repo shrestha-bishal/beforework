@@ -29,8 +29,14 @@
     <button class="calendarEventOpen" type="button">
       <span class="eventDot"></span>
       <span class="eventTitle"></span>
+      <span class="googleTaskSourceBadge calendarTaskSourceBadge" hidden></span>
       <span class="eventProject" hidden></span>
     </button>
   </div>
 </template>
 <div class="calendarGrid" data-calendar-grid></div>
+<section class="googleTasksPanel" data-google-tasks-panel hidden aria-label="Google Tasks imported into Beforework">
+  <h4>Google Tasks</h4>
+  <p>Imported from Google Tasks. Edit these tasks in Google to sync your changes.</p>
+  <div class="googleTasksList" data-google-tasks-list></div>
+</section>

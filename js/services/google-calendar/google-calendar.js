@@ -1,6 +1,9 @@
 /* Google Calendar integration */
   let googleOperation=null;
   let googlePendingConflictCount = 0;
+  let googleTasksImportInFlight=false;
+  let googleTasksLastError="";
+  let googleTasksLastPollAt=0;
   let googleResumeRetryCount = 0;
   let googleResumeRetryTimer = null;
   function googleCalendarUrl(entry){
@@ -18,7 +21,8 @@
     googleResumeRetryCount = 0;
     googleTokenClient = google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID,
-      scope:GOOGLE_CALENDAR_SCOPE,
+      scope:GOOGLE_AUTH_SCOPE,
+      include_granted_scopes:true,
       callback:response=>{
         if (response.error){
           handleGoogleAuthFailure();
@@ -98,6 +102,160 @@
       throw error;
     }
     return response.status===204 ? null : response.json();
+  }
+  async function googleTasksRequest(path, options={}){
+    const response=await fetch(`https://tasks.googleapis.com/tasks/v1${path}`,{
+      ...options,
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${googleAccessToken}`,...options.headers}
+    });
+    if (!response.ok){
+      const detail=await response.text();
+      const error=new Error(`Google Tasks request failed (${response.status})`);
+      error.status=response.status;
+      error.detail=detail;
+      throw error;
+    }
+    return response.status===204?null:response.json();
+  }
+  async function googleTasksLists(){
+    const lists=[];
+    let pageToken="";
+    do{
+      const query=new URLSearchParams({maxResults:"100"});
+      if (pageToken) query.set("pageToken",pageToken);
+      const result=await googleTasksRequest(`/users/@me/lists?${query.toString()}`);
+      lists.push(...(result.items||[]));
+      pageToken=result.nextPageToken||"";
+    }while(pageToken);
+    return lists;
+  }
+  async function googleTasksInList(listId,updatedMin){
+    const tasks=[];
+    let pageToken="";
+    let latestUpdated="";
+    do{
+      const query=new URLSearchParams({maxResults:"100",showCompleted:"true",showHidden:"true",showDeleted:"true"});
+      if (updatedMin) query.set("updatedMin",updatedMin);
+      if (pageToken) query.set("pageToken",pageToken);
+      const result=await googleTasksRequest(`/lists/${encodeURIComponent(listId)}/tasks?${query.toString()}`);
+      (result.items||[]).forEach(task=>{
+        tasks.push(task);
+        if (task.updated&&task.updated>latestUpdated) latestUpdated=task.updated;
+      });
+      pageToken=result.nextPageToken||"";
+    }while(pageToken);
+    return {tasks,latestUpdated};
+  }
+  function googleTaskDueDate(task){
+    const date=String(task.due||"").slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(date)?date:"";
+  }
+  function applyGoogleTaskToItem(item,task,list){
+    item.title=task.title||"Google Task";
+    item.description=String(task.notes||"");
+    item.endDate=googleTaskDueDate(task);
+    item.startDate="";
+    item.completedAt=task.status==="completed"
+      ? Date.parse(task.completed||task.updated||"")||Date.now()
+      : null;
+    item.googleTaskListId=list.id;
+    item.googleTaskListTitle=list.title||"Google Tasks";
+    item.googleTaskUpdatedAt=task.updated||new Date().toISOString();
+    item.googleTaskDeletedAt=task.deleted?task.updated||new Date().toISOString():"";
+    item.updatedAt=Date.now();
+  }
+  async function importGoogleTasks({silent=false,force=true}={}){
+    if (!googleAccessToken||googleTasksImportInFlight) return {importedCount:0};
+    if (!force&&Date.now()-googleTasksLastPollAt<5*60*1000) return {importedCount:0};
+    googleTasksImportInFlight=true;
+    googleTasksLastPollAt=Date.now();
+    let importedCount=0;
+    let cursorChanged=false;
+    const updatedAtByList={...(state.googleTasksUpdatedAt||{})};
+    try{
+      const lists=await googleTasksLists();
+      const items=state.calendarItems||[];
+      for (const list of lists){
+        if (!list.id) continue;
+        const cursor=updatedAtByList[list.id]||"";
+        const updatedMin=cursor
+          ? new Date(Math.max(0,Date.parse(cursor)-1000)).toISOString()
+          : "";
+        const result=await googleTasksInList(list.id,updatedMin);
+        for (const task of result.tasks){
+          if (!task.id) continue;
+          let item=items.find(candidate=>candidate.googleTaskId===task.id);
+          if (task.deleted){
+            if (item&&!item.googleTaskDeletedAt){
+              item.googleTaskDeletedAt=task.updated||new Date().toISOString();
+              item.googleTaskUpdatedAt=item.googleTaskDeletedAt;
+              item.archived=true;
+              item.updatedAt=Date.now();
+              importedCount++;
+            }
+            continue;
+          }
+          if (!item){
+            item={
+              id:uid(),title:"Google Task",description:"",calendarType:"task",startTime:"",endTime:"",
+              location:"",startDate:"",endDate:"",completedAt:null,tagIds:[],values:{},subitems:[],
+              comments:[],archived:false,standalone:true,createdAt:Date.now(),updatedAt:Date.now(),
+              googleTaskId:task.id,googleTaskListId:list.id,googleTaskListTitle:list.title||"Google Tasks",
+              googleTaskUpdatedAt:"",googleTaskDeletedAt:""
+            };
+            items.push(item);
+          }
+          const previousUpdatedAt=Date.parse(item.googleTaskUpdatedAt||"")||0;
+          const remoteUpdatedAt=Date.parse(task.updated||"")||0;
+          const sourceChanged=item.googleTaskListId!==list.id||item.googleTaskListTitle!==(list.title||"Google Tasks");
+          if (!previousUpdatedAt||remoteUpdatedAt>previousUpdatedAt){
+            applyGoogleTaskToItem(item,task,list);
+            item.googleTaskId=task.id;
+            importedCount++;
+          }else if (sourceChanged){
+            item.googleTaskListId=list.id;
+            item.googleTaskListTitle=list.title||"Google Tasks";
+            importedCount++;
+          }
+        }
+        const nextCursor=result.latestUpdated||new Date().toISOString();
+        if (nextCursor!==cursor){
+          updatedAtByList[list.id]=nextCursor;
+          cursorChanged=true;
+        }
+      }
+      if (cursorChanged||importedCount){
+        state.googleTasksUpdatedAt=updatedAtByList;
+        saveGoogleState();
+        await flushSave();
+      }
+      if (importedCount) renderAll();
+      googleTasksLastPollAt=Date.now();
+      googleTasksLastError="";
+      return {importedCount};
+    }catch(error){
+      if (cursorChanged||importedCount){
+        state.googleTasksUpdatedAt=updatedAtByList;
+        saveGoogleState();
+        await flushSave();
+        if (importedCount) renderAll();
+      }
+      if (error.status===401) handleGoogleAuthFailure();
+      let detail=window.BeforeworkErrorUtils.getMessage(error,"Google Tasks could not be imported.");
+      try{
+        const payload=JSON.parse(error.detail||"{}");
+        detail=payload.error?.message||payload.error?.errors?.[0]?.reason||detail;
+      }catch(parseError){}
+      const message=`Google Tasks import failed: ${detail}`;
+      updateGoogleCalendarStatus(message,null);
+      if (!silent||message!==googleTasksLastError){
+        await showNotice("Google Tasks import failed",`${detail} Confirm the Google Tasks API is enabled and approve Google Tasks read-only access.`);
+      }
+      googleTasksLastError=message;
+      return {importedCount:0,error};
+    }finally{
+      googleTasksImportInFlight=false;
+    }
   }
   function linkedGoogleCalendarIds(){
     if (!Array.isArray(state.googleCalendarLinks)) state.googleCalendarLinks = [];
@@ -473,7 +631,7 @@
   function standaloneCalendarEntriesNeedSync(calendarIds=linkedGoogleCalendarIds()){
     const entries = new Map();
     calendarEntries(null).forEach(entry=>{
-      if (!entry.project&&!entries.has(entry.item.id)) entries.set(entry.item.id,entry);
+      if (!entry.project&&!entry.item.googleTaskId&&!entries.has(entry.item.id)) entries.set(entry.item.id,entry);
     });
     for (const entry of entries.values()){
       const ownerId="__calendar__";
@@ -496,9 +654,11 @@
     return false;
   }
   async function pollGoogleCalendar(){
+    if (!googleAccessToken||googleSyncInFlight||googleImportInFlight) return;
     const pullResult=await importGoogleCalendarEvents();
+    const tasksResult=await importGoogleTasks({silent:true,force:false});
     if (!googleAccessToken||googleSyncInFlight||googleImportInFlight||googleAutoSyncTimer||!standaloneCalendarEntriesNeedSync()) return;
-    await syncGoogleCalendar(null,{standaloneOnly:true,pullResult});
+    await syncGoogleCalendar(null,{standaloneOnly:true,pullResult,tasksResult});
   }
   async function materializeCalendarEntry(entry){
     if (!entry.project||!state.folderLazy) return entry;
@@ -532,7 +692,7 @@
     googleSilentAuth = true;
     try{ googleTokenClient.requestAccessToken({prompt:"none"}); }catch(error){ googleSilentAuth = false; }
   }
-  async function syncGoogleCalendar(scopeProject,{standaloneOnly=false,pullResult=null}={}){
+  async function syncGoogleCalendar(scopeProject,{standaloneOnly=false,pullResult=null,tasksResult=null}={}){
     if (!googleAccessToken) return;
     if (googleSyncInFlight || googleImportInFlight){
       googleSyncQueued = true;
@@ -552,12 +712,13 @@
       }
       updateGoogleCalendarStatus("Checking linked Google calendars...",{completed:0,total:1});
       pullResult=pullResult||await importGoogleCalendarEvents({duringSync:true,throwOnError:true});
+      tasksResult=tasksResult||await importGoogleTasks({silent:true});
       let conflictCount=pullResult.conflictCount+googlePendingConflictCount;
       let repairedDateRange=false;
       googlePendingConflictCount=0;
       const standaloneEntries=new Map();
       calendarEntries(scopeProject).forEach(entry=>{
-        if (!entry.project&&!standaloneEntries.has(entry.item.id)) standaloneEntries.set(entry.item.id,entry);
+        if (!entry.project&&!entry.item.googleTaskId&&!standaloneEntries.has(entry.item.id)) standaloneEntries.set(entry.item.id,entry);
       });
       const entries=[...standaloneEntries.values()];
       if (!entries.length){
@@ -570,6 +731,7 @@
         const summaryParts=pullResult.importedCount
           ? [`Imported ${pullResult.importedCount} Google Calendar change${pullResult.importedCount===1?"":"s"}`]
           : ["Google calendars checked · no dated local items to sync"];
+        if (tasksResult.importedCount) summaryParts.push(`imported ${tasksResult.importedCount} Google Task${tasksResult.importedCount===1?"":"s"}`);
         if (conflictCount) summaryParts.push(`resolved ${conflictCount} conflict${conflictCount===1?"":"s"} by keeping the newest update`);
         updateGoogleCalendarStatus(summaryParts.join(" · "),{completed:1,total:1});
         return;
@@ -663,6 +825,7 @@
       if (repairedDateRange) renderAll();
       const summaryParts=[`Synced ${entries.length} item${entries.length===1?"":"s"} to ${calendarIds.length} calendar${calendarIds.length===1?"":"s"}`];
       if (pullResult.importedCount) summaryParts.push(`imported ${pullResult.importedCount} change${pullResult.importedCount===1?"":"s"}`);
+      if (tasksResult.importedCount) summaryParts.push(`imported ${tasksResult.importedCount} Google Task${tasksResult.importedCount===1?"":"s"}`);
       if (conflictCount) summaryParts.push(`resolved ${conflictCount} conflict${conflictCount===1?"":"s"} by keeping the newest update`);
       const lastSync = `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}`;
       document.querySelectorAll("[data-integration-last-sync]").forEach(element=>{ element.textContent = lastSync; });

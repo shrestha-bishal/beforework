@@ -68,6 +68,21 @@ test("Calendar Google action labels connect and sync states without idle helper 
   assert.doesNotMatch(googleCalendar,/Connect Google Calendar in Integrations/);
 });
 
+test("Calendar view displays imported Google Tasks with colored source-list labels",()=>{
+  const googleCalendar=fs.readFileSync(path.join(__dirname,"../js/services/google-calendar/google-calendar.js"),"utf8");
+  const app=fs.readFileSync(path.join(__dirname,"../js/app.js"),"utf8");
+  const integrations=fs.readFileSync(path.join(__dirname,"../pages/integrations.html"),"utf8");
+  assert.match(app,/https:\/\/www\.googleapis\.com\/auth\/tasks\.readonly/);
+  assert.match(googleCalendar,/https:\/\/tasks\.googleapis\.com\/tasks\/v1/);
+  assert.match(googleCalendar,/async function importGoogleTasks/);
+  assert.match(googleCalendar,/googleTasksUpdatedAt/);
+  assert.match(template,/data-google-tasks-panel hidden/);
+  assert.match(template,/calendarTaskSourceBadge/);
+  assert.match(view,/googleTaskListHue/);
+  assert.match(view,/item\.googleTaskListTitle/);
+  assert.match(integrations,/Google Tasks imports are one-way/);
+});
+
 test("Calendar view receives app-owned calendar state and mutation callbacks",()=>{
   for (const dependency of [
     "calendarEntries",

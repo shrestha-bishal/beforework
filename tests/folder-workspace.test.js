@@ -109,7 +109,11 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
     id:"item-1",title:"Prepare release",description:"Get signoff",location:"Conference room",startDate:"2026-09-25",milestoneId:"milestone-1",
     googleEventIds:{"primary:project-a:due":"google-event-1"},googleSyncMeta:{"primary:project-a:due":{googleUpdatedAt:"2026-09-25T12:00:00.000Z",localUpdatedAt:123}},calendarTimeZone:"America/New_York"
   }]});
-  state.calendarItems.push({id:"event-1",title:"Release"});
+  state.calendarItems.push({
+    id:"event-1",title:"Release",
+    googleTaskId:"google-task-1",googleTaskListId:"grow-list",googleTaskListTitle:"Grow",
+    googleTaskUpdatedAt:"2026-10-22T00:00:00.000Z"
+  });
 
   const revision=await workspace.save(directory,state);
   const loaded=await workspace.load(directory);
@@ -144,6 +148,8 @@ test("creates a manifest and round-trips project and calendar shards",async()=>{
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].googleEventIds["primary:project-a:due"],"google-event-1");
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].googleSyncMeta["primary:project-a:due"].localUpdatedAt,123);
   assert.equal(revision.projectSummaries["project-a"].itemIndex[0].calendarTimeZone,"America/New_York");
+  assert.equal(loaded.state.calendarItems[0].googleTaskId,"google-task-1");
+  assert.equal(loaded.state.calendarItems[0].googleTaskListTitle,"Grow");
   assert.equal(revision.wroteProjectFiles.length,2);
   assert.equal(revision.wroteCalendarFile,true);
   assert.match(directory.writeLog.at(-1),/manifest\.json$/);

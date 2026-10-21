@@ -94,7 +94,7 @@ For production use, serve the site over HTTPS. Users still retain their data loc
 
 ## Google Calendar
 
-Google Calendar is optional. Configure the Google OAuth client ID used by the application, then connect calendars from the **Integrations** page. Calendar synchronisation requires the relevant Google Calendar API and OAuth consent configuration.
+Google Calendar is optional. Configure the Google OAuth client ID used by the application, then connect calendars from the **Integrations** page. Calendar synchronisation requires the Google Calendar API and OAuth consent configuration. The integration can also import tasks from all Google Tasks lists into the Calendar view; this is one-way (Google Tasks to Beforework), with a colored source-list badge. Enable the Google Tasks API and add the Google Tasks read-only OAuth scope to the consent configuration.
 
 ## Data format and upgrades
 

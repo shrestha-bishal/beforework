@@ -42,6 +42,7 @@
   const BUY_ME_A_COFFEE_URL = "https://www.buymeacoffee.com/shresthabishal";
   const GOOGLE_CLIENT_ID = window.BEFOREWORK_CONFIG.googleClientId || "";
   const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
+  const GOOGLE_AUTH_SCOPE = `${GOOGLE_CALENDAR_SCOPE} https://www.googleapis.com/auth/tasks.readonly`;
   const selectControls=window.BeforeworkSelectControl.create();
   window.BeforeworkAppSelect=Object.freeze({
     enhance:selectControls.enhanceSelectControl,
@@ -700,7 +701,7 @@
     const proposedName = `${project.name} (copy)`;
     const name = await showDialog({
       title:"Duplicate project",
-      message:"Groups, fields, tags, milestones, documents, views, and items will be copied. Comments and Google Calendar sync history won't be copied. Scheduled items may sync as new events.",
+      message:"Groups, fields, tags, milestones, documents, views, and items will be copied. Comments and Google Calendar or Tasks sync links won't be copied. Scheduled items may sync as new events.",
       fields:[{label:"Project name", value:proposedName}],
       confirmLabel:"Duplicate"
     });
@@ -764,6 +765,11 @@
       };
       delete copy.googleEventIds;
       delete copy.googleSyncMeta;
+      delete copy.googleTaskId;
+      delete copy.googleTaskListId;
+      delete copy.googleTaskListTitle;
+      delete copy.googleTaskUpdatedAt;
+      delete copy.googleTaskDeletedAt;
       return copy;
     };
     const copy = {
@@ -2688,6 +2694,11 @@
       };
       delete copy.googleEventIds;
       delete copy.googleSyncMeta;
+      delete copy.googleTaskId;
+      delete copy.googleTaskListId;
+      delete copy.googleTaskListTitle;
+      delete copy.googleTaskUpdatedAt;
+      delete copy.googleTaskDeletedAt;
       state.calendarItems.push(copy);
       scheduleSave();
       overlay.remove();

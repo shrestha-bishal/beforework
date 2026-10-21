@@ -79,6 +79,133 @@ test("multi-day Google events keep their start and end dates when imported or al
   assert.equal(legacyItem.startDate,"2026-10-04","existing linked items missing a start date are repaired");
 });
 
+test("Google Tasks imports every list read-only with due dates, completion and source identity",async()=>{
+  const remoteDeletedItem={
+    id:"deleted-local",title:"Removed task",calendarType:"task",standalone:true,archived:false,
+    googleTaskId:"deleted-task",googleTaskListId:"grow-list",googleTaskListTitle:"Grow",
+    googleTaskUpdatedAt:"2026-10-21T10:00:00.000Z"
+  };
+  const calendarItems=[remoteDeletedItem];
+  const requests=[];
+  const tasks={
+    "grow-open":{
+      id:"grow-open",title:"Prepare launch plan",notes:"Draft milestones",status:"needsAction",
+      due:"2026-11-05T00:00:00.000Z",updated:"2026-10-22T00:00:00.000Z"
+    },
+    "grow-done":{
+      id:"grow-done",title:"Confirm budget",status:"completed",completed:"2026-10-20T08:00:00.000Z",
+      updated:"2026-10-22T01:00:00.000Z"
+    },
+    "deleted-task":{
+      id:"deleted-task",deleted:true,updated:"2026-10-22T02:00:00.000Z"
+    },
+    "default-task":{
+      id:"default-task",title:"Personal task",notes:"",status:"needsAction",
+      updated:"2026-10-22T03:00:00.000Z"
+    }
+  };
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleTasksImportInFlight:false,googleSyncApplying:false,
+    state:{calendarItems,googleTasksUpdatedAt:{}},
+    scheduleSave(){},
+    flushSave:async()=>true,
+    renderAll(){},
+    showNotice:async()=>{},
+    updateGoogleCalendarStatus(){},
+    uid:(()=>{let id=0;return ()=>`imported-${++id}`;})(),
+    document:{querySelectorAll:()=>[]},
+    URLSearchParams,Date,
+    fetch:async(url,options={})=>{
+      const method=options.method||"GET";
+      requests.push({url,method,body:options.body});
+      let body={};
+      if (url.includes("/users/@me/lists")){
+        body=url.includes("pageToken=list-page")
+          ? {items:[{id:"default-list",title:"My Tasks"}]}
+          : {items:[{id:"grow-list",title:"Grow"}],nextPageToken:"list-page"};
+      }else if (url.includes("/lists/grow-list/tasks")){
+        body=url.includes("pageToken=grow-page")
+          ? {items:[tasks["grow-done"]]}
+          : {items:[tasks["grow-open"],tasks["deleted-task"]],nextPageToken:"grow-page"};
+      }else if (url.includes("/lists/default-list/tasks")){
+        body={items:[tasks["default-task"]]};
+      }
+      return {ok:true,status:200,json:async()=>body,text:async()=>""};
+    }
+  };
+  vm.runInNewContext(`${source}\nglobalThis.importTasks=importGoogleTasks;`,context,{filename:"google-calendar.js"});
+  const result=await vm.runInContext("importTasks()",context);
+
+  assert.equal(result.importedCount,4);
+  assert.equal(calendarItems.length,4);
+  const launchTask=calendarItems.find(item=>item.googleTaskId==="grow-open");
+  assert.equal(launchTask.title,"Prepare launch plan");
+  assert.equal(launchTask.description,"Draft milestones");
+  assert.equal(launchTask.endDate,"2026-11-05");
+  assert.equal(launchTask.googleTaskListTitle,"Grow");
+  const completedTask=calendarItems.find(item=>item.googleTaskId==="grow-done");
+  assert.ok(completedTask.completedAt>0,"completed Google Tasks import with their completion state");
+  assert.equal(completedTask.endDate,"","tasks without due dates remain undated");
+  assert.equal(remoteDeletedItem.archived,true,"deleted Google Tasks are archived in Beforework");
+  assert.equal(requests.every(request=>request.method==="GET"),true,"the one-way integration never writes to Google Tasks");
+  assert.ok(requests.some(request=>request.url.includes("/lists/grow-list/tasks")&&request.url.includes("showHidden=true")));
+  assert.ok(requests.some(request=>request.url.includes("/lists/default-list/tasks")));
+  assert.ok(context.state.googleTasksUpdatedAt["grow-list"]);
+  const pollStart=source.indexOf("async function pollGoogleCalendar()");
+  const pollEnd=source.indexOf("\n  async function materializeCalendarEntry",pollStart);
+  const poll=source.slice(pollStart,pollEnd);
+  assert.match(poll,/importGoogleTasks\(\{silent:true,force:false\}\)/,"background polling imports Google Tasks");
+  assert.match(source,/!entry\.item\.googleTaskId&&!standaloneEntries\.has/,"Google Task imports are not sent back as calendar events");
+  const secondResult=await vm.runInContext("importTasks()",context);
+  assert.equal(secondResult.importedCount,0,"unchanged tasks are not duplicated on the next pull");
+  assert.equal(calendarItems.length,4);
+  assert.ok(requests.some(request=>request.url.includes("updatedMin=")),"subsequent polls use each list's saved update cursor");
+});
+
+test("Google Tasks imports are not pushed back as Google Calendar events",async()=>{
+  const item={
+    id:"google-task-local",title:"Imported task",calendarType:"task",standalone:true,
+    startDate:"",endDate:"2026-11-05",googleTaskId:"google-task-1",
+    googleTaskListId:"grow-list",googleTaskListTitle:"Grow"
+  };
+  const requests=[];
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleSyncInFlight:false,googleImportInFlight:false,
+    googleSyncQueued:false,googleSyncApplying:false,googlePollTimer:1,googleAutoSyncTimer:null,
+    googleTokenRefreshTimer:null,googleDeleteInFlight:false,clearTimeout(){},
+    state:{
+      googleCalendarLinks:["calendar-1"],googleCalendarCatalog:[{id:"calendar-1",summary:"Primary"}],
+      googleCalendarSyncTokens:{},googleTasksUpdatedAt:{},googleDeletedEventIds:[],calendarItems:[item]
+    },
+    calendarEntries:()=>[{project:null,group:null,item,field:{id:"__standalone__",label:"Calendar",type:"date"},date:item.endDate,endDate:item.endDate}],
+    projectRecords:()=>[],
+    ensureProjectLoaded:async()=>null,
+    calendarDateFields:()=>[],
+    scheduleSave(){},
+    flushSave:async()=>true,
+    renderAll(){},
+    showNotice:async()=>{},
+    activeProjectId:"",
+    URLSearchParams,
+    document:{querySelectorAll:()=>[]},
+    fetch:async(url,options={})=>{
+      const method=options.method||"GET";
+      requests.push({url,method});
+      const body=url.includes("/events?")
+        ? {items:[],nextSyncToken:"calendar-cursor"}
+        : {items:[]};
+      return {ok:true,status:200,json:async()=>body,text:async()=>""};
+    }
+  };
+  vm.runInNewContext(`${source}\nglobalThis.runSync=syncGoogleCalendar;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("runSync(null)",context);
+
+  assert.equal(requests.some(request=>request.method==="POST"||request.method==="PATCH"),false,
+    "Google Tasks imports are excluded from Google Calendar event creation and updates");
+});
+
 test("Google Calendar location imports update the optional Location field",()=>{
   const context={
     window:{BeforeworkErrorUtils:errorUtils},

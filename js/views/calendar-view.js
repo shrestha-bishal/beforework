@@ -1,3 +1,11 @@
+function googleTaskListHue(listId){
+  let hash=0;
+  for (const character of String(listId||"")){
+    hash=(hash*31+character.charCodeAt(0))%360;
+  }
+  return hash;
+}
+
 export class CalendarView {
   constructor(dependencies){
     this.dependencies=dependencies;
@@ -58,8 +66,11 @@ export class CalendarView {
         const isEvent = entry.item.calendarType==="event";
         const isCompleted = isItemCompleted(entry.item);
         const isMultiDay = entry.endDate>entry.date;
+        const googleTaskSource=entry.item.googleTaskListId||"";
         event.classList.toggle("event", isEvent);
         event.classList.toggle("task", !isEvent);
+        event.classList.toggle("googleTaskSource",!!googleTaskSource);
+        if (googleTaskSource) event.style.setProperty("--google-task-source-hue",String(googleTaskListHue(googleTaskSource)));
         event.classList.toggle("completed", isCompleted);
         event.classList.toggle("multiDay", isMultiDay);
         if (isMultiDay&&typeof index==="number"){
@@ -83,6 +94,13 @@ export class CalendarView {
         const openButton = event.querySelector(".calendarEventOpen");
         openButton.setAttribute("aria-label",`Open ${entry.item.title||"Untitled item"} details`);
         event.querySelector(".eventTitle").textContent = `${timeRange ? timeRange+" " : ""}${entry.item.title}`;
+        const taskSourceBadge=event.querySelector(".calendarTaskSourceBadge");
+        if (googleTaskSource){
+          taskSourceBadge.hidden=false;
+          taskSourceBadge.textContent=entry.item.googleTaskListTitle||"Google Tasks";
+          taskSourceBadge.title=`Google Tasks · ${taskSourceBadge.textContent}`;
+          taskSourceBadge.style.setProperty("--google-task-source-hue",String(googleTaskListHue(googleTaskSource)));
+        }else taskSourceBadge.remove();
         const startDateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
         const endDateLabel = entry.endDate===entry.date ? "" : new Date(`${entry.endDate}T00:00:00`).toLocaleDateString(undefined,{dateStyle:"medium"});
         const dateRange = `${startDateLabel}${endDateLabel ? ` – ${endDateLabel}` : ""}`;
@@ -105,8 +123,10 @@ export class CalendarView {
           project:entry.project?.name||"",
           group:entry.group?.name||"",
           location:entry.item.location||"",
+          source:entry.item.googleTaskListTitle||"",
           description,
-          googleUrl:googleCalendarUrl(entry),
+          googleUrl:entry.item.googleTaskId?"":googleCalendarUrl(entry),
+          googleTaskId:entry.item.googleTaskId||"",
           projectId:entry.project?.id||"",
           groupId:entry.group?.id||"",
           itemId:entry.item.id,
@@ -273,6 +293,36 @@ export class CalendarView {
     view.querySelectorAll("[data-calendar-global]").forEach(element=>{ element.hidden = !!scopeProject; });
     const linkCalendarsLabel=view.querySelector('[data-calendar-action="integrations"] span');
     if (linkCalendarsLabel) linkCalendarsLabel.textContent=(getState().googleCalendarLinks||[]).length?"Link more calendars":"Link calendars";
+    const googleTasksPanel=view.querySelector("[data-google-tasks-panel]");
+    const googleTasksList=view.querySelector("[data-google-tasks-list]");
+    const importedTasks=scopeProject?[]:(getState().calendarItems||[])
+      .filter(item=>item.googleTaskId&&!item.archived)
+      .sort((first,second)=>(first.endDate||"9999-99-99").localeCompare(second.endDate||"9999-99-99")
+        ||String(first.title||"").localeCompare(String(second.title||"")));
+    if (googleTasksPanel&&googleTasksList){
+      googleTasksPanel.hidden=!importedTasks.length;
+      googleTasksList.replaceChildren();
+      importedTasks.forEach(item=>{
+        const row=document.createElement("button");
+        row.type="button";
+        row.className="googleTasksRow";
+        const source=document.createElement("span");
+        source.className="googleTaskSourceBadge";
+        source.style.setProperty("--google-task-source-hue",String(googleTaskListHue(item.googleTaskListId)));
+        source.textContent=item.googleTaskListTitle||"Google Tasks";
+        const title=document.createElement("span");
+        title.className="googleTasksRowTitle";
+        title.textContent=item.title||"Untitled task";
+        const due=document.createElement("span");
+        due.className="googleTasksRowDue";
+        due.textContent=item.endDate?`Due ${new Date(`${item.endDate}T00:00:00`).toLocaleDateString()}`:"No due date";
+        if (isItemCompleted(item)) row.classList.add("completed");
+        row.setAttribute("aria-label",`${item.title||"Untitled task"} · ${source.textContent} · ${due.textContent}`);
+        row.append(source,title,due);
+        row.onclick=()=>openStandaloneCalendarItemModal(item);
+        googleTasksList.appendChild(row);
+      });
+    }
     wrap.appendChild(view);
     updateGoogleCalendarButtons();
     const shiftCursor=amount=>{
@@ -378,19 +428,21 @@ export class CalendarView {
         title.textContent = details.title;
         heading.append(type,title);
         header.appendChild(heading);
-        const googleLink = document.createElement("a");
-        googleLink.className = "calendarContextGoogleLink";
-        googleLink.href = details.googleUrl;
-        googleLink.target = "_blank";
-        googleLink.rel = "noopener";
-        googleLink.title = "Add to Google Calendar";
-        const googleIcon = document.createElement("iconify-icon");
-        googleIcon.setAttribute("icon","mdi:open-in-new");
-        googleIcon.setAttribute("aria-hidden","true");
-        const googleLabel = document.createElement("span");
-        googleLabel.textContent = "Google Calendar";
-        googleLink.append(googleIcon,googleLabel);
-        header.appendChild(googleLink);
+        if (details.googleUrl){
+          const googleLink = document.createElement("a");
+          googleLink.className = "calendarContextGoogleLink";
+          googleLink.href = details.googleUrl;
+          googleLink.target = "_blank";
+          googleLink.rel = "noopener";
+          googleLink.title = "Add to Google Calendar";
+          const googleIcon = document.createElement("iconify-icon");
+          googleIcon.setAttribute("icon","mdi:open-in-new");
+          googleIcon.setAttribute("aria-hidden","true");
+          const googleLabel = document.createElement("span");
+          googleLabel.textContent = "Google Calendar";
+          googleLink.append(googleIcon,googleLabel);
+          header.appendChild(googleLink);
+        }
         popover.appendChild(header);
         const facts = document.createElement("div");
         facts.className = "calendarContextFacts";
@@ -412,6 +464,7 @@ export class CalendarView {
         if (details.type==="Task") addFact("Status",details.isCompleted ? "Completed" : "Open");
         addFact("Project",details.project);
         addFact("Group",details.group);
+        addFact("Google Tasks list",details.source);
         addFact("Location",details.location);
         popover.appendChild(facts);
         if (details.description){
@@ -423,6 +476,13 @@ export class CalendarView {
         if (details.type==="Task"){
           const footer = document.createElement("div");
           footer.className = "calendarContextFooter";
+          if (details.googleTaskId){
+            const note=document.createElement("span");
+            note.className="calendarContextFactValue";
+            note.textContent="Imported from Google Tasks. Make changes in Google to sync them.";
+            footer.appendChild(note);
+            popover.appendChild(footer);
+          }else{
           const completeButton = document.createElement("button");
           completeButton.type = "button";
           completeButton.className = `btn btn-sm calendarContextCompleteBtn${details.isCompleted?" isCompleted":" btn-primary"}`;
@@ -441,6 +501,7 @@ export class CalendarView {
           };
           footer.appendChild(completeButton);
           popover.appendChild(footer);
+          }
         }
         document.body.appendChild(popover);
         activeCalendarPopover = {anchor:event,element:popover,type:details.type};

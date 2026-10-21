@@ -53,6 +53,18 @@
 .calendarEvent.completed .eventTitle{color:var(--muted);text-decoration:line-through;}
 .calendarEvent .eventTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
 .calendarEvent .eventProject{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-size:var(--font-size-xs);color:var(--muted);}
+.calendarEvent.googleTaskSource .eventDot{background:hsl(var(--google-task-source-hue) 65% 45%);}
+.googleTaskSourceBadge{display:inline-flex;align-items:center;max-width:100%;padding:2px 6px;overflow:hidden;border:1px solid color-mix(in srgb,hsl(var(--google-task-source-hue) 65% 45%) 30%,var(--border));border-radius:999px;background:color-mix(in srgb,hsl(var(--google-task-source-hue) 65% 45%) 12%,var(--bg));color:var(--text);font-size:var(--font-size-xs);line-height:1.2;text-overflow:ellipsis;white-space:nowrap;}
+.calendarTaskSourceBadge{flex:none;max-width:75px;padding:1px 4px;font-size:10px;}
+.googleTasksPanel{margin-top:20px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);}
+.googleTasksPanel h4{margin:0 0 4px;font-size:var(--font-size-lg);}
+.googleTasksPanel>p{margin:0 0 12px;color:var(--muted);font-size:var(--font-size-sm);}
+.googleTasksList{display:grid;gap:6px;}
+.googleTasksRow{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg-soft);color:var(--text);text-align:left;cursor:pointer;}
+.googleTasksRow:hover{border-color:var(--accent);background:var(--accent-soft);}
+.googleTasksRowTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.googleTasksRow.completed .googleTasksRowTitle{color:var(--muted);text-decoration:line-through;}
+.googleTasksRowDue{flex:none;color:var(--muted);font-size:var(--font-size-sm);}
 .calendarEvent.multiDay{position:relative;z-index:1;margin-left:calc(0px - var(--calendar-day-padding));margin-right:calc(0px - var(--calendar-day-padding));width:calc(100% + var(--calendar-day-padding) + var(--calendar-day-padding));border-radius:0;}
 .calendarEvent.multiDay.multiDayStart{margin-left:0;width:calc(100% + var(--calendar-day-padding));border-top-left-radius:5px;border-bottom-left-radius:5px;}
 .calendarEvent.multiDay.multiDayEnd{margin-right:0;width:calc(100% + var(--calendar-day-padding));border-top-right-radius:5px;border-bottom-right-radius:5px;}

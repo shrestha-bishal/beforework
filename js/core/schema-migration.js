@@ -222,6 +222,7 @@
       if (!Array.isArray(state.documentFolders)) state.documentFolders = [];
       if (state.activeWorkspaceDocumentId===undefined) state.activeWorkspaceDocumentId = null;
       if (!state.googleCalendarSyncTokens || typeof state.googleCalendarSyncTokens!=="object" || Array.isArray(state.googleCalendarSyncTokens)) state.googleCalendarSyncTokens = {};
+      if (!state.googleTasksUpdatedAt || typeof state.googleTasksUpdatedAt!=="object" || Array.isArray(state.googleTasksUpdatedAt)) state.googleTasksUpdatedAt = {};
       if (!Number.isFinite(state.googleLastSyncAt)) state.googleLastSyncAt = 0;
       state.projects.forEach(project=>project.groups.forEach(group=>group.items.forEach(item=>{
         if (!Number.isFinite(item.completedAt) || item.completedAt<=0) item.completedAt = null;
