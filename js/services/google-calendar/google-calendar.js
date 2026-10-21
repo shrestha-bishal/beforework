@@ -377,7 +377,9 @@
             entry.item.googleEventIds[key]=event.id;
             entry.item.googleSyncMeta[key]={
               googleUpdatedAt:remoteUpdatedAt,
-              localUpdatedAt:localWins?(previous?.localUpdatedAt||0):entry.item.updatedAt
+              localUpdatedAt:(localChanged&&!remoteChanged)||localWins
+                ? Number(previous?.localUpdatedAt)||0
+                : entry.item.updatedAt
             };
             if (localWins){
               conflictCount++;

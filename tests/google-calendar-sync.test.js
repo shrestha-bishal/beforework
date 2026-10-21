@@ -213,6 +213,72 @@ test("polling syncs standalone events and tasks both ways without syncing projec
   assert.equal(requests.some(request=>request.url.includes("/events/event-project")),false,"polling does not sync project items");
 });
 
+test("polling preserves a pending local edit marker until it patches Google",async()=>{
+  const item={
+    id:"local-pending",title:"Edited in Beforework",description:"",location:"",standalone:true,calendarType:"event",
+    startDate:"2026-10-04",endDate:"2026-10-04",startTime:"09:00",endTime:"10:00",
+    updatedAt:Date.parse("2026-10-04T12:00:00.000Z"),
+    googleEventIds:{"calendar-1:__calendar__:__standalone__":"event-pending"},
+    googleSyncMeta:{"calendar-1:__calendar__:__standalone__":{
+      googleUpdatedAt:"2026-10-04T01:00:00.000Z",localUpdatedAt:Date.parse("2026-10-04T11:00:00.000Z")
+    }}
+  };
+  const requests=[];
+  const entry=()=>({project:null,group:null,item,field:{id:"__standalone__",label:"Calendar",type:"date"},date:item.startDate,endDate:item.endDate});
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleSyncInFlight:false,googleImportInFlight:false,googleSyncQueued:false,
+    googleSyncApplying:false,googlePollTimer:1,googleAutoSyncTimer:null,googleTokenRefreshTimer:null,googleDeleteInFlight:false,
+    clearTimeout(){},
+    state:{folderLazy:false,googleCalendarLinks:["calendar-1"],googleCalendarCatalog:[{id:"calendar-1",summary:"Work"}],googleCalendarSyncTokens:{"calendar-1":"old-token"},googleDeletedEventIds:[],calendarItems:[item]},
+    calendarEntries:()=>[entry()],
+    projectRecords:()=>[],
+    ensureProjectLoaded:async()=>null,
+    calendarDateFields:()=>[],
+    scheduleSave(){},
+    flushSave:async()=>true,
+    renderAll(){},
+    showNotice:async()=>{},
+    activeProjectId:"",
+    URLSearchParams,
+    document:{querySelectorAll:()=>[]},
+    fetch:async(url,options={})=>{
+      const method=options.method||"GET";
+      requests.push({url,method,body:options.body});
+      if (url.includes("/events?")){
+        return {ok:true,status:200,json:async()=>({
+          items:[{
+            id:"event-pending",updated:"2026-10-04T01:00:00.000Z",summary:"Old Google title",
+            start:{dateTime:"2026-10-04T09:00:00+10:00",timeZone:"Australia/Sydney"},
+            end:{dateTime:"2026-10-04T10:00:00+10:00",timeZone:"Australia/Sydney"},
+            extendedProperties:{private:{beforeworkItemId:"local-pending",beforeworkOwnerId:"__calendar__",beforeworkFieldId:"__standalone__"}}
+          }],nextSyncToken:"next-token"
+        }),text:async()=>""};
+      }
+      if (url.endsWith("/events/event-pending")){
+        return {ok:true,status:200,json:async()=>({
+          id:"event-pending",updated:"2026-10-04T01:00:00.000Z",summary:"Old Google title",
+          start:{dateTime:"2026-10-04T09:00:00+10:00",timeZone:"Australia/Sydney"},
+          end:{dateTime:"2026-10-04T10:00:00+10:00",timeZone:"Australia/Sydney"}
+        }),text:async()=>""};
+      }
+      if (method==="PATCH"){
+        return {ok:true,status:200,json:async()=>({id:"event-pending",updated:"2026-10-04T02:00:00.000Z"}),text:async()=>""};
+      }
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    }
+  };
+  vm.runInNewContext(`${source}\nglobalThis.runPoll=pollGoogleCalendar;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("runPoll()",context);
+
+  const patch=requests.find(request=>request.method==="PATCH");
+  assert.ok(patch,"polling patches the existing Google event for the local edit");
+  assert.match(patch.url,/events\/event-pending$/,"polling reuses the linked Google event ID");
+  assert.equal(JSON.parse(patch.body).summary,"Edited in Beforework");
+  assert.equal(item.googleSyncMeta["calendar-1:__calendar__:__standalone__"].localUpdatedAt,item.updatedAt,
+    "the local edit timestamp remains newer until Google acknowledges the PATCH");
+});
+
 test("manual sync resolves remote changes before updating the existing Google event",async()=>{
   const item={
     id:"item-1",title:"Newer local title",description:"",location:"",calendarType:"event",standalone:true,
