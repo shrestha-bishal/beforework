@@ -242,7 +242,8 @@
     entry.item.startTime = googleEventTime(event, "start");
     entry.item.endTime = googleEventTime(event, "end");
     entry.item.calendarTimeZone=event.start?.timeZone||event.end?.timeZone||entry.item.calendarTimeZone||"";
-    if (entry.field.id === "__schedule__" || entry.field.id === "__standalone__") entry.item.endDate = endDate || startDate;
+    if (entry.field.id==="__standalone__") entry.item.startDate=startDate;
+    else if (entry.field.id==="__schedule__") entry.item.endDate = endDate || startDate;
     else entry.item.values[entry.field.id] = startDate;
     entry.item.endDate = endDate || startDate;
     entry.item.updatedAt = Date.now();
@@ -338,6 +339,7 @@
         for (const event of result.events){
           if (!event.id) continue;
           const linked = await findLinkedGoogleEntry(calendarId,event);
+          if (linked?.entry.project) continue;
           const entry = linked?.entry;
           if (event.status==="cancelled"){
             if (entry){
@@ -550,14 +552,11 @@
       pullResult=pullResult||await importGoogleCalendarEvents({duringSync:true,throwOnError:true});
       let conflictCount=pullResult.conflictCount+googlePendingConflictCount;
       googlePendingConflictCount=0;
-      let entries = calendarEntries(scopeProject);
-      if (standaloneOnly){
-        const standaloneEntries=new Map();
-        entries.forEach(entry=>{
-          if (!entry.project&&!standaloneEntries.has(entry.item.id)) standaloneEntries.set(entry.item.id,entry);
-        });
-        entries=[...standaloneEntries.values()];
-      }
+      const standaloneEntries=new Map();
+      calendarEntries(scopeProject).forEach(entry=>{
+        if (!entry.project&&!standaloneEntries.has(entry.item.id)) standaloneEntries.set(entry.item.id,entry);
+      });
+      const entries=[...standaloneEntries.values()];
       if (!entries.length){
         await processGoogleDeletions();
         state.googleLastSyncAt=Date.now();

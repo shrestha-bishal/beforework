@@ -17,7 +17,7 @@ test("every sync pulls Google changes before recalculating and pushing local ent
   const end=source.indexOf("\n  function connectGoogleCalendar",start);
   const sync=source.slice(start,end);
   const pull=sync.indexOf("await importGoogleCalendarEvents({duringSync:true,throwOnError:true})");
-  const entries=sync.indexOf("let entries = calendarEntries(scopeProject)");
+  const entries=sync.indexOf("calendarEntries(scopeProject).forEach");
   const noEntries=sync.indexOf("if (!entries.length)");
   assert.ok(pull>=0,"sync awaits the inbound Google changes");
   assert.ok(entries>pull,"local entries are recalculated after importing Google changes");
@@ -73,9 +73,9 @@ test("empty local calendars still complete without a misleading error",()=>{
   assert.ok(sync.indexOf("if (!calendarIds.length)")<sync.indexOf("await importGoogleCalendarEvents"),"calendar linkage is validated before import");
 });
 
-test("polling pushes changed standalone items without syncing project items",async()=>{
+test("polling syncs standalone events and tasks both ways without syncing project items",async()=>{
   const localItem={
-    id:"local-1",title:"Updated local event",description:"",location:"",standalone:true,
+    id:"local-1",title:"Updated local event",description:"",location:"",standalone:true,calendarType:"task",
     startDate:"2026-10-02",endDate:"2026-10-02",startTime:"10:00",endTime:"11:00",
     updatedAt:Date.parse("2026-10-02T21:00:00.000Z"),
     googleEventIds:{"calendar-1:__calendar__:__standalone__":"event-local"},
@@ -83,15 +83,37 @@ test("polling pushes changed standalone items without syncing project items",asy
       googleUpdatedAt:"2026-10-02T20:00:00.000Z",localUpdatedAt:Date.parse("2026-10-02T19:00:00.000Z")
     }}
   };
+  const remoteChangedItem={
+    id:"local-2",title:"Original title",description:"",location:"",standalone:true,calendarType:"event",
+    startDate:"2026-10-02",endDate:"2026-10-02",startTime:"10:00",endTime:"11:00",
+    updatedAt:Date.parse("2026-10-02T20:00:00.000Z"),
+    googleEventIds:{"calendar-1:__calendar__:__standalone__":"event-remote"},
+    googleSyncMeta:{"calendar-1:__calendar__:__standalone__":{
+      googleUpdatedAt:"2026-10-02T20:00:00.000Z",localUpdatedAt:Date.parse("2026-10-02T20:00:00.000Z")
+    }}
+  };
   const projectItem={
-    id:"project-1",title:"Project item",updatedAt:Date.parse("2026-10-02T21:00:00.000Z"),
+    id:"project-1",title:"Project item",values:{date:"2026-10-02"},updatedAt:Date.parse("2026-10-02T21:00:00.000Z"),
     googleEventIds:{"calendar-1:project-a:date":"event-project"},
     googleSyncMeta:{"calendar-1:project-a:date":{googleUpdatedAt:"2026-10-02T20:00:00.000Z",localUpdatedAt:0}}
+  };
+  const project={id:"project-a",name:"Project",groups:[{id:"group-a",name:"Tasks",items:[projectItem]}],fields:[{id:"date",type:"date"}]};
+  const remoteEvent={
+    id:"event-remote",updated:"2026-10-02T22:00:00.000Z",summary:"Changed in Google",
+    start:{dateTime:"2026-10-03T09:00:00+10:00",timeZone:"Australia/Sydney"},
+    end:{dateTime:"2026-10-03T10:00:00+10:00",timeZone:"Australia/Sydney"},
+    extendedProperties:{private:{beforeworkItemId:"local-2",beforeworkOwnerId:"__calendar__",beforeworkFieldId:"__standalone__"}}
+  };
+  const remoteProjectEvent={
+    id:"event-project",updated:"2026-10-02T22:00:00.000Z",summary:"Changed project item",
+    start:{date:"2026-10-04"},end:{date:"2026-10-05"},
+    extendedProperties:{private:{beforeworkItemId:"project-1",beforeworkOwnerId:"project-a",beforeworkFieldId:"date"}}
   };
   const requests=[];
   const entries=()=>[
     {project:null,group:null,item:localItem,field:{id:"__standalone__",label:"Calendar",type:"date"},date:localItem.startDate,endDate:localItem.endDate},
-    {project:{id:"project-a",name:"Project"},group:{id:"group-a"},item:projectItem,field:{id:"date",label:"Due date",type:"date"},date:"2026-10-02",endDate:"2026-10-02"}
+    {project:null,group:null,item:remoteChangedItem,field:{id:"__standalone__",label:"Calendar",type:"date"},date:remoteChangedItem.startDate,endDate:remoteChangedItem.endDate},
+    {project,group:project.groups[0],item:projectItem,field:{id:"date",label:"Due date",type:"date"},date:"2026-10-02",endDate:"2026-10-02"}
   ];
   const context={
     window:{BeforeworkErrorUtils:errorUtils},
@@ -105,9 +127,9 @@ test("polling pushes changed standalone items without syncing project items",asy
     googleTokenRefreshTimer:null,
     googleDeleteInFlight:false,
     clearTimeout(){},
-    state:{googleCalendarLinks:["calendar-1"],googleCalendarCatalog:[{id:"calendar-1",summary:"Work"}],googleCalendarSyncTokens:{"calendar-1":"old-token"},googleDeletedEventIds:[],calendarItems:[localItem]},
+    state:{folderLazy:false,projects:[project],googleCalendarLinks:["calendar-1"],googleCalendarCatalog:[{id:"calendar-1",summary:"Work"}],googleCalendarSyncTokens:{"calendar-1":"old-token"},googleDeletedEventIds:[],calendarItems:[localItem,remoteChangedItem]},
     calendarEntries:entries,
-    projectRecords:()=>[],
+    projectRecords:()=>[project],
     ensureProjectLoaded:async()=>null,
     calendarDateFields:()=>[],
     scheduleSave(){},
@@ -122,11 +144,13 @@ test("polling pushes changed standalone items without syncing project items",asy
       requests.push({url,method,body:options.body});
       let body={};
       if (url.includes("/events?")){
-        body={items:[],nextSyncToken:"next-token"};
+        body={items:[remoteEvent,remoteProjectEvent],nextSyncToken:"next-token"};
       } else if (method==="PATCH"){
         body={id:"event-local",updated:"2026-10-02T21:01:00.000Z",...JSON.parse(options.body)};
       } else if (url.includes("/events/event-local")){
         body={id:"event-local",updated:"2026-10-02T20:00:00.000Z",summary:"Old Google title"};
+      } else if (url.includes("/events/event-remote")){
+        body=remoteEvent;
       }
       return {ok:true,status:200,json:async()=>body,text:async()=>""};
     }
@@ -138,6 +162,10 @@ test("polling pushes changed standalone items without syncing project items",asy
   assert.ok(patch,"polling sends the local standalone edit to Google");
   assert.match(patch.url,/events\/event-local$/,"polling updates the linked Google event instead of creating a duplicate");
   assert.equal(JSON.parse(patch.body).summary,"Updated local event");
+  assert.equal(remoteChangedItem.title,"Changed in Google","Google event changes are applied to a linked standalone event");
+  assert.equal(remoteChangedItem.startDate,"2026-10-03");
+  assert.equal(projectItem.title,"Project item","project items are not changed by inbound Google updates");
+  assert.equal(projectItem.values.date,"2026-10-02");
   assert.equal(requests.some(request=>request.url.includes("/events/event-project")),false,"polling does not sync project items");
 });
 
