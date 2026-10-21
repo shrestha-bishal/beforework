@@ -129,7 +129,7 @@ test("workspace documents are a primary navigation destination with a reusable e
   assert.match(appSource,/workspaceDocumentLocation\(documentId\)/);
   assert.match(documentViewSource,/listHeading="Project documents"/);
   assert.match(documentViewSource,/onOpenDocument/);
-  assert.match(documentViewSource,/createDocumentImmediately\(project,title="Untitled document"\)/);
+  assert.match(documentViewSource,/createDocumentImmediately\(project,title="Untitled document",folderId=null\)/);
   assert.doesNotMatch(viewSource,/cloneTemplate/);
   assert.match(appSource,/createLabel:"New document"[\s\S]*?onCreate:\(\)=>workspaceDocumentsEditor\.createDocumentImmediately/);
   assert.match(viewSource,/this\.documentsView\.openDocument\(this\.workspace,documentId\)/);
@@ -210,9 +210,10 @@ test("New document action creates and opens the editor immediately without a dia
     cloneTemplate:()=>null,
     onOpenDocument:id=>{ openedId=id; }
   });
-  const document=view.createDocumentImmediately({id:"workspace",name:"Workspace"});
+  const document=view.createDocumentImmediately({id:"workspace",name:"Workspace"},"Untitled document","folder-reference");
 
   assert.equal(document.title,"Untitled document");
+  assert.equal(document.folderId,"folder-reference");
   assert.equal(feature.active({id:"workspace",name:"Workspace"}),document);
   assert.equal(openedId,document.id);
   assert.equal(saved,0);

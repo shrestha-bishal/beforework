@@ -83,7 +83,7 @@ export class WorkspaceDocumentsView {
       emptyMessage:"No workspace documents yet. Create a document to get started.",
       noResultsMessage:"No documents match your search.",
       addLabel:"New document",
-      onAdd:()=>this.documentsView.createDocumentImmediately(this.workspace),
+      onAdd:folderId=>this.documentsView.createDocumentImmediately(this.workspace,"Untitled document",folderId),
       onOpen:documentId=>this.documentsView.openDocument(this.workspace,documentId),
       organization:{
         collectionLabel:"documents",

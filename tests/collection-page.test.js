@@ -169,7 +169,7 @@ test("collection page template provides shared search, sort, display, and card c
   assert.match(view,/saved\.sort==="updated-desc"/);
   assert.match(view,/saved\.view==="list"/);
   assert.match(view,/onOpen\(item\.id\)/);
-  assert.match(view,/addButton\.onclick=onAdd\|\|null/);
+  assert.match(view,/addButton\.onclick=typeof onAdd==="function"\?\(\)=>onAdd\(selectedFolderId\(\)\):null/);
   assert.match(bootstrap,/\.\/views\/collection-view\.js/);
   assert.match(templates,/collection:"pages\/collection\.html"/);
   assert.match(styles,/\.collectionPageItems\{display:grid;grid-template-columns:repeat\(auto-fill/);
@@ -290,6 +290,7 @@ test("document cards use the shared grid treatment and show a matching create fa
 
 test("collection organization filters and groups pinned, foldered, and unfiled entries",()=>{
   const harness=createCollectionView();
+  let createdFolderId="not-created";
   const entries=[
     {id:"pinned",title:"Pinned work",pinned:true},
     {id:"foldered",title:"Filed work",folderId:"folder-a"},
@@ -300,7 +301,7 @@ test("collection organization filters and groups pinned, foldered, and unfiled e
     kind:"projects",
     items:entries,
     addLabel:"New project",
-    onAdd:()=>{},
+    onAdd:folderId=>{ createdFolderId=folderId; },
     onOpen:()=>{},
     organization:{
       collectionLabel:"projects",
@@ -322,8 +323,11 @@ test("collection organization filters and groups pinned, foldered, and unfiled e
   assert.equal(harness.items.children.length,1);
   assert.equal(harness.items.children[0].fields[".collectionPageName"].textContent,"Pinned work");
   harness.filters.children[2].onclick();
-  assert.equal(harness.items.children.length,1);
+  assert.equal(harness.items.children.length,2);
   assert.equal(harness.items.children[0].fields[".collectionPageName"].textContent,"Filed work");
+  assert.equal(harness.items.children[1].fields.label.textContent,"New project");
+  harness.items.children[1].onclick();
+  assert.equal(createdFolderId,"folder-a");
 });
 
 test("collection card actions pin and move the selected item",()=>{
@@ -355,10 +359,12 @@ test("folder, Projects, and Documents routes render through the shared collectio
   assert.match(app,/activeProjectId===PROJECTS[\s\S]*?collectionView\.render\(board,\{\s*key:"projects"/);
   assert.match(app,/organization:\{\s*collectionLabel:"projects"/);
   assert.match(app,/collectionView\.render\(board,\{\s*key:`folder:\$\{folder\.id\}`[\s\S]*?addLabel:"New project"/);
+  assert.match(app,/onAdd:folderId=>createProjectFromMenu\(folderId\)/);
   assert.match(app,/workspaceDocumentsView\.render\(board,collectionView\)/);
   assert.match(workspaceDocumentsView,/collectionView\.render\(board,\{\s*key:"workspace-documents"/);
   assert.match(workspaceDocumentsView,/collectionLabel:"documents"/);
   assert.match(workspaceDocumentsView,/folders:this\.documentsFeature\.listFolders/);
+  assert.match(workspaceDocumentsView,/onAdd:folderId=>this\.documentsView\.createDocumentImmediately\(this\.workspace,"Untitled document",folderId\)/);
   assert.match(workspaceDocumentsView,/this\.documentsView\.openDocument\(this\.workspace,documentId\)/);
   assert.match(app,/onOpen:openProjectsSection/);
   assert.match(app,/function navigateToProjects\(\)/);

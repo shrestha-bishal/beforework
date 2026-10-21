@@ -60,8 +60,9 @@ export class DocumentsView {
     }
   }
 
-  createDocumentImmediately(project,title="Untitled document"){
+  createDocumentImmediately(project,title="Untitled document",folderId=null){
     const document=this.documentsFeature.create(project,title);
+    if (folderId) document.folderId=folderId;
     this.modes.set(project.id,"write");
     if (this.onOpenDocument){
       this.onOpenDocument(document.id);

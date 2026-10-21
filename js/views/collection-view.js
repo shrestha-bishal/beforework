@@ -42,7 +42,8 @@ export class CollectionView {
     sort.value=saved.sort;
     addButton.hidden=typeof onAdd!=="function";
     addButton.textContent=addLabel||"Create";
-    addButton.onclick=onAdd||null;
+    const selectedFolderId=()=>saved.filter.startsWith("folder:")?saved.filter.slice("folder:".length):null;
+    addButton.onclick=typeof onAdd==="function"?()=>onAdd(selectedFolderId()):null;
     organizationPanel.hidden=!organization;
     createFolderButton.hidden=!organization||typeof organization.onCreateFolder!=="function";
     createFolderButton.onclick=organization?.onCreateFolder||null;
@@ -200,7 +201,7 @@ export class CollectionView {
         group.items.forEach(appendCard);
       });
       const showCreateCard=typeof onAdd==="function"&&saved.view==="grid"&&!query
-        &&(!organization||saved.filter==="all"||saved.filter==="unfiled");
+        &&(!organization||saved.filter==="all"||saved.filter==="unfiled"||saved.filter.startsWith("folder:"));
       if (showCreateCard){
         const createLabel=addLabel||"Create";
         const entityName=createLabel.replace(/^(New|Add)\s+/i,"").toLocaleLowerCase();
@@ -208,7 +209,7 @@ export class CollectionView {
         newCard.querySelector(".collectionPageNewCardLabel").textContent=createLabel;
         newCard.querySelector(".collectionPageNewCardHint").textContent=`Create a ${entityName}`;
         newCard.title=createLabel;
-        newCard.onclick=onAdd;
+        newCard.onclick=()=>onAdd(selectedFolderId());
         itemList.appendChild(newCard);
       }
       empty.hidden=filtered.length>0||showCreateCard;

@@ -2181,7 +2181,7 @@
         emptyMessage:"No projects yet. Create a project to get started.",
         noResultsMessage:"No projects match your search.",
         addLabel:"New project",
-        onAdd:()=>createProjectFromMenu(),
+        onAdd:folderId=>createProjectFromMenu(folderId),
         onOpen:selectProject
       });
       return;
