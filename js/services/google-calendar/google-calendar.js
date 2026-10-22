@@ -376,6 +376,13 @@
     return {summary:entry.item.title||"Untitled item", description:details, location:entry.item.location||"",
       start:{date:entry.date}, end:{date:endDate},extendedProperties};
   }
+  function removeGoogleEventLink(item,eventId,keys){
+    for (const key of new Set(keys.filter(Boolean))){
+      if (item.googleEventIds?.[key]!==eventId) continue;
+      delete item.googleEventIds[key];
+      if (item.googleSyncMeta) delete item.googleSyncMeta[key];
+    }
+  }
   function googleEventDate(event, key){
     const value = event[key]?.date || event[key]?.dateTime || "";
     return value.slice(0,10);
@@ -781,8 +788,8 @@
             try{
               remote = await googleCalendarRequest(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`);
             }catch(error){
-              if (error.status!==404) throw error;
-              delete entry.item.googleEventIds[key];
+              if (error.status!==404&&error.status!==400) throw error;
+              removeGoogleEventLink(entry.item,eventId,[key,linkedKey,legacyKey]);
             }
           }
           let saved = remote;

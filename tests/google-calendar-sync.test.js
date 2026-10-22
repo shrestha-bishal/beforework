@@ -245,6 +245,58 @@ test("Google Tasks imports are not pushed back as Google Calendar events",async(
     "Google Tasks imports are excluded from Google Calendar event creation and updates");
 });
 
+test("Calendar sync replaces a stored event reference rejected as a bad request",async()=>{
+  const item={
+    id:"local-event",title:"Local event",description:"",location:"",standalone:true,calendarType:"event",
+    startDate:"2026-11-05",endDate:"2026-11-05",updatedAt:1,
+    googleEventIds:{"calendar-1:__calendar__:__standalone__":"stale-event-id"},
+    googleSyncMeta:{"calendar-1:__calendar__:__standalone__":{googleUpdatedAt:"2026-10-22T00:00:00.000Z",localUpdatedAt:1}}
+  };
+  const entry={project:null,group:null,item,field:{id:"__standalone__",label:"Calendar",type:"date"},date:item.startDate,endDate:item.endDate};
+  const requests=[];
+  const notices=[];
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleSyncInFlight:false,googleImportInFlight:false,googleSyncQueued:false,
+    googleSyncApplying:false,googleTasksImportInFlight:false,googleDeleteInFlight:false,googleAutoSyncTimer:null,
+    googlePollTimer:1,googleTokenRefreshTimer:null,
+    clearTimeout(){},
+    state:{
+      folderLazy:false,calendarItems:[item],googleCalendarLinks:["calendar-1"],
+      googleCalendarCatalog:[{id:"calendar-1",summary:"Primary"}],googleCalendarSyncTokens:{},
+      googleDeletedEventIds:[]
+    },
+    calendarEntries:()=>[entry],projectRecords:()=>[],calendarDateFields:()=>[],ensureProjectLoaded:async()=>null,
+    scheduleSave(){},flushSave:async()=>true,renderAll(){},
+    showNotice:async(title,message)=>notices.push({title,message}),
+    updateGoogleCalendarStatus(){},updateGoogleCalendarButtons(){},activeProjectId:"",
+    URLSearchParams,Date,Intl,
+    calendarDateCode:(date,offset=0)=>{
+      const value=new Date(`${date}T00:00:00`);
+      value.setDate(value.getDate()+offset);
+      return value.toISOString().slice(0,10).replace(/-/g,"");
+    },
+    document:{querySelectorAll:()=>[]},
+    fetch:async(url,options={})=>{
+      const method=options.method||"GET";
+      requests.push({url,method});
+      if (url.includes("/events/stale-event-id")){
+        return {ok:false,status:400,text:async()=>JSON.stringify({error:{code:400,message:"Bad Request"}})};
+      }
+      if (method==="POST"){
+        return {ok:true,status:200,json:async()=>({id:"replacement-event-id",updated:"2026-10-22T01:00:00.000Z"})};
+      }
+      return {ok:true,status:200,json:async()=>({items:[],nextSyncToken:"calendar-cursor"})};
+    }
+  };
+  vm.runInNewContext(`${source}\nglobalThis.runSync=syncGoogleCalendar;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("runSync(null,{pullResult:{importedCount:0,conflictCount:0},tasksResult:{importedCount:0}})",context);
+
+  assert.ok(requests.some(request=>request.method==="POST"),"sync creates a replacement event after Google rejects the stored ID");
+  assert.equal(item.googleEventIds["calendar-1:__calendar__:__standalone__"],"replacement-event-id");
+  assert.equal(notices.length,0,"the recovered bad reference does not fail the sync");
+});
+
 test("Google Calendar location imports update the optional Location field",()=>{
   const context={
     window:{BeforeworkErrorUtils:errorUtils},
