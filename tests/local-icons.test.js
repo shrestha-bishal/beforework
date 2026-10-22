@@ -16,6 +16,7 @@ test("Iconify runtime and collections are loaded locally before the app markup",
   assert.match(index,/<script src="node_modules\/iconify-icon\/dist\/iconify-icon\.min\.js"><\/script>\s*<script src="js\/vendor\/icon-data\.js"><\/script>/);
   assert.doesNotMatch(index,/code\.iconify\.design|api\.iconify\.design|api\.simplesvg\.com|api\.unisvg\.com/);
   assert.match(index,/script-src 'self'[^;]*;[^>]*connect-src 'self'[^;]*;/);
+  assert.match(index,/connect-src[^;]*https:\/\/tasks\.googleapis\.com/,"Google Tasks API requests are permitted by the Content Security Policy");
   assert.match(build,/require\("\.\/build-icon-data"\)/);
   assert.ok(build.indexOf('require("./build-icon-data")')<build.indexOf('fs.rmSync(output'));
   assert.match(build,/publishPaths = \[[^\]]*"licenses"/);
