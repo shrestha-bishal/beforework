@@ -10,6 +10,7 @@ export class CalendarView {
   constructor(dependencies){
     this.dependencies=dependencies;
     this.mode="month";
+    this.tasksPanelOpen=false;
   }
 
   render(board,scopeProject){
@@ -295,13 +296,26 @@ export class CalendarView {
     if (linkCalendarsLabel) linkCalendarsLabel.textContent=(getState().googleCalendarLinks||[]).length?"Link more calendars":"Link calendars";
     const googleTasksPanel=view.querySelector("[data-google-tasks-panel]");
     const googleTasksList=view.querySelector("[data-google-tasks-list]");
+    const googleTasksTab=view.querySelector("[data-calendar-tasks-toggle]");
+    const googleTasksCount=view.querySelector("[data-google-tasks-count]");
     const importedTasks=scopeProject?[]:(getState().calendarItems||[])
       .filter(item=>item.googleTaskId&&!item.archived)
       .sort((first,second)=>(first.endDate||"9999-99-99").localeCompare(second.endDate||"9999-99-99")
         ||String(first.title||"").localeCompare(String(second.title||"")));
-    if (googleTasksPanel&&googleTasksList){
-      googleTasksPanel.hidden=!importedTasks.length;
+    if (googleTasksPanel&&googleTasksList&&googleTasksTab){
+      googleTasksTab.hidden=!!scopeProject;
+      googleTasksTab.setAttribute("aria-pressed",String(this.tasksPanelOpen&&!scopeProject));
+      googleTasksTab.classList.toggle("selected",this.tasksPanelOpen&&!scopeProject);
+      googleTasksCount.hidden=!importedTasks.length;
+      googleTasksCount.textContent=String(importedTasks.length);
+      googleTasksPanel.hidden=!this.tasksPanelOpen||!!scopeProject;
       googleTasksList.replaceChildren();
+      if (!importedTasks.length){
+        const empty=document.createElement("p");
+        empty.className="googleTasksEmpty";
+        empty.textContent="No imported tasks yet. Sync Google to import your task lists.";
+        googleTasksList.appendChild(empty);
+      }
       importedTasks.forEach(item=>{
         const row=document.createElement("button");
         row.type="button";
@@ -324,6 +338,10 @@ export class CalendarView {
       });
     }
     wrap.appendChild(view);
+    const tasksTab=wrap.querySelector("[data-calendar-tasks-toggle]");
+    if (tasksTab) tasksTab.onclick=()=>{ this.tasksPanelOpen=!this.tasksPanelOpen; render(); };
+    const closeTasksPanel=wrap.querySelector("[data-google-tasks-close]");
+    if (closeTasksPanel) closeTasksPanel.onclick=()=>{ this.tasksPanelOpen=false; render(); };
     updateGoogleCalendarButtons();
     const shiftCursor=amount=>{
       if (mode==="day") return new Date(year,month,cursor.getDate()+amount);

@@ -15,6 +15,8 @@ test("Calendar styles, including responsive and print rules, are isolated in the
   assert.match(calendarStyles,/\.calendarGridSchedule\{display:block;overflow:auto;\}/);
   assert.match(calendarStyles,/\.calendarTimeLane\{position:relative;height:1440px/);
   assert.match(calendarStyles,/\.calendarScheduleWeek \.calendarTimeLane\{min-width:96px;\}/);
+  assert.match(calendarStyles,/\.googleTasksPanel\{position:absolute;z-index:5;top:12px;right:12px/);
+  assert.match(calendarStyles,/\.googleTasksList\{display:grid;gap:6px;min-height:0;overflow:auto;\}/);
   assert.match(calendarStyles,/\.calendarViewModes button\[aria-pressed="true"\]\{background:var\(--accent-soft\);color:var\(--accent-strong\);font-weight:var\(--font-weight-semibold\);\}/);
   assert.match(calendarStyles,/@media \(max-width:480px\)[\s\S]*\.calendarViewModes/);
   assert.match(calendarStyles,/\.calendarContextPopover/);

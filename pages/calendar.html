@@ -9,6 +9,11 @@
     <button class="btn btn-sm" type="button" data-calendar-view="week" aria-pressed="false">Week</button>
     <button class="btn btn-sm" type="button" data-calendar-view="month" aria-pressed="true">Month</button>
   </div>
+  <button class="btn btn-sm calendarTasksTab" type="button" data-calendar-tasks-toggle aria-pressed="false" aria-controls="googleTasksPanel">
+    <iconify-icon icon="mdi:format-list-checks" aria-hidden="true"></iconify-icon>
+    <span>Tasks</span>
+    <span class="calendarTasksCount" data-google-tasks-count hidden></span>
+  </button>
   <button class="btn btn-sm" data-calendar-action="new">+ New</button>
   <button class="btn btn-sm btn-primary" data-calendar-action="google" data-calendar-global hidden><iconify-icon icon="mdi:sync" style="vertical-align:-2px;margin-right:4px;"></iconify-icon><span data-google-action-label>Sync now</span></button>
   <div class="calendarToolbarMenuWrap">
@@ -34,9 +39,14 @@
     </button>
   </div>
 </template>
-<div class="calendarGrid" data-calendar-grid></div>
-<section class="googleTasksPanel" data-google-tasks-panel hidden aria-label="Google Tasks imported into Beforework">
-  <h4>Google Tasks</h4>
-  <p>Imported from Google Tasks. Edit these tasks in Google to sync your changes.</p>
-  <div class="googleTasksList" data-google-tasks-list></div>
-</section>
+<div class="calendarContent">
+  <div class="calendarGrid" data-calendar-grid></div>
+  <section class="googleTasksPanel" id="googleTasksPanel" data-google-tasks-panel hidden aria-label="Google Tasks imported into Beforework">
+    <div class="googleTasksPanelHeader">
+      <h4>Google Tasks</h4>
+      <button class="btn btn-invisible btn-sm" type="button" data-google-tasks-close aria-label="Close Tasks panel">×</button>
+    </div>
+    <p>Imported from Google Tasks. Edit these tasks in Google to sync your changes.</p>
+    <div class="googleTasksList" data-google-tasks-list></div>
+  </section>
+</div>

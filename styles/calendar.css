@@ -8,6 +8,10 @@
 .calendarViewModes button:last-child{border-right:0;}
 .calendarViewModes button:hover{background:var(--bg-soft);color:var(--text);}
 .calendarViewModes button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-strong);font-weight:var(--font-weight-semibold);}
+.calendarTasksTab{display:inline-flex;align-items:center;gap:6px;}
+.calendarTasksTab iconify-icon{font-size:16px;}
+.calendarTasksTab[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-strong);}
+.calendarTasksCount{min-width:18px;padding:1px 5px;border-radius:999px;background:var(--bg-soft);font-size:var(--font-size-xs);line-height:1.4;text-align:center;}
 .calendarToolbarMenuWrap{position:relative;display:flex;align-items:center;}
 .calendarToolbarMenuBtn{width:32px;height:32px;padding:0;font-size:var(--font-size-xl);}
 .calendarToolbarMenu button{display:flex;align-items:center;gap:8px;white-space:nowrap;}
@@ -56,10 +60,14 @@
 .calendarEvent.googleTaskSource .eventDot{background:hsl(var(--google-task-source-hue) 65% 45%);}
 .googleTaskSourceBadge{display:inline-flex;align-items:center;max-width:100%;padding:2px 6px;overflow:hidden;border:1px solid color-mix(in srgb,hsl(var(--google-task-source-hue) 65% 45%) 30%,var(--border));border-radius:999px;background:color-mix(in srgb,hsl(var(--google-task-source-hue) 65% 45%) 12%,var(--bg));color:var(--text);font-size:var(--font-size-xs);line-height:1.2;text-overflow:ellipsis;white-space:nowrap;}
 .calendarTaskSourceBadge{flex:none;max-width:75px;padding:1px 4px;font-size:10px;}
-.googleTasksPanel{margin-top:20px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);}
-.googleTasksPanel h4{margin:0 0 4px;font-size:var(--font-size-lg);}
-.googleTasksPanel>p{margin:0 0 12px;color:var(--muted);font-size:var(--font-size-sm);}
-.googleTasksList{display:grid;gap:6px;}
+.calendarContent{position:relative;min-width:0;}
+.googleTasksPanel{position:absolute;z-index:5;top:12px;right:12px;display:flex;width:min(390px,calc(100% - 24px));max-height:min(72vh,680px);flex-direction:column;padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);box-shadow:0 12px 34px rgba(0,0,0,.2);}
+.googleTasksPanel[hidden]{display:none;}
+.googleTasksPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.googleTasksPanel h4{margin:0;font-size:var(--font-size-lg);}
+.googleTasksPanel>p{flex:none;margin:4px 0 12px;color:var(--muted);font-size:var(--font-size-sm);}
+.googleTasksList{display:grid;gap:6px;min-height:0;overflow:auto;}
+.googleTasksEmpty{margin:0;padding:12px;color:var(--muted);font-size:var(--font-size-sm);}
 .googleTasksRow{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg-soft);color:var(--text);text-align:left;cursor:pointer;}
 .googleTasksRow:hover{border-color:var(--accent);background:var(--accent-soft);}
 .googleTasksRowTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

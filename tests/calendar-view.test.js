@@ -77,6 +77,11 @@ test("Calendar view displays imported Google Tasks with colored source-list labe
   assert.match(googleCalendar,/async function importGoogleTasks/);
   assert.match(googleCalendar,/googleTasksUpdatedAt/);
   assert.match(template,/data-google-tasks-panel hidden/);
+  assert.match(template,/data-calendar-tasks-toggle[^>]*aria-controls="googleTasksPanel"/);
+  assert.match(template,/class="calendarContent"/);
+  assert.match(view,/this\.tasksPanelOpen=false/);
+  assert.match(view,/tasksTab\.onclick=\(\)=>\{ this\.tasksPanelOpen=!this\.tasksPanelOpen; render\(\); \}/);
+  assert.match(view,/googleTasksPanel\.hidden=!this\.tasksPanelOpen\|\|!!scopeProject/);
   assert.match(template,/calendarTaskSourceBadge/);
   assert.match(view,/googleTaskListHue/);
   assert.match(view,/item\.googleTaskListTitle/);
