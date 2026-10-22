@@ -381,6 +381,14 @@ test("Calendar sync leaves locked Google-owned events unchanged",async()=>{
     `the sync summary explains why the event was left unchanged: ${statuses.join(" | ")}`);
 });
 
+test("Google birthday events are classified as read-only for Calendar sync",()=>{
+  const context={};
+  vm.runInNewContext(`${source}\nglobalThis.isReadOnly=googleEventIsReadOnly;`,context,{filename:"google-calendar.js"});
+
+  assert.equal(context.isReadOnly({eventType:"birthday"}),true);
+  assert.equal(context.isReadOnly({eventType:"default"}),false);
+});
+
 test("Google Calendar location imports update the optional Location field",()=>{
   const context={
     window:{BeforeworkErrorUtils:errorUtils},

@@ -390,6 +390,7 @@
   function googleEventIsReadOnly(event){
     return event?.locked===true
       ||event?.eventType==="fromGmail"
+      ||event?.eventType==="birthday"
       ||/automatically created events like this one/i.test(String(event?.description||""));
   }
   function googleEventDate(event, key){
