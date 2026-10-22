@@ -202,6 +202,31 @@ test("Google Tasks 403 explains the API project and read-only permission require
   assert.match(notices[0].message,/Google Tasks read-only permission/);
 });
 
+test("Google Tasks unregistered-caller 403 identifies the OAuth Cloud project mismatch",async()=>{
+  const notices=[];
+  const context={
+    window:{BeforeworkErrorUtils:errorUtils},
+    googleAccessToken:"access-token",googleTasksImportInFlight:false,googleTasksLastPollAt:0,
+    googleTasksLastError:"",state:{googleTasksUpdatedAt:{},calendarItems:[]},
+    URLSearchParams,Date,document:{querySelectorAll:()=>[]},
+    fetch:async()=>({
+      ok:false,status:403,
+      text:async()=>JSON.stringify({error:{
+        code:403,
+        message:"Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API.",
+        errors:[{reason:"forbidden"}]
+      }})
+    }),
+    updateGoogleCalendarStatus(){},
+    showNotice:async(title,message)=>notices.push({title,message})
+  };
+  vm.runInNewContext(`${source}\nglobalThis.importTasks=importGoogleTasks;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("importTasks()",context);
+
+  assert.match(notices[0].message,/project that owns Beforework's OAuth client ID/);
+  assert.match(notices[0].message,/do not need to add an API key/);
+});
+
 test("Google Tasks imports are not pushed back as Google Calendar events",async()=>{
   const item={
     id:"google-task-local",title:"Imported task",calendarType:"task",standalone:true,
@@ -295,6 +320,65 @@ test("Calendar sync replaces a stored event reference rejected as a bad request"
   assert.ok(requests.some(request=>request.method==="POST"),"sync creates a replacement event after Google rejects the stored ID");
   assert.equal(item.googleEventIds["calendar-1:__calendar__:__standalone__"],"replacement-event-id");
   assert.equal(notices.length,0,"the recovered bad reference does not fail the sync");
+});
+
+test("Calendar sync leaves locked Google-owned events unchanged",async()=>{
+  const item={
+    id:"gmail-created-event",title:"Edited locally",description:"",location:"",standalone:true,calendarType:"event",
+    startDate:"2026-06-25",endDate:"2026-06-25",updatedAt:Date.parse("2026-10-22T01:00:00.000Z"),
+    googleEventIds:{"calendar-1:__calendar__:__standalone__":"gmail-event"},
+    googleSyncMeta:{"calendar-1:__calendar__:__standalone__":{
+      googleUpdatedAt:"2026-10-22T00:00:00.000Z",localUpdatedAt:Date.parse("2026-10-22T00:00:00.000Z")
+    }}
+  };
+  const entry={project:null,group:null,item,field:{id:"__standalone__",label:"Calendar",type:"date"},date:item.startDate,endDate:item.endDate};
+  const requests=[];
+  const statuses=[];
+  const context={
+    window:{
+      BeforeworkErrorUtils:errorUtils,
+      BeforeworkOperationStatusInstance:{begin:()=>({update:text=>statuses.push(text),finish(){}})}
+    },
+    googleAccessToken:"access-token",googleSyncInFlight:false,googleImportInFlight:false,googleSyncQueued:false,
+    googleSyncApplying:false,googleTasksImportInFlight:false,googleDeleteInFlight:false,googleAutoSyncTimer:null,
+    googlePollTimer:1,googleTokenRefreshTimer:null,clearTimeout(){},
+    state:{
+      folderLazy:false,calendarItems:[item],googleCalendarLinks:["calendar-1"],
+      googleCalendarCatalog:[{id:"calendar-1",summary:"Primary"}],googleCalendarSyncTokens:{},googleDeletedEventIds:[]
+    },
+    calendarEntries:()=>[entry],projectRecords:()=>[],calendarDateFields:()=>[],ensureProjectLoaded:async()=>null,
+    scheduleSave(){},flushSave:async()=>true,renderAll(){},
+    showNotice:async()=>{},updateGoogleCalendarStatus:text=>{if(text)statuses.push(text)},
+    updateGoogleCalendarButtons(){},activeProjectId:"",
+    URLSearchParams,Date,Intl,
+    calendarDateCode:(date,offset=0)=>{
+      const value=new Date(`${date}T00:00:00`);
+      value.setDate(value.getDate()+offset);
+      return value.toISOString().slice(0,10).replace(/-/g,"");
+    },
+    document:{querySelectorAll:()=>[]},
+    fetch:async(url,options={})=>{
+      const method=options.method||"GET";
+      requests.push({url,method,body:options.body});
+      if (url.includes("/events/gmail-event")){
+        return {ok:true,status:200,json:async()=>({
+          id:"gmail-event",updated:"2026-10-22T00:00:00.000Z",
+          summary:"PTE Academic",
+          description:"To see detailed information for automatically created events like this one, use the official Google Calendar app. https://g.co/calendar\nBeforework Calendar\nBeforework Calendar"
+        })};
+      }
+      return {ok:true,status:200,json:async()=>({items:[],nextSyncToken:"calendar-cursor"})};
+    }
+  };
+  vm.runInNewContext(`${source}\nglobalThis.runSync=syncGoogleCalendar;`,context,{filename:"google-calendar.js"});
+  await vm.runInContext("runSync(null,{pullResult:{importedCount:0,conflictCount:0},tasksResult:{importedCount:0}})",context);
+
+  assert.equal(requests.some(request=>request.method==="PATCH"||request.method==="POST"),false,
+    "locked or Gmail-created events are never edited or duplicated");
+  assert.equal(item.googleSyncMeta["calendar-1:__calendar__:__standalone__"].localUpdatedAt,item.updatedAt,
+    "the local edit marker is acknowledged so sync does not retry the forbidden update");
+  assert.ok(statuses.some(status=>status.includes("Google-owned read-only event")),
+    `the sync summary explains why the event was left unchanged: ${statuses.join(" | ")}`);
 });
 
 test("Google Calendar location imports update the optional Location field",()=>{

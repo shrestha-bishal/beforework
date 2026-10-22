@@ -242,15 +242,19 @@
       }
       if (error.status===401) handleGoogleAuthFailure();
       let detail=window.BeforeworkErrorUtils.getMessage(error,"Google Tasks could not be imported.");
+      let googleErrorReason="";
       try{
         const payload=JSON.parse(error.detail||"{}");
         detail=payload.error?.message||payload.error?.errors?.[0]?.reason||detail;
+        googleErrorReason=payload.error?.errors?.[0]?.reason||"";
       }catch(parseError){}
       let guidance="Check the Google Tasks API configuration and try syncing again.";
       if (error.status===401){
         guidance="Reconnect Google and approve the Google Tasks read-only permission.";
       }else if (error.status===403){
-        guidance="Confirm the Tasks API is enabled in the same Google Cloud project as Beforework's OAuth client and approve the Google Tasks read-only permission.";
+        guidance=/unregistered callers|without established identity/i.test(`${detail} ${googleErrorReason}`)
+          ?"Google does not recognize the Cloud project for this request. In Google Cloud Console, select the project that owns Beforework's OAuth client ID, enable Google Tasks API in that same project, then reconnect Google and approve the tasks.readonly permission. The Tasks API supports OAuth access; you do not need to add an API key to Beforework."
+          :"Confirm the Tasks API is enabled in the same Google Cloud project as Beforework's OAuth client and approve the Google Tasks read-only permission.";
       }else if (!error.status&&/failed to fetch|networkerror|load failed/i.test(detail)){
         guidance="The browser could not reach Google Tasks, so Google did not return an API error. Check your internet connection, browser extensions, VPN or firewall; if it persists, inspect the failed request in the browser's Network panel.";
       }
@@ -382,6 +386,11 @@
       delete item.googleEventIds[key];
       if (item.googleSyncMeta) delete item.googleSyncMeta[key];
     }
+  }
+  function googleEventIsReadOnly(event){
+    return event?.locked===true
+      ||event?.eventType==="fromGmail"
+      ||/automatically created events like this one/i.test(String(event?.description||""));
   }
   function googleEventDate(event, key){
     const value = event[key]?.date || event[key]?.dateTime || "";
@@ -729,6 +738,7 @@
       pullResult=pullResult||await importGoogleCalendarEvents({duringSync:true,throwOnError:true});
       tasksResult=tasksResult||await importGoogleTasks({silent:true});
       let conflictCount=pullResult.conflictCount+googlePendingConflictCount;
+      let readOnlyEventCount=0;
       let repairedDateRange=false;
       googlePendingConflictCount=0;
       const standaloneEntries=new Map();
@@ -805,6 +815,23 @@
             const remoteTime = Date.parse(remote.updated||"") || 0;
             const previousRemoteTime = Date.parse(previous?.googleUpdatedAt||"") || 0;
             const localChanged = !previous || Number(entry.item.updatedAt||0) > Number(previous.localUpdatedAt||0);
+            if (googleEventIsReadOnly(remote)){
+              if (localChanged) readOnlyEventCount++;
+              entry.item.googleEventIds[key]=remote.id;
+              entry.item.googleSyncMeta[key]={
+                googleUpdatedAt:remote.updated||previous?.googleUpdatedAt||new Date().toISOString(),
+                localUpdatedAt:Number(entry.item.updatedAt)||Number(previous?.localUpdatedAt)||Date.now(),
+                readOnly:true
+              };
+              if (linkedKey&&linkedKey!==key){
+                delete entry.item.googleEventIds[linkedKey];
+                delete entry.item.googleSyncMeta[linkedKey];
+              }
+              if (entry.project&&state.folderLazy) saveGoogleState();
+              completed++;
+              updateGoogleCalendarStatus(`Synced ${completed} of ${total} calendar operations`,{completed,total});
+              continue;
+            }
             const remoteChanged = !!previous && remoteTime > previousRemoteTime;
             if (localChanged&&remoteChanged) conflictCount++;
             if (remoteChanged && (!localChanged || remoteTime >= Number(entry.item.updatedAt||0))){
@@ -842,6 +869,7 @@
       if (pullResult.importedCount) summaryParts.push(`imported ${pullResult.importedCount} change${pullResult.importedCount===1?"":"s"}`);
       if (tasksResult.importedCount) summaryParts.push(`imported ${tasksResult.importedCount} Google Task${tasksResult.importedCount===1?"":"s"}`);
       if (conflictCount) summaryParts.push(`resolved ${conflictCount} conflict${conflictCount===1?"":"s"} by keeping the newest update`);
+      if (readOnlyEventCount) summaryParts.push(`left ${readOnlyEventCount} Google-owned read-only event${readOnlyEventCount===1?"":"s"} unchanged`);
       const lastSync = `Last synced ${new Date(state.googleLastSyncAt).toLocaleString()}`;
       document.querySelectorAll("[data-integration-last-sync]").forEach(element=>{ element.textContent = lastSync; });
       updateGoogleCalendarStatus(summaryParts.join(" · "), null);
